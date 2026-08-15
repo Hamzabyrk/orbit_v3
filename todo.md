@@ -55,6 +55,13 @@
 - [x] Ortak kategori düzenini tüm çalışma alanlarına uygulamak.
 - [x] Finans, CRM ve muhasebe bölümleri arasındaki geçişlerde menü tutarlılığını doğrulamak.
 
+# Sade Müşteri Deneyimi ve Detay Çekmecesi
+
+- [x] Müşteri kartlarındaki teknik terimleri anlaşılır kullanıcı diliyle değiştirmek.
+- [x] Müşterinin finansal, görüşme ve aktivite bağlamını gösteren detay çekmecesini uygulamak.
+- [x] Detay çekmecesinden yeni görüşme planlama ve ilgili kayıtlara yönlendirme akışlarını eklemek.
+- [x] Sadeleştirilmiş müşteri deneyimini masaüstü/mobil görünümde doğrulayıp güncellemeyi teslim etmek.
+
 # MoneyFlow Demo Genişletme Kontrol Listesi
 
 - [x] CRM referansından alınabilecek arama, filtre, kart/liste ve eylem kalıplarını değerlendirmek.
