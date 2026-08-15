@@ -16,7 +16,7 @@ type Sale = { id: string; number: string; customerId: string; title: string; amo
 type FinanceData = { customers: Customer[]; suppliers: Supplier[]; invoices: Invoice[]; expenses: Expense[]; bankAccounts: BankAccount[]; bankTransactions: BankTransaction[]; sales: Sale[] };
 type FinanceSection = "Bankalar" | "Satışlar" | "Raporlar";
 type AccountingSection = "Muhasebe" | "Hesap Planı" | "Arşiv" | "Ayarlar";
-type MainSection = "Dashboard" | "Gün Planı" | "Müşteriler" | "Faturalar" | "Giderler" | "Tedarikçiler" | "Randevular";
+type MainSection = "Dashboard" | "Gün Planı" | "Otomasyonlar" | "ERP" | "Belgeler" | "Müşteriler" | "Faturalar" | "Giderler" | "Tedarikçiler" | "Randevular";
 
 export function FinanceWorkspace({ data, initialSection, onMainNavigate, onAccountingNavigate, onMatch, onCreateSale, onCollectSale, onLogout }: { data: FinanceData; initialSection: FinanceSection; onMainNavigate: (section: MainSection) => void; onAccountingNavigate: (section: AccountingSection) => void; onMatch: (transaction: BankTransaction) => void; onCreateSale: (sale: Sale) => void; onCollectSale: (sale: Sale) => void; onLogout: () => void }) {
   const [active, setActive] = useState<FinanceSection>(initialSection);

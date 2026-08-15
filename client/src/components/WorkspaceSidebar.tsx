@@ -1,6 +1,6 @@
 /* MoneyFlow style reminder: this shared navigation preserves one calm, grouped finance workspace across all modules; #2563EB is reserved for the active route and primary brand mark. */
 import type { LucideIcon } from "lucide-react";
-import { Archive, BarChart3, Bell, Building2, Calculator, CalendarDays, FileChartColumn, FileText, FolderOpen, Landmark, LayoutDashboard, LogOut, ReceiptText, Settings, ShoppingCart, Users, X } from "lucide-react";
+import { Archive, BarChart3, Bell, Boxes, Building2, Calculator, CalendarDays, FileChartColumn, FileText, FolderOpen, Landmark, LayoutDashboard, LogOut, ReceiptText, Settings, ShoppingCart, Users, Workflow, X } from "lucide-react";
 
 type NavItem = { label: string; icon: LucideIcon };
 
@@ -8,6 +8,9 @@ const primaryNavigation: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard },
   { label: "Gün Planı", icon: CalendarDays },
   { label: "Raporlar", icon: BarChart3 },
+  { label: "Otomasyonlar", icon: Workflow },
+  { label: "ERP", icon: Boxes },
+  { label: "Belgeler", icon: FileText },
 ];
 const financeNavigation: NavItem[] = [
   { label: "Giderler", icon: ReceiptText },

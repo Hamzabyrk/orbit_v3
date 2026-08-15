@@ -20,7 +20,7 @@ type ArchiveItem = { id: string; type: "Fatura" | "Gider" | "Satış" | "Banka";
 type AccountingData = { customers: Customer[]; suppliers: Supplier[]; invoices: Invoice[]; expenses: Expense[]; bankAccounts: BankAccount[]; bankTransactions: BankTransaction[]; journalEntries: JournalEntry[]; chartAccounts: ChartAccount[]; archiveItems: ArchiveItem[]; settings: CompanySettings };
 type AccountingSection = "Muhasebe" | "Hesap Planı" | "Arşiv" | "Ayarlar";
 type FinanceSection = "Bankalar" | "Satışlar" | "Raporlar";
-type MainSection = "Dashboard" | "Gün Planı" | "Müşteriler" | "Faturalar" | "Giderler" | "Tedarikçiler" | "Randevular";
+type MainSection = "Dashboard" | "Gün Planı" | "Otomasyonlar" | "ERP" | "Belgeler" | "Müşteriler" | "Faturalar" | "Giderler" | "Tedarikçiler" | "Randevular";
 
 export function AccountingWorkspace({ data, initialSection, onMainNavigate, onFinanceNavigate, onCreateJournal, onCreateAccount, onRestoreArchive, onSaveSettings, onReset, onLogout }: { data: AccountingData; initialSection: AccountingSection; onMainNavigate: (section: MainSection) => void; onFinanceNavigate: (section: FinanceSection) => void; onCreateJournal: (entry: JournalEntry) => void; onCreateAccount: (account: ChartAccount) => void; onRestoreArchive: (item: ArchiveItem) => void; onSaveSettings: (settings: CompanySettings) => void; onReset: () => void; onLogout: () => void }) {
   const [active, setActive] = useState<AccountingSection>(initialSection);

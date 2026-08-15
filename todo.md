@@ -68,6 +68,18 @@
 - [x] Detay çekmecesinde müşteri notunu düzenleme, kaydetme ve zaman damgalı geçmiş deneyimini uygulamak.
 - [x] Notun yerel veri akışına, müşteri kartına ve aktivite günlüğüne yansımasını doğrulamak.
 
+# Otomasyonlar, ERP ve Belgeler Çalışma Alanları
+
+- [x] Profesyonel otomasyon, ürün/hizmet yönetimi ve belge arşivi kalıplarını araştırmak; kalıcı dosya gereksinimini netleştirmek.
+- [x] Otomasyon kuralı, ürün/hizmet ve belge veri modellerini merkezi MoneyFlow yapısına eklemek.
+- [x] Raporlar altında Otomasyonlar, ERP ve Belgeler bağlantılarını; ekranlarını ve temel CRUD akışlarını uygulamak.
+- [x] Belgeler için uygun kalıcı depolama yaklaşımını etkinleştirip yükleme ve erişim akışını bağlamak.
+- [x] Yeni çalışma alanlarını masaüstü/mobil görünümde ve uçtan uca doğrulayıp güncellemeyi teslim etmek.
+- [x] Otomasyon kuralları için silme eylemi ve kullanıcı geri bildirimi eklemek.
+- [x] ERP ürün/hizmet kayıtları için silme eylemi ve kullanıcı geri bildirimi eklemek.
+- [x] Belgelerde dosya seçme alanını görünür, klavye erişilebilir ve otomasyonla doğrulanabilir hale getirmek.
+- [x] Yeni çalışma alanlarının masaüstü ve mobil görünümlerini yeniden doğrulamak.
+
 # MoneyFlow Demo Genişletme Kontrol Listesi
 
 - [x] CRM referansından alınabilecek arama, filtre, kart/liste ve eylem kalıplarını değerlendirmek.
