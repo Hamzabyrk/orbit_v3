@@ -167,3 +167,12 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Karşılama animasyonunu prefers-reduced-motion ve mobil görünümle uyumlu hale getirmek.
 - [x] Tema değişimi ve karşılama alanını masaüstü/mobilde doğrulamak. 375px mobil ölçümünde Dashboard, Otomasyonlar ve Faturalar: overflow=false; karşılama metni ve içerik genişliği taşmadı.
 - [x] Güncel değişiklikleri checkpoint ve GitHub aktarımıyla teslim etmek.
+
+# ORBIT Girdap Logo Animasyonu
+
+- [x] Mevcut logo kullanımını ve login/dashboard animasyon katmanlarını incelemek.
+- [x] ORBIT işaretini üç çizgi katmanı olarak animasyonlanabilir SVG/React bileşenine dönüştürmek.
+- [x] Çizgileri merkeze döndüren, tek noktada birleştiren ve sıçramayla eski forma döndüren döngüyü uygulamak.
+- [x] Aynı girdap animasyonunu login logosuna ve dashboard karşılama alanına bağlamak.
+- [x] Animasyonu prefers-reduced-motion, mobil ve mevcut paletlerle doğrulamak. Login DOM: 6 çizgi / 2 logo; dashboard DOM: 3 çizgi; mobil 375px overflow=false.
+- [x] Güncel animasyon sürümünü checkpoint ve GitHub aktarımıyla teslim etmek.

@@ -237,3 +237,19 @@ button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: poin
 :root[data-palette="obsidian"] .dashboard-shell [class*="border-slate-100"] { border-color: #303b52 !important; }
 :root[data-palette="obsidian"] .dashboard-canvas [class*="text-slate-400"],
 :root[data-palette="obsidian"] .dashboard-shell [class*="text-slate-400"] { color: #9aa8bf !important; }
+
+/* ORBIT logo line swirl: contract to one point, then spring back into the mark. */
+.orbit-mark { display: block; overflow: visible; }
+.orbit-mark-line { transform-box: fill-box; transform-origin: center; animation: orbit-line-swirl 3.2s cubic-bezier(.22,.8,.26,1) infinite; }
+.orbit-mark-line-two { animation-delay: -0.08s; }
+.orbit-mark-line-three { animation-delay: -0.16s; }
+@keyframes orbit-line-swirl {
+  0%, 19% { opacity: 1; transform: rotate(0deg) scale(1); }
+  40% { opacity: .92; transform: rotate(145deg) scale(.52); }
+  52% { opacity: 1; transform: rotate(360deg) scale(.08); }
+  62% { opacity: .86; transform: rotate(505deg) scale(1.17); }
+  73% { opacity: 1; transform: rotate(690deg) scale(.96); }
+  86%, 100% { opacity: 1; transform: rotate(720deg) scale(1); }
+}
+.orbit-welcome-pulse .orbit-mark { animation: orbit-line-swirl 3.2s cubic-bezier(.22,.8,.26,1) infinite; }
+@media (prefers-reduced-motion: reduce) { .orbit-mark-line, .orbit-welcome-pulse .orbit-mark { animation: none; } }
