@@ -23,6 +23,12 @@
 - [x] Görevleri yerel saklamaya bağlamak; navigasyon ve günlük özet metrikleriyle ilişkilendirmek.
 - [x] Gün Planı akışlarını ve masaüstü/mobil görünümünü doğrulayıp güncellemeyi teslim etmek.
 
+# Sol Navigasyon Gruplama
+
+- [x] Hedef navigasyon kategorilerini ve mevcut ekran geçişlerini doğrulamak.
+- [x] Dashboard, Gün Planı ve Raporlar üst seviye; Finans ve CRM grupları ile yönetim bölümünü uygulamak.
+- [x] Sıralama, aktif durumlar ve mobil navigasyon geçişlerini doğrulayıp güncellemeyi teslim etmek.
+
 # MoneyFlow Demo Genişletme Kontrol Listesi
 
 - [x] CRM referansından alınabilecek arama, filtre, kart/liste ve eylem kalıplarını değerlendirmek.

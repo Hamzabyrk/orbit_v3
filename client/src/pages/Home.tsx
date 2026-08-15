@@ -21,6 +21,7 @@ import {
   EyeOff,
   FileChartColumn,
   FileText,
+  FolderOpen,
   Landmark,
   LayoutDashboard,
   LockKeyhole,
@@ -94,19 +95,26 @@ type DemoData = { customers: Customer[]; suppliers: Supplier[]; invoices: Invoic
 type NavItem = { label: string; icon: typeof LayoutDashboard; count?: string };
 type DeleteTarget = { kind: "customer" | "invoice" | "expense" | "supplier"; id: string; label: string } | null;
 
-const navigation: NavItem[] = [
+const primaryNavigation: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard },
   { label: "Gün Planı", icon: CalendarDays },
-  { label: "Faturalar", icon: FileText },
-  { label: "Giderler", icon: ReceiptText },
-  { label: "Müşteriler", icon: Users },
-  { label: "Tedarikçiler", icon: Building2 },
-  { label: "Bankalar", icon: Banknote },
-  { label: "Satışlar", icon: ShoppingCart },
   { label: "Raporlar", icon: BarChart3 },
 ];
-const accountingNavigation: NavItem[] = [
-  { label: "Muhasebe", icon: Calculator }, { label: "Hesap Planı", icon: FileChartColumn }, { label: "Arşiv", icon: Archive }, { label: "Ayarlar", icon: Settings },
+const financeNavigation: NavItem[] = [
+  { label: "Giderler", icon: ReceiptText },
+  { label: "Satışlar", icon: ShoppingCart },
+  { label: "Faturalar", icon: FileText },
+  { label: "Bankalar", icon: Banknote },
+  { label: "Muhasebe", icon: Calculator },
+  { label: "Hesap Planı", icon: FileChartColumn },
+];
+const crmNavigation: NavItem[] = [
+  { label: "Müşteriler", icon: Users },
+  { label: "Tedarikçiler", icon: Building2 },
+];
+const managementNavigation: NavItem[] = [
+  { label: "Arşiv", icon: Archive },
+  { label: "Ayarlar", icon: Settings },
 ];
 
 const statusClass: Record<CustomerStatus | SupplierStatus | InvoiceStatus | ExpenseStatus, string> = {
@@ -251,7 +259,8 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
 function Sidebar({ active, invoiceCount, expenseCount, plannerCount = 0, onNavigate, onLogout, mobileOpen, setMobileOpen }: { active: AppSection; invoiceCount: number; expenseCount: number; plannerCount?: number; onNavigate: (name: string) => void; onLogout: () => void; mobileOpen: boolean; setMobileOpen: (open: boolean) => void }) {
   const navLink = (item: NavItem) => { const selected = active === item.label || (active === "Fatura Önizleme" && item.label === "Faturalar"); const Icon = item.icon; const count = item.label === "Faturalar" ? String(invoiceCount) : item.label === "Giderler" ? String(expenseCount) : item.label === "Gün Planı" ? String(plannerCount) : item.count; return <button key={item.label} onClick={() => { onNavigate(item.label); setMobileOpen(false); }} className={`relative flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-[13px] font-semibold transition ${selected ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>{selected && <span className="absolute -left-[17px] h-6 w-1 rounded-r bg-blue-600" />}<Icon className={`h-[17px] w-[17px] ${selected ? "text-blue-600" : "text-slate-400"}`} /><span className="flex-1">{item.label}</span>{count && <span className={`grid min-w-5 place-items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${selected ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>{count}</span>}</button>; };
-  return <>{mobileOpen && <button aria-label="Menüyü kapat" onClick={() => setMobileOpen(false)} className="fixed inset-0 z-30 bg-slate-900/25 lg:hidden" />}<aside className={`dashboard-sidebar fixed inset-y-0 left-0 z-40 flex w-[252px] flex-col border-r border-slate-200 bg-white px-4 py-5 shadow-xl transition-transform lg:static lg:shrink-0 lg:translate-x-0 lg:shadow-none ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}><div className="mb-8 flex items-center justify-between px-1"><BrandMark compact /><button onClick={() => setMobileOpen(false)} className="grid h-8 w-8 place-items-center rounded-md text-slate-400 hover:bg-slate-100 lg:hidden"><X className="h-4 w-4" /></button></div><nav className="space-y-1">{navigation.map(navLink)}</nav><div className="my-5 border-t border-slate-100" /><nav className="space-y-1">{accountingNavigation.map(navLink)}</nav><div className="mt-auto border-t border-slate-100 pt-4"><button onClick={() => toast.info("Bildirim Merkezi", { description: "Ödeme ve vade hareketleri aktivite günlüğünde görünür." })} className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-[13px] font-semibold text-slate-600 hover:bg-slate-50"><Bell className="h-[17px] w-[17px] text-slate-400" />Bildirimler</button><button onClick={onLogout} className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-[13px] font-semibold text-slate-600 hover:bg-slate-50"><LogOut className="h-[17px] w-[17px] text-slate-400" />Çıkış Yap</button></div></aside></>;
+  const groupHeading = (label: string) => <div className="mb-2 flex items-center gap-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.12em] text-slate-400"><FolderOpen className="h-3.5 w-3.5" />{label}</div>;
+  return <>{mobileOpen && <button aria-label="Menüyü kapat" onClick={() => setMobileOpen(false)} className="fixed inset-0 z-30 bg-slate-900/25 lg:hidden" />}<aside className={`dashboard-sidebar fixed inset-y-0 left-0 z-40 flex w-[252px] flex-col border-r border-slate-200 bg-white px-4 py-5 shadow-xl transition-transform lg:static lg:shrink-0 lg:translate-x-0 lg:shadow-none ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}><div className="mb-8 flex items-center justify-between px-1"><BrandMark compact /><button onClick={() => setMobileOpen(false)} className="grid h-8 w-8 place-items-center rounded-md text-slate-400 hover:bg-slate-100 lg:hidden"><X className="h-4 w-4" /></button></div><nav className="space-y-1">{primaryNavigation.map(navLink)}</nav><section className="mt-6">{groupHeading("Finans")}<nav className="space-y-1">{financeNavigation.map(navLink)}</nav></section><section className="mt-6">{groupHeading("CRM")}<nav className="space-y-1">{crmNavigation.map(navLink)}</nav></section><div className="my-5 border-t border-slate-100" /><nav className="space-y-1">{managementNavigation.map(navLink)}<button onClick={() => toast.info("Bildirim Merkezi", { description: "Ödeme ve vade hareketleri aktivite günlüğünde görünür." })} className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-[13px] font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"><Bell className="h-[17px] w-[17px] text-slate-400" />Bildirimler</button></nav><div className="mt-auto border-t border-slate-100 pt-4"><button onClick={onLogout} className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-[13px] font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"><LogOut className="h-[17px] w-[17px] text-slate-400" />Çıkış Yap</button></div></aside></>;
 }
 
 function MetricCard({ label, amount, detail, icon: Icon, tone }: { label: string; amount: string; detail: string; icon: typeof TrendingUp; tone: "green" | "rose" | "amber" | "blue" }) { const tones = { green: "bg-emerald-50 text-emerald-600", rose: "bg-rose-50 text-rose-600", amber: "bg-amber-50 text-amber-600", blue: "bg-blue-50 text-blue-600" }; return <section className="metric-card rounded-xl border border-slate-200 bg-white p-4 shadow-[0_3px_12px_rgba(15,23,42,0.03)]"><div className="flex items-start justify-between"><p className="text-[12px] font-semibold text-slate-500">{label}</p><span className={`grid h-8 w-8 place-items-center rounded-lg ${tones[tone]}`}><Icon className="h-4 w-4" /></span></div><p className="mt-4 font-display text-[21px] font-extrabold tracking-[-0.04em] text-slate-900 tabular-nums">{amount}</p><p className="mt-1.5 text-[11px] font-medium text-slate-400">{detail}</p></section>; }
