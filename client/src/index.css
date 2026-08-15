@@ -31,21 +31,21 @@
 }
 
 :root {
-  --radius: 0.65rem;
-  --background: #ffffff;
-  --foreground: #0f172a;
+  --radius: 0.85rem;
+  --background: #f7f9fc;
+  --foreground: #172033;
   --card: #ffffff;
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #2563eb;
+  --primary: #1e293b;
   --primary-foreground: #ffffff;
-  --secondary: #f8fafc;
+  --secondary: #f1f5f9;
   --secondary-foreground: #334155;
   --muted: #f8fafc;
   --muted-foreground: #64748b;
-  --accent: #eff6ff;
-  --accent-foreground: #1d4ed8;
+  --accent: #e0f2fe;
+  --accent-foreground: #0f4c6f;
   --destructive: #e11d48;
   --destructive-foreground: #ffffff;
   --border: #e2e8f0;
@@ -55,7 +55,7 @@
 
 * { border-color: var(--border); }
 html { min-width: 320px; background: #f8fafc; }
-body { margin: 0; min-width: 320px; background: var(--background); color: var(--foreground); font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; }
+body { margin: 0; min-width: 320px; background: var(--background); color: var(--foreground); font-family: "Plus Jakarta Sans", "DM Sans", ui-sans-serif, system-ui, sans-serif; }
 button, input { font: inherit; }
 button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: pointer; }
 .font-display { font-family: "Manrope", ui-sans-serif, system-ui, sans-serif; }
@@ -67,9 +67,21 @@ button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: poin
   box-shadow: inset 0 1px 0 rgba(226, 232, 240, 0.72);
 }
 
-.dashboard-canvas {
-  background: #f8fafc;
-}
+.dashboard-canvas { background: linear-gradient(180deg, #f7f9fc 0%, #fbfdff 360px, #f7f9fc 100%); }
+
+.dashboard-shell { background: #f7f9fc; }
+.dashboard-shell > main > header { border-color: rgba(148, 163, 184, .19) !important; background: rgba(255,255,255,.78) !important; box-shadow: 0 1px 0 rgba(15,23,42,.025); backdrop-filter: blur(18px); }
+.dashboard-sidebar { width: 248px; border-color: rgba(148,163,184,.18) !important; background: rgba(255,255,255,.82) !important; box-shadow: 12px 0 36px rgba(15,23,42,.025); backdrop-filter: blur(20px); scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+.dashboard-sidebar::-webkit-scrollbar { width: 6px; }
+.dashboard-sidebar::-webkit-scrollbar-thumb { border-radius: 999px; background: #cbd5e1; }
+.orbit-nav-mark { filter: brightness(0) invert(1); }
+.dashboard-canvas :is(.metric-card, .customer-card, .toolbar-panel, .invoice-paper, .rounded-xl.border.bg-white) { border-color: rgba(148,163,184,.18) !important; background: rgba(255,255,255,.82) !important; box-shadow: 0 9px 24px rgba(15,23,42,.035) !important; }
+.dashboard-canvas .rounded-xl.border.bg-slate-50, .dashboard-canvas .bg-slate-50 { background-color: rgba(248,250,252,.74) !important; }
+.dashboard-canvas button.bg-blue-600, .dashboard-shell button.bg-blue-600 { background-color: #1e293b !important; box-shadow: 0 7px 16px rgba(15,23,42,.12) !important; }
+.dashboard-canvas button.bg-blue-600:hover, .dashboard-shell button.bg-blue-600:hover { background-color: #0f172a !important; }
+.dashboard-canvas input, .dashboard-canvas select, .dashboard-canvas textarea { border-color: rgba(148,163,184,.25); background: rgba(255,255,255,.88); }
+.dashboard-canvas input:focus, .dashboard-canvas textarea:focus { border-color: #38bdf8; box-shadow: 0 0 0 4px rgba(56,189,248,.10); }
+.dashboard-canvas table thead { background: rgba(248,250,252,.82); }
 
 .login-card { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.045), 0 8px 26px rgba(15, 23, 42, 0.045); }
 .login-lockup { position: relative; }

@@ -148,3 +148,12 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Demo giriş, şifre görünürlüğü, hatırlama seçeneği ve yönlendirme akışlarını korumak.
 - [x] Yeni giriş ekranını masaüstü ve mobil görünümde doğrulamak.
 - [x] Güncel tasarımı checkpoint ve GitHub aktarımıyla teslim etmek.
+
+# ORBIT Dashboard Tasarım Sistemi
+
+- [x] Referans görseldeki ferah ürün arayüzü ilkelerini MoneyFlow bilgi mimarisine uyarlamak.
+- [x] ORBIT renk, tipografi, yüzey, kenarlık, yoğunluk ve etkileşim tokenlarını ortak stillerde tanımlamak.
+- [x] Sol menü, üst çubuk, ana dashboard ve çalışma alanı kabuklarını ORBIT tasarım diline uyarlamak.
+- [x] Kart, tablo, filtre ve operasyon ekranlarını daha rahat okunur yüzeylerle yenilemek.
+- [x] Masaüstü ve mobil görünümde ana navigasyon, dashboard ve örnek çalışma alanlarını doğrulamak.
+- [x] Güncel tasarımı checkpoint ve GitHub aktarımıyla teslim etmek.
