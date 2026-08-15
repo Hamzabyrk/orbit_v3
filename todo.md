@@ -185,3 +185,14 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Login ve dashboard logolarındaki yeni animasyonu görsel olarak doğrulamak. Dashboard DOM: 6 kanat, orbit-wing-path 5.6s, orbit-core-pop 5.6s.
 - [x] Güncellenen animasyonu prefers-reduced-motion ve 375px mobil görünümde doğrulamak. Mobil: width=375, overflow=false, loginWings=6, welcomeWings=6; reduced-motion: animation=none, duration=0s.
 - [x] Yeni referans animasyon sürümünü checkpoint ve GitHub aktarımıyla teslim etmek.
+
+# ORBIT Animasyon Görsel Düzeltme
+
+- [x] Referans videodan başlangıç, birleşme ve geri dönüş karelerini yeniden çıkarmak.
+- [x] Mevcut OrbitMark görsel formunu referansla karşılaştırıp bozulan geometriyi düzeltmek.
+- [x] Login ve dashboard animasyonunu yeniden uygulamak.
+- [x] Login ve dashboard için farklı döngü fazlarında görsel ekran görüntüleri almak ve karşılaştırmak.
+- [x] 375px mobil ve prefers-reduced-motion davranışını tekrar doğrulamak.
+- [x] Düzeltmeyi yeni checkpoint ve GitHub aktarımıyla teslim etmek.
+- [x] Son ORBIT görsel düzeltmesinden sonra 375px mobil viewportta login ve dashboard animasyonlarını yeniden doğrulamak.
+- [x] Son ORBIT görsel düzeltmesinden sonra prefers-reduced-motion modunda login ve dashboard logolarını yeniden doğrulamak.

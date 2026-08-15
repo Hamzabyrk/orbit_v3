@@ -7,3 +7,7 @@ Hareket saat yönünde başlıyor. Dış uçlar merkeze çekilirken iç kısıml
 Toplam döngü yaklaşık 5–6 saniye. Merkeze akışta hızlı orta geçiş ve yumuşak başlangıç/bitiş; geri dönüşte ease-out-back karakteri var. Uygulama için altı ayrı SVG path, path morphing için eşlenmiş path geometrileri ve gerektiğinde stroke-dasharray/stroke-dashoffset kullanılmalı. Önceki üç çizginin aynı anda scale edilmesi bu referansın asıl deformasyon, gecikme, ince çizgi ve overshoot özelliklerini taşımıyordu.
 
 Bu nedenle yeni uygulama altı kanat path’ini başlangıç formundan merkez noktasına, ince stroke fazına ve overshoot formuna aşamalı olarak dönüştürmelidir. `prefers-reduced-motion` durumunda başlangıç logosu statik gösterilmelidir.
+
+## Kare temas sayfası doğrulaması
+
+2 fps kare temasında ilk fazlarda ORBIT’in özgün dolu marka formu korunuyor. Orta geçişte logo önce incelip gevşek girdap kavislerine dönüşüyor; sonra yaklaşık iki kare boyunca tek koyu noktaya iniyor. Noktadan hemen sonra küçük yıldız/çekirdek parlaması görülüyor. Ardından altı ince, açık uçlu kavis dışarı doğru genişleyip kısa süreliğine hedef formun dışına taşıyor; son fazda dolu ORBIT işareti geri geliyor. Dolayısıyla mevcut uygulama yalnızca doldurulmuş kanat path’lerini ölçeklemek yerine özgün logo görseli + ince kavis fazı + çekirdek + özgün logo geri dönüşü şeklinde katmanlı bir crossfade/motion modeline yaklaşmalıdır.

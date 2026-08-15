@@ -1,17 +1,24 @@
 import type { SVGProps } from "react";
 
-const centerPath = "M50 50 C50 50 50 50 50 50 C50 50 50 50 50 50 C50 50 50 50 50 50 Z";
+const LOGO_ASSET = "/manus-storage/orbit-video-transparent-icon_f536ab39.png";
+
+const vortexArcs = [
+  "M50 11 C70 11 86 27 88 47",
+  "M89 51 C89 71 74 87 54 89",
+  "M50 89 C30 89 14 74 12 54",
+  "M11 50 C11 30 26 14 46 12",
+  "M68 19 C82 29 88 42 86 57",
+  "M32 81 C18 71 12 58 14 43",
+];
 
 export function OrbitMark({ className = "", ...props }: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 100 100" aria-label="ORBIT" role="img" className={`orbit-mark ${className}`} {...props}>
-      <g className="orbit-mark-wing orbit-mark-wing-one"><path d="M50 50 C57 22 79 12 90 22 C78 27 69 36 64 50 C60 49 55 49 50 50 Z" /></g>
-      <g className="orbit-mark-wing orbit-mark-wing-two"><path d="M50 50 C78 43 92 57 91 73 C84 65 74 59 61 58 C59 55 55 52 50 50 Z" /></g>
-      <g className="orbit-mark-wing orbit-mark-wing-three"><path d="M50 50 C65 75 56 94 40 94 C47 86 50 75 48 63 C49 58 50 54 50 50 Z" /></g>
-      <g className="orbit-mark-wing orbit-mark-wing-four"><path d="M50 50 C42 78 21 88 10 78 C22 73 30 64 36 50 C40 50 45 50 50 50 Z" /></g>
-      <g className="orbit-mark-wing orbit-mark-wing-five"><path d="M50 50 C23 57 8 44 10 28 C17 36 27 41 39 42 C43 45 47 48 50 50 Z" /></g>
-      <g className="orbit-mark-wing orbit-mark-wing-six"><path d="M50 50 C35 24 45 6 61 8 C55 15 52 26 53 38 C52 43 51 47 50 50 Z" /></g>
-      <circle className="orbit-mark-core" cx="50" cy="50" r="3.4" />
+      <image className="orbit-mark-original" href={LOGO_ASSET} x="8" y="8" width="84" height="84" preserveAspectRatio="xMidYMid meet" />
+      <g className="orbit-mark-vortex" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="3.4">
+        {vortexArcs.map((path, index) => <path key={path} className={`orbit-mark-arc orbit-mark-arc-${index + 1}`} d={path} />)}
+      </g>
+      <circle className="orbit-mark-core" cx="50" cy="50" r="3.7" />
     </svg>
   );
 }
