@@ -66,4 +66,12 @@ Ayarlar ekranında şirket unvanı güncellendi ve Kaydet eylemi, “Şirket, d�
 
 Demo sıfırlaması sonrasında Ayarlar taslağı da başlangıç şirket unvanına geri döndü; manuel fiş, test hesabı ve geri yükleme denemesi temiz başlangıç setinden çıkarıldı. Ayarlardan Bankalar ekranına ve Bankalardan Muhasebe ekranına doğrudan geçişte banka kartları ile 12 dengeli günlük fiş aynı kaynak verileriyle görünmeye devam etti.
 
+Kategorili Ayarlar paneli, altı görünür tercih grubuyla başarıyla açıldı. Şirket panelinde kurumsal unvan, vergi, telefon, finans e-postası, web sitesi, mali dönem ve adres alanları; Bildirimler panelinde e-posta, fatura, gider, ödeme, haftalık ve aylık rapor tercihlerinin ayrı anahtarları doğrulandı.
+
+Haftalık Raporlar anahtarı etkinleştirildi ve Bildirimler panelindeki Kaydet eylemi, tercihlerin yerel çalışma alanına işlendiğini belirten başarı bildirimi verdi. Bu test tercihi teslim öncesi başlangıç değerine döndürülecektir.
+
+Sistem panelinde para birimi, tarih biçimi, varsayılan KDV, fatura ön eki, vade, ana tahsilat hesabı ve banka eşleştirme/tablo görünümü anahtarları doğrulandı. Veri Yönetimi panelinde dışa aktarma biçimi ve arşiv saklama süresi seçimleri, dışa aktarma geri bildirimi ve teyitli demo sıfırlama eyleminden ayrı biçimde sunuldu.
+
+Veri Yönetimi ekranındaki dışa aktarma eylemi, CSV biçiminin demo ortamında hazırlandığını bildirdi ve seçili tercihleri kaydetti. Ardından teyit penceresi üzerinden sıfırlama tamamlandı; uygulama başlangıç demo verilerine ve başlangıç ayar tercihlerine döndü.
+
 Nora Tasarım Stüdyosu için ₺28.000,00 tutarlı, %65 olasılıklı örnek Teklif kaydı formdan oluşturuldu. Yeni MFS-2026-014 kaydı listeye eklendi; satış kayıt adedi dörtten beşe, ağırlıklı açık fırsat tutarı ₺50.400,00’dan ₺68.600,00’a ve dönüşüm oranı %50’den %40’a güncellendi. Teslimden önce test verileri başlangıç durumuna geri yüklenecektir.

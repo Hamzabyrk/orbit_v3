@@ -41,3 +41,10 @@
 - [x] Arşiv modülünde belge türleri, durum filtreleri ve kayıt kaynaklarına geri dönüş akışını uygulamak.
 - [x] Ayarlar modülünde şirket, dönem, belge tercihleri ve veri sıfırlama kontrollerini uygulamak.
 - [x] Yeni modüllerin fatura, gider, satış ve banka verileriyle bağlamı koruduğunu doğrulamak.
+
+# MoneyFlow Ayarlar Deneyimi Kontrol Listesi
+
+- [x] Referans MoneyFlow ayarlar yapısındaki görünür tercih kategorilerini incelemek.
+- [x] Şirket, belge, tahsilat, bildirim ve ekip tercihlerinin mevcut yerel veri modeline etkisini tanımlamak.
+- [x] Kategorili Ayarlar arayüzünü, anahtarlar ve seçim kontrolleriyle uygulamak.
+- [x] Yeni tercihlerin kaydedildiğini, modül bağlamını bozmadığını ve demo sıfırlamayla geri alındığını doğrulamak.

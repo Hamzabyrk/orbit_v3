@@ -61,6 +61,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BankAccountsScreen, ReportsScreen, SalesScreen } from "@/components/FinancialModules";
 import { FinanceWorkspace } from "@/components/FinanceWorkspace";
 import { AccountingWorkspace } from "@/components/AccountingWorkspace";
+import type { CompanySettings } from "@/components/SettingsPanel";
 
 const logoUrl = "/manus-storage/moneyflow-calculator-mark_fbcd5c5c.png";
 const storageKey = "moneyflow-working-demo-v6";
@@ -86,7 +87,6 @@ type JournalEntry = { id: string; number: string; date: string; description: str
 type AccountType = "Varlık" | "Yükümlülük" | "Gelir" | "Gider" | "Özkaynak";
 type ChartAccount = { id: string; code: string; name: string; type: AccountType; group: string; normalBalance: "Borç" | "Alacak"; active: boolean };
 type ArchiveItem = { id: string; type: "Fatura" | "Gider" | "Satış" | "Banka"; reference: string; title: string; date: string; amount: number; reason: string; source: "Faturalar" | "Giderler" | "Satışlar" | "Bankalar"; archived: boolean };
-type CompanySettings = { companyName: string; taxNumber: string; fiscalYear: string; defaultVat: string; invoicePrefix: string; paymentTerm: string; primaryBank: string; email: string };
 type ActivityItem = { id: string; kind: ActivityKind; title: string; description: string; timestamp: string };
 type DemoData = { customers: Customer[]; suppliers: Supplier[]; invoices: Invoice[]; expenses: Expense[]; bankAccounts: BankAccount[]; bankTransactions: BankTransaction[]; sales: Sale[]; journalEntries: JournalEntry[]; chartAccounts: ChartAccount[]; archiveItems: ArchiveItem[]; settings: CompanySettings; activities: ActivityItem[] };
 type NavItem = { label: string; icon: typeof LayoutDashboard; count?: string };
@@ -179,7 +179,7 @@ function initialData(): DemoData {
     { id: "arc-003", type: "Satış", reference: "MFS-2026-002", title: "Kurumsal kimlik yenileme teklifi", date: "2026-04-18", amount: 45000, reason: "Müşteri önceliği değişti, fırsat kapatıldı.", source: "Satışlar", archived: true },
     { id: "arc-004", type: "Banka", reference: "BK-2026-0421", title: "Eski dönem banka hareketi", date: "2026-04-21", amount: 6800, reason: "Eşleştirme ve dönem kontrolü tamamlandı.", source: "Bankalar", archived: false },
   ];
-  const settings: CompanySettings = { companyName: "MoneyFlow Teknoloji A.Ş.", taxNumber: "1234567890", fiscalYear: "2026", defaultVat: "20", invoicePrefix: "MF", paymentTerm: "15 gün", primaryBank: "Tahsilat Hesabı · •••• 4428", email: "muhasebe@moneyflow.com" };
+  const settings: CompanySettings = { companyName: "MoneyFlow Teknoloji A.Ş.", taxNumber: "1234567890", fiscalYear: "2026", defaultVat: "20", invoicePrefix: "MF", paymentTerm: "15 gün", primaryBank: "Tahsilat Hesabı · •••• 4428", email: "muhasebe@moneyflow.com", companyPhone: "+90 212 555 10 42", website: "www.moneyflow.com", address: "Maslak Mah. Finans Cad. No: 18, İstanbul", userName: "Demo Kullanıcı", userEmail: "demo@moneyflow.com", userPhone: "+90 555 123 45 67", emailNotifications: true, invoiceReminders: true, expenseAlerts: true, paymentNotifications: true, weeklyReports: false, monthlyReports: true, currency: "TRY", dateFormat: "DD MMM YYYY", autoMatch: true, compactTables: false, sessionTimeout: "30 dakika", twoFactorDemo: false, newDeviceAlerts: true, exportFormat: "CSV", archiveRetention: "10 yıl" };
   return { customers, suppliers, invoices, expenses, bankAccounts, bankTransactions, sales, journalEntries, chartAccounts, archiveItems, settings, activities: [
     { id: "act-001", kind: "payment", title: "MF-2026-016 ödemesi kaydedildi", description: "Ege Yapı Proje için ₺64.200,00 tahsilat işlendi.", timestamp: "14 Ağu 2026, 15:42" },
     { id: "act-002", kind: "expense", title: "Metro Enerji gideri ödendi", description: "GDR-2026-040 için ₺3.480,00 otomatik ödeme işlendi.", timestamp: "13 Ağu 2026, 09:25" },
@@ -205,7 +205,7 @@ function loadData(): DemoData {
       journalEntries: Array.isArray(parsed.journalEntries) ? parsed.journalEntries : defaults.journalEntries,
       chartAccounts: Array.isArray(parsed.chartAccounts) ? parsed.chartAccounts : defaults.chartAccounts,
       archiveItems: Array.isArray(parsed.archiveItems) ? parsed.archiveItems : defaults.archiveItems,
-      settings: parsed.settings && typeof parsed.settings === "object" ? parsed.settings as CompanySettings : defaults.settings,
+      settings: parsed.settings && typeof parsed.settings === "object" ? { ...defaults.settings, ...parsed.settings as Partial<CompanySettings> } : defaults.settings,
       activities: Array.isArray(parsed.activities) ? parsed.activities : defaults.activities,
     };
   } catch { return defaults; }
