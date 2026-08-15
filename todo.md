@@ -203,7 +203,17 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Giriş karşılama metnini, kartını ve responsive yerleşimini değiştirmeden korumak.
 - [x] Statik logo görünümünü masaüstü ve mobilde doğrulamak; test ve production build çalıştırmak.
 - [x] Değişikliği yeni checkpoint ile teslim etmek.
-- [ ] Statik ORBIT logo değişikliğinden sonra yeni bir checkpoint kaydetmek.
-- [ ] Yeni checkpoint sürümünü doğrulayıp kullanıcıya teslim etmek.
+- [x] Statik ORBIT logo değişikliğinden sonra yeni bir checkpoint kaydetmek.
+- [x] Yeni checkpoint sürümünü doğrulayıp kullanıcıya teslim etmek.
+- [x] Statik ORBIT logo değişikliğinden sonra kaydedilen checkpoint (2269c3cf) bilgisini kullanıcıya kısa bir teslim mesajıyla iletmek.
 - [x] Statik ORBIT logosunun dashboard karşılama alanında masaüstü görünümünü runtime olarak doğrulamak ve kanıtı kaydetmek.
 - [x] Statik ORBIT logosunun dashboard karşılama alanında 375px mobil görünümünü runtime olarak doğrulamak; overflow olmadığını ve karşılama alanının korunduğunu kanıtlamak.
+
+# ORBIT Logo Tutarlılığı ve Yükleme Performansı
+
+- [x] Tüm çalışma alanlarındaki farklı ORBIT logo kullanım noktalarını ortak, doğru marka bileşenine bağlamak.
+- [x] Başlangıç ekranındaki logo varlığını önceden yükleyerek ilk görünümdeki gecikmeyi azaltmak.
+- [x] Login, dashboard ve ortak çalışma alanlarında logo geometrisini masaüstü ve mobilde doğrulamak.
+- [ ] TypeScript, test ve production build doğrulamasından sonra güncel kodu GitHub `main` dalına aktarmak.
+- [x] ORBIT logo birleştirme değişikliğinden sonra 375px mobil viewportta login ekranı logosunu runtime screenshot ile doğrulamak.
+- [x] ORBIT logo birleştirme değişikliğinden sonra 375px mobil viewportta dashboard karşılama alanı ve ortak yan menü logosunu runtime olarak doğrulamak; logo oranı ve overflow kanıtını kaydetmek. Mobil dashboard runtime görüntüsünde karşılama logosu kare ve taşmasız göründü.

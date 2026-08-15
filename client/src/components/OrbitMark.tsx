@@ -1,11 +1,24 @@
-import type { SVGProps } from "react";
+import type { ImgHTMLAttributes } from "react";
 
 const LOGO_ASSET = "/manus-storage/orbit-video-transparent-icon_f536ab39.png";
 
-export function OrbitMark({ className = "", ...props }: SVGProps<SVGSVGElement>) {
+type OrbitMarkProps = Omit<ImgHTMLAttributes<HTMLImageElement>, "alt" | "src"> & {
+  inverted?: boolean;
+  priority?: boolean;
+};
+
+export function OrbitMark({ className = "", inverted = false, priority = false, ...props }: OrbitMarkProps) {
   return (
-    <svg viewBox="0 0 100 100" aria-label="ORBIT" role="img" className={`orbit-mark ${className}`} {...props}>
-      <image className="orbit-mark-original" href={LOGO_ASSET} x="8" y="8" width="84" height="84" preserveAspectRatio="xMidYMid meet" />
-    </svg>
+    <img
+      src={LOGO_ASSET}
+      alt="ORBIT marka işareti"
+      width={100}
+      height={100}
+      loading="eager"
+      decoding="sync"
+      fetchPriority={priority ? "high" : "auto"}
+      className={`orbit-mark${inverted ? " orbit-mark--inverted" : ""} ${className}`}
+      {...props}
+    />
   );
 }

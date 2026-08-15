@@ -238,13 +238,12 @@ button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: poin
 :root[data-palette="obsidian"] .dashboard-canvas [class*="text-slate-400"],
 :root[data-palette="obsidian"] .dashboard-shell [class*="text-slate-400"] { color: #9aa8bf !important; }
 
-/* ORBIT reference animation: original mark fades into a thin six-arc vortex, reaches a core, then springs back. */
-.orbit-mark { display: block; overflow: visible; }
-.orbit-mark-original { display: block; opacity: 1; transform: none; }
-:root[data-palette="obsidian"] .orbit-mark-original { filter: invert(1); }
+/* Shared static ORBIT mark: one high-priority asset is used across every workspace. */
+.orbit-mark { display: block; flex: none; opacity: 1; transform: none; }
+.orbit-mark--inverted { filter: invert(1); }
+:root[data-palette="obsidian"] .orbit-welcome .orbit-mark:not(.orbit-mark--inverted) { filter: invert(1); }
 /* The welcome panel remains visible, but its brand mark is intentionally static. */
 .orbit-welcome-pulse .orbit-mark,
 .orbit-welcome-orbit,
 .orbit-welcome-pulse,
 .orbit-welcome-glow { animation: none !important; }
-
