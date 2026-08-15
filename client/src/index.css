@@ -77,6 +77,9 @@ button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: poin
 .dashboard-sidebar { width: 252px; }
 .metric-card { min-height: 142px; }
 .quick-action:active { transform: translateY(0) scale(0.985); }
+.customer-card { transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
+.customer-card:hover { border-color: #bfdbfe; box-shadow: 0 10px 24px rgba(37, 99, 235, 0.07); transform: translateY(-2px); }
+.toolbar-panel { backdrop-filter: blur(8px); }
 
 @media (prefers-reduced-motion: no-preference) {
   .login-card { animation: moneyflow-enter 420ms cubic-bezier(0.23, 1, 0.32, 1) both; }
