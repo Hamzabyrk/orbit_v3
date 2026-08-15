@@ -49,6 +49,12 @@
 - [x] Dashboard üzerinde takip gerektiren tahsilat, görüşme ve müşteri aksiyonlarını bağlamak.
 - [x] Yeni bağlam yüzeylerini ve yönlendirme akışlarını doğrulayıp güncellemeyi teslim etmek.
 
+# Sol Navigasyon Tutarlılık Düzeltmesi
+
+- [x] Çalışma alanları arasındaki sol navigasyon farkının kaynağını belirlemek.
+- [x] Ortak kategori düzenini tüm çalışma alanlarına uygulamak.
+- [x] Finans, CRM ve muhasebe bölümleri arasındaki geçişlerde menü tutarlılığını doğrulamak.
+
 # MoneyFlow Demo Genişletme Kontrol Listesi
 
 - [x] CRM referansından alınabilecek arama, filtre, kart/liste ve eylem kalıplarını değerlendirmek.
