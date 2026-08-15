@@ -140,3 +140,11 @@
 Ayrıntılı kaynaklı bulgular `automation-research.md` dosyasında tutulur. Ana kaynaklar: n8n AI ve Sales katalogları, Zapier resmi otomasyon örnekleri ve Make resmi şablon kataloğu.
 
 Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows/categories/sales/ · https://zapier.com/blog/zapier-automation-examples/ · https://www.make.com/en/templates
+
+# ORBIT Giriş Ekranı Yenilemesi
+
+- [x] Kullanıcının sağladığı ORBIT logosunu web varlığı olarak hazırlamak ve giriş ekranına bağlamak.
+- [x] Yumuşak mavi gradyan, cam kart, lacivert birincil eylem ve Plus Jakarta Sans tipografisiyle giriş yüzeyini yeniden tasarlamak.
+- [x] Demo giriş, şifre görünürlüğü, hatırlama seçeneği ve yönlendirme akışlarını korumak.
+- [x] Yeni giriş ekranını masaüstü ve mobil görünümde doğrulamak.
+- [x] Güncel tasarımı checkpoint ve GitHub aktarımıyla teslim etmek.

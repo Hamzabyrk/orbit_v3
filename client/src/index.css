@@ -1,5 +1,5 @@
 /* MoneyFlow reference style: light high-key finance workspace, exacting blue accent, low-elevation cards. */
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Manrope:wght@500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -86,6 +86,26 @@ button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: poin
 .login-demo-info > div > span { color: #64748b; font-weight: 600; }
 .login-demo-info > div > strong { color: #334155; font-weight: 700; }
 .login-wordmark, .moneyflow-wordmark { letter-spacing: -0.055em; text-rendering: geometricPrecision; }
+
+.font-orbit { font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; }
+.orbit-login-scene { position: relative; isolation: isolate; background: linear-gradient(135deg, #e0f2fe 0%, #cdeeff 46%, #bae6fd 100%); font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; }
+.orbit-login-scene::before { content: ""; position: absolute; inset: 0; z-index: -1; background-image: radial-gradient(circle at 20% 28%, rgba(255,255,255,.46) 0 1px, transparent 1.5px), radial-gradient(circle at 76% 62%, rgba(14,165,233,.11) 0 1px, transparent 1.4px); background-size: 32px 32px, 46px 46px; opacity: .62; }
+.orbit-glow { position: absolute; z-index: -1; border-radius: 999px; filter: blur(6px); pointer-events: none; }
+.orbit-glow-one { width: 28rem; height: 28rem; top: -14rem; left: -10rem; background: rgba(255,255,255,.65); }
+.orbit-glow-two { width: 24rem; height: 24rem; right: -11rem; bottom: -9rem; background: rgba(56,189,248,.21); }
+.orbit-wordmark-image { mix-blend-mode: multiply; filter: contrast(1.14) saturate(.92); }
+.orbit-mark-image { filter: brightness(0) invert(1); }
+.orbit-mark-card { filter: contrast(1.15) saturate(.95); }
+.orbit-login-card { background: rgba(255,255,255,.70); border: 1px solid rgba(255,255,255,.65); box-shadow: 0 24px 64px rgba(15, 23, 42, .10), inset 0 1px 0 rgba(255,255,255,.70); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.orbit-input-wrap { position: relative; display: block; }
+.orbit-input-icon { position: absolute; z-index: 1; top: 50%; left: 1rem; width: 1.1rem; height: 1.1rem; color: #94a3b8; transform: translateY(-50%); pointer-events: none; }
+.orbit-input { border: 1px solid rgba(15,23,42,.06); border-radius: 1rem; background: rgba(255,255,255,.55); color: #0f172a; outline: none; transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease; }
+.orbit-input::placeholder { color: #94a3b8; }
+.orbit-input:focus { border-color: #3b82f6; background: rgba(255,255,255,.96); box-shadow: 0 0 0 4px rgba(59,130,246,.10); }
+.orbit-primary-action { background: #1e293b; box-shadow: 0 8px 18px rgba(15,23,42,.14); transition: transform 160ms cubic-bezier(.23,1,.32,1), background-color 180ms ease, box-shadow 180ms ease; }
+.orbit-primary-action:hover { background: #0f172a; box-shadow: 0 11px 22px rgba(15,23,42,.18); transform: translateY(-1px); }
+.orbit-primary-action:active { transform: scale(.98); }
+.orbit-demo-info { border: 1px solid rgba(15,23,42,.06); background: rgba(255,255,255,.46); }
 .dashboard-sidebar { width: 252px; overflow-y: auto; overscroll-behavior: contain; }
 .metric-card { min-height: 142px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035) !important; }
 .toolbar-panel { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035) !important; }
