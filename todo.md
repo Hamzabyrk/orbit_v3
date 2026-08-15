@@ -235,3 +235,13 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Dashboard özet kartlarında başlık, ikon, tipografi, boşluk ve durum hiyerarşisini profesyonel finans arayüzü standardına yaklaştırmak.
 - [x] Masaüstü ve mobil login görünümünü, erişilebilirliği, test/build sonuçlarını doğrulamak.
 - [x] Revizyonu yalnızca yerel checkpoint olarak kaydetmek; GitHub’a aktarmamak.
+
+# Demo Otomasyon İlk Kurulum Akışı
+
+- [x] Demo girişinden sonra otomasyon ilk kurulum ekranını açmak.
+- [x] Kullanıcının otomasyonları kartlar üzerinden seçmesini sağlamak.
+- [x] Seçilen otomasyonlara göre gerekli kurulum bilgilerini istemek.
+- [x] Kurulum ekranının sağ altına görünür “Bu sayfayı geç” eylemi eklemek.
+- [x] Her demo girişinde akışı yeniden göstermek; seçimleri yalnızca mevcut akışta tutmak.
+- [x] Responsive, erişilebilirlik, test ve build doğrulamasını tamamlamak.
+- [x] Değişikliği yalnızca yerel checkpoint olarak kaydetmek; GitHub’a aktarmamak.
