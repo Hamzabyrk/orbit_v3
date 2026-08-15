@@ -36,6 +36,19 @@
 - [x] Görüşme verilerini yerel saklamaya ve CRM navigasyonuna bağlamak.
 - [x] Takvim görünümünü, görüşme CRUD akışlarını ve responsive kullanımını doğrulayıp güncellemeyi teslim etmek.
 
+# Monday CRM Marketplace Tasarım Analizi
+
+- [x] Marketplace bilgi mimarisini, kategori yapısını ve ürün keşif kalıplarını incelemek.
+- [x] MoneyFlow için alınabilir tasarım desenlerini, bekletilmesi gereken fikirleri ve öncelik sırasını değerlendirmek.
+- [x] Kaynaklı analiz raporunu kullanıcıya sunmak; uygulama kodunda değişiklik yapmamak.
+
+# Müşteri Bağlamı ve Aksiyon Görünürlüğü
+
+- [x] Müşteri, satış, fatura, tahsilat, randevu ve aktivite verilerinden ilişki özeti üretmek.
+- [x] Müşteri kartlarında ilişkili finansal ve CRM bağlamını görünür kılmak.
+- [x] Dashboard üzerinde takip gerektiren tahsilat, görüşme ve müşteri aksiyonlarını bağlamak.
+- [x] Yeni bağlam yüzeylerini ve yönlendirme akışlarını doğrulayıp güncellemeyi teslim etmek.
+
 # MoneyFlow Demo Genişletme Kontrol Listesi
 
 - [x] CRM referansından alınabilecek arama, filtre, kart/liste ve eylem kalıplarını değerlendirmek.
