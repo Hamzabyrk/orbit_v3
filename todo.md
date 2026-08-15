@@ -62,6 +62,12 @@
 - [x] Detay çekmecesinden yeni görüşme planlama ve ilgili kayıtlara yönlendirme akışlarını eklemek.
 - [x] Sadeleştirilmiş müşteri deneyimini masaüstü/mobil görünümde doğrulayıp güncellemeyi teslim etmek.
 
+# Müşteri Notu Deneyimi
+
+- [x] Mevcut müşteri notu verisini ve detay çekmecesindeki uygun yerleşimi değerlendirmek.
+- [x] Detay çekmecesinde müşteri notunu düzenleme, kaydetme ve zaman damgalı geçmiş deneyimini uygulamak.
+- [x] Notun yerel veri akışına, müşteri kartına ve aktivite günlüğüne yansımasını doğrulamak.
+
 # MoneyFlow Demo Genişletme Kontrol Listesi
 
 - [x] CRM referansından alınabilecek arama, filtre, kart/liste ve eylem kalıplarını değerlendirmek.
