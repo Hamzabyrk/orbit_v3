@@ -31,3 +31,13 @@
 - [x] Satışlar modülünde teklif/sipariş akışı, durumlar, müşteri bağlantısı ve tutar özetlerini uygulamak.
 - [x] Raporlar modülünde dönem filtreli gelir-gider, nakit akışı ve tahsilat görünümlerini uygulamak.
 - [x] Banka, satış ve raporlama verilerinin fatura/gider işlemleriyle tutarlı hesaplandığını doğrulamak.
+
+# MoneyFlow Muhasebe Yönetimi Modülleri Kontrol Listesi
+
+- [x] Kamuya açık profesyonel ürünlerde genel muhasebe, hesap planı, arşiv ve ayar deneyimlerini araştırmak.
+- [x] Araştırma bulgularını mevcut MoneyFlow veri modeli ve finans modülleri bağlamına uyarlamak.
+- [x] Muhasebe modülünde günlük fişleri, borç-alacak dengesi ve kaynak kaydı bağlantılarını uygulamak.
+- [x] Hesap Planı modülünde hesap grupları, bakiye görünümü, arama/filtreleme ve hesap ekleme akışını uygulamak.
+- [x] Arşiv modülünde belge türleri, durum filtreleri ve kayıt kaynaklarına geri dönüş akışını uygulamak.
+- [x] Ayarlar modülünde şirket, dönem, belge tercihleri ve veri sıfırlama kontrollerini uygulamak.
+- [x] Yeni modüllerin fatura, gider, satış ve banka verileriyle bağlamı koruduğunu doğrulamak.

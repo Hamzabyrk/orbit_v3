@@ -48,4 +48,22 @@ Raporlar ekranı banka, satış, fatura ve gider kayıtlarından türetilen net 
 
 Yeni Satış eylemi; müşteri, durum, tutar, açıklama, beklenen kapanış tarihi ve olasılık alanları içeren erişilebilir bir iletişim kutusu açtı. Form açıklaması, satış kaydının tahsilat, banka hareketi ve raporlama görünümüne bağlanacağını açıkça belirtiyor.
 
+## Muhasebe Yönetimi Modülleri Kontrolü
+
+Yeni v6 yerel veri anahtarıyla uygulama yeniden açıldığında temiz başlangıç seti yüklendi; oturum sonrası dashboard, banka, satış ve muhasebe yönetimi menüleri aynı veri bağlamında erişilebilir göründü. Mevcut tahsilat, gider ve bekleyen ödeme metrikleri başlangıç değerleriyle yeniden üretildi.
+
+Muhasebe modülü 12 işlenmiş fişi; fatura, gider, banka ve manuel kaynak rozetleriyle listeledi. Toplam borç ve alacak ₺278.410,00 olarak eşit göründü; her satır Dengeli kontrolü aldı. Yeni Fiş iletişim kutusu fiş tarihi, tutar, açıklama, borç hesabı ve alacak hesabını aynı formda sunarak borç/alacak dengesi kuralını görünür tuttu.
+
+Ofis ekipmanı dönemsel değerleme düzeltmesi açıklamasıyla ₺1.250,00 tutarlı manuel fiş kaydedildi. İşlenmiş fiş sayısı 12’den 13’e, toplam borç ve alacak toplamları birlikte ₺279.660,00’a yükseldi; yeni satır Dengeli durumu ve başarı bildirimiyle listelendi. Teslim öncesinde bu test kaydı başlangıç verileriyle sıfırlanacaktır.
+
+Hesap Planı ekranında 102 Bankalar hesabı, banka hareket fişleriyle çift sayılmadan ₺260.430,00 gerçek hesap toplamıyla gösterildi; üst metrik de aynı değerle hizalandı. Hesap Ekle iletişim kutusu; hesap kodu, adı ve hesap türü alanlarıyla açıldı ve yeni hesabın manuel fiş seçimlerine anında bağlanacağını açıkça belirtti.
+
+780 Finansman Giderleri hesabı Gider türünde kaydedildi. Aktif hesap sayısı 11’den 12’ye yükseldi, yeni hesap faaliyet giderleri grubu altında listelendi ve başarı bildirimi göründü. Teslim öncesinde bu test hesabı başlangıç verileriyle sıfırlanacaktır.
+
+Arşiv modülü, fatura, gider ve satış belgelerini referans, tutar, tarih, arşiv nedeni ve kaynak modülüyle birlikte listeledi. MF-2026-009 geri yüklendiğinde arşivdeki belge sayısı 3’ten 2’ye, arşiv tutarı ₺73.050,00’dan ₺56.250,00’a inerken geri yüklenen kayıt sayısı 1’den 2’ye çıktı. Böylece belge görünür listeden ayrılıp geri getirilebilir yaşam döngüsünü korudu.
+
+Ayarlar ekranında şirket unvanı güncellendi ve Kaydet eylemi, “Şirket, dönem ve belge tercihleri yerel çalışma alanına işlendi” bildirimini verdi. Form, fatura/fiş/rapor bağlamından ayrı varsayılanları yönetirken finansal geçmişe doğrudan müdahale etmedi.
+
+Demo sıfırlaması sonrasında Ayarlar taslağı da başlangıç şirket unvanına geri döndü; manuel fiş, test hesabı ve geri yükleme denemesi temiz başlangıç setinden çıkarıldı. Ayarlardan Bankalar ekranına ve Bankalardan Muhasebe ekranına doğrudan geçişte banka kartları ile 12 dengeli günlük fiş aynı kaynak verileriyle görünmeye devam etti.
+
 Nora Tasarım Stüdyosu için ₺28.000,00 tutarlı, %65 olasılıklı örnek Teklif kaydı formdan oluşturuldu. Yeni MFS-2026-014 kaydı listeye eklendi; satış kayıt adedi dörtten beşe, ağırlıklı açık fırsat tutarı ₺50.400,00’dan ₺68.600,00’a ve dönüşüm oranı %50’den %40’a güncellendi. Teslimden önce test verileri başlangıç durumuna geri yüklenecektir.
