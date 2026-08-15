@@ -157,3 +157,13 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Kart, tablo, filtre ve operasyon ekranlarını daha rahat okunur yüzeylerle yenilemek.
 - [x] Masaüstü ve mobil görünümde ana navigasyon, dashboard ve örnek çalışma alanlarını doğrulamak.
 - [x] Güncel tasarımı checkpoint ve GitHub aktarımıyla teslim etmek.
+
+# Tema Paletleri ve Dashboard Karşılama
+
+- [x] Video referansındaki tema değişimi hissini inceleyip MoneyFlow’a uygun animasyon yaklaşımını belirlemek.
+- [x] Ayarlar içinde seçilebilir renk paletleri eklemek ve seçimi yerel ayarlara bağlamak.
+- [x] Seçilen paleti dashboard, navigasyon, kartlar, tablolar ve çalışma alanlarına ortak tokenlarla uygulamak.
+- [x] Dashboard üstüne ayrı, yumuşak giriş animasyonlu karşılama alanı eklemek.
+- [x] Karşılama animasyonunu prefers-reduced-motion ve mobil görünümle uyumlu hale getirmek.
+- [x] Tema değişimi ve karşılama alanını masaüstü/mobilde doğrulamak. 375px mobil ölçümünde Dashboard, Otomasyonlar ve Faturalar: overflow=false; karşılama metni ve içerik genişliği taşmadı.
+- [x] Güncel değişiklikleri checkpoint ve GitHub aktarımıyla teslim etmek.
