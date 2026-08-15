@@ -214,6 +214,6 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Tüm çalışma alanlarındaki farklı ORBIT logo kullanım noktalarını ortak, doğru marka bileşenine bağlamak.
 - [x] Başlangıç ekranındaki logo varlığını önceden yükleyerek ilk görünümdeki gecikmeyi azaltmak.
 - [x] Login, dashboard ve ortak çalışma alanlarında logo geometrisini masaüstü ve mobilde doğrulamak.
-- [ ] TypeScript, test ve production build doğrulamasından sonra güncel kodu GitHub `main` dalına aktarmak.
+- [x] TypeScript, test ve production build doğrulamasından sonra güncel kodu GitHub `main` dalına aktarmak. GitHub `main` ve yerel HEAD: f7b5a3bc287fe9bf3a8aea3b3045d5a66f82bbdb.
 - [x] ORBIT logo birleştirme değişikliğinden sonra 375px mobil viewportta login ekranı logosunu runtime screenshot ile doğrulamak.
 - [x] ORBIT logo birleştirme değişikliğinden sonra 375px mobil viewportta dashboard karşılama alanı ve ortak yan menü logosunu runtime olarak doğrulamak; logo oranı ve overflow kanıtını kaydetmek. Mobil dashboard runtime görüntüsünde karşılama logosu kare ve taşmasız göründü.
