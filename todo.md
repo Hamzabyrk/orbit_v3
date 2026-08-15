@@ -217,3 +217,13 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] TypeScript, test ve production build doğrulamasından sonra güncel kodu GitHub `main` dalına aktarmak. GitHub `main` ve yerel HEAD: f7b5a3bc287fe9bf3a8aea3b3045d5a66f82bbdb.
 - [x] ORBIT logo birleştirme değişikliğinden sonra 375px mobil viewportta login ekranı logosunu runtime screenshot ile doğrulamak.
 - [x] ORBIT logo birleştirme değişikliğinden sonra 375px mobil viewportta dashboard karşılama alanı ve ortak yan menü logosunu runtime olarak doğrulamak; logo oranı ve overflow kanıtını kaydetmek. Mobil dashboard runtime görüntüsünde karşılama logosu kare ve taşmasız göründü.
+
+# İki Bölümlü ORBIT Login Deneyimi
+
+- [x] Mevcut login tasarım dilini koruyarak geniş ekranda formu sol bölüme taşımak.
+- [x] Karşılama alanındaki ikinci ORBIT logosunu kaldırıp yalnızca sol üstteki logo kullanımını korumak.
+- [x] Formun sağında birleşik dashboard görseli ve ORBIT odaklı pazarlama mesajları içeren bir ürün paneli oluşturmak.
+- [x] İki bölümlü login tasarımını mobilde tek kolona uyarlayıp görsel, erişilebilirlik, test ve build kontrollerini tamamlamak.
+- [ ] Değişikliği yalnızca yerel checkpoint olarak kaydetmek; GitHub aktarımı yapmamak.
+- [x] İki bölümlü login değişikliğinden sonra `pnpm check`, `pnpm test` ve `pnpm build` çalıştırıp sonuçları kaydetmek.
+- [x] İki bölümlü login ekranında temel erişilebilirlik doğrulamasını; tek logo, form label/aria, klavye erişimi ve mobil tek kolon açısından kanıtlamak.
