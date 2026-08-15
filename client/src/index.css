@@ -61,25 +61,36 @@ button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: poin
 .font-display { font-family: "Manrope", ui-sans-serif, system-ui, sans-serif; }
 
 .login-scene {
-  background-color: #f7faff;
-  background-image: linear-gradient(rgba(247, 250, 255, 0.68), rgba(247, 250, 255, 0.68)), url("/manus-storage/moneyflow-login-atmosphere_bd4c549d.jpg");
-  background-size: cover;
-  background-position: center;
+  background: #f8fafc;
+  box-shadow: inset 0 1px 0 rgba(226, 232, 240, 0.72);
 }
 
 .dashboard-canvas {
-  background-color: #f8fafc;
-  background-image: linear-gradient(rgba(248, 250, 252, 0.90), rgba(248, 250, 252, 0.90)), url("/manus-storage/moneyflow-dashboard-canvas_88a268de.jpg");
-  background-size: cover;
-  background-position: center;
+  background: #f8fafc;
 }
 
+.login-card { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.045), 0 8px 26px rgba(15, 23, 42, 0.045); }
+.login-card input { border-radius: 0.5rem; box-shadow: none; }
+.login-card input:focus { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10); }
+.login-primary-action { border: 1px solid #1d4ed8; box-shadow: 0 1px 1px rgba(15, 23, 42, 0.10); }
+.login-demo-info { background: #fbfcfe; }
+.login-wordmark, .moneyflow-wordmark { letter-spacing: -0.055em; text-rendering: geometricPrecision; }
 .dashboard-sidebar { width: 252px; }
-.metric-card { min-height: 142px; }
+.metric-card { min-height: 142px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035) !important; }
+.toolbar-panel { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035) !important; }
+.invoice-paper { box-shadow: 0 2px 8px rgba(15, 23, 42, 0.055) !important; }
 .quick-action:active { transform: translateY(0) scale(0.985); }
 .customer-card { transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
-.customer-card:hover { border-color: #bfdbfe; box-shadow: 0 10px 24px rgba(37, 99, 235, 0.07); transform: translateY(-2px); }
-.toolbar-panel { backdrop-filter: blur(8px); }
+.customer-card:hover { border-color: #bfdbfe; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.055); transform: translateY(-1px); }
+.toolbar-panel { backdrop-filter: blur(6px); }
+.invoice-paper { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+
+@media print {
+  body { background: #fff !important; }
+  body > *:not(#root), .dashboard-sidebar, header, .dashboard-canvas > :not(.invoice-paper), [data-radix-popper-content-wrapper] { display: none !important; }
+  .dashboard-shell, main, .dashboard-canvas { display: block !important; background: #fff !important; padding: 0 !important; }
+  .invoice-paper { display: block !important; max-width: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+}
 
 @media (prefers-reduced-motion: no-preference) {
   .login-card { animation: moneyflow-enter 420ms cubic-bezier(0.23, 1, 0.32, 1) both; }

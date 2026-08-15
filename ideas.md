@@ -54,3 +54,11 @@ Wordmark, koyu lacivert `MoneyFlow` yazısını; logo ise mavi yuvarlatılmış 
 ### İmza Marka Rengi
 
 **MoneyFlow mavisi: `#2563EB`.**
+
+## Style Decisions
+
+Giriş ve dashboard yüzeylerinde düz beyaz paneller, ince soğuk-gri kenarlar, küçük köşe yarıçapları ve sınırlı gölgeler kullanılacaktır. Parlak gradyanlar, yoğun glow efektleri ve aşırı yuvarlatılmış pill biçimleri kullanılmayacaktır.
+
+MoneyFlow mavisi yalnızca logo, birincil eylem, etkin menü durumu, temel bağlantı ve anlamsal pozitif vurgularda kullanılacaktır. Nötr gri yüzeyler form, tablo ve yardımcı bilgilerin ana taşıyıcısıdır.
+
+MoneyFlow wordmark’ı, hesap makinesi simgesiyle kilitli bir marka öğesi kabul edilir; Manrope 700–800 ağırlıkta ve kontrol edilmiş aralıklarla kullanılır. Dashboard’un sol menüsü, metrik kartları, finans rozetleri ve iki kolonlu çalışma ritmi aynı sakin finans ürünü karakterini sürdürür.

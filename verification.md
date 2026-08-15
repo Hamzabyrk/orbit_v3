@@ -25,3 +25,13 @@ Faturalar modülü beş kayıt ve tutar özetiyle doğru açıldı. MF-2026-018 
 Tarayıcıda yeni bir oturum açıldığında sıfırlanmış başlangıç verileri tekrar yüklendi. Böylece demo verisinin tarayıcı yerel saklamasında kalıcı olduğu ve sıfırlama eyleminin bu saklamayı güncellediği de doğrulandı.
 
 Fatura silme işlemi önce etkisini açıklayan bir onay iletişim kutusu gösterdi. Onaydan sonra MF-2026-015 kaldırıldı; fatura sayısı beşten dörde, liste toplamı ₺158.950,00’dan ₺140.050,00’a ve sol gezinmedeki fatura rozeti beşten dörde düştü. Bu testten sonra başlangıç verileri tekrar geri yüklenecektir.
+
+## Operasyon Modülleri Kontrolü
+
+Fatura listesinde MF-2026-018 seçildiğinde belge odaklı fatura önizlemesi açıldı. Görünümde fatura numarası, gönderildi durumu, düzenleme/vade tarihi, müşteri ve gönderen bilgileri, banka açıklaması, KDV satırı, ara toplam ve genel toplam doğru biçimde görüntülendi. Yazdırma, düzenleme ve tahsilat eylemleri erişilebilir durumdadır.
+
+Giderler modülü dört başlangıç kaydı, tedarikçi adı, kategori, tutar, durum rozeti, arama alanı ve durum filtresiyle açıldı. GDR-2026-041 için ödeme kaydetme eylemi çalıştırıldığında kayıt Bekliyor durumundan Ödendi durumuna geçti ve başarı bildirimi görüntülendi. Bu testten sonra demo verileri başlangıç durumuna geri yüklenecektir.
+
+Tedarikçiler modülü beş kartla açıldı. Her kartta hizmet kategorisi, iletişim bilgileri, ödeme vadesi, bağlı son gider ve yerel veriden hesaplanan açık borç görüldü; örneğin BulutKare Teknoloji kartı vadesi geçmiş GDR-2026-039 kaydından ₺7.940,00 açık borç türetti. Pusula Kreatif Ajans kartındaki Gider Ekle eylemi, tedarikçisi önceden seçili Yeni Gider formunu açtı; Vazgeç eylemi kayıt oluşturmadan formu kapattı.
+
+Gider ödeme testinden sonra dashboard’da toplam gider ₺6.340,00’dan ₺24.540,00’a ve bekleyen ödeme ₺26.140,00’dan ₺7.940,00’a güncellendi; etkinlik günlüğüne GDR-2026-041 ödeme kaydı eklendi. Demo verisini sıfırla eylemi başlangıç müşteri, tedarikçi, fatura ve gider kayıtlarını geri getirdi. Nihai tür denetimi ve üretim paketi `pnpm check && pnpm build` ile başarıyla tamamlandı.

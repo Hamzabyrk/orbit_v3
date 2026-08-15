@@ -13,3 +13,12 @@
 - [x] Faturalar modülünde durum filtreleri, kayıt formu, düzenleme ve silme akışlarını uygulamak.
 - [x] Dashboard metriklerini ve son işlemleri yerel veriden türetmek; aktivite akışına bağlamak.
 - [x] Uçtan uca demo senaryolarını doğrulayıp projeyi güncellemek.
+
+# MoneyFlow Operasyon Modülleri Kontrol Listesi
+
+- [x] Kamuya açık profesyonel muhasebe ürünlerinde fatura ayrıntısı, gider ve tedarikçi deneyimlerini araştırmak.
+- [x] Araştırma bulgularını MoneyFlow arayüzü, yerel veri modeli ve akışlarına uyarlamak.
+- [x] Fatura ayrıntısı ve baskı düzenine uygun önizleme görünümünü uygulamak.
+- [x] Giderler modülünde kayıt, kategori, tedarikçi, arama, filtre ve durum akışlarını uygulamak.
+- [x] Tedarikçiler modülünde kart/liste, açık borç, arama, filtre ve CRUD akışlarını uygulamak.
+- [x] Fatura, gider ve tedarikçi işlemlerinin dashboard metrikleri ile aktivite günlüğüne etkisini doğrulamak.
