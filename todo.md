@@ -227,3 +227,11 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Değişikliği yalnızca yerel checkpoint olarak kaydetmek; GitHub aktarımı yapmamak. Yerel checkpoint: 5d905430.
 - [x] İki bölümlü login değişikliğinden sonra `pnpm check`, `pnpm test` ve `pnpm build` çalıştırıp sonuçları kaydetmek.
 - [x] İki bölümlü login ekranında temel erişilebilirlik doğrulamasını; tek logo, form label/aria, klavye erişimi ve mobil tek kolon açısından kanıtlamak.
+
+# Premium Login Sağ Panel Revizyonu
+
+- [x] Sağ paneldeki dekoratif aura ve aşırı cam/glow etkilerini azaltıp daha rafine finans ürünü yüzeyine dönüştürmek.
+- [x] ORBIT çalışma alanı etiketi, güncel durumu ve alt sloganı daha sade ve premium hale getirmek.
+- [x] Dashboard özet kartlarında başlık, ikon, tipografi, boşluk ve durum hiyerarşisini profesyonel finans arayüzü standardına yaklaştırmak.
+- [x] Masaüstü ve mobil login görünümünü, erişilebilirliği, test/build sonuçlarını doğrulamak.
+- [x] Revizyonu yalnızca yerel checkpoint olarak kaydetmek; GitHub’a aktarmamak.

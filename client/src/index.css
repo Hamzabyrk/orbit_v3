@@ -111,11 +111,11 @@ button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: poin
 .orbit-login-card { background: rgba(255,255,255,.70); border: 1px solid rgba(255,255,255,.65); box-shadow: 0 24px 64px rgba(15, 23, 42, .10), inset 0 1px 0 rgba(255,255,255,.70); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
 .orbit-login-shell { border: 1px solid rgba(255,255,255,.74); background: rgba(255,255,255,.56); box-shadow: 0 28px 76px rgba(15,23,42,.12), inset 0 1px 0 rgba(255,255,255,.78); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 .orbit-login-form-panel { background: rgba(255,255,255,.68); }
-.orbit-login-product-panel { min-height: 620px; background: radial-gradient(circle at 80% 11%, rgba(125,211,252,.22), transparent 26%), linear-gradient(150deg, #102342 0%, #142e54 51%, #0b203d 100%); }
-.orbit-product-aura { position: absolute; border-radius: 999px; pointer-events: none; filter: blur(2px); }
+.orbit-login-product-panel { min-height: 620px; background: linear-gradient(145deg, #122747 0%, #173558 52%, #102744 100%); }
+.orbit-product-aura { display: none; position: absolute; border-radius: 999px; pointer-events: none; }
 .orbit-product-aura-one { width: 25rem; height: 25rem; right: -10rem; top: -13rem; background: rgba(103,232,249,.14); }
 .orbit-product-aura-two { width: 18rem; height: 18rem; left: -10rem; bottom: -8rem; background: rgba(59,130,246,.18); }
-.orbit-product-preview { overflow: hidden; border: 1px solid rgba(255,255,255,.15); border-radius: 1.25rem; background: linear-gradient(150deg, rgba(255,255,255,.15), rgba(255,255,255,.06)); box-shadow: 0 18px 35px rgba(2,6,23,.24), inset 0 1px 0 rgba(255,255,255,.12); backdrop-filter: blur(10px); }
+.orbit-product-preview { overflow: hidden; border: 1px solid rgba(226,232,240,.24); border-radius: 1rem; background: rgba(8,26,51,.26); box-shadow: 0 14px 28px rgba(2,6,23,.16), inset 0 1px 0 rgba(255,255,255,.08); }
 @media (max-width: 1023px) { .orbit-login-form-panel { min-height: auto; } }
 .orbit-input-wrap { position: relative; display: block; }
 .orbit-input-icon { position: absolute; z-index: 1; top: 50%; left: 1rem; width: 1.1rem; height: 1.1rem; color: #94a3b8; transform: translateY(-50%); pointer-events: none; }
