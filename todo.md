@@ -196,3 +196,14 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Düzeltmeyi yeni checkpoint ve GitHub aktarımıyla teslim etmek.
 - [x] Son ORBIT görsel düzeltmesinden sonra 375px mobil viewportta login ve dashboard animasyonlarını yeniden doğrulamak.
 - [x] Son ORBIT görsel düzeltmesinden sonra prefers-reduced-motion modunda login ve dashboard logolarını yeniden doğrulamak.
+
+# ORBIT Animasyonlarını Kaldırma
+
+- [x] Login ve dashboard karşılama alanlarında animasyon katmanlarını kaldırıp statik ORBIT logosunu korumak.
+- [x] Giriş karşılama metnini, kartını ve responsive yerleşimini değiştirmeden korumak.
+- [x] Statik logo görünümünü masaüstü ve mobilde doğrulamak; test ve production build çalıştırmak.
+- [x] Değişikliği yeni checkpoint ile teslim etmek.
+- [ ] Statik ORBIT logo değişikliğinden sonra yeni bir checkpoint kaydetmek.
+- [ ] Yeni checkpoint sürümünü doğrulayıp kullanıcıya teslim etmek.
+- [x] Statik ORBIT logosunun dashboard karşılama alanında masaüstü görünümünü runtime olarak doğrulamak ve kanıtı kaydetmek.
+- [x] Statik ORBIT logosunun dashboard karşılama alanında 375px mobil görünümünü runtime olarak doğrulamak; overflow olmadığını ve karşılama alanının korunduğunu kanıtlamak.
