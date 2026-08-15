@@ -61,7 +61,9 @@ button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: poin
 .font-display { font-family: "Manrope", ui-sans-serif, system-ui, sans-serif; }
 
 .login-scene {
-  background: #f8fafc;
+  background-color: #f8fafc;
+  background-image: linear-gradient(rgba(226, 232, 240, 0.34) 1px, transparent 1px), linear-gradient(90deg, rgba(226, 232, 240, 0.34) 1px, transparent 1px);
+  background-size: 28px 28px;
   box-shadow: inset 0 1px 0 rgba(226, 232, 240, 0.72);
 }
 
@@ -70,10 +72,19 @@ button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: poin
 }
 
 .login-card { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.045), 0 8px 26px rgba(15, 23, 42, 0.045); }
+.login-lockup { position: relative; }
+.login-lockup::after { content: ""; width: 28px; height: 2px; margin-top: 0.55rem; background: #2563eb; border-radius: 999px; }
+.login-brand-icon { box-shadow: 0 0 0 5px #eff6ff, 0 1px 2px rgba(15, 23, 42, 0.10); }
+.login-wordmark { font-weight: 800; letter-spacing: -0.065em !important; font-size: 1.6rem; line-height: 1; }
+.login-lockup > p { margin-top: 0.45rem; font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.005em; }
+.login-card form > label > span:first-child { letter-spacing: 0.015em; }
 .login-card input { border-radius: 0.5rem; box-shadow: none; }
 .login-card input:focus { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10); }
 .login-primary-action { border: 1px solid #1d4ed8; box-shadow: 0 1px 1px rgba(15, 23, 42, 0.10); }
-.login-demo-info { background: #fbfcfe; }
+.login-demo-info { background: #f8fafc; border-color: #dbe4ee; }
+.login-demo-info > p { letter-spacing: 0.015em; }
+.login-demo-info > div > span { color: #64748b; font-weight: 600; }
+.login-demo-info > div > strong { color: #334155; font-weight: 700; }
 .login-wordmark, .moneyflow-wordmark { letter-spacing: -0.055em; text-rendering: geometricPrecision; }
 .dashboard-sidebar { width: 252px; }
 .metric-card { min-height: 142px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035) !important; }

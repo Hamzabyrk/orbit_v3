@@ -62,3 +62,5 @@ Giriş ve dashboard yüzeylerinde düz beyaz paneller, ince soğuk-gri kenarlar,
 MoneyFlow mavisi yalnızca logo, birincil eylem, etkin menü durumu, temel bağlantı ve anlamsal pozitif vurgularda kullanılacaktır. Nötr gri yüzeyler form, tablo ve yardımcı bilgilerin ana taşıyıcısıdır.
 
 MoneyFlow wordmark’ı, hesap makinesi simgesiyle kilitli bir marka öğesi kabul edilir; Manrope 700–800 ağırlıkta ve kontrol edilmiş aralıklarla kullanılır. Dashboard’un sol menüsü, metrik kartları, finans rozetleri ve iki kolonlu çalışma ritmi aynı sakin finans ürünü karakterini sürdürür.
+
+Giriş arka planı, gradyan veya parıltı yerine çok düşük kontrastlı soğuk-gri bir ledger/çizelge dokusuyla finans ürünü bağlamını destekler. Girişteki demo bilgileri, dashboard veri kartlarıyla aynı sıkı hiyerarşiyi kullanır: ince sınır, soğuk gri yüzey, kompakt veri etiketi ve belirgin değer. Marka kilidi mavi hesap makinesi simgesi ile ağır Manrope wordmark’ını tek bir tasarlanmış öğe olarak korur.

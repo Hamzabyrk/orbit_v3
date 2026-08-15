@@ -35,3 +35,17 @@ Giderler modülü dört başlangıç kaydı, tedarikçi adı, kategori, tutar, d
 Tedarikçiler modülü beş kartla açıldı. Her kartta hizmet kategorisi, iletişim bilgileri, ödeme vadesi, bağlı son gider ve yerel veriden hesaplanan açık borç görüldü; örneğin BulutKare Teknoloji kartı vadesi geçmiş GDR-2026-039 kaydından ₺7.940,00 açık borç türetti. Pusula Kreatif Ajans kartındaki Gider Ekle eylemi, tedarikçisi önceden seçili Yeni Gider formunu açtı; Vazgeç eylemi kayıt oluşturmadan formu kapattı.
 
 Gider ödeme testinden sonra dashboard’da toplam gider ₺6.340,00’dan ₺24.540,00’a ve bekleyen ödeme ₺26.140,00’dan ₺7.940,00’a güncellendi; etkinlik günlüğüne GDR-2026-041 ödeme kaydı eklendi. Demo verisini sıfırla eylemi başlangıç müşteri, tedarikçi, fatura ve gider kayıtlarını geri getirdi. Nihai tür denetimi ve üretim paketi `pnpm check && pnpm build` ile başarıyla tamamlandı.
+
+## Finans Modülleri Kontrolü
+
+Yeni v4 başlangıç verileriyle giriş sonrasında dashboard açıldı. Tahsil edilmiş MFS-2026-007 satışı, Toplam Tahsilat değerini ₺113.450,00’a; onaylanmış ve faturalanmış satışlar ise Bekleyen Tahsilat değerini ₺183.100,00’a taşıdı. Bu, satış verisinin mevcut dashboard metrikleriyle birlikte hesaplandığını doğruladı.
+
+Bankalar ekranı üç hesap kartı ve işlem bazlı eşleştirme kuyruğuyla açıldı. Operasyon Hesabı’ndaki GDR-2026-041 referanslı Pusula Kreatif hareketi Eşleştir eylemiyle güncellendi; genel dikkat gerektiren hareket sayısı üçten ikiye, ilgili hesap kartındaki sayaç ise birden sıfıra düştü. İşlem satırı Eşleşti rozetiyle kaydedildi ve başarı bildirimi gösterildi.
+
+Satışlar ekranı dört kayıt, durum filtreleri ve ağırlıklı fırsat özetleriyle açıldı. MFS-2026-009 için Tahsilat Kaydet eylemi uygulandığında durum Onaylandı’dan Tahsil Edildi’ye, tahsil edilen satış toplamı ₺36.500,00’dan ₺108.500,00’a, dönüşüm oranı ise %25’ten %50’ye güncellendi. İşlem aynı zamanda tahsilat hesabına yeni bekleyen banka hareketi ekleyecek şekilde bağlandı.
+
+Raporlar ekranı banka, satış, fatura ve gider kayıtlarından türetilen net sonuç, toplam nakit, bekleyen tahsilat ve net banka hareketi kartlarıyla açıldı. Satış tahsilatından sonra rapor kontrolü 4/7 eşleştirilmiş hareket ve üç dikkat bekleyen hareket gösterdi; nakit akışı detayı banka girişi ₺194.700,00, çıkışı ₺29.620,00 ve farkı ₺165.080,00 olarak hesaplandı. Dışa Aktar eylemi seçili dönem için CSV özeti hazırlandığını bildiren geri bildirim verdi.
+
+Yeni Satış eylemi; müşteri, durum, tutar, açıklama, beklenen kapanış tarihi ve olasılık alanları içeren erişilebilir bir iletişim kutusu açtı. Form açıklaması, satış kaydının tahsilat, banka hareketi ve raporlama görünümüne bağlanacağını açıkça belirtiyor.
+
+Nora Tasarım Stüdyosu için ₺28.000,00 tutarlı, %65 olasılıklı örnek Teklif kaydı formdan oluşturuldu. Yeni MFS-2026-014 kaydı listeye eklendi; satış kayıt adedi dörtten beşe, ağırlıklı açık fırsat tutarı ₺50.400,00’dan ₺68.600,00’a ve dönüşüm oranı %50’den %40’a güncellendi. Teslimden önce test verileri başlangıç durumuna geri yüklenecektir.

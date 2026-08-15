@@ -22,3 +22,12 @@
 - [x] Giderler modülünde kayıt, kategori, tedarikçi, arama, filtre ve durum akışlarını uygulamak.
 - [x] Tedarikçiler modülünde kart/liste, açık borç, arama, filtre ve CRUD akışlarını uygulamak.
 - [x] Fatura, gider ve tedarikçi işlemlerinin dashboard metrikleri ile aktivite günlüğüne etkisini doğrulamak.
+
+# MoneyFlow Finans Modülleri Kontrol Listesi
+
+- [x] Kamuya açık profesyonel ürünlerde banka hareketi, satış ve raporlama deneyimlerini araştırmak.
+- [x] Araştırma bulgularını MoneyFlow veri modeli, finansal metrikler ve ekran akışlarına uyarlamak.
+- [x] Bankalar modülünde hesap özeti, hareket listesi, arama, filtre ve eşleştirme durumlarını uygulamak.
+- [x] Satışlar modülünde teklif/sipariş akışı, durumlar, müşteri bağlantısı ve tutar özetlerini uygulamak.
+- [x] Raporlar modülünde dönem filtreli gelir-gider, nakit akışı ve tahsilat görünümlerini uygulamak.
+- [x] Banka, satış ve raporlama verilerinin fatura/gider işlemleriyle tutarlı hesaplandığını doğrulamak.
