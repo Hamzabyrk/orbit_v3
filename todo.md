@@ -29,6 +29,13 @@
 - [x] Dashboard, Gün Planı ve Raporlar üst seviye; Finans ve CRM grupları ile yönetim bölümünü uygulamak.
 - [x] Sıralama, aktif durumlar ve mobil navigasyon geçişlerini doğrulayıp güncellemeyi teslim etmek.
 
+# Randevu Yönetimi Modülü
+
+- [x] Randevu veri modelini, müşteri bağlantısını ve aylık takvim akışını tanımlamak.
+- [x] Büyük aylık takvim, gün bazlı görüşme listesi ve yeni görüşme oluşturma arayüzünü uygulamak.
+- [x] Görüşme verilerini yerel saklamaya ve CRM navigasyonuna bağlamak.
+- [x] Takvim görünümünü, görüşme CRUD akışlarını ve responsive kullanımını doğrulayıp güncellemeyi teslim etmek.
+
 # MoneyFlow Demo Genişletme Kontrol Listesi
 
 - [x] CRM referansından alınabilecek arama, filtre, kart/liste ve eylem kalıplarını değerlendirmek.
