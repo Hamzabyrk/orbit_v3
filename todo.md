@@ -124,3 +124,19 @@
 - [x] Şirket, belge, tahsilat, bildirim ve ekip tercihlerinin mevcut yerel veri modeline etkisini tanımlamak.
 - [x] Kategorili Ayarlar arayüzünü, anahtarlar ve seçim kontrolleriyle uygulamak.
 - [x] Yeni tercihlerin kaydedildiğini, modül bağlamını bozmadığını ve demo sıfırlamayla geri alındığını doğrulamak.
+
+# Otomasyon Kataloğu ve Bağımsız Kaydırma
+
+- [x] Ticari otomasyon araştırmasını n8n uyumlu kategori ve şablon listesine dönüştürmek.
+- [x] Otomasyonlar ekranını görsel referanstaki ikonlu, kategorili kart kataloğuna dönüştürmek.
+- [x] Satış, CRM, finans, belge, destek, iletişim ve raporlama otomasyonlarını yerel etkinleştirme akışına eklemek.
+- [x] Sol menüyü kendi dikey kaydırma alanına, içerik gövdesini ayrı kaydırma alanına dönüştürmek.
+- [x] Otomasyon kataloğunu ve bağımsız kaydırmayı masaüstü/mobilde doğrulamak. Mobil ölçüm: yan menü scrollTop=180, sayfa scrollY=420.
+- [x] Gerçek n8n webhook/API bağlantısını bu aşamada eklememek; entegrasyon secret gereksinimini sonraki aşamaya bırakmak.
+- [x] Güncel geliştirmeleri yeni checkpoint ve GitHub aktarımıyla teslim etmek.
+
+## Araştırma notu
+
+Ayrıntılı kaynaklı bulgular `automation-research.md` dosyasında tutulur. Ana kaynaklar: n8n AI ve Sales katalogları, Zapier resmi otomasyon örnekleri ve Make resmi şablon kataloğu.
+
+Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows/categories/sales/ · https://zapier.com/blog/zapier-automation-examples/ · https://www.make.com/en/templates
