@@ -176,3 +176,12 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Aynı girdap animasyonunu login logosuna ve dashboard karşılama alanına bağlamak.
 - [x] Animasyonu prefers-reduced-motion, mobil ve mevcut paletlerle doğrulamak. Login DOM: 6 çizgi / 2 logo; dashboard DOM: 3 çizgi; mobil 375px overflow=false.
 - [x] Güncel animasyon sürümünü checkpoint ve GitHub aktarımıyla teslim etmek.
+
+# Referans Video Animasyon Revizyonu
+
+- [x] Yeniden gönderilen videoyu kare/kare ve zaman akışıyla analiz etmek.
+- [x] Referans hareketindeki gerçek çizgi başlangıcı, dönüş yönü, birleşme ve geri sıçrama fazlarını belgelemek.
+- [x] Mevcut OrbitMark animasyonunu referans geometri ve zamanlamaya göre yeniden oluşturmak.
+- [x] Login ve dashboard logolarındaki yeni animasyonu görsel olarak doğrulamak. Dashboard DOM: 6 kanat, orbit-wing-path 5.6s, orbit-core-pop 5.6s.
+- [x] Güncellenen animasyonu prefers-reduced-motion ve 375px mobil görünümde doğrulamak. Mobil: width=375, overflow=false, loginWings=6, welcomeWings=6; reduced-motion: animation=none, duration=0s.
+- [x] Yeni referans animasyon sürümünü checkpoint ve GitHub aktarımıyla teslim etmek.
