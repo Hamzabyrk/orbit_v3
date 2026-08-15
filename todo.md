@@ -4,6 +4,25 @@
 - [x] MoneyFlow proje dosyalarını hedef depoya aktar.
 - [x] Uzak depodaki son commit’i doğrula ve sonucu bildir.
 
+# Son Sürüm GitHub Aktarımı
+
+- [x] Yerel son checkpoint ile uzak `main` dalının durumunu doğrulamak.
+- [x] Ayarlar geliştirmesi dahil güncel proje sürümünü GitHub’a aktarmak.
+- [x] Uzak commit’i doğrulayıp aktarım sonucunu bildirmek.
+
+# React ve Tasarım Mimari Planı
+
+- [x] Mevcut teknoloji yığınını ve istemci tarafı mimarisini doğrulamak.
+- [x] Tasarım kalitesini koruyan React odaklı uygulama yol haritasını hazırlamak.
+- [x] Yalnızca planı ve teknik kararı kullanıcıya sunmak.
+
+# Gün Planı Modülü
+
+- [x] Referans kanban deneyimini MoneyFlow bağlamına uyarlamak ve görev veri modelini tanımlamak.
+- [x] Gün Planı ekranını, görev kartlarını, kolonları, filtreleri ve oluşturma/düzenleme akışlarını uygulamak.
+- [x] Görevleri yerel saklamaya bağlamak; navigasyon ve günlük özet metrikleriyle ilişkilendirmek.
+- [x] Gün Planı akışlarını ve masaüstü/mobil görünümünü doğrulayıp güncellemeyi teslim etmek.
+
 # MoneyFlow Demo Genişletme Kontrol Listesi
 
 - [x] CRM referansından alınabilecek arama, filtre, kart/liste ve eylem kalıplarını değerlendirmek.
