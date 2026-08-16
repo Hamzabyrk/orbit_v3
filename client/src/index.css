@@ -248,8 +248,8 @@ button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: poin
 
 /* Shared static ORBIT mark: one high-priority asset is used across every workspace. */
 .orbit-mark { display: block; flex: none; opacity: 1; transform: none; }
-.orbit-mark--inverted { filter: invert(1); }
-:root[data-palette="obsidian"] .orbit-welcome .orbit-mark:not(.orbit-mark--inverted) { filter: invert(1); }
+.orbit-mark--inverted { filter: brightness(0) invert(1); }
+:root[data-palette="obsidian"] .orbit-welcome .orbit-mark:not(.orbit-mark--inverted) { filter: brightness(0) invert(1); }
 /* The welcome panel remains visible, but its brand mark is intentionally static. */
 .orbit-welcome-pulse .orbit-mark,
 .orbit-welcome-orbit,

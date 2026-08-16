@@ -1,6 +1,6 @@
 import type { ImgHTMLAttributes } from "react";
 
-const LOGO_ASSET = "/orbit-mark.svg";
+const LOGO_ASSET = "/orbit-icon.svg";
 
 type OrbitMarkProps = Omit<ImgHTMLAttributes<HTMLImageElement>, "alt" | "src"> & {
   inverted?: boolean;
