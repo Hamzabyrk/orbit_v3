@@ -268,3 +268,27 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Otomasyon kataloğunu kayıt takibi, devamsızlık bildirimi, ödev hatırlatma, sınav sonucu özeti ve veli görüşmesi akışlarıyla güncellemek.
 - [x] Masaüstü/mobil görünüm, rol değiştirme, kritik kullanıcı akışları, test ve production build doğrulamasını yapmak.
 - [x] Değişiklikleri yalnızca yerel checkpoint olarak kaydetmek; GitHub’a aktarmamak.
+
+# Türkiye Eğitim Kurumu Yazılım Pazarı Analizi
+
+- [x] Türkiye’de dershane, kurs merkezi ve okul operasyon yazılımı sunan şirketleri ürün kapsamı ve hedef segmentleriyle araştırmak.
+- [x] Rakiplerin ölçek sinyallerini, müşteri referanslarını, fiyatlandırma yaklaşımlarını ve entegrasyonlarını doğrulamak.
+- [x] Eğitim kurumlarının satın alma sürecini, veri/regülasyon gereksinimlerini ve teknik/operasyonel giriş engellerini analiz etmek.
+- [x] ORBIT için farklılaşma alanlarını, ilk hedef segmenti ve kademeli MVP/giriş stratejisini geliştirmek.
+- [x] Kaynaklı analiz raporunu sunmak; kullanıcı onayı olmadan dashboard veya kod değişikliği yapmamak.
+
+# Trakya Yerel Giriş ve Fiyatlandırma Değerlendirmesi
+
+- [x] Trakya’daki ilk hedef kurum profilini ve yerel satış tezini değerlendirmek.
+- [x] ORBIT için ürünleştirilmiş otomasyon paketleri, kurulum bedeli ve aylık abonelik mimarisini önermek.
+- [x] Ücretsiz pilot, indirimli ilk müşteri ve referans programı seçeneklerini maliyet/risk açısından karşılaştırmak.
+- [x] İlk 90 gün için satış, kurulum, destek kapasitesi ve ölçüm planı geliştirmek.
+- [x] Fiyatlandırma önerisini yatırım tavsiyesi olmadığını belirterek kullanıcıya sunmak; dashboard veya kod değişikliği yapmamak.
+
+# Trakya Kurs/Dershane Demo Dashboard
+
+- [x] Mevcut dashboard’u Trakya’daki 1–5 şubeli kurs/dershane hedefine göre sadeleştirmek ve navigasyonu düzenlemek.
+- [x] Kurum yöneticisi, öğretmen, öğrenci ve veli rollerinin temel ekranlarını ve yetki farklarını belirginleştirmek.
+- [x] Aday kayıt, devamsızlık, deneme sonucu ve veli iletişimi otomasyon paketlerini katalog ve dashboard durumuna bağlamak.
+- [x] Masaüstü ve mobil görünüm, rol akışları, test ve build doğrulamasını tamamlamak.
+- [x] Değişiklikleri yerel checkpoint olarak kaydedip GitHub’a aktarmadan raporlamak.
