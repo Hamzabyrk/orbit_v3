@@ -292,3 +292,9 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Aday kayıt, devamsızlık, deneme sonucu ve veli iletişimi otomasyon paketlerini katalog ve dashboard durumuna bağlamak.
 - [x] Masaüstü ve mobil görünüm, rol akışları, test ve build doğrulamasını tamamlamak.
 - [x] Değişiklikleri yerel checkpoint olarak kaydedip GitHub’a aktarmadan raporlamak.
+
+# GitHub orbit_v2 Aktarımı
+
+- [ ] Güncel yerel kodun GitHub `orbit_v2` reposuna aktarılacağı uzak bağlantıyı ve ana dalı doğrulamak.
+- [ ] Güncel checkpoint/yerel çalışma kodunu `orbit_v2` ana dalına pushlamak.
+- [ ] Uzak commit SHA’sını ve yerel/uzak dal eşleşmesini doğrulayıp kullanıcıya raporlamak.
