@@ -245,3 +245,26 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 - [x] Her demo girişinde akışı yeniden göstermek; seçimleri yalnızca mevcut akışta tutmak.
 - [x] Responsive, erişilebilirlik, test ve build doğrulamasını tamamlamak.
 - [x] Değişikliği yalnızca yerel checkpoint olarak kaydetmek; GitHub’a aktarmamak.
+
+# Eğitim Kurumu Platformu Planlama
+
+- [x] ORBIT kapsamını dershane ve eğitim kurumu operasyonlarına göre yeniden çerçevelemek.
+- [x] Öğrenci, veli, öğretmen, kurum yöneticisi, şube yöneticisi ve sistem yöneticisi rollerini tanımlamak.
+- [x] Rol bazlı erişim, kurum/şube/sınıf hiyerarşisi ve veri görünürlüğü modelini planlamak.
+- [x] Eğitim, iletişim, yoklama, ölçme-değerlendirme, ödeme ve otomasyon süreçlerini planlamak.
+- [x] Eğitim kurumu MVP’sini, sonraki fazları ve entegrasyon risklerini önceliklendirmek.
+- [x] Kullanıcı onayı olmadan dashboard kodunda değişiklik yapmamak.
+
+# Eğitim Kurumu Faz 1 MVP Uygulaması
+
+- [x] Eğitim kurumu, şube, sınıf, öğrenci, veli, öğretmen, ders ve ödeme planı için merkezi yerel demo veri modelini kurmak.
+- [x] Yönetici, öğretmen, öğrenci ve veli rolleri için demo rol değiştiricisi ile rol bazlı erişim yüzeylerini eklemek.
+- [x] Finans odaklı navigasyonu Genel Bakış, Öğrenciler, Sınıflar, Ders Programı, Yoklama, Sınavlar, İletişim, Kayıt ve Ödemeler, Otomasyonlar ve Raporlar yapısına dönüştürmek.
+- [x] Kurum yöneticisi için öğrenci, devam, yaklaşan sınav, tahsilat ve otomasyon özetlerini içeren ana dashboard’u oluşturmak.
+- [x] Öğretmen için güncel dersler, sınıflar, yoklama ve takip gerektiren öğrenciler görünümünü oluşturmak.
+- [x] Öğrenci için ders programı, ödev, sınav sonuçları ve hedef görünümünü oluşturmak.
+- [x] Veli için bağlı öğrenci devamı, akademik özet, duyurular ve ödeme planı görünümünü oluşturmak.
+- [x] Öğrenciler, sınıflar, ders programı, yoklama, sınav/başarı, iletişim ve kayıt/ödemeler modüllerinin temel etkileşimlerini tamamlamak.
+- [x] Otomasyon kataloğunu kayıt takibi, devamsızlık bildirimi, ödev hatırlatma, sınav sonucu özeti ve veli görüşmesi akışlarıyla güncellemek.
+- [x] Masaüstü/mobil görünüm, rol değiştirme, kritik kullanıcı akışları, test ve production build doğrulamasını yapmak.
+- [x] Değişiklikleri yalnızca yerel checkpoint olarak kaydetmek; GitHub’a aktarmamak.
