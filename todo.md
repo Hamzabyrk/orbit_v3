@@ -295,6 +295,6 @@ Referanslar: https://n8n.io/workflows/categories/ai/ · https://n8n.io/workflows
 
 # GitHub orbit_v2 Aktarımı
 
-- [ ] Güncel yerel kodun GitHub `orbit_v2` reposuna aktarılacağı uzak bağlantıyı ve ana dalı doğrulamak.
-- [ ] Güncel checkpoint/yerel çalışma kodunu `orbit_v2` ana dalına pushlamak.
-- [ ] Uzak commit SHA’sını ve yerel/uzak dal eşleşmesini doğrulayıp kullanıcıya raporlamak.
+- [x] Güncel yerel kodun GitHub `orbit_v2` reposuna aktarılacağı uzak bağlantıyı ve ana dalı doğrulamak.
+- [x] Güncel checkpoint/yerel çalışma kodunu `orbit_v2` ana dalına pushlamak.
+- [x] Uzak commit SHA’sını ve yerel/uzak dal eşleşmesini doğrulayıp kullanıcıya raporlamak.
