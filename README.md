@@ -1,92 +1,119 @@
-# ORBIT
+# 🎓 ORBIT — Eğitim Kurumu & Dershane Yönetim Platformu
 
-Dershane/eğitim kurumu ve kurs merkezleri için CRM, finans ve eğitim operasyonlarını tek panelde toplayan bir yönetim platformu.
+> **ORBIT**, 1–5 şubeli dershane, kurs merkezi ve eğitim kurumları için tasarlanmış; kurum yöneticisi, öğretmen, öğrenci ve veli rollerini tek bir modern çalışma alanında birleştiren yeni nesil eğitim CRM ve operasyon platformudur.
 
-## Problem
+---
 
-> **TODO — Keşif Mülakatı'nda netleşecek** (bkz. `PROJECT_ARCHITECT.md` §02). Aşağıdaki özet, kod ve geçmiş proje notlarından (`docs/archive/PROJECT_HISTORY.md`) çıkarılan gözlemdir, henüz ekip tarafından resmî olarak teyit edilmiş bir kapsam tanımı değildir.
+## 🚀 Projeye Genel Bakış ve Mimari
 
-Proje "MoneyFlow" adıyla bağımsız bir finans/muhasebe SaaS konsepti olarak başladı, sonrasında "ORBIT" adıyla Trakya bölgesindeki 1–5 şubeli dershane/kurs merkezlerini hedefleyen bir eğitim kurumu yönetim platformuna pivot etti. Hedeflenen kullanıcı rolleri: kurum yöneticisi, öğretmen, öğrenci ve veli. Kapsanan alanlar: öğrenci/sınıf/ders programı yönetimi, yoklama, sınav takibi, veli iletişimi, kayıt/ödeme operasyonları, CRM (müşteri/randevu yönetimi), temel muhasebe (banka, satış, fatura, gider, hesap planı) ve n8n/Zapier/Make tarzı otomasyon kataloğu.
+ORBIT; devamsızlık takibi, ders programı, deneme sınavı analizleri, veli iletişimi ve kayıt/ödeme operasyonlarını rol bazlı erişim modeli (RBAC) ile yönetir.
 
-## Neden Bu Stack
+### 👥 Roller ve Çalışma Alanları
+- 👑 **Kurum Yöneticisi (Admin):** Kurum genel özeti, öğrenci ve sınıf organizasyonu, yoklama takibi, sınav başarı grafikleri, kayıt ve ödeme takibi, operasyonel otomasyonlar ve ayarlar.
+- 🧑‍🏫 **Öğretmen (Teacher):** Ders programı, hızlı yoklama alma, sınıf listeleri, sınav analizleri, insan takibi gereken öğrenci sinyalleri ve veli iletişimi.
+- 🎒 **Öğrenci (Student):** Kişisel ders programı, haftalık ödev/etüt takibi, deneme sınavı gelişim grafikleri ve öğretmenle mesajlaşma.
+- 👨‍👩‍👧 **Veli (Parent):** Öğrencinin devam durumu, son sınav karnesi, ödeme planı/taksit takibi ve kurum duyuruları.
 
-| Katman | Seçim | Not |
-| --- | --- | --- |
-| Frontend | Vite + React 19 + TypeScript | Hızlı geliştirme döngüsü, geniş ekosistem. |
-| Yönlendirme | `wouter` | React Router'a göre daha hafif; `patches/wouter@3.7.1.patch` ile pnpm patch'i uygulanıyor. |
-| UI | Radix UI + Tailwind v4 (shadcn tarzı, `components.json`) | Erişilebilir headless bileşenler + hızlı stil üretimi. |
-| Veri/Backend | `@supabase/supabase-js` (BaaS) | Ayrı bir Node/Express API katmanı yok — Supabase doğrudan istemciden kullanılıyor. |
-| Form/Doğrulama | `react-hook-form` + `zod` | — |
-| Sunucu state | `@tanstack/react-query` | — |
-| Test | Vitest | — |
-| Paket yöneticisi | pnpm | `wouter@3.7.1` için 1 patch, `tailwindcss>nanoid` için 1 override içeriyor. |
+---
 
-> Bu tablo gözlemlenen mevcut durumu özetler; teknoloji kararlarının resmî gerekçe/alternatif karşılaştırması henüz `.ai/DECISION_LOG.md`'de ADR formatında yazılmadı — bu, Keşif Mülakatı sonrası yapılacak.
+## 🛠️ Teknoloji Yığını (Tech Stack)
 
-## Mimari
+| Katman | Teknoloji | Açıklama |
+| :--- | :--- | :--- |
+| **Frontend** | React 19 + TypeScript 5.9 + Vite 7 | Maksimum tip güvenliği, hızlı derleme ve modüler SPA |
+| **Stil & Tasarım** | Tailwind CSS v4 + Radix UI + shadcn/ui | Erişilebilir headless bileşenler (`components/ui/`), modern tipografi |
+| **Yönlendirme** | `wouter` | Hafif ve performanslı istemci yönlendirici (`patches/wouter@3.7.1.patch`) |
+| **BaaS / Veri** | `@supabase/supabase-js` | Doğrudan istemciden Supabase BaaS bağlantısı |
+| **State Yönetimi** | `@tanstack/react-query` v5 | Sunucu durumu senkronizasyonu |
+| **İkonlar & Bildirim**| `lucide-react`, `sonner` | Tutarlı arayüz ikonları ve zengin bildirimler |
+| **Test** | Vitest 2.1 | Birim ve yetkilendirme (RBAC) testleri |
+| **Paket Yöneticisi**| `pnpm` (v10.4.1) | Hızlı ve disk tasarruflu paket yönetimi |
+
+---
+
+## 📁 Klasör Yapısı
 
 ```
-client/
-├── index.html
-└── src/
-    ├── App.tsx          # Uygulama kabuğu / route tanımları (wouter)
-    ├── main.tsx
-    ├── components/       # UI bileşenleri (Radix/shadcn tabanlı)
-    ├── contexts/
-    ├── hooks/
-    ├── lib/
-    └── pages/            # Home, NotFound, ComponentShowcase
-supabase/
-└── migrations/           # Şu an tek migration: 0001_workspace_documents.sql
-patches/                  # pnpm patch dosyaları (wouter)
-docs/archive/              # Geçmiş proje notları (bkz. aşağıda)
-.ai/                        # Çoklu-YZ ortak hafıza (PROJECT_STATE, DECISION_LOG, WORK_LOG)
-PROJECT_ARCHITECT.md        # Çoklu-YZ ortak kimlik ve kurumsal süreç orkestratörü
+dashboard-dershane/
+├── .ai/                            # Çoklu-YZ Ortak Hafıza Sistemi
+│   ├── PROJECT_STATE.md            # Canlı mimari durum ve veri modelleri
+│   ├── DECISION_LOG.md             # Alınan mimari kararlar (ADR)
+│   └── WORK_LOG.md                 # Yapılan işler ve geliştirme günlüğü
+├── .github/                        # CI/CD ve GitHub Şablonları
+│   ├── workflows/ci.yml            # PR ve push kalite kapısı
+│   ├── ISSUE_TEMPLATE/             # Özellik ve görev şablonları
+│   └── PULL_REQUEST_TEMPLATE.md    # PR kontrol listesi
+├── client/
+│   ├── public/                     # Logo, marka ikonları ve statik varlıklar
+│   └── src/
+│       ├── components/
+│       │   ├── ui/                 # 53 adet Radix/shadcn UI primitifi
+│       │   ├── EducationPlatform.tsx # ORBIT Eğitim Çekirdek Ekranları
+│       │   ├── educationAccess.ts  # Rol bazlı yetki matrisi (RBAC)
+│       │   ├── educationAccess.test.ts # Yetki testleri
+│       │   ├── OrbitMark.tsx       # Logo / Marka bileşeni
+│       │   └── ErrorBoundary.tsx   # React Hata Yakalayıcı
+│       ├── contexts/               # ThemeProvider vb. React Context'leri
+│       ├── hooks/                  # useMobile, useComposition vb. özel hook'lar
+│       ├── lib/                    # supabaseClient, documents, utils
+│       ├── pages/
+│       │   ├── Home.tsx            # Temiz ana sayfa / Login yönlendirici
+│       │   └── NotFound.tsx        # 404 Sayfası
+│       ├── App.tsx                 # Uygulama kabuğu ve rota tanımları
+│       ├── index.css               # Tailwind CSS v4 ve ORBIT renk/tipografi tokenları
+│       └── main.tsx                # React DOM Mount
+├── supabase/
+│   └── migrations/                 # Veritabanı migration dosyaları
+├── PROJECT_ARCHITECT.md            # Çoklu-YZ ve 2 Kişilik Ekip Anayasası
+├── CONTRIBUTING.md                 # Git kuralları ve PR süreçleri
+├── package.json
+└── tsconfig.json
 ```
 
-> **Bu repoda çalışan her YZ ajanı** (Claude, Cursor, Gemini, Antigravity vb.), yeni bir oturuma başlarken önce **`PROJECT_ARCHITECT.md`**'yi okumalı ve tarif ettiği "Sanal Başmühendis" rolünü üstlenmelidir.
+---
 
-Backend ayrı bir sunucu değil; Supabase doğrudan istemciden (`@supabase/supabase-js`) kullanılıyor. Kimlik doğrulama ve veri erişimi kararları (RLS dahil) henüz `.ai/PROJECT_STATE.md`'de resmî olarak dokümante edilmedi.
+## ⚡ Hızlı Başlangıç (Geliştirici Rehberi)
 
-Projenin `MoneyFlow` → `ORBIT` marka geçişi ve önceki "Manus" platformundan GitHub'a taşınma sürecinin ayrıntılı geçmişi `docs/archive/PROJECT_HISTORY.md` içinde korunuyor.
-
-## Hızlı Başlangıç
+Projeyi yerelinizde çalıştırmak için aşağıdaki adımları izleyin:
 
 ```bash
+# 1. Bağımlılıkları yükleyin
 pnpm install
-cp .env.example .env   # VITE_SUPABASE_URL ve VITE_SUPABASE_ANON_KEY değerlerini doldurun
+
+# 2. Ortam değişkenlerini kopyalayın
+cp .env.example .env
+
+# 3. Geliştirme sunucusunu başlatın
 pnpm dev
 ```
 
-## Kurulum ve Konfigürasyon
+Tarayıcınızda `http://localhost:5173` adresine giderek demoyu açabilirsiniz.
+Giriş ekranında **Kurum Yöneticisi, Öğretmen, Öğrenci veya Veli** rollerinden birini seçerek anında ilgili arayüze geçiş yapabilirsiniz (Demo şifresi: `demo123`).
 
-| Komut | Amaç |
-| --- | --- |
-| `pnpm dev` | Geliştirme sunucusu (Vite) |
-| `pnpm build` | Production build |
-| `pnpm preview` | Production build'i yerelde önizleme |
-| `pnpm check` | TypeScript tip kontrolü (`tsc --noEmit`) |
-| `pnpm format` | Prettier ile formatlama |
-| `pnpm test` | Vitest ile testleri çalıştırma |
+---
 
-### Ortam Değişkenleri
+## 📋 Kullanılabilir Komutlar
 
-`.env.example` dosyasını `.env` olarak kopyalayın ve doldurun:
+| Komut | Açıklama |
+| :--- | :--- |
+| `pnpm dev` | Vite geliştirme sunucusunu başlatır |
+| `pnpm build` | Production derlemesi oluşturur (`tsc` + Vite) |
+| `pnpm preview` | Üretilen derlemeyi yerelde önizler |
+| `pnpm check` | TypeScript tip kontrollerini çalıştırır (`tsc --noEmit`) |
+| `pnpm test` | Vitest ile birim testlerini çalıştırır |
+| `pnpm format` | Prettier ile tüm kodları formatlar |
 
-```
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-```
+---
 
-Bu değerler asla commit edilmemeli; `.gitignore` `.env` dosyalarını zaten dışlıyor.
+## 🤝 Geliştirme ve Git Kuralları (Ekip Anayasası)
 
-## Test Etme
+Bu repoda iki kişilik ekip ve YZ ajanları (`PROJECT_ARCHITECT.md` ve `CONTRIBUTING.md`) kurallarına göre çalışır:
 
-`pnpm test` (Vitest) mevcut birim testlerini çalıştırır. `pnpm check` ile TypeScript tip hataları, `pnpm build` ile production build doğrulanır. Repo şu an bir lint script'i içermiyor — bkz. Bilinen Sınırlamalar.
-
-## Bilinen Sınırlamalar
-
-- **Lint script yok:** `package.json` içinde `lint` script'i tanımlı değil; CI kalite kapısı bu nedenle şimdilik lint adımı içermiyor.
-- **Mimari kararlar henüz resmî değil:** Auth/yetkilendirme modeli, veri hassasiyeti (KVKK kapsamı — bkz. `docs/archive/PROJECT_HISTORY.md` içindeki `research_turkiye_egitim_pazari.md` bölümü), ölçek ve hosting kararları `PROJECT_ARCHITECT.md` §02 Keşif Mülakatı tamamlanana kadar geçici kabul edilmelidir.
-- **Supabase RLS durumu doğrulanmadı:** İstemci doğrudan Supabase'e bağlandığı için, satır seviyeli güvenlik (RLS) kurulmadan gerçek/hassas veriyle production'a çıkılmamalı.
-- **Tek migration:** `supabase/migrations/` şu an yalnızca `0001_workspace_documents.sql` içeriyor; şema geri kalanının nasıl/ne zaman migration'a döküleceği netleşmedi.
+1. **`main` Dalına Doğrudan Commit Yasaktır:**
+   Her özellik veya düzeltme için `feat/ozellik-adi` veya `fix/hata-adi` formatında branch açılır.
+2. **Atomik Commitler:**
+   Commit mesajları `feat:`, `fix:`, `refactor:`, `test:` standartlarında yazılır.
+3. **Çoklu-YZ Ortak Hafızası:**
+   Her YZ oturumu öncesinde `.ai/PROJECT_STATE.md` okunur, iş tamamlandığında `.ai/WORK_LOG.md` güncellenir.
+4. **Code Review:**
+   PR açıldığında diğer ekip üyesinin review onayı olmadan `main` ile birleştirilemez.

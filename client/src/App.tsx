@@ -1,4 +1,4 @@
-// MoneyFlow reference style: bright, restrained accounting SaaS shell with a blue action accent.
+// ORBIT Education Platform: Modern, multi-role CRM and operations dashboard for education centers.
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";

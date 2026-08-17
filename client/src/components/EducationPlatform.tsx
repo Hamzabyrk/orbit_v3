@@ -107,7 +107,7 @@ export function EducationLoginScreen({ onLogin }: { onLogin: (role: Role) => voi
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (password !== "demo123") { toast.error("Giriş bilgileri doğrulanamadı", { description: "Demo şifresi demo123 olarak ayarlanmıştır." }); return; }
-    const matchedRole = (Object.keys(roleEmail) as Role[]).find((role) => roleEmail[role] === email) ?? (email === "demo@moneyflow.com" ? "admin" : selectedRole);
+    const matchedRole = (Object.keys(roleEmail) as Role[]).find((role) => roleEmail[role] === email) ?? selectedRole;
     setLoading(true);
     window.setTimeout(() => { setLoading(false); toast.success(`Hoş geldiniz, ${roleMeta[matchedRole].name}`); onLogin(matchedRole); }, 280);
   };
