@@ -1,0 +1,38 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: pnpm kurulumu
+        uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Bağımlılıkları Yükle
+        run: pnpm install --frozen-lockfile
+
+      # NOT: package.json'da henüz bir `lint` script'i yok (bkz. README.md
+      # "Bilinen Sınırlamalar"). Eklendiğinde buraya bir adım olarak
+      # `pnpm lint` eklenmeli — olmayan bir script'i çağırıp pipeline'ı
+      # kırmamak için şimdilik atlanıyor.
+
+      - name: Tip Kontrolü (Type Check)
+        run: pnpm check
+
+      - name: Birim Testleri Çalıştır
+        run: pnpm test
+
+      - name: Build Kontrolü
+        run: pnpm build
