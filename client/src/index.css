@@ -1,4 +1,4 @@
-/* MoneyFlow reference style: light high-key finance workspace, exacting blue accent, low-elevation cards. */
+/* ORBIT Education Platform design tokens and workspace styling. */
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -97,7 +97,7 @@ button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: poin
 .login-demo-info > p { letter-spacing: 0.015em; }
 .login-demo-info > div > span { color: #64748b; font-weight: 600; }
 .login-demo-info > div > strong { color: #334155; font-weight: 700; }
-.login-wordmark, .moneyflow-wordmark { letter-spacing: -0.055em; text-rendering: geometricPrecision; }
+.login-wordmark, .orbit-wordmark { letter-spacing: -0.055em; text-rendering: geometricPrecision; }
 
 .font-orbit { font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; }
 .orbit-login-scene { position: relative; isolation: isolate; background: linear-gradient(135deg, #e0f2fe 0%, #cdeeff 46%, #bae6fd 100%); font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; }
@@ -144,14 +144,14 @@ button:not(:disabled), a, [role="button"], input[type="checkbox"] { cursor: poin
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .login-card { animation: moneyflow-enter 420ms cubic-bezier(0.23, 1, 0.32, 1) both; }
-  .metric-card { animation: moneyflow-enter 420ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+  .login-card { animation: orbit-enter 420ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+  .metric-card { animation: orbit-enter 420ms cubic-bezier(0.23, 1, 0.32, 1) both; }
   .metric-card:nth-child(2) { animation-delay: 50ms; }
   .metric-card:nth-child(3) { animation-delay: 100ms; }
   .metric-card:nth-child(4) { animation-delay: 150ms; }
 }
 
-@keyframes moneyflow-enter {
+@keyframes orbit-enter {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }

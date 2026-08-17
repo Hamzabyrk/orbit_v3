@@ -1,6 +1,6 @@
 # DECISION_LOG.md — ORBIT
 
-> Mini-ADR formatında karar kaydı. Format: `PROJECT_ARCHITECT.md` §04 / `CLAUDE.md` §04.
+> Mini-ADR formatında karar kaydı. Format: `PROJECT_ARCHITECT.md` §04.
 
 ---
 
@@ -12,42 +12,33 @@
 
 **Bağlam:** `ardabulent/orbit_v2` reposu public olarak oluşturulmuştu; repo gerçek bir dershane/CRM ürününün iş mantığını, veri modellerini ve olası ticari fikirleri içeriyor.
 
-**Karar:** Repo GitHub üzerinde Private'a çevrilecek.
+**Karar:** Repo GitHub üzerinde Private'a çevrildi.
 
 **Gerekçe:** Ticari/finansal iş mantığı ve müşteri veri modelleri, rakiplerin veya üçüncü tarafların erişimine kapalı tutulmalı. Açık kaynak/portföy amaçlı bir kullanım hedeflenmiyor.
 
-**Alternatifler ve neden elenmişti:**
-- Public kalması — reddedildi: ticari/hassas iş mantığı içeriyor.
-
-**Sonuçlar / Trade-off'lar:** Repo artık yalnızca eklenen collaborator'lar tarafından görülebilir; potansiyel açık kaynak/portföy görünürlüğü kaybedilir (bu proje için önemsiz kabul edildi).
-
-**Ne zaman yeniden değerlendirilmeli:** Proje bir açık kaynak bileşeni ayrıştırırsa veya portföy amaçlı ayrı bir showcase repo'su açılırsa.
-
-**Aksiyon Maddeleri:**
-1. [ ] GitHub Settings → Danger Zone → Change repository visibility → Private (repo sahibi tarafından, bkz. bu PR'ın açıklaması).
+**Sonuçlar / Trade-off'lar:** Repo artık yalnızca eklenen collaborator'lar tarafından görülebilir.
 
 ---
 
-### Karar: Kök dizindeki 24 not dosyasının `docs/archive/`'a taşınması
+### Karar: MoneyFlow kalıntılarının ve eski geçmiş dosyalarının temizlenmesi
 
 **Durum:** Alındı
 **Tarih:** 2026-08-17
 **Kararı Onaylayan(lar):** Arda Bülent (repo sahibi)
 
-**Bağlam:** Repo kökünde, önceki geliştirme sürecinden (MoneyFlow dönemi + Orbit pivotu + tasarım/animasyon analizleri) kalma 24 adet dağınık `.md` dosyası birikmişti. Bunlar yaşayan dokümantasyon değil, geçmiş checkpoint/araştırma/QA kayıtlarıydı.
+**Bağlam:** Repoda eski MoneyFlow (muhasebe/finans SaaS) döneminden kalma 15+ adet ölü bileşen, kullanılmayan 1438 satırlık bileşen vitrini (`ComponentShowcase.tsx`), 83 KB'lık eski tarihçe (`docs/archive/PROJECT_HISTORY.md`) ve `Home.tsx` içinde 400+ satırlık ölü fatura/kasa kodu birikmişti. Bu durum repoya yeni dahil olan geliştirici arkadaş ve YZ ajanları için kafa karışıklığı yaratıyordu.
 
-**Karar:** Tüm 24 dosya, içerik kaybı olmadan tek bir `docs/archive/PROJECT_HISTORY.md` dosyasında üç bölüm altında (MoneyFlow Dönemi, Orbit Pivotu, Tasarım/Animasyon Analizleri) birleştirildi; orijinal dosyalar kökten silindi.
+**Karar:** 
+1. Eski MoneyFlow bileşenleri (`AccountingModules`, `FinancialModules`, `FinanceWorkspace`, `OperationsModules`, `PlannerBoard` vb.) tamamen silindi.
+2. `Home.tsx` temizlenerek doğrudan ORBIT Eğitim Çekirdeğine (`EducationPlatform`) bağlandı.
+3. Eski `docs/archive/PROJECT_HISTORY.md` dosyası ve şablon artıkları kaldırıldı.
+4. CSS ve kod içindeki tüm MoneyFlow değişken/stil kalıntıları temizlendi.
 
-**Gerekçe:** Kök dizini yeni katkıda bulunanlar (ve YZ ajanları) için taranabilir tutmak; geçmiş kararların/araştırmaların izini kaybetmemek.
+**Gerekçe:** Repoyu sıfırdan başlayan net bir eğitim kurumu CRM platformu haline getirmek; kod tabanını hafif, taranabilir, tip güvenli ve yeni geliştiricilerin doğrudan anlayabileceği hale getirmek.
 
-**Alternatifler ve neden elenmişti:**
-- Kategori bazlı birkaç ayrı dosya — reddedildi: tek dosya daha az gezinme yükü getiriyor, proje bu ölçekte hâlâ küçük.
-- Doğrudan silme — reddedildi: araştırma bulguları (rakip analizi, KVKK bulguları, veri modeli tasarım gerekçeleri) ileride tekrar gerekebilir.
-
-**Sonuçlar / Trade-off'lar:** `docs/archive/PROJECT_HISTORY.md` büyük tek bir dosya (~950 satır); arama/grep ile gezinmek gerekir, ayrı dosyalar kadar modüler değildir.
-
-**Ne zaman yeniden değerlendirilmeli:** Arşiv dosyası çok büyürse (yeni büyük araştırma turları eklenirse) kategori bazlı ayrıma geçmek yeniden değerlendirilebilir.
+**Sonuçlar / Trade-off'lar:** Önceki muhasebe SaaS denemelerinin kodları repodan çıktı; repo saf eğitim kurumu operasyonlarına (ders programı, yoklama, öğrenci/sınıf takibi, sınav analizi, veli iletişimi, kayıt/ödeme) odaklandı.
 
 **Aksiyon Maddeleri:**
-1. [x] 24 dosyanın içeriği `docs/archive/PROJECT_HISTORY.md`'ye taşındı.
-2. [x] Orijinal 24 dosya + boş `.gitkeep` kökten silindi.
+1. [x] 15 adet ölü/eski dosya silindi.
+2. [x] `Home.tsx`, `index.css` ve `App.tsx` temizlendi.
+3. [x] TypeScript kontrolü (`pnpm check`) ve testlerin (`pnpm test`) geçmesi sağlandı.

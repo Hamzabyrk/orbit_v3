@@ -4,21 +4,19 @@
 
 ---
 
-## 2026-08-17 — Repo Hijyeni ve Çoklu-YZ Altyapı Kurulumu
+## 2026-08-17 — ORBIT Çekirdek Temizliği ve Mimari Sıfırlama
 
-**Kim:** Claude (Arda Bülent ile birlikte, `chore/repo-hygiene-and-ai-scaffolding` branch'inde)
+**Kim:** Antigravity (Arda Bülent ile birlikte, `feat/orbit-core-init` branch'inde)
 
 **Ne yapıldı:**
-- Kök dizindeki 24 dağınık `.md` dosyası → `docs/archive/PROJECT_HISTORY.md`'de konsolide edildi (içerik kaybı yok).
-- Boş/gereksiz `.gitkeep` silindi.
-- Kök `README.md` oluşturuldu (CLAUDE.md §04B şablonu).
-- `.ai/` ortak hafıza klasörü kuruldu: `PROJECT_STATE.md`, `DECISION_LOG.md`, `WORK_LOG.md` (bu dosya).
-- `.github/` altyapısı kuruldu: CI workflow, PR/issue template, `CONTRIBUTING.md`.
-- `PROJECT_ARCHITECT.md` repo köküne eklendi — artık her YZ ajanı repoyu klonladığında bu dosyayı doğrudan okuyabilir (önceden yalnızca kullanıcının yerel `Desktop/sektorelmd/` klasöründeydi).
-- `.github/CODEOWNERS` eklendi: `* @Hamzabyrk` — her PR otomatik olarak Hamza Bayrak'tan review isteyecek.
+- Eski MoneyFlow döneminden kalma 15 adet kullanılmayan dosya silindi (`AccountingModules`, `FinancialModules`, `FinanceWorkspace`, `PlannerBoard`, `SettingsPanel`, `WorkspaceSidebar`, `AppointmentCalendar`, `OperationsModules`, `AutomationCatalog`, `AutomationSetupWizard`, `ComponentShowcase`, `AIChatBox`, `Map`, `docs/archive/PROJECT_HISTORY.md`, `dist/`).
+- `client/src/pages/Home.tsx` içerisindeki 400+ satırlık ölü fatura/gider kodu temizlenerek dosya saf bir ORBIT giriş noktasına dönüştürüldü (~25 satır).
+- `client/src/index.css` ve `client/src/App.tsx` içindeki MoneyFlow yorumları, değişkenleri ve animasyon isimleri temizlendi.
+- `README.md`, `.ai/PROJECT_STATE.md` ve `.ai/DECISION_LOG.md` sıfırdan başlayan temiz ORBIT mimarisine göre güncellendi.
+- Bir geliştiricinin repoyu ilk kez klonladığında anında projeyi anlayıp kod geliştirebileceği dokümantasyon ve RBAC test yapısı hazırlandı.
+- Değişiklikler kurumsal git kurallarına uygun olarak `feat/orbit-core-init` branch'i üzerinde yapıldı.
 
 **Sırada ne var:**
-1. Repo'yu GitHub'da Private'a çevirmek (bkz. `.ai/DECISION_LOG.md`) — kullanıcı tarafından yapıldı, teyit edildi (API artık 404 dönüyor).
-2. `main` için branch protection kurmak (PR + review + CI zorunlu, "Require review from Code Owners" dahil).
-3. `PROJECT_ARCHITECT.md` §02 Keşif Mülakatı'nı ikinizin birlikte katıldığı ayrı bir oturumda yapmak — bu, `.ai/PROJECT_STATE.md`'yi taslaktan resmî hale getirecek ve §03 Mimari Karar Raporu'nu üretecek.
-4. `package.json`'a bir `lint` script'i eklemek (şu an yok — CI'da bu adım eksik, bkz. `README.md` Bilinen Sınırlamalar).
+1. `PROJECT_ARCHITECT.md` §02 Keşif Mülakatı'nı (Grup A–D) yürüterek projenin MVP kapsamını ve özellik gereksinimlerini belirlemek.
+2. Belirlenen MVP özelliklerine göre Supabase veri modellerini ve migration'larını oluşturmak.
+3. Öğrenci, yoklama, ders programı ve sınav modüllerini kalıcı veritabanı ile canlıya bağlamak.
