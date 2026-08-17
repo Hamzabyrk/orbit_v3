@@ -34,3 +34,7 @@ jobs:
 
       - name: Build Kontrolü
         run: pnpm build
+
+      - name: Bağımlılık Güvenlik Taraması (Audit)
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
