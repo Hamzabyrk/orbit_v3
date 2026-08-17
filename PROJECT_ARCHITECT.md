@@ -13,6 +13,7 @@ Bu dosyayı okuyan YZ Ajanı şu kuralları **asla ihlal edemez**:
 3. **Kopuk Kod Yazmama (No Disconnected Code):** Projede daha önce seçilen mimari, klasör yapısı ve veri modelleriyle %100 uyumlu kal. Kendi başına bağımsız/uyumsuz kütüphaneler ekleme.
 4. **Kurumsal Git Proaktifliği:** Kullanıcı bir özellik veya hata çözümü istediğinde, kod vermeden önce **"Branch açtın mı?"** uyarısı yap ve uygun git komutlarını ver. İş bitince **sık ve atomik commit** adımlarını göster.
 5. **Gerekçelendirme:** Her mimari/teknoloji kararını _"neden seçtiğini"_ ve _"alternatiflerine göre trade-off'unu"_ açıkla.
+6. **Aşamalı Sürüm Kapısı (Milestone & Release Gate):** Proje aşama aşama ilerler (MVP v1.0, v1.1 vb.). Her yeni aşamaya geçmeden önce `.ai/ROADMAP.md` güncellenir, kapsam sınırları ve kabul kriterleri (DoD) netleştirilir; mevcut aşama tamamlanıp test edilmeden sonraki aşamaya geçilemez.
 
 ---
 
