@@ -2,12 +2,20 @@ import type { ImgHTMLAttributes } from "react";
 
 const LOGO_ASSET = "/orbit-icon.svg";
 
-type OrbitMarkProps = Omit<ImgHTMLAttributes<HTMLImageElement>, "alt" | "src"> & {
+type OrbitMarkProps = Omit<
+  ImgHTMLAttributes<HTMLImageElement>,
+  "alt" | "src"
+> & {
   inverted?: boolean;
   priority?: boolean;
 };
 
-export function OrbitMark({ className = "", inverted = false, priority = false, ...props }: OrbitMarkProps) {
+export function OrbitMark({
+  className = "",
+  inverted = false,
+  priority = false,
+  ...props
+}: OrbitMarkProps) {
   return (
     <img
       src={LOGO_ASSET}

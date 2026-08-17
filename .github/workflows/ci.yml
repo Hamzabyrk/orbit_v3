@@ -18,15 +18,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Bağımlılıkları Yükle
         run: pnpm install --frozen-lockfile
 
-      # NOT: package.json'da henüz bir `lint` script'i yok (bkz. README.md
-      # "Bilinen Sınırlamalar"). Eklendiğinde buraya bir adım olarak
-      # `pnpm lint` eklenmeli — olmayan bir script'i çağırıp pipeline'ı
-      # kırmamak için şimdilik atlanıyor.
+      - name: Kod Formatı Kontrolü (Prettier)
+        run: pnpm run format:check
 
       - name: Tip Kontrolü (Type Check)
         run: pnpm check

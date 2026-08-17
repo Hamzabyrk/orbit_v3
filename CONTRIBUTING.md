@@ -24,6 +24,7 @@ git push -u origin feat/<issue-no>-<kisa-ad>
 ## Kod İnceleme Beklentileri
 
 PR şablonundaki kontrol listesine ek olarak:
+
 - Hardcoded secret/API key olmadığından emin olun.
 - Yeni bağımlılık eklendiyse gerekçesi PR açıklamasında belirtilmeli.
 - Mimariyle (mevcut pattern, klasör yapısı, isimlendirme) tutarlılık kontrol edilmeli.

@@ -12,4 +12,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Fall back to a syntactically valid placeholder so a missing config doesn't
 // crash the whole app at import time — calls will just fail until the real
 // env vars are set, instead of taking down every page that imports this module.
-export const supabase = createClient(supabaseUrl || "https://placeholder.supabase.co", supabaseAnonKey || "placeholder-anon-key");
+export const supabase = createClient(
+  supabaseUrl || "https://placeholder.supabase.co",
+  supabaseAnonKey || "placeholder-anon-key"
+);

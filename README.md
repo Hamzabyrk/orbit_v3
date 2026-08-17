@@ -9,6 +9,7 @@
 ORBIT; devamsızlık takibi, ders programı, deneme sınavı analizleri, veli iletişimi ve kayıt/ödeme operasyonlarını rol bazlı erişim modeli (RBAC) ile yönetir.
 
 ### 👥 Roller ve Çalışma Alanları
+
 - 👑 **Kurum Yöneticisi (Admin):** Kurum genel özeti, öğrenci ve sınıf organizasyonu, yoklama takibi, sınav başarı grafikleri, kayıt ve ödeme takibi, operasyonel otomasyonlar ve ayarlar.
 - 🧑‍🏫 **Öğretmen (Teacher):** Ders programı, hızlı yoklama alma, sınıf listeleri, sınav analizleri, insan takibi gereken öğrenci sinyalleri ve veli iletişimi.
 - 🎒 **Öğrenci (Student):** Kişisel ders programı, haftalık ödev/etüt takibi, deneme sınavı gelişim grafikleri ve öğretmenle mesajlaşma.
@@ -18,16 +19,16 @@ ORBIT; devamsızlık takibi, ders programı, deneme sınavı analizleri, veli il
 
 ## 🛠️ Teknoloji Yığını (Tech Stack)
 
-| Katman | Teknoloji | Açıklama |
-| :--- | :--- | :--- |
-| **Frontend** | React 19 + TypeScript 5.9 + Vite 7 | Maksimum tip güvenliği, hızlı derleme ve modüler SPA |
-| **Stil & Tasarım** | Tailwind CSS v4 + Radix UI + shadcn/ui | Erişilebilir headless bileşenler (`components/ui/`), modern tipografi |
-| **Yönlendirme** | `wouter` | Hafif ve performanslı istemci yönlendirici (`patches/wouter@3.7.1.patch`) |
-| **BaaS / Veri** | `@supabase/supabase-js` | Doğrudan istemciden Supabase BaaS bağlantısı |
-| **State Yönetimi** | `@tanstack/react-query` v5 | Sunucu durumu senkronizasyonu |
-| **İkonlar & Bildirim**| `lucide-react`, `sonner` | Tutarlı arayüz ikonları ve zengin bildirimler |
-| **Test** | Vitest 2.1 | Birim ve yetkilendirme (RBAC) testleri |
-| **Paket Yöneticisi**| `pnpm` (v10.4.1) | Hızlı ve disk tasarruflu paket yönetimi |
+| Katman                 | Teknoloji                              | Açıklama                                                                  |
+| :--------------------- | :------------------------------------- | :------------------------------------------------------------------------ |
+| **Frontend**           | React 19 + TypeScript 5.9 + Vite 7     | Maksimum tip güvenliği, hızlı derleme ve modüler SPA                      |
+| **Stil & Tasarım**     | Tailwind CSS v4 + Radix UI + shadcn/ui | Erişilebilir headless bileşenler (`components/ui/`), modern tipografi     |
+| **Yönlendirme**        | `wouter`                               | Hafif ve performanslı istemci yönlendirici (`patches/wouter@3.7.1.patch`) |
+| **BaaS / Veri**        | `@supabase/supabase-js`                | Doğrudan istemciden Supabase BaaS bağlantısı                              |
+| **State Yönetimi**     | `@tanstack/react-query` v5             | Sunucu durumu senkronizasyonu                                             |
+| **İkonlar & Bildirim** | `lucide-react`, `sonner`               | Tutarlı arayüz ikonları ve zengin bildirimler                             |
+| **Test**               | Vitest 2.1                             | Birim ve yetkilendirme (RBAC) testleri                                    |
+| **Paket Yöneticisi**   | `pnpm` (v10.4.1)                       | Hızlı ve disk tasarruflu paket yönetimi                                   |
 
 ---
 
@@ -94,14 +95,14 @@ Giriş ekranında **Kurum Yöneticisi, Öğretmen, Öğrenci veya Veli** rolleri
 
 ## 📋 Kullanılabilir Komutlar
 
-| Komut | Açıklama |
-| :--- | :--- |
-| `pnpm dev` | Vite geliştirme sunucusunu başlatır |
-| `pnpm build` | Production derlemesi oluşturur (`tsc` + Vite) |
-| `pnpm preview` | Üretilen derlemeyi yerelde önizler |
-| `pnpm check` | TypeScript tip kontrollerini çalıştırır (`tsc --noEmit`) |
-| `pnpm test` | Vitest ile birim testlerini çalıştırır |
-| `pnpm format` | Prettier ile tüm kodları formatlar |
+| Komut          | Açıklama                                                 |
+| :------------- | :------------------------------------------------------- |
+| `pnpm dev`     | Vite geliştirme sunucusunu başlatır                      |
+| `pnpm build`   | Production derlemesi oluşturur (`tsc` + Vite)            |
+| `pnpm preview` | Üretilen derlemeyi yerelde önizler                       |
+| `pnpm check`   | TypeScript tip kontrollerini çalıştırır (`tsc --noEmit`) |
+| `pnpm test`    | Vitest ile birim testlerini çalıştırır                   |
+| `pnpm format`  | Prettier ile tüm kodları formatlar                       |
 
 ---
 

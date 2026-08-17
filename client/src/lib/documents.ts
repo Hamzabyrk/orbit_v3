@@ -48,7 +48,9 @@ function fromRow(row: WorkspaceDocumentRow): WorkspaceDocument {
 }
 
 function safeDocumentName(value: string) {
-  return value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "belge";
+  return (
+    value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "belge"
+  );
 }
 
 export async function listWorkspaceDocuments(): Promise<WorkspaceDocument[]> {
@@ -75,10 +77,14 @@ export async function uploadWorkspaceDocument(input: {
   const fileKey = `workspace-documents/${Date.now()}-${safeDocumentName(file.name)}`;
   const { error: uploadError } = await supabase.storage
     .from(DOCUMENTS_BUCKET)
-    .upload(fileKey, file, { contentType: file.type || "application/octet-stream" });
+    .upload(fileKey, file, {
+      contentType: file.type || "application/octet-stream",
+    });
   if (uploadError) throw new Error(uploadError.message);
 
-  const { data: publicUrlData } = supabase.storage.from(DOCUMENTS_BUCKET).getPublicUrl(fileKey);
+  const { data: publicUrlData } = supabase.storage
+    .from(DOCUMENTS_BUCKET)
+    .getPublicUrl(fileKey);
 
   const { data, error } = await supabase
     .from("workspace_documents")
@@ -102,8 +108,14 @@ export async function uploadWorkspaceDocument(input: {
   return fromRow(data as WorkspaceDocumentRow);
 }
 
-export async function removeWorkspaceDocument(id: number, fileKey: string): Promise<void> {
-  const { error } = await supabase.from("workspace_documents").delete().eq("id", id);
+export async function removeWorkspaceDocument(
+  id: number,
+  fileKey: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("workspace_documents")
+    .delete()
+    .eq("id", id);
   if (error) throw new Error(error.message);
   await supabase.storage.from(DOCUMENTS_BUCKET).remove([fileKey]);
 }

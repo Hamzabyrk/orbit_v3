@@ -4,19 +4,21 @@
 
 ---
 
-## 2026-08-17 — ORBIT Çekirdek Temizliği ve Mimari Sıfırlama
+## 2026-08-17 — Keşif Mülakatı ve MVP Mimarisinin Kesinleştirilmesi
 
 **Kim:** Antigravity (Arda Bülent ile birlikte, `feat/orbit-core-init` branch'inde)
 
 **Ne yapıldı:**
-- Eski MoneyFlow döneminden kalma 15 adet kullanılmayan dosya silindi (`AccountingModules`, `FinancialModules`, `FinanceWorkspace`, `PlannerBoard`, `SettingsPanel`, `WorkspaceSidebar`, `AppointmentCalendar`, `OperationsModules`, `AutomationCatalog`, `AutomationSetupWizard`, `ComponentShowcase`, `AIChatBox`, `Map`, `docs/archive/PROJECT_HISTORY.md`, `dist/`).
-- `client/src/pages/Home.tsx` içerisindeki 400+ satırlık ölü fatura/gider kodu temizlenerek dosya saf bir ORBIT giriş noktasına dönüştürüldü (~25 satır).
-- `client/src/index.css` ve `client/src/App.tsx` içindeki MoneyFlow yorumları, değişkenleri ve animasyon isimleri temizlendi.
-- `README.md`, `.ai/PROJECT_STATE.md` ve `.ai/DECISION_LOG.md` sıfırdan başlayan temiz ORBIT mimarisine göre güncellendi.
-- Bir geliştiricinin repoyu ilk kez klonladığında anında projeyi anlayıp kod geliştirebileceği dokümantasyon ve RBAC test yapısı hazırlandı.
-- Değişiklikler kurumsal git kurallarına uygun olarak `feat/orbit-core-init` branch'i üzerinde yapıldı.
+
+- `PROJECT_ARCHITECT.md` §02 Etkileşimli Keşif Mülakatı (Grup A, B, C, D) başarıyla tamamlandı.
+- Ürün kapsamı: Devlet kısıtlaması olmayan özel kurslar (LGS/YKS, butik etüt, dil kursları) için yalın Sınıf & Öğrenci CRM'i olarak belirlendi.
+- Müşteri görüşmesi stratejisi: Auth ve harici API yükü olmadan, tek tıkla rol geçişli ve `isMock: true` bayraklı verilerle çalışan saha demosu olarak kararlaştırıldı.
+- `.ai/PROJECT_STATE.md` ve `.ai/DECISION_LOG.md` güncellenerek tüm kararlar kayıt altına alındı.
+- Vercel dağıtım ve GitHub entegrasyon kararları onaylandı.
 
 **Sırada ne var:**
-1. `PROJECT_ARCHITECT.md` §02 Keşif Mülakatı'nı (Grup A–D) yürüterek projenin MVP kapsamını ve özellik gereksinimlerini belirlemek.
-2. Belirlenen MVP özelliklerine göre Supabase veri modellerini ve migration'larını oluşturmak.
-3. Öğrenci, yoklama, ders programı ve sınav modüllerini kalıcı veritabanı ile canlıya bağlamak.
+
+1. Sınıf ekleme/düzenleme/silme işlevlerinin (CRUD) dinamik state'e bağlanması.
+2. Öğrenci ekleme/düzenleme/silme (Ad, No, Sınıf, Tel, Veli Bilgileri) formlarının interaktif hale getirilmesi.
+3. Yoklama alma ve sınav sonuçlarının dinamik olarak hesaplanması.
+4. Örnek verilerin `isMock: true` bayrağı ile işaretlenmesi ve tek tıkla "Demo Verileri Sıfırla / Temizle" aksiyonunun eklenmesi.
