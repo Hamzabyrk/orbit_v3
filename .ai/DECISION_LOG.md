@@ -10,35 +10,35 @@
 **Tarih:** 2026-08-17
 **Kararı Onaylayan(lar):** Arda Bülent (repo sahibi)
 
-**Bağlam:** `ardabulent/orbit_v2` reposu public olarak oluşturulmuştu; repo gerçek bir dershane/CRM ürününün iş mantığını, veri modellerini ve olası ticari fikirleri içeriyor.
-
+**Bağlam:** `ardabulent/orbit_v2` reposu public olarak oluşturulmuştu; repo gerçek bir dershane/CRM ürününün iş mantığını, veri modellerini ve ticari fikirleri içeriyor.
 **Karar:** Repo GitHub üzerinde Private'a çevrildi.
-
-**Gerekçe:** Ticari/finansal iş mantığı ve müşteri veri modelleri, rakiplerin veya üçüncü tarafların erişimine kapalı tutulmalı. Açık kaynak/portföy amaçlı bir kullanım hedeflenmiyor.
-
-**Sonuçlar / Trade-off'lar:** Repo artık yalnızca eklenen collaborator'lar tarafından görülebilir.
+**Gerekçe:** Ticari/finansal iş mantığı ve müşteri veri modelleri üçüncü tarafların erişimine kapalı tutulmalı.
 
 ---
 
-### Karar: MoneyFlow kalıntılarının ve eski geçmiş dosyalarının temizlenmesi
+### Karar: MoneyFlow kalıntılarının temizlenmesi ve ORBIT Eğitim Çekirdeğinin kurulması
 
 **Durum:** Alındı
 **Tarih:** 2026-08-17
 **Kararı Onaylayan(lar):** Arda Bülent (repo sahibi)
 
-**Bağlam:** Repoda eski MoneyFlow (muhasebe/finans SaaS) döneminden kalma 15+ adet ölü bileşen, kullanılmayan 1438 satırlık bileşen vitrini (`ComponentShowcase.tsx`), 83 KB'lık eski tarihçe (`docs/archive/PROJECT_HISTORY.md`) ve `Home.tsx` içinde 400+ satırlık ölü fatura/kasa kodu birikmişti. Bu durum repoya yeni dahil olan geliştirici arkadaş ve YZ ajanları için kafa karışıklığı yaratıyordu.
+**Bağlam:** Repoda eski MoneyFlow döneminden kalma 15+ adet ölü bileşen, kullanılmayan 1438 satırlık vitrin ve 83 KB'lık eski tarihçe birikmişti.
+**Karar:** Tüm ölü dosyalar silindi, `Home.tsx` ve stiller temizlendi. Repo saf ORBIT Eğitim Platformu haline getirildi.
+**Gerekçe:** Repoyu sıfırdan başlayan net, tip güvenli ve yeni geliştiricinin anında anlayabileceği bir eğitim CRM platformuna dönüştürmek.
 
+---
+
+### Karar: MVP Faz 1 Kapsamı — Saha Doğrulaması & Müşteri Görüşmesi Odaklı Mimari
+
+**Durum:** Alındı
+**Tarih:** 2026-08-17
+**Kararı Onaylayan(lar):** Arda Bülent & Hamza Bayrak
+
+**Bağlam:** Hedef kitle devlet kısıtlılıklarına tabi olmayan özel kurslar (LGS/YKS kursları, butik etüt merkezleri, dil kursları). İlk hedef, birkaç gün içinde çalışan bir MVP çıkarıp potansiyel müşterilere sahada göstererek geri bildirim toplamak.
 **Karar:** 
-1. Eski MoneyFlow bileşenleri (`AccountingModules`, `FinancialModules`, `FinanceWorkspace`, `OperationsModules`, `PlannerBoard` vb.) tamamen silindi.
-2. `Home.tsx` temizlenerek doğrudan ORBIT Eğitim Çekirdeğine (`EducationPlatform`) bağlandı.
-3. Eski `docs/archive/PROJECT_HISTORY.md` dosyası ve şablon artıkları kaldırıldı.
-4. CSS ve kod içindeki tüm MoneyFlow değişken/stil kalıntıları temizlendi.
+1. **MVP Çekirdeği:** Sınıf & Grup Yönetimi + Öğrenci Yönetimi (Ad, No, Sınıf, Tel, Veli Ad/Tel) + 4 Rol Arayüzü (Admin, Öğretmen, Öğrenci, Veli).
+2. **Auth & 3. Parti Entegrasyonlar:** Saha görüşmelerinde sürtünmeyi sıfıra indirmek amacıyla karmaşık Auth ve harici SMS/ödeme API'leri MVP sonrasına bırakıldı; tek tıkla rol değiştirilebilen interaktif demo modu benimsendi.
+3. **Mock Veri İzolasyonu:** Kurumun dolu görünmesini sağlayan örnek veriler `isMock: true` bayrağı ile işaretlenecek ve istendiğinde tek tıkla temizlenebilecek.
+4. **Dağıtım & Bütçe:** GitHub + Vercel entegrasyonu ile 0₺ bütçeli anlık canlıya alma.
 
-**Gerekçe:** Repoyu sıfırdan başlayan net bir eğitim kurumu CRM platformu haline getirmek; kod tabanını hafif, taranabilir, tip güvenli ve yeni geliştiricilerin doğrudan anlayabileceği hale getirmek.
-
-**Sonuçlar / Trade-off'lar:** Önceki muhasebe SaaS denemelerinin kodları repodan çıktı; repo saf eğitim kurumu operasyonlarına (ders programı, yoklama, öğrenci/sınıf takibi, sınav analizi, veli iletişimi, kayıt/ödeme) odaklandı.
-
-**Aksiyon Maddeleri:**
-1. [x] 15 adet ölü/eski dosya silindi.
-2. [x] `Home.tsx`, `index.css` ve `App.tsx` temizlendi.
-3. [x] TypeScript kontrolü (`pnpm check`) ve testlerin (`pnpm test`) geçmesi sağlandı.
+**Gerekçe:** Hız, sıfır maliyet ve müşteriyle doğrudan temas kurarak gerçek ihtiyaçları en kısa sürede öğrenmek.
