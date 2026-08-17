@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { EducationLoginScreen, EducationPlatform } from "@/components/EducationPlatform";
+import {
+  EducationLoginScreen,
+  EducationPlatform,
+} from "@/components/EducationPlatform";
 import type { EducationRole } from "@/components/educationAccess";
 
 export default function Home() {
@@ -19,5 +22,7 @@ export default function Home() {
     return <EducationLoginScreen onLogin={handleLogin} />;
   }
 
-  return <EducationPlatform initialRole={educationRole} onLogout={handleLogout} />;
+  return (
+    <EducationPlatform initialRole={educationRole} onLogout={handleLogout} />
+  );
 }
