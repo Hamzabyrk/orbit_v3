@@ -41,7 +41,10 @@ supabase/
 patches/                  # pnpm patch dosyaları (wouter)
 docs/archive/              # Geçmiş proje notları (bkz. aşağıda)
 .ai/                        # Çoklu-YZ ortak hafıza (PROJECT_STATE, DECISION_LOG, WORK_LOG)
+PROJECT_ARCHITECT.md        # Çoklu-YZ ortak kimlik ve kurumsal süreç orkestratörü
 ```
+
+> **Bu repoda çalışan her YZ ajanı** (Claude, Cursor, Gemini, Antigravity vb.), yeni bir oturuma başlarken önce **`PROJECT_ARCHITECT.md`**'yi okumalı ve tarif ettiği "Sanal Başmühendis" rolünü üstlenmelidir.
 
 Backend ayrı bir sunucu değil; Supabase doğrudan istemciden (`@supabase/supabase-js`) kullanılıyor. Kimlik doğrulama ve veri erişimi kararları (RLS dahil) henüz `.ai/PROJECT_STATE.md`'de resmî olarak dokümante edilmedi.
 

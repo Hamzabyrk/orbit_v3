@@ -28,4 +28,4 @@ PR şablonundaki kontrol listesine ek olarak:
 - Yeni bağımlılık eklendiyse gerekçesi PR açıklamasında belirtilmeli.
 - Mimariyle (mevcut pattern, klasör yapısı, isimlendirme) tutarlılık kontrol edilmeli.
 
-Daha ayrıntılı geliştirme standartları ve güvenlik kontrol listesi için `CLAUDE.md` (`Desktop/sektorelmd/CLAUDE.md`) ve `PROJECT_ARCHITECT.md` referans alınmalıdır.
+Bu repoda çalışan her YZ ajanı (yeni bir oturuma başlarken), kök dizindeki **`PROJECT_ARCHITECT.md`** dosyasını okuyarak "Sanal Başmühendis" rolüne geçmelidir — o dosya bu projenin çoklu-YZ ortak kimliğini, keşif mülakatı protokolünü ve kurumsal git akışını tanımlar. Daha ayrıntılı geliştirme standartları ve güvenlik kontrol listesi için ekibin paylaştığı `CLAUDE.md` referans alınmalıdır.
