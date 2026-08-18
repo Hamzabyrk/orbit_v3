@@ -9,6 +9,7 @@ Bu proje `PROJECT_ARCHITECT.md`'de tanımlanan kurumsal standartlarla, iki kişi
 3. **Kod birleştirilmeden önce diğer ekip üyesinin PR onayı zorunludur.**
 4. **Commit mesajları [Conventional Commits](https://www.conventionalcommits.org/) formatında yazılır:** `feat:`, `fix:`, `refactor:`, `test:`, `chore:`, `docs:`.
 5. **Her PR'da `.ai/PROJECT_STATE.md` ve `.ai/WORK_LOG.md` güncel mi kontrol edilir** — bkz. PR şablonundaki ilgili checkbox.
+6. **Modülerlik & Tek Sorumluluk:** Yeni ekranlar veya özellikler devasa tek bir dosyaya yığılamaz. Her ekran kendi alt dosyasında (`components/modules/` veya `components/education/`) olmalı, tipler ve hook'lar ayrıştırılmalıdır.
 
 ## İş Akışı
 
