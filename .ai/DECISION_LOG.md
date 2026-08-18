@@ -43,3 +43,38 @@
 4. **Dağıtım & Bütçe:** GitHub + Vercel entegrasyonu ile 0₺ bütçeli anlık canlıya alma.
 
 **Gerekçe:** Hız, sıfır maliyet ve müşteriyle doğrudan temas kurarak gerçek ihtiyaçları en kısa sürede öğrenmek.
+
+---
+
+### Karar: EducationPlatform Bileşen Bölünmesi, Mock Veri İzolasyonu ve ESLint Kalite Kapısı
+
+**Durum:** Alındı
+**Tarih:** 2026-08-18
+**Kararı Onaylayan(lar):** Arda Bülent (repo sahibi)
+
+**Bağlam:** `EducationPlatform.tsx` 2659 satıra ulaşmış tek dosyalık bir bileşendi; `.ai/` dokümantasyonu MVP kapsamında `isMock`/localStorage/reset butonu tanımlıyordu ama kodda hiçbiri yoktu; repoda hiçbir ESLint kurulumu bulunmuyordu.
+
+**Karar:**
+
+1. `EducationPlatform.tsx`, rol/sayfa bazlı ayrı dosyalara bölündü (`components/education/`), gelecekteki `feat/*-profile` dallarındaki merge çakışmalarını azaltmak amacıyla.
+2. Sadece gerçekten mutasyona uğrayan iki veri kümesi (`attendances`, `automations`) için `lib/demoStorage.ts` ile localStorage kalıcılığı ve sıfırlama aksiyonu eklendi; `students`/`classes`/`schedule`/`paymentRows` yalnızca `isMock: true` bayrağı ile işaretlendi (henüz mutasyon yolu olmadığı için kalıcılık eklenmedi).
+3. ESLint 9 flat config + typescript-eslint + eslint-plugin-react-hooks, tip kontrollü (type-checked) kural setleri olmadan eklendi; `eslint-plugin-react-hooks` bilinçli olarak v5'e sabitlendi (v7'nin React Compiler odaklı yeni kuralları ilk kalite kapısı için gereksiz sürtünme yaratacaktı).
+
+**Gerekçe:** Sürdürülebilirlik (dosya bölünmesi), demo sunumlarının sayfa yenilemeye dayanıklı olması (persistence), ve ekip büyürken kod kalitesinin otomatik denetlenmesi (ESLint). RLS, tam CRUD ve gerçek Auth bu kapsamın dışında bırakıldı — bunlar Aşama 3'te ele alınacak.
+
+---
+
+### Karar: Sistemik Graph-First Düşünme, Blast Radius ve 6 Boyutlu Risk Protokolü
+
+**Durum:** Alındı
+**Tarih:** 2026-08-18
+**Kararı Onaylayan(lar):** Arda Bülent & Hamza Bayrak
+
+**Bağlam:** Vibe-coding yapan ekiplerde YZ ajanlarının körü körüne koda atlayarak yan etkileri (blast radius), ticari maliyetleri, KVKK açıklarını ve pik yük darboğazlarını göz ardı etme riski bulunmaktadır.
+**Karar:** `PROJECT_ARCHITECT.md` §00 Kural 8 ve Bölüm 08 ile `CONTRIBUTING.md` ve `.github/PULL_REQUEST_TEMPLATE.md` içine "Graph-First Düşünme Protokolü" eklendi. Tüm YZ ajanları ve geliştiriciler değişiklik öncesinde:
+
+1. Netleştirici sorular sormak,
+2. Problemi 6 Boyutlu Graf Haritası (Teknik Kod/Tipler, Ticari Bütçe, Hata/Fallback, KVKK/Gizlilik, Pik Yük, Güvenlik) olarak modellemek,
+3. Risk durumunda proaktif itiraz (pushback) yaparak güvenli alternatifi sunmakla yükümlü kılınmıştır.
+
+**Gerekçe:** Mimari bozulmaları, beklenmedik maliyet patlamalarını ve regülasyon ihlallerini daha ilk satır kod yazılmadan graf seviyesinde önlemek.

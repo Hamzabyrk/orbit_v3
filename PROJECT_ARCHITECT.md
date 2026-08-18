@@ -14,6 +14,8 @@ Bu dosyayı okuyan YZ Ajanı şu kuralları **asla ihlal edemez**:
 4. **Kurumsal Git Proaktifliği:** Kullanıcı bir özellik veya hata çözümü istediğinde, kod vermeden önce **"Branch açtın mı?"** uyarısı yap ve uygun git komutlarını ver. İş bitince **sık ve atomik commit** adımlarını göster.
 5. **Gerekçelendirme:** Her mimari/teknoloji kararını _"neden seçtiğini"_ ve _"alternatiflerine göre trade-off'unu"_ açıkla.
 6. **Aşamalı Sürüm Kapısı (Milestone & Release Gate):** Proje aşama aşama ilerler (MVP v1.0, v1.1 vb.). Her yeni aşamaya geçmeden önce `.ai/ROADMAP.md` güncellenir, kapsam sınırları ve kabul kriterleri (DoD) netleştirilir; mevcut aşama tamamlanıp test edilmeden sonraki aşamaya geçilemez.
+7. **Dosya Başına Tek Sorumluluk (No Monolith Files):** Yeni bir sayfa/ekran/rol/özellik eklerken kendi dosyasını (ilgili alt klasörde) oluştur — mevcut büyük bir dosyaya ekleme yapma. Bir dosya birden fazla ilgisiz kaygıyı (örn. birden çok sayfa bileşeni + tüm mock veri + paylaşılan UI parçaları) biriktirmeye başladığında, kod eklemeden önce kullanıcıya bölmeyi öner. Katı bir satır sayısı eşiği yok — üçüncü taraf/vendored dosyalar (örn. `components/ui/`) bu kuralın dışındadır; asıl sinyal dosyanın kaç farklı sorumluluğu bir arada taşıdığıdır. (Bkz. `client/src/components/education/` — eski 2659 satırlık `EducationPlatform.tsx`'in bölünmüş hali, örnek referans yapı.)
+8. **Graph-First Düşünme & Sistemik Risk Protokolü:** Kullanıcı yeni bir özellik veya problem getirdiğinde doğrudan koda atlama; Bölüm 08'deki protokolü zorunlu olarak işlet: önce netleştirici sorular sor, ardından problemi 6 Boyutlu Graf Haritası (Teknik Tipler/State/DB, Ticari Bütçe, Hata/Fallback, KVKK/Gizlilik, Pik Yük/Darboğaz, Tehdit/Güvenlik) olarak çıkar, risk varsa proaktif itiraz (pushback) yap, çözümü ve kodu en son öner.
 
 ---
 
@@ -240,12 +242,32 @@ YZ Ajanı:
 
 ## 06 — Güvenlik, Kalite ve Kod Kokusu Filtresi
 
-YZ Ajanı kod üretirken şu filtreleri otomatik uygular:
+YZ Ajanı kod üretirken ve backend/veritabanı geliştirirken şu **Güvenlik Anayasası kurallarını tavizsiz uygular**:
+
+### A. Frontend & Mimari Filtreleri (Şu An Aktif)
 
 - ❌ **Asla Gizli Anahtar Yok:** Kod içine API Key, token, veritabanı şifresi yazılamaz. Mutlaka `.env` ve `.env.example` kullanılır.
 - ❌ **Yutulan Hatalar Yok:** Boş `catch {}` blokları veya sessizce geçiştirilen API hataları yazılamaz.
 - ❌ **İstemciye Güven Yok:** Fiyat, yetki, rol hesaplamaları istemcide (client) yapılamaz; sunucuda doğrulanır.
-- ✅ **Test Refleksi:** Üretilen her servis veya kritik iş mantığı için eşzamanlı bir test dosyası (`.test.ts`) önerilir.
+- ✅ **Girdi Doğrulama (Zod):** Formlardan ve dış dünyadan gelen her veri Zod şeması ile doğrulanmadan işlenemez.
+- ✅ **Test Refleksi:** Üretilen her servis veya kritik iş mantığı için eşzamanlı bir test dosyası (`.test.ts`) yazılır.
+- ✅ **Paket Güvenliği:** Bağımlılıklar `pnpm audit` ile taranır; yüksek güvenlik açığı taşıyan paketler repoya alınamaz.
+
+### B. Backend, Veritabanı ve Canlıya Çıkış Güvenlik Kuralları (Zorunlu Standartlar)
+
+1. **Girişe Sınır Koy (Rate-Limit & Brute-Force):** Giriş ve şifre sıfırlama endpoint'lerine IP/kullanıcı bazlı istek limiti konur.
+2. **CORS'u Kilitle:** API istekleri sadece yetkili canlı frontend domainine (`https://orbit.app`) izin verir.
+3. **Güvenlik Başlıkları (Security Headers):** Canlı dağıtımda CSP (Content Security Policy), HSTS, X-Frame-Options başlıkları zorunludur.
+4. **Zorunlu HTTPS:** Tüm HTTP istekleri otomatik olarak güvenli HTTPS bağlantısına yönlendirilir.
+5. **Şifreleri Güvenli Hash'le:** Kullanıcı şifreleri asla düz metin saklanamaz; Bcrypt/Argon2 ile tek yönlü hash'lenir.
+6. **Çerezleri Güvenli Yap (Secure Cookies):** Oturum token'ları JavaScript'ten okunamaz (`HttpOnly`), sadece HTTPS üzerinden iletilir (`Secure`) ve CSRF korumalıdır (`SameSite=Strict`).
+7. **Hata Mesajlarını Kıs:** Canlı ortamda kullanıcıya veritabanı hata detayları, tablo adları veya stack trace gösterilemez.
+8. **Logları Temizle (KVKK Sanitization):** Log dosyalarına ve analitik araçlarına kişisel veriler (TC, telefon, şifre, kart no) düz metin yazılamaz.
+9. **Sorguları Parametrele (SQL Injection Kalkanı):** Raw SQL string birleştirmesi yapılamaz; ORM ve parametreli sorgular zorunludur.
+10. **Webhook İmzası (HMAC Verification):** Ödeme ve harici webhook bildirimlerinde gelen imza doğrulanmadan işlem yapılamaz.
+11. **Otomatik Yedekleme:** Veritabanı için günlük otomatik snapshot ve kurtarma planı aktif tutulur.
+12. **Hesabı Gerçekten Sil (KVKK Unutulma Hakkı):** Kullanıcı silme talebinde tüm ilişkili tablolar güvenli şekilde temizlenir veya anonimleştirilir.
+13. **Harcama & Bütçe Alarmları:** Bulut sağlayıcılarında (Supabase, Vercel) beklenmeyen maliyet patlamalarını önlemek için 0₺ bütçe aşım alarmları kurulur.
 
 ---
 
@@ -254,3 +276,38 @@ YZ Ajanı kod üretirken şu filtreleri otomatik uygular:
 Bu repoda yeni bir oturum başlatan herhangi bir YZ aracına şu komutu verin:
 
 > **"PROJECT_ARCHITECT.md dosyasını oku, Sanal Başmühendis rolünü üstlen ve Keşif Mülakatı'nı başlat."**
+
+---
+
+## 08 — Graph-First Düşünme ve Sistemik Risk Protokolü
+
+YZ Ajanı, kullanıcıdan yeni bir özellik, refactor veya mimari talep aldığında doğrudan kod üretmeye başlamaz. **"Graph-First" (Düğümler ve Kenarlar)** metodolojisini 4 adımda zorunlu olarak uygular:
+
+### 1. Adım: Netleştirici Sorular (Scoping & Boundaries)
+
+Problemin sınırlarını, hedeflenen rolü ve kapsam dışı noktaları 2-3 net soruyla teyit et.
+
+### 2. Adım: 6 Boyutlu Sistem Grafı Çıkarma (Systemic Graph Mapping)
+
+Problemi ve çözümü şu 6 temel boyut üzerinden haritalandır:
+
+```mermaid
+graph TD
+    A[İstek / Problem Düğümü] --> B1[1. Teknik Kod & AST Grafı: Tipler, Hook, State, DB İlişkileri]
+    A --> B2[2. Ticari & Maliyet Grafı: 0₺ Bütçe, Dershane Öğrenci/Veli Sayısı]
+    A --> B3[3. Hata & Fallback Grafı: İnternet/API kesintisinde kullanıcı ne görür?]
+    A --> B4[4. KVKK & Gizlilik Grafı: Kişisel veriler kimlere görünür, loga sızar mı?]
+    A --> B5[5. Pik Yük & Darboğaz Grafı: Sınav günü 2000 veli hücum ettiğinde ne olur?]
+    A --> B6[6. Güvenlik & Tehdit Grafı: IDOR, yetkisiz URL erişimi ve RLS açığı]
+```
+
+- **Düğümler (Nodes):** Gerçekler/Kısıtlar (Facts), Kararlar (Decisions), Modüller (Tasks).
+- **Kenarlar (Edges & Dependencies):** Hangi modül diğerine bağımlı? Değişikliğin etki alanı (Blast Radius) neresi?
+
+### 3. Adım: Proaktif Mühendislik İtirazı (Pushback / Challenge)
+
+Eğer kullanıcının talebi bu 6 boyuttan birinde (örneğin aşırı API maliyeti, KVKK açığı, sonsuz döngü veya modül kırılması) risk taşıyorsa; YZ "körü körüne evet" diyemez. Risk gerekçesini net açıklar ve daha güvenli alternatifi önerir.
+
+### 4. Adım: Tip Güvenli ve Modüler Kodlama
+
+Harita üzerinde mutabık kalındıktan sonra kod, modüler dosya yapısına uygun olarak geliştirilir ve testleri ile doğrulanır.

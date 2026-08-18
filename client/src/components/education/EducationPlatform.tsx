@@ -1,0 +1,336 @@
+import { useEffect, useMemo, useState } from "react";
+import { OrbitMark } from "@/components/OrbitMark";
+import { Bell, LogOut, Menu, X } from "lucide-react";
+import { toast } from "sonner";
+import { clearDemoData, readDemoData, writeDemoData } from "@/lib/demoStorage";
+import { availableEducationSections } from "@/components/educationAccess";
+import { AdminDashboard } from "./dashboards/AdminDashboard";
+import { ParentDashboard } from "./dashboards/ParentDashboard";
+import { StudentDashboard } from "./dashboards/StudentDashboard";
+import { TeacherDashboard } from "./dashboards/TeacherDashboard";
+import {
+  allNav,
+  initialAttendances,
+  initialAutomations,
+  roleMeta,
+  students,
+} from "./mockData";
+import { AssessmentsPage } from "./pages/AssessmentsPage";
+import { AttendancePage } from "./pages/AttendancePage";
+import { AutomationsPage } from "./pages/AutomationsPage";
+import { ClassesPage } from "./pages/ClassesPage";
+import { CommunicationsPage } from "./pages/CommunicationsPage";
+import { PaymentsPage } from "./pages/PaymentsPage";
+import { ReportsPage } from "./pages/ReportsPage";
+import { SchedulePage } from "./pages/SchedulePage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { StudentsPage } from "./pages/StudentsPage";
+import { StudentDetail } from "./StudentDetail";
+import type { AttendanceState, Role, Section, Student } from "./types";
+
+export function EducationPlatform({
+  onLogout,
+  initialRole = "admin",
+}: {
+  onLogout: () => void;
+  initialRole?: Role;
+}) {
+  const [role, setRole] = useState<Role>(initialRole);
+  const [active, setActive] = useState<Section>("Genel Bakış");
+  const [mobileNav, setMobileNav] = useState(false);
+  const [query, setQuery] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [attendances, setAttendances] = useState<
+    Record<string, AttendanceState>
+  >(() => readDemoData("attendances", initialAttendances));
+  const [automations, setAutomations] = useState(() =>
+    readDemoData("automations", initialAutomations)
+  );
+  const [message, setMessage] = useState("");
+  const meta = roleMeta[role];
+  const navItems = allNav.filter(item =>
+    availableEducationSections(role).includes(item.label)
+  );
+  const visibleStudents = useMemo(() => {
+    const roleStudents =
+      role === "teacher"
+        ? students.filter(
+            student =>
+              student.group === "YKS 12-A" || student.group === "YKS 11-C"
+          )
+        : role === "student" || role === "parent"
+          ? students.filter(student => student.id === "stu-001")
+          : students;
+    return roleStudents.filter(student =>
+      `${student.name} ${student.code} ${student.group}`
+        .toLocaleLowerCase("tr")
+        .includes(query.toLocaleLowerCase("tr"))
+    );
+  }, [role, query]);
+
+  useEffect(() => {
+    writeDemoData("attendances", attendances);
+  }, [attendances]);
+
+  useEffect(() => {
+    writeDemoData("automations", automations);
+  }, [automations]);
+
+  const resetDemoData = () => {
+    clearDemoData("attendances");
+    clearDemoData("automations");
+    setAttendances(initialAttendances);
+    setAutomations(initialAutomations);
+    toast.success("Demo verileri sıfırlandı", {
+      description:
+        "Yoklama ve otomasyon verileri ilk demo durumuna döndürüldü.",
+    });
+  };
+
+  const changeRole = (nextRole: Role) => {
+    setRole(nextRole);
+    setActive("Genel Bakış");
+    setMobileNav(false);
+    toast.success(`${roleMeta[nextRole].label} görünümü açıldı`, {
+      description: "Demo rol önizlemesi yerel olarak değiştirildi.",
+    });
+  };
+
+  const navigate = (section: Section) => {
+    setActive(section);
+    setMobileNav(false);
+  };
+
+  const renderDashboard = () => {
+    if (role === "teacher") return <TeacherDashboard onNavigate={navigate} />;
+    if (role === "student") return <StudentDashboard onNavigate={navigate} />;
+    if (role === "parent") return <ParentDashboard onNavigate={navigate} />;
+    return <AdminDashboard onNavigate={navigate} />;
+  };
+
+  const renderPage = () => {
+    if (active === "Genel Bakış") return renderDashboard();
+    if (active === "Öğrenciler")
+      return (
+        <StudentsPage
+          students={visibleStudents}
+          query={query}
+          onQuery={setQuery}
+          onSelect={setSelectedStudent}
+          onAdd={() =>
+            toast.info("Yeni öğrenci", {
+              description:
+                "Demo MVP’de öğrenci kayıt formu bir sonraki iterasyonda kalıcı veri modeline bağlanacak.",
+            })
+          }
+        />
+      );
+    if (active === "Sınıflar")
+      return <ClassesPage role={role} onNavigate={navigate} />;
+    if (active === "Ders Programı") return <SchedulePage role={role} />;
+    if (active === "Yoklama")
+      return (
+        <AttendancePage
+          role={role}
+          attendances={attendances}
+          setAttendances={setAttendances}
+        />
+      );
+    if (active === "Sınavlar")
+      return <AssessmentsPage role={role} onNavigate={navigate} />;
+    if (active === "İletişim")
+      return (
+        <CommunicationsPage
+          role={role}
+          message={message}
+          setMessage={setMessage}
+        />
+      );
+    if (active === "Kayıt ve Ödemeler") return <PaymentsPage role={role} />;
+    if (active === "Otomasyonlar")
+      return (
+        <AutomationsPage
+          automations={automations}
+          setAutomations={setAutomations}
+        />
+      );
+    if (active === "Raporlar") return <ReportsPage role={role} />;
+    return <SettingsPage onResetDemoData={resetDemoData} />;
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f6f8fc] text-slate-900">
+      <div className="flex min-h-screen">
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 flex w-[258px] flex-col border-r border-slate-200 bg-white px-3 py-4 transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${mobileNav ? "translate-x-0" : "-translate-x-full"}`}
+        >
+          <div className="mb-7 flex items-center justify-between px-2">
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-900 p-1.5 shadow-[0_6px_14px_rgba(15,23,42,.12)]">
+                <OrbitMark inverted className="h-full w-full object-contain" />
+              </span>
+              <div>
+                <p className="font-orbit text-[18px] font-extrabold tracking-[-.055em] text-slate-900">
+                  ORBIT
+                </p>
+                <p className="-mt-0.5 text-[9px] font-bold uppercase tracking-[.13em] text-slate-400">
+                  Education
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setMobileNav(false)}
+              aria-label="Menüyü kapat"
+              className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 lg:hidden"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50/65 px-3 py-3">
+            <div className="flex items-center gap-2">
+              <span
+                className={`grid h-8 w-8 place-items-center rounded-lg ${meta.color}`}
+              >
+                <meta.icon className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-extrabold text-slate-800">
+                  {meta.name}
+                </p>
+                <p className="mt-0.5 text-[10px] font-medium text-slate-500">
+                  {meta.label}
+                </p>
+              </div>
+            </div>
+          </div>
+          <nav className="space-y-1">
+            {(["Ana çalışma alanı", "Kurum yönetimi"] as const).map(group => (
+              <div
+                key={group}
+                className={group === "Kurum yönetimi" ? "mt-6" : ""}
+              >
+                <p className="mb-2 px-3 text-[9px] font-extrabold uppercase tracking-[.14em] text-slate-400">
+                  {group}
+                </p>
+                {navItems
+                  .filter(item => item.group === group)
+                  .map(item => {
+                    const Icon = item.icon;
+                    const selected = active === item.label;
+                    return (
+                      <button
+                        key={item.label}
+                        onClick={() => navigate(item.label)}
+                        className={`flex h-9 w-full items-center gap-3 rounded-lg px-3 text-left text-[12px] font-semibold transition ${selected ? "bg-slate-900 text-white shadow-[0_7px_14px_rgba(15,23,42,.10)]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+                      >
+                        <Icon
+                          className={`h-4 w-4 ${selected ? "text-white" : "text-slate-400"}`}
+                        />
+                        <span className="flex-1">{item.label}</span>
+                        {item.label === "Yoklama" &&
+                        role !== "student" &&
+                        role !== "parent" ? (
+                          <span
+                            className={`rounded-full px-1.5 py-0.5 text-[9px] font-extrabold ${selected ? "bg-white/15" : "bg-rose-50 text-rose-600"}`}
+                          >
+                            1
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+              </div>
+            ))}
+          </nav>
+          <div className="mt-auto border-t border-slate-100 pt-4">
+            <button
+              onClick={onLogout}
+              className="flex h-9 w-full items-center gap-3 rounded-lg px-3 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-100"
+            >
+              <LogOut className="h-4 w-4 text-slate-400" />
+              Çıkış Yap
+            </button>
+          </div>
+        </aside>
+        {mobileNav ? (
+          <button
+            aria-label="Menüyü kapat"
+            onClick={() => setMobileNav(false)}
+            className="fixed inset-0 z-30 bg-slate-950/20 lg:hidden"
+          />
+        ) : null}
+        <main className="min-w-0 flex-1">
+          <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-slate-200/80 bg-[#f6f8fc]/90 px-4 backdrop-blur sm:px-6 lg:px-8">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setMobileNav(true)}
+                className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 lg:hidden"
+              >
+                <Menu className="h-4 w-4" />
+              </button>
+              <div>
+                <p className="text-[11px] font-semibold text-slate-500">
+                  {meta.description}
+                </p>
+                <p className="text-[10px] text-slate-400">
+                  Çorlu Şube · Trakya pilotu · 2026–2027 dönemi
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() =>
+                  toast.info("Bildirimler", {
+                    description:
+                      "2 otomasyon, 1 yoklama ve 3 iletişim bildirimi var.",
+                  })
+                }
+                className="relative grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-900"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500" />
+              </button>
+              <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 sm:flex">
+                {(Object.keys(roleMeta) as Role[]).map(itemRole => (
+                  <button
+                    key={itemRole}
+                    onClick={() => changeRole(itemRole)}
+                    className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition ${role === itemRole ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                  >
+                    {roleMeta[itemRole].short}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  const next =
+                    role === "parent"
+                      ? "admin"
+                      : (Object.keys(roleMeta) as Role[])[
+                          (Object.keys(roleMeta) as Role[]).indexOf(role) + 1
+                        ];
+                  changeRole(next);
+                }}
+                className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-[11px] font-extrabold text-white sm:hidden"
+              >
+                {meta.name
+                  .split(" ")
+                  .map(word => word[0])
+                  .join("")}
+              </button>
+            </div>
+          </header>
+          <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+            {renderPage()}
+          </div>
+        </main>
+      </div>
+      {selectedStudent ? (
+        <StudentDetail
+          student={selectedStudent}
+          onClose={() => setSelectedStudent(null)}
+        />
+      ) : null}
+    </div>
+  );
+}
