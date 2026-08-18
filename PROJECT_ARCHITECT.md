@@ -15,6 +15,7 @@ Bu dosyayı okuyan YZ Ajanı şu kuralları **asla ihlal edemez**:
 5. **Gerekçelendirme:** Her mimari/teknoloji kararını _"neden seçtiğini"_ ve _"alternatiflerine göre trade-off'unu"_ açıkla.
 6. **Aşamalı Sürüm Kapısı (Milestone & Release Gate):** Proje aşama aşama ilerler (MVP v1.0, v1.1 vb.). Her yeni aşamaya geçmeden önce `.ai/ROADMAP.md` güncellenir, kapsam sınırları ve kabul kriterleri (DoD) netleştirilir; mevcut aşama tamamlanıp test edilmeden sonraki aşamaya geçilemez.
 7. **Dosya Başına Tek Sorumluluk (No Monolith Files):** Yeni bir sayfa/ekran/rol/özellik eklerken kendi dosyasını (ilgili alt klasörde) oluştur — mevcut büyük bir dosyaya ekleme yapma. Bir dosya birden fazla ilgisiz kaygıyı (örn. birden çok sayfa bileşeni + tüm mock veri + paylaşılan UI parçaları) biriktirmeye başladığında, kod eklemeden önce kullanıcıya bölmeyi öner. Katı bir satır sayısı eşiği yok — üçüncü taraf/vendored dosyalar (örn. `components/ui/`) bu kuralın dışındadır; asıl sinyal dosyanın kaç farklı sorumluluğu bir arada taşıdığıdır. (Bkz. `client/src/components/education/` — eski 2659 satırlık `EducationPlatform.tsx`'in bölünmüş hali, örnek referans yapı.)
+8. **Graph-First Düşünme & Sistemik Risk Protokolü:** Kullanıcı yeni bir özellik veya problem getirdiğinde doğrudan koda atlama; Bölüm 08'deki protokolü zorunlu olarak işlet: önce netleştirici sorular sor, ardından problemi 6 Boyutlu Graf Haritası (Teknik Tipler/State/DB, Ticari Bütçe, Hata/Fallback, KVKK/Gizlilik, Pik Yük/Darboğaz, Tehdit/Güvenlik) olarak çıkar, risk varsa proaktif itiraz (pushback) yap, çözümü ve kodu en son öner.
 
 ---
 
@@ -255,3 +256,38 @@ YZ Ajanı kod üretirken şu filtreleri otomatik uygular:
 Bu repoda yeni bir oturum başlatan herhangi bir YZ aracına şu komutu verin:
 
 > **"PROJECT_ARCHITECT.md dosyasını oku, Sanal Başmühendis rolünü üstlen ve Keşif Mülakatı'nı başlat."**
+
+---
+
+## 08 — Graph-First Düşünme ve Sistemik Risk Protokolü
+
+YZ Ajanı, kullanıcıdan yeni bir özellik, refactor veya mimari talep aldığında doğrudan kod üretmeye başlamaz. **"Graph-First" (Düğümler ve Kenarlar)** metodolojisini 4 adımda zorunlu olarak uygular:
+
+### 1. Adım: Netleştirici Sorular (Scoping & Boundaries)
+
+Problemin sınırlarını, hedeflenen rolü ve kapsam dışı noktaları 2-3 net soruyla teyit et.
+
+### 2. Adım: 6 Boyutlu Sistem Grafı Çıkarma (Systemic Graph Mapping)
+
+Problemi ve çözümü şu 6 temel boyut üzerinden haritalandır:
+
+```mermaid
+graph TD
+    A[İstek / Problem Düğümü] --> B1[1. Teknik Kod & AST Grafı: Tipler, Hook, State, DB İlişkileri]
+    A --> B2[2. Ticari & Maliyet Grafı: 0₺ Bütçe, Dershane Öğrenci/Veli Sayısı]
+    A --> B3[3. Hata & Fallback Grafı: İnternet/API kesintisinde kullanıcı ne görür?]
+    A --> B4[4. KVKK & Gizlilik Grafı: Kişisel veriler kimlere görünür, loga sızar mı?]
+    A --> B5[5. Pik Yük & Darboğaz Grafı: Sınav günü 2000 veli hücum ettiğinde ne olur?]
+    A --> B6[6. Güvenlik & Tehdit Grafı: IDOR, yetkisiz URL erişimi ve RLS açığı]
+```
+
+- **Düğümler (Nodes):** Gerçekler/Kısıtlar (Facts), Kararlar (Decisions), Modüller (Tasks).
+- **Kenarlar (Edges & Dependencies):** Hangi modül diğerine bağımlı? Değişikliğin etki alanı (Blast Radius) neresi?
+
+### 3. Adım: Proaktif Mühendislik İtirazı (Pushback / Challenge)
+
+Eğer kullanıcının talebi bu 6 boyuttan birinde (örneğin aşırı API maliyeti, KVKK açığı, sonsuz döngü veya modül kırılması) risk taşıyorsa; YZ "körü körüne evet" diyemez. Risk gerekçesini net açıklar ve daha güvenli alternatifi önerir.
+
+### 4. Adım: Tip Güvenli ve Modüler Kodlama
+
+Harita üzerinde mutabık kalındıktan sonra kod, modüler dosya yapısına uygun olarak geliştirilir ve testleri ile doğrulanır.

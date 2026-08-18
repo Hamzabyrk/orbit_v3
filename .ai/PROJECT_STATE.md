@@ -33,6 +33,7 @@
 - **Hedef Takvim:** Birkaç gün içinde Vercel üzerinde yayına çıkacak MVP.
 - **Bütçe:** 0₺ (Tamamen ücretsiz katmanlar).
 - **Çalışma Prensibi:** `PROJECT_ARCHITECT.md` kuralları — Tek doğruluk kaynağı (`.ai/`), atomik commit'ler, branch bazlı PR ve karşılıklı onay süreci.
+- **Karar Alma İlkesi (Graph-First):** Herhangi bir kod yazılmadan önce problem 6 Boyutlu Graf Haritası (Teknik Tipler/State/DB, Ticari Bütçe, Hata/Fallback, KVKK/Gizlilik, Pik Yük/Darboğaz, Güvenlik) olarak analiz edilir; risk varsa proaktif itiraz (pushback) yapılır.
 
 ---
 

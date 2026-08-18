@@ -5,9 +5,15 @@
 
 ## 🧠 Yapay Zekâ & Mimari Notları
 
-- **Kullanılan YZ:** [Claude / Gemini / Cursor / ChatGPT]
-- **Etkilenen Modüller:** [Örn: Auth, Database, UI]
+- **Kullanılan YZ:** [Claude / Gemini / Cursor / ChatGPT / Antigravity]
+- **Etkilenen Modüller:** [Örn: Sınıf Yönetimi, Öğrenci Tablosu, Yoklama]
 - **.ai/ Hafıza Dosyaları Güncellendi mi?:** [ ] Evet / [ ] Hayır
+
+## 🕸️ Graph & Etki Alanı (Blast Radius) Analizi
+
+- **Dokunulan Düğümler:** [Hangi veri tipleri, tablolar veya bileşenler değişti?]
+- **Bağlı Modül Etkisi:** [Bu değişiklik başka hangi ekranları etkiliyor?]
+- **Ticari & Güvenlik / KVKK Riski Var mı?:** [ ] Hayır / [ ] Evet (Açıklayınız)
 
 ## 🧪 Nasıl Test Edildi?
 

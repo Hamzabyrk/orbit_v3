@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-08-18 — Graph-First Düşünme, Blast Radius ve Sistemik Risk Protokolü
+
+**Kim:** Antigravity (Arda Bülent ile birlikte, `feat/orbit-core-init` branch'inde)
+
+**Ne yapıldı:**
+
+- `PROJECT_ARCHITECT.md` §00 Kural 8 ve yeni `08 — Graph-First Düşünme ve Sistemik Risk Protokolü` eklendi. YZ ajanlarına koda atlamadan önce 6 Boyutlu Sistem Grafı (Teknik Kod/Tipler/State, Ticari Bütçe, Hata/Fallback, KVKK/Gizlilik, Pik Yük/Darboğaz, Güvenlik) çıkarma ve risk durumunda proaktif itiraz (pushback) kuralı getirildi.
+- `.github/PULL_REQUEST_TEMPLATE.md` içine "🕸️ Graph & Etki Alanı (Blast Radius) Analizi" şablonu eklendi.
+- `CONTRIBUTING.md` içine 7. kural olarak "Graph-First Düşünme ve Etki Alanı Analizi" işlendi.
+- `.ai/PROJECT_STATE.md` ve `.ai/DECISION_LOG.md` güncellendi.
+- `npm run format`, `npm run format:check`, `npm run lint`, `npm test`, `npm run check`, `npm run build` ile doğrulandı.
+
+**Sırada ne var:**
+
+1. Sınıf ekleme/düzenleme/silme (CRUD) formlarının dinamik state'e bağlanması.
+2. Öğrenci ekleme/düzenleme/silme interaktif modalının geliştirilmesi.
+3. Yoklama ve sınav hesaplama mantıklarının bağlanması.
+
+---
+
 ## 2026-08-18 — EducationPlatform Bölünmesi, Mock Veri İzolasyonu ve ESLint Kalite Kapısı
 
 **Kim:** Claude Code (Arda Bülent ile birlikte, `feat/core-shared-modules` branch'inde)
