@@ -1,8 +1,6 @@
 import { useState } from "react";
-import {
-  EducationLoginScreen,
-  EducationPlatform,
-} from "@/components/EducationPlatform";
+import { EducationLoginScreen } from "@/components/education/LoginScreen";
+import { EducationPlatform } from "@/components/education/EducationPlatform";
 import type { EducationRole } from "@/components/educationAccess";
 
 export default function Home() {

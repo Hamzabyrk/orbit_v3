@@ -1,0 +1,201 @@
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { OrbitMark } from "@/components/OrbitMark";
+import { ChevronRight, LayoutDashboard, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+import { roleEmail, roleMeta } from "./mockData";
+import { Badge } from "./shared";
+import type { Role } from "./types";
+
+export function EducationLoginScreen({
+  onLogin,
+}: {
+  onLogin: (role: Role) => void;
+}) {
+  const [selectedRole, setSelectedRole] = useState<Role>("admin");
+  const [email, setEmail] = useState(roleEmail.admin);
+  const [password, setPassword] = useState("demo123");
+  const [loading, setLoading] = useState(false);
+  const selectRole = (role: Role) => {
+    setSelectedRole(role);
+    setEmail(roleEmail[role]);
+  };
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (password !== "demo123") {
+      toast.error("Giriş bilgileri doğrulanamadı", {
+        description: "Demo şifresi demo123 olarak ayarlanmıştır.",
+      });
+      return;
+    }
+    const matchedRole =
+      (Object.keys(roleEmail) as Role[]).find(
+        role => roleEmail[role] === email
+      ) ?? selectedRole;
+    setLoading(true);
+    window.setTimeout(() => {
+      setLoading(false);
+      toast.success(`Hoş geldiniz, ${roleMeta[matchedRole].name}`);
+      onLogin(matchedRole);
+    }, 280);
+  };
+  return (
+    <main className="min-h-screen overflow-hidden bg-[#eef7ff] px-5 py-6 sm:px-8 lg:px-10">
+      <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-[1200px] flex-col">
+        <header className="flex items-center gap-2.5">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-slate-900 p-2">
+            <OrbitMark
+              inverted
+              priority
+              className="h-full w-full object-contain"
+            />
+          </span>
+          <div>
+            <p className="font-orbit text-[20px] font-extrabold tracking-[-.06em] text-slate-900">
+              ORBIT
+            </p>
+            <p className="-mt-1 text-[9px] font-bold uppercase tracking-[.16em] text-blue-600">
+              Education
+            </p>
+          </div>
+        </header>
+        <section className="my-auto grid overflow-hidden rounded-[28px] border border-white/80 bg-white shadow-[0_26px_80px_rgba(75,135,180,.18)] lg:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]">
+          <div className="p-7 sm:p-10 lg:p-14">
+            <p className="text-[10px] font-extrabold uppercase tracking-[.16em] text-blue-600">
+              Eğitim kurumunuz için ortak çalışma alanı
+            </p>
+            <h1 className="mt-3 font-display text-[31px] font-extrabold tracking-[-.06em] text-slate-950 sm:text-[38px]">
+              İyi eğitim, iyi takip ile başlar.
+            </h1>
+            <p className="mt-3 max-w-md text-[13px] leading-6 text-slate-500">
+              Öğrenci, veli, öğretmen ve kurum yöneticileri aynı akademik
+              akışta; herkes yalnızca kendisine ait çalışma alanını görür.
+            </p>
+            <div className="mt-7 grid grid-cols-2 gap-2">
+              {(Object.keys(roleMeta) as Role[]).map(role => {
+                const Icon = roleMeta[role].icon;
+                const selected = selectedRole === role;
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => selectRole(role)}
+                    className={`rounded-xl border p-3 text-left transition ${selected ? "border-slate-900 bg-slate-900 text-white shadow-[0_8px_18px_rgba(15,23,42,.12)]" : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/50"}`}
+                  >
+                    <Icon
+                      className={`h-4 w-4 ${selected ? "text-white" : "text-blue-600"}`}
+                    />
+                    <p className="mt-2 text-[11px] font-extrabold">
+                      {roleMeta[role].label}
+                    </p>
+                    <p
+                      className={`mt-0.5 text-[9px] ${selected ? "text-white/70" : "text-slate-400"}`}
+                    >
+                      {roleMeta[role].description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+            <form onSubmit={submit} className="mt-7 space-y-3">
+              <label className="block">
+                <span className="mb-1.5 block text-[11px] font-bold text-slate-600">
+                  E-posta adresi
+                </span>
+                <input
+                  value={email}
+                  onChange={event => setEmail(event.target.value)}
+                  type="email"
+                  className="h-12 w-full rounded-xl border border-slate-200 px-3 text-[13px] outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[11px] font-bold text-slate-600">
+                  Şifre
+                </span>
+                <input
+                  value={password}
+                  onChange={event => setPassword(event.target.value)}
+                  type="password"
+                  className="h-12 w-full rounded-xl border border-slate-200 px-3 text-[13px] outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
+                />
+              </label>
+              <button
+                disabled={loading}
+                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 text-[13px] font-extrabold text-white shadow-[0_10px_18px_rgba(15,23,42,.12)] transition hover:bg-slate-800 disabled:opacity-70"
+              >
+                {loading
+                  ? "Giriş yapılıyor"
+                  : `${roleMeta[selectedRole].label} olarak giriş yap`}
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </form>
+            <p className="mt-5 text-[10px] leading-5 text-slate-400">
+              Demo şifresi:{" "}
+              <strong className="font-bold text-slate-600">demo123</strong>. Rol
+              kartı seçildiğinde ilgili demo e-posta hesabı otomatik doldurulur.
+            </p>
+          </div>
+          <aside className="relative hidden overflow-hidden bg-slate-900 p-10 text-white lg:block">
+            <div className="absolute -right-20 -top-16 h-72 w-72 rounded-full bg-blue-500/35 blur-3xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between border-b border-white/15 pb-5">
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[.14em] text-sky-200">
+                    ORBIT education
+                  </p>
+                  <p className="mt-1 text-[11px] text-slate-300">
+                    Kurum genel görünümü
+                  </p>
+                </div>
+                <Badge tone="green">Sistemler güncel</Badge>
+              </div>
+              <h2 className="mt-10 max-w-md font-display text-[38px] font-extrabold leading-[1.08] tracking-[-.06em]">
+                Eğitim ekibinizin günlük ritmi, tek yerde.
+              </h2>
+              <p className="mt-4 max-w-md text-[13px] leading-6 text-slate-300">
+                Devam, sınav, ödev, veli iletişimi ve takip gerektiren
+                öğrenciler doğru kişiye doğru anda ulaşır.
+              </p>
+              <div className="mt-12 rounded-2xl border border-white/15 bg-white/[.06] p-4">
+                <div className="flex items-center justify-between border-b border-white/15 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="grid h-7 w-7 place-items-center rounded-lg border border-white/15 bg-white/[.06]">
+                      <LayoutDashboard className="h-3.5 w-3.5 text-sky-100" />
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-100">
+                      Bugünün eğitim özeti
+                    </span>
+                  </div>
+                  <span className="text-[9px] text-slate-400">15 Ağustos</span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-white/15 p-3">
+                    <p className="text-[9px] text-slate-300">Bugünkü devam</p>
+                    <p className="mt-1.5 text-[21px] font-extrabold">%93</p>
+                    <p className="mt-1 text-[9px] text-emerald-300">
+                      4 yoklama tamamlandı
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/15 p-3">
+                    <p className="text-[9px] text-slate-300">Aktif öğrenci</p>
+                    <p className="mt-1.5 text-[21px] font-extrabold">54</p>
+                    <p className="mt-1 text-[9px] text-sky-200">
+                      3 sınıfta kayıtlı
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
+                  <Sparkles className="h-4 w-4 text-emerald-300" />
+                  <p className="text-[10px] font-semibold text-slate-100">
+                    3 eğitim otomasyonu bugün çalıştı.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </section>
+      </div>
+    </main>
+  );
+}
