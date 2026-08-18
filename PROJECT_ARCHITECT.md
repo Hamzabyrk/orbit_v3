@@ -242,12 +242,32 @@ YZ Ajanı:
 
 ## 06 — Güvenlik, Kalite ve Kod Kokusu Filtresi
 
-YZ Ajanı kod üretirken şu filtreleri otomatik uygular:
+YZ Ajanı kod üretirken ve backend/veritabanı geliştirirken şu **Güvenlik Anayasası kurallarını tavizsiz uygular**:
+
+### A. Frontend & Mimari Filtreleri (Şu An Aktif)
 
 - ❌ **Asla Gizli Anahtar Yok:** Kod içine API Key, token, veritabanı şifresi yazılamaz. Mutlaka `.env` ve `.env.example` kullanılır.
 - ❌ **Yutulan Hatalar Yok:** Boş `catch {}` blokları veya sessizce geçiştirilen API hataları yazılamaz.
 - ❌ **İstemciye Güven Yok:** Fiyat, yetki, rol hesaplamaları istemcide (client) yapılamaz; sunucuda doğrulanır.
-- ✅ **Test Refleksi:** Üretilen her servis veya kritik iş mantığı için eşzamanlı bir test dosyası (`.test.ts`) önerilir.
+- ✅ **Girdi Doğrulama (Zod):** Formlardan ve dış dünyadan gelen her veri Zod şeması ile doğrulanmadan işlenemez.
+- ✅ **Test Refleksi:** Üretilen her servis veya kritik iş mantığı için eşzamanlı bir test dosyası (`.test.ts`) yazılır.
+- ✅ **Paket Güvenliği:** Bağımlılıklar `pnpm audit` ile taranır; yüksek güvenlik açığı taşıyan paketler repoya alınamaz.
+
+### B. Backend, Veritabanı ve Canlıya Çıkış Güvenlik Kuralları (Zorunlu Standartlar)
+
+1. **Girişe Sınır Koy (Rate-Limit & Brute-Force):** Giriş ve şifre sıfırlama endpoint'lerine IP/kullanıcı bazlı istek limiti konur.
+2. **CORS'u Kilitle:** API istekleri sadece yetkili canlı frontend domainine (`https://orbit.app`) izin verir.
+3. **Güvenlik Başlıkları (Security Headers):** Canlı dağıtımda CSP (Content Security Policy), HSTS, X-Frame-Options başlıkları zorunludur.
+4. **Zorunlu HTTPS:** Tüm HTTP istekleri otomatik olarak güvenli HTTPS bağlantısına yönlendirilir.
+5. **Şifreleri Güvenli Hash'le:** Kullanıcı şifreleri asla düz metin saklanamaz; Bcrypt/Argon2 ile tek yönlü hash'lenir.
+6. **Çerezleri Güvenli Yap (Secure Cookies):** Oturum token'ları JavaScript'ten okunamaz (`HttpOnly`), sadece HTTPS üzerinden iletilir (`Secure`) ve CSRF korumalıdır (`SameSite=Strict`).
+7. **Hata Mesajlarını Kıs:** Canlı ortamda kullanıcıya veritabanı hata detayları, tablo adları veya stack trace gösterilemez.
+8. **Logları Temizle (KVKK Sanitization):** Log dosyalarına ve analitik araçlarına kişisel veriler (TC, telefon, şifre, kart no) düz metin yazılamaz.
+9. **Sorguları Parametrele (SQL Injection Kalkanı):** Raw SQL string birleştirmesi yapılamaz; ORM ve parametreli sorgular zorunludur.
+10. **Webhook İmzası (HMAC Verification):** Ödeme ve harici webhook bildirimlerinde gelen imza doğrulanmadan işlem yapılamaz.
+11. **Otomatik Yedekleme:** Veritabanı için günlük otomatik snapshot ve kurtarma planı aktif tutulur.
+12. **Hesabı Gerçekten Sil (KVKK Unutulma Hakkı):** Kullanıcı silme talebinde tüm ilişkili tablolar güvenli şekilde temizlenir veya anonimleştirilir.
+13. **Harcama & Bütçe Alarmları:** Bulut sağlayıcılarında (Supabase, Vercel) beklenmeyen maliyet patlamalarını önlemek için 0₺ bütçe aşım alarmları kurulur.
 
 ---
 

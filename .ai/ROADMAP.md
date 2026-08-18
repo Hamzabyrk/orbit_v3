@@ -44,6 +44,7 @@ Bu dosya, projenin her aşamasında nelerin yapılacağını, hangi özellikleri
 - [ ] Supabase Auth (E-posta/şifre ve rol bazlı JWT token doğrulama).
 - [ ] Row Level Security (RLS) politikalarının her tablo için aktif edilmesi.
 - [ ] KVKK uyumlu kişisel veri saklama ve şifreleme denetimi.
+- [ ] `PROJECT_ARCHITECT.md` §06 altındaki 13 Zorunlu Backend & Güvenlik Kuralının eksiksiz doğrulanması.
 
 ---
 
