@@ -54,6 +54,7 @@
 - **Sunucu State:** `@tanstack/react-query` v5
 - **Veri Saklama:** React State + Yerel Kalıcılık (Local Persistence) & Supabase hazırlığı
 - **Test:** Vitest 2.1 (RBAC yetki testleri)
+- **Kod Kalitesi:** ESLint 9 (flat config) + typescript-eslint + eslint-plugin-react-hooks + eslint-plugin-react-refresh
 - **CI/CD & Dağıtım:** GitHub Actions + Vercel
 - **Paket Yöneticisi:** pnpm (v10.4.1)
 
@@ -65,14 +66,22 @@
 client/src/
 ├── components/
 │   ├── ui/                 # 53 adet Radix/shadcn UI bileşeni
-│   ├── EducationPlatform.tsx # ORBIT Eğitim Çekirdek Ekranları ve 4 Rol Arayüzü
+│   ├── education/           # ORBIT Eğitim Çekirdek Ekranları (rol/sayfa bazlı bölünmüş)
+│   │   ├── types.ts          # Student/ClassGroup/ScheduleItem/Automation/PaymentRow (isMock: true)
+│   │   ├── mockData.ts       # Tüm mock veri + roleMeta/roleEmail/allNav
+│   │   ├── shared.tsx        # Badge, StatCard, PageHeader vb. paylaşılan UI parçaları
+│   │   ├── LoginScreen.tsx   # EducationLoginScreen
+│   │   ├── StudentDetail.tsx # Öğrenci profil çekmecesi
+│   │   ├── EducationPlatform.tsx # Kompozisyon kökü (state + localStorage demo kalıcılığı)
+│   │   ├── dashboards/       # AdminDashboard, TeacherDashboard, StudentDashboard, ParentDashboard
+│   │   └── pages/            # StudentsPage, ClassesPage, AttendancePage, ... SettingsPage vb.
 │   ├── educationAccess.ts  # Rol bazlı yetki matrisi (RBAC)
 │   ├── educationAccess.test.ts # Vitest yetki testleri
 │   ├── OrbitMark.tsx       # Logo / Marka bileşeni
 │   └── ErrorBoundary.tsx   # React Hata Yakalayıcı
 ├── contexts/               # ThemeProvider
 ├── hooks/                  # useMobile, useComposition
-├── lib/                    # supabaseClient, documents, utils
+├── lib/                    # supabaseClient, documents, utils, demoStorage (+ test)
 └── pages/
     ├── Home.tsx            # Temiz ana sayfa / Login yönlendirici
     └── NotFound.tsx        # 404 sayfası
@@ -85,4 +94,4 @@ client/src/
 1. Sınıf oluşturma, düzenleme ve silme modal ve formlarının dinamik state'e bağlanması.
 2. Öğrenci kayıt formunun (Ad, No, Sınıf, Telefon, Veli Adı/Telefonu) tam interaktif CRUD'a dönüştürülmesi.
 3. Yoklama ve sınıf içi durum güncellemelerinin anlık arayüze yansıması.
-4. Mock verilerin `isMock: true` bayrağı ile izole edilmesi ve demo sıfırlama butonu eklenmesi.
+4. `isMock: true` alanının gerçek backend/Supabase entegrasyonunda kaldırılması (Aşama 3 kapsamında).

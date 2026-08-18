@@ -49,14 +49,21 @@ dashboard-dershane/
 │   └── src/
 │       ├── components/
 │       │   ├── ui/                 # 53 adet Radix/shadcn UI primitifi
-│       │   ├── EducationPlatform.tsx # ORBIT Eğitim Çekirdek Ekranları
+│       │   ├── education/           # ORBIT Eğitim Çekirdek Ekranları (rol/sayfa bazlı bölünmüş)
+│       │   │   ├── types.ts          # Student/ClassGroup/ScheduleItem/Automation/PaymentRow
+│       │   │   ├── mockData.ts       # Tüm mock veri + roleMeta/roleEmail/allNav
+│       │   │   ├── shared.tsx        # Badge, StatCard, PageHeader vb. paylaşılan UI
+│       │   │   ├── LoginScreen.tsx   # EducationLoginScreen
+│       │   │   ├── EducationPlatform.tsx # Kompozisyon kökü
+│       │   │   ├── dashboards/       # Rol bazlı dashboard'lar
+│       │   │   └── pages/            # Öğrenciler, Sınıflar, Yoklama, Ayarlar vb.
 │       │   ├── educationAccess.ts  # Rol bazlı yetki matrisi (RBAC)
 │       │   ├── educationAccess.test.ts # Yetki testleri
 │       │   ├── OrbitMark.tsx       # Logo / Marka bileşeni
 │       │   └── ErrorBoundary.tsx   # React Hata Yakalayıcı
 │       ├── contexts/               # ThemeProvider vb. React Context'leri
 │       ├── hooks/                  # useMobile, useComposition vb. özel hook'lar
-│       ├── lib/                    # supabaseClient, documents, utils
+│       ├── lib/                    # supabaseClient, documents, utils, demoStorage
 │       ├── pages/
 │       │   ├── Home.tsx            # Temiz ana sayfa / Login yönlendirici
 │       │   └── NotFound.tsx        # 404 Sayfası
@@ -101,6 +108,7 @@ Giriş ekranında **Kurum Yöneticisi, Öğretmen, Öğrenci veya Veli** rolleri
 | `pnpm build`   | Production derlemesi oluşturur (`tsc` + Vite)            |
 | `pnpm preview` | Üretilen derlemeyi yerelde önizler                       |
 | `pnpm check`   | TypeScript tip kontrollerini çalıştırır (`tsc --noEmit`) |
+| `pnpm lint`    | ESLint ile kod kalitesi kontrollerini çalıştırır         |
 | `pnpm test`    | Vitest ile birim testlerini çalıştırır                   |
 | `pnpm format`  | Prettier ile tüm kodları formatlar                       |
 

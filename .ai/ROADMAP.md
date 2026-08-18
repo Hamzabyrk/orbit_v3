@@ -12,11 +12,11 @@ Bu dosya, projenin her aşamasında nelerin yapılacağını, hangi özellikleri
 
 - [x] MoneyFlow ve eski muhasebe kalıntılarının temizlenmesi.
 - [x] Çoklu-YZ ve 2 kişilik kurumsal git altyapısının kurulması.
-- [x] CI/CD kalite kapısının (Prettier + TypeScript + Vitest + Vite Build) kurulması.
+- [x] CI/CD kalite kapısının (Prettier + ESLint + TypeScript + Vitest + Vite Build) kurulması.
 - [ ] **Sınıf Yönetimi CRUD (`feat/admin-profile`):** Sınıf ekleme/düzenleme/silme modal ve formları.
 - [ ] **Öğrenci Yönetimi CRUD (`feat/core-shared-modules`):** Öğrenci ekleme/düzenleme (Ad, No, Sınıf, Tel, Veli Bilgileri).
 - [ ] **4 Rol Canlı Arayüzü:** Admin, Öğretmen, Öğrenci, Veli ekranlarının interaktif hale getirilmesi.
-- [ ] **Mock Veri İzolasyonu:** `isMock: true` bayraklı hazır veriler ve "Demo Verileri Sıfırla" butonu.
+- [x] **Mock Veri İzolasyonu:** `isMock: true` bayraklı hazır veriler ve "Demo Verileri Sıfırla" butonu.
 - [ ] **Vercel Deploy:** GitHub entegrasyonu ile canlıya alma.
 
 ---
