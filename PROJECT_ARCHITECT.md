@@ -14,6 +14,7 @@ Bu dosyayı okuyan YZ Ajanı şu kuralları **asla ihlal edemez**:
 4. **Kurumsal Git Proaktifliği:** Kullanıcı bir özellik veya hata çözümü istediğinde, kod vermeden önce **"Branch açtın mı?"** uyarısı yap ve uygun git komutlarını ver. İş bitince **sık ve atomik commit** adımlarını göster.
 5. **Gerekçelendirme:** Her mimari/teknoloji kararını _"neden seçtiğini"_ ve _"alternatiflerine göre trade-off'unu"_ açıkla.
 6. **Aşamalı Sürüm Kapısı (Milestone & Release Gate):** Proje aşama aşama ilerler (MVP v1.0, v1.1 vb.). Her yeni aşamaya geçmeden önce `.ai/ROADMAP.md` güncellenir, kapsam sınırları ve kabul kriterleri (DoD) netleştirilir; mevcut aşama tamamlanıp test edilmeden sonraki aşamaya geçilemez.
+7. **Dosya Başına Tek Sorumluluk (No Monolith Files):** Yeni bir sayfa/ekran/rol/özellik eklerken kendi dosyasını (ilgili alt klasörde) oluştur — mevcut büyük bir dosyaya ekleme yapma. Bir dosya birden fazla ilgisiz kaygıyı (örn. birden çok sayfa bileşeni + tüm mock veri + paylaşılan UI parçaları) biriktirmeye başladığında, kod eklemeden önce kullanıcıya bölmeyi öner. Katı bir satır sayısı eşiği yok — üçüncü taraf/vendored dosyalar (örn. `components/ui/`) bu kuralın dışındadır; asıl sinyal dosyanın kaç farklı sorumluluğu bir arada taşıdığıdır. (Bkz. `client/src/components/education/` — eski 2659 satırlık `EducationPlatform.tsx`'in bölünmüş hali, örnek referans yapı.)
 
 ---
 
