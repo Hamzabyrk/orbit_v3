@@ -17,6 +17,7 @@
 - Anonim SELECT/INSERT/DELETE ve storage okuma/yükleme/silme politikaları migration ile kaldırıldı; `workspace-documents` bucket'ı private yapıldı. Son doğrulamada tablo politikası `0`, storage politikası `0`, bucket `public=false` olarak ölçüldü.
 - Supabase CLI yapılandırması ve uzak migration geçmişiyle eşleşen timestamp'li migration dosyaları repoya eklendi.
 - `pnpm test` (7/7), TypeScript, ESLint ve production build başarıyla tamamlandı.
+- Draft PR #2 için GitHub Actions `quality-gate` işi başarıyla geçti.
 
 **Sırada ne var:**
 
