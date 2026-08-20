@@ -53,10 +53,10 @@
 - **UI & Stil:** Radix UI + Tailwind CSS v4 + shadcn/ui (`components.json`) + Lucide Icons + Sonner Toast
 - **Form / Doğrulama:** `react-hook-form` + `zod`
 - **Sunucu State:** `@tanstack/react-query` v5
-- **Veri Saklama:** React State + Yerel Kalıcılık (Local Persistence) & Supabase hazırlığı
+- **Veri Saklama:** React State + Yerel Kalıcılık (Local Persistence) & bağlı Supabase projesi (Faz 1'de deny-by-default RLS; gerçek veri kullanımı Faz 3'te)
 - **Test:** Vitest 2.1 (RBAC yetki testleri)
 - **Kod Kalitesi:** ESLint 9 (flat config) + typescript-eslint + eslint-plugin-react-hooks + eslint-plugin-react-refresh
-- **CI/CD & Dağıtım:** GitHub Actions + Vercel
+- **CI/CD & Dağıtım:** GitHub Actions + Vercel (`https://orbit-v3-topaz.vercel.app`)
 - **Paket Yöneticisi:** pnpm (v10.4.1)
 
 ---
