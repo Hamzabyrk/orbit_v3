@@ -17,7 +17,7 @@ Bu dosya, projenin her aşamasında nelerin yapılacağını, hangi özellikleri
 - [ ] **Öğrenci Yönetimi CRUD (`feat/core-shared-modules`):** Öğrenci ekleme/düzenleme (Ad, No, Sınıf, Tel, Veli Bilgileri).
 - [ ] **4 Rol Canlı Arayüzü:** Admin, Öğretmen, Öğrenci, Veli ekranlarının interaktif hale getirilmesi.
 - [x] **Mock Veri İzolasyonu:** `isMock: true` bayraklı hazır veriler ve "Demo Verileri Sıfırla" butonu.
-- [x] **Vercel Deploy:** ORBİT Vercel ekibinde production deploy (`https://orbit-v3-topaz.vercel.app`).
+- [x] **Vercel Deploy:** ORBİT Vercel ekibinde GitHub bağlantılı production deploy (`https://orbit-v3-topaz.vercel.app`).
 
 ---
 

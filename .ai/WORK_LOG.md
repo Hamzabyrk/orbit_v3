@@ -11,7 +11,7 @@
 **Ne yapıldı:**
 
 - GitHub Issue #1 açıldı ve çalışma doğrudan `main` yerine feature branch üzerinde yürütüldü.
-- ORBİT Vercel ekibinde `orbit-v3` projesi oluşturuldu; Production/Preview/Development ortamlarına `VITE_SUPABASE_URL` ve public anon key eklendi. `service_role` anahtarı kullanılmadı.
+- ORBİT Vercel ekibinde `orbit-v3` projesi oluşturuldu ve `Hamzabyrk/orbit_v3` GitHub reposuna otomatik deployment için bağlandı; Production/Preview/Development ortamlarına `VITE_SUPABASE_URL` ve public anon key eklendi. `service_role` anahtarı kullanılmadı.
 - Production build `https://orbit-v3-topaz.vercel.app` adresinde yayınlandı.
 - Mevcut `orbit-dershane` Supabase projesi bağlandı. Denetimde sıfır belge satırı ve sıfır storage nesnesi bulundu.
 - Anonim SELECT/INSERT/DELETE ve storage okuma/yükleme/silme politikaları migration ile kaldırıldı; `workspace-documents` bucket'ı private yapıldı. Son doğrulamada tablo politikası `0`, storage politikası `0`, bucket `public=false` olarak ölçüldü.
@@ -20,9 +20,8 @@
 
 **Sırada ne var:**
 
-1. Vercel hesabındaki GitHub Login Connection onayından sonra `Hamzabyrk/orbit_v3` otomatik deployment bağlantısını tamamlamak.
-2. Arda'yı GitHub repo ve Vercel ORBİT ekibinde gereken rollerle doğrulamak.
-3. Supabase Auth + tenant sahipliği tasarlanmadan belge yazma/okuma politikası eklememek.
+1. Arda'yı GitHub repo ve Vercel ORBİT ekibinde gereken rollerle doğrulamak.
+2. Supabase Auth + tenant sahipliği tasarlanmadan belge yazma/okuma politikası eklememek.
 
 ---
 
