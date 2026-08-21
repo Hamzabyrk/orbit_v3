@@ -43,9 +43,19 @@ import type {
 export function EducationPlatform({
   onLogout,
   initialRole = "admin",
+  displayName,
+  organizationName = "Trakya pilotu",
+  branchName = "Çorlu Şube",
+  canSwitchRole = true,
+  onRoleChange,
 }: {
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
   initialRole?: Role;
+  displayName?: string;
+  organizationName?: string;
+  branchName?: string | null;
+  canSwitchRole?: boolean;
+  onRoleChange?: (role: Role) => void;
 }) {
   const [role, setRole] = useState<Role>(initialRole);
   const [active, setActive] = useState<Section>("Genel Bakış");
@@ -66,6 +76,7 @@ export function EducationPlatform({
   );
   const [message, setMessage] = useState("");
   const meta = roleMeta[role];
+  const currentDisplayName = displayName ?? meta.name;
   const navItems = allNav.filter(item =>
     availableEducationSections(role).includes(item.label)
   );
@@ -102,6 +113,11 @@ export function EducationPlatform({
     writeDemoData("homework", homework);
   }, [homework]);
 
+  useEffect(() => {
+    setRole(initialRole);
+    setActive("Genel Bakış");
+  }, [initialRole]);
+
   const resetDemoData = () => {
     clearDemoData("attendances");
     clearDemoData("automations");
@@ -118,7 +134,9 @@ export function EducationPlatform({
   };
 
   const changeRole = (nextRole: Role) => {
+    if (!canSwitchRole) return;
     setRole(nextRole);
+    onRoleChange?.(nextRole);
     setActive("Genel Bakış");
     setMobileNav(false);
     toast.success(`${roleMeta[nextRole].label} görünümü açıldı`, {
@@ -256,7 +274,7 @@ export function EducationPlatform({
               </span>
               <div className="min-w-0">
                 <p className="truncate text-[11px] font-extrabold text-slate-800">
-                  {meta.name}
+                  {currentDisplayName}
                 </p>
                 <p className="mt-0.5 text-[10px] font-medium text-slate-500">
                   {meta.label}
@@ -334,7 +352,8 @@ export function EducationPlatform({
                   {meta.description}
                 </p>
                 <p className="text-[10px] text-slate-400">
-                  Çorlu Şube · Trakya pilotu · 2026–2027 dönemi
+                  {branchName ? `${branchName} · ` : ""}
+                  {organizationName} · 2026–2027 dönemi
                 </p>
               </div>
             </div>
@@ -351,34 +370,46 @@ export function EducationPlatform({
                 <Bell className="h-4 w-4" />
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500" />
               </button>
-              <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 sm:flex">
-                {(Object.keys(roleMeta) as Role[]).map(itemRole => (
-                  <button
-                    key={itemRole}
-                    onClick={() => changeRole(itemRole)}
-                    className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition ${role === itemRole ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}
-                  >
-                    {roleMeta[itemRole].short}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => {
-                  const next =
-                    role === "parent"
-                      ? "admin"
-                      : (Object.keys(roleMeta) as Role[])[
-                          (Object.keys(roleMeta) as Role[]).indexOf(role) + 1
-                        ];
-                  changeRole(next);
-                }}
-                className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-[11px] font-extrabold text-white sm:hidden"
-              >
-                {meta.name
-                  .split(" ")
-                  .map(word => word[0])
-                  .join("")}
-              </button>
+              {canSwitchRole ? (
+                <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 sm:flex">
+                  {(Object.keys(roleMeta) as Role[]).map(itemRole => (
+                    <button
+                      key={itemRole}
+                      onClick={() => changeRole(itemRole)}
+                      className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold transition ${role === itemRole ? "bg-slate-900 text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                    >
+                      {roleMeta[itemRole].short}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              {canSwitchRole ? (
+                <button
+                  onClick={() => {
+                    const next =
+                      role === "parent"
+                        ? "admin"
+                        : (Object.keys(roleMeta) as Role[])[
+                            (Object.keys(roleMeta) as Role[]).indexOf(role) + 1
+                          ];
+                    changeRole(next);
+                  }}
+                  aria-label="Demo rolünü değiştir"
+                  className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-[11px] font-extrabold text-white sm:hidden"
+                >
+                  {currentDisplayName
+                    .split(" ")
+                    .map(word => word[0])
+                    .join("")}
+                </button>
+              ) : (
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-[11px] font-extrabold text-white">
+                  {currentDisplayName
+                    .split(" ")
+                    .map(word => word[0])
+                    .join("")}
+                </span>
+              )}
             </div>
           </header>
           <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">

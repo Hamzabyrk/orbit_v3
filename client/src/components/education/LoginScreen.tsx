@@ -3,41 +3,48 @@ import type { FormEvent } from "react";
 import { OrbitMark } from "@/components/OrbitMark";
 import { ChevronRight, LayoutDashboard, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import type { LoginInput } from "@/auth/types";
 import { roleEmail, roleMeta } from "./mockData";
 import { Badge } from "./shared";
 import type { Role } from "./types";
 
 export function EducationLoginScreen({
   onLogin,
+  demoMode,
 }: {
-  onLogin: (role: Role) => void;
+  onLogin: (input: LoginInput) => Promise<void>;
+  demoMode: boolean;
 }) {
   const [selectedRole, setSelectedRole] = useState<Role>("admin");
-  const [email, setEmail] = useState(roleEmail.admin);
-  const [password, setPassword] = useState("demo123");
+  const [email, setEmail] = useState(demoMode ? roleEmail.admin : "");
+  const [password, setPassword] = useState(demoMode ? "demo123" : "");
   const [loading, setLoading] = useState(false);
   const selectRole = (role: Role) => {
+    if (!demoMode) return;
     setSelectedRole(role);
     setEmail(roleEmail[role]);
   };
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (password !== "demo123") {
-      toast.error("Giriş bilgileri doğrulanamadı", {
-        description: "Demo şifresi demo123 olarak ayarlanmıştır.",
-      });
-      return;
-    }
-    const matchedRole =
-      (Object.keys(roleEmail) as Role[]).find(
-        role => roleEmail[role] === email
-      ) ?? selectedRole;
     setLoading(true);
-    window.setTimeout(() => {
+
+    try {
+      await onLogin({ email, password, demoRole: selectedRole });
+      toast.success(
+        demoMode
+          ? `Hoş geldiniz, ${roleMeta[selectedRole].name}`
+          : "ORBIT oturumu açıldı"
+      );
+    } catch (error) {
+      toast.error("Giriş bilgileri doğrulanamadı", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "Lütfen bilgilerinizi kontrol edip tekrar deneyin.",
+      });
+    } finally {
       setLoading(false);
-      toast.success(`Hoş geldiniz, ${roleMeta[matchedRole].name}`);
-      onLogin(matchedRole);
-    }, 280);
+    }
   };
   return (
     <main className="min-h-screen overflow-hidden bg-[#eef7ff] px-5 py-6 sm:px-8 lg:px-10">
@@ -74,13 +81,14 @@ export function EducationLoginScreen({
             <div className="mt-7 grid grid-cols-2 gap-2">
               {(Object.keys(roleMeta) as Role[]).map(role => {
                 const Icon = roleMeta[role].icon;
-                const selected = selectedRole === role;
+                const selected = demoMode && selectedRole === role;
                 return (
                   <button
                     key={role}
                     type="button"
+                    disabled={!demoMode}
                     onClick={() => selectRole(role)}
-                    className={`rounded-xl border p-3 text-left transition ${selected ? "border-slate-900 bg-slate-900 text-white shadow-[0_8px_18px_rgba(15,23,42,.12)]" : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/50"}`}
+                    className={`rounded-xl border p-3 text-left transition disabled:cursor-default ${selected ? "border-slate-900 bg-slate-900 text-white shadow-[0_8px_18px_rgba(15,23,42,.12)]" : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/50"}`}
                   >
                     <Icon
                       className={`h-4 w-4 ${selected ? "text-white" : "text-blue-600"}`}
@@ -126,15 +134,25 @@ export function EducationLoginScreen({
               >
                 {loading
                   ? "Giriş yapılıyor"
-                  : `${roleMeta[selectedRole].label} olarak giriş yap`}
+                  : demoMode
+                    ? `${roleMeta[selectedRole].label} olarak giriş yap`
+                    : "Giriş yap"}
                 <ChevronRight className="h-4 w-4" />
               </button>
             </form>
-            <p className="mt-5 text-[10px] leading-5 text-slate-400">
-              Demo şifresi:{" "}
-              <strong className="font-bold text-slate-600">demo123</strong>. Rol
-              kartı seçildiğinde ilgili demo e-posta hesabı otomatik doldurulur.
-            </p>
+            {demoMode ? (
+              <p className="mt-5 text-[10px] leading-5 text-slate-400">
+                Demo şifresi:{" "}
+                <strong className="font-bold text-slate-600">demo123</strong>.
+                Rol kartı seçildiğinde ilgili demo e-posta hesabı otomatik
+                doldurulur.
+              </p>
+            ) : (
+              <p className="mt-5 text-[10px] leading-5 text-slate-400">
+                Rolünüz ve erişebileceğiniz kurum, güvenli üyelik kaydınızdan
+                otomatik belirlenir.
+              </p>
+            )}
           </div>
           <aside className="relative hidden overflow-hidden bg-slate-900 p-10 text-white lg:block">
             <div className="absolute -right-20 -top-16 h-72 w-72 rounded-full bg-blue-500/35 blur-3xl" />
