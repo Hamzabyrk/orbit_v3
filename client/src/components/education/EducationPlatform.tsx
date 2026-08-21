@@ -10,8 +10,10 @@ import { StudentDashboard } from "./dashboards/StudentDashboard";
 import { TeacherDashboard } from "./dashboards/TeacherDashboard";
 import {
   allNav,
+  dayPlanTasksByRole,
   initialAttendances,
   initialAutomations,
+  initialHomework,
   roleMeta,
   students,
 } from "./mockData";
@@ -20,13 +22,23 @@ import { AttendancePage } from "./pages/AttendancePage";
 import { AutomationsPage } from "./pages/AutomationsPage";
 import { ClassesPage } from "./pages/ClassesPage";
 import { CommunicationsPage } from "./pages/CommunicationsPage";
+import { DayPlanPage } from "./pages/DayPlanPage";
+import { HomeworkPage } from "./pages/HomeworkPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { SchedulePage } from "./pages/SchedulePage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { StudentsPage } from "./pages/StudentsPage";
 import { StudentDetail } from "./StudentDetail";
-import type { AttendanceState, Role, Section, Student } from "./types";
+import type {
+  AttendanceState,
+  DayPlanRole,
+  DayPlanTask,
+  Homework,
+  Role,
+  Section,
+  Student,
+} from "./types";
 
 export function EducationPlatform({
   onLogout,
@@ -45,6 +57,12 @@ export function EducationPlatform({
   >(() => readDemoData("attendances", initialAttendances));
   const [automations, setAutomations] = useState(() =>
     readDemoData("automations", initialAutomations)
+  );
+  const [dayPlanTasks, setDayPlanTasks] = useState<
+    Record<DayPlanRole, DayPlanTask[]>
+  >(() => readDemoData("dayPlanTasks", dayPlanTasksByRole));
+  const [homework, setHomework] = useState<Homework[]>(() =>
+    readDemoData("homework", initialHomework)
   );
   const [message, setMessage] = useState("");
   const meta = roleMeta[role];
@@ -76,14 +94,26 @@ export function EducationPlatform({
     writeDemoData("automations", automations);
   }, [automations]);
 
+  useEffect(() => {
+    writeDemoData("dayPlanTasks", dayPlanTasks);
+  }, [dayPlanTasks]);
+
+  useEffect(() => {
+    writeDemoData("homework", homework);
+  }, [homework]);
+
   const resetDemoData = () => {
     clearDemoData("attendances");
     clearDemoData("automations");
+    clearDemoData("dayPlanTasks");
+    clearDemoData("homework");
     setAttendances(initialAttendances);
     setAutomations(initialAutomations);
+    setDayPlanTasks(dayPlanTasksByRole);
+    setHomework(initialHomework);
     toast.success("Demo verileri sıfırlandı", {
       description:
-        "Yoklama ve otomasyon verileri ilk demo durumuna döndürüldü.",
+        "Yoklama, otomasyon, gün planı ve ödev verileri ilk demo durumuna döndürüldü.",
     });
   };
 
@@ -110,6 +140,29 @@ export function EducationPlatform({
 
   const renderPage = () => {
     if (active === "Genel Bakış") return renderDashboard();
+    if (active === "Gün Planı") {
+      // "Gün Planı" is only exposed to admin/teacher in `allNav`, and
+      // `changeRole` resets `active` to "Genel Bakış" on every role switch,
+      // so this branch is unreachable for student/parent.
+      const dayPlanRole = role as DayPlanRole;
+      return (
+        <DayPlanPage
+          role={dayPlanRole}
+          tasks={dayPlanTasks[dayPlanRole]}
+          setTasks={updater =>
+            setDayPlanTasks(current => ({
+              ...current,
+              [dayPlanRole]:
+                typeof updater === "function"
+                  ? (updater as (prev: DayPlanTask[]) => DayPlanTask[])(
+                      current[dayPlanRole]
+                    )
+                  : updater,
+            }))
+          }
+        />
+      );
+    }
     if (active === "Öğrenciler")
       return (
         <StudentsPage
@@ -138,6 +191,14 @@ export function EducationPlatform({
       );
     if (active === "Sınavlar")
       return <AssessmentsPage role={role} onNavigate={navigate} />;
+    if (active === "Ödevler")
+      return (
+        <HomeworkPage
+          role={role}
+          homework={homework}
+          setHomework={setHomework}
+        />
+      );
     if (active === "İletişim")
       return (
         <CommunicationsPage
@@ -155,7 +216,7 @@ export function EducationPlatform({
         />
       );
     if (active === "Raporlar") return <ReportsPage role={role} />;
-    return <SettingsPage onResetDemoData={resetDemoData} />;
+    return <SettingsPage role={role} onResetDemoData={resetDemoData} />;
   };
 
   return (

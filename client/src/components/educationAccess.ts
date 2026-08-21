@@ -2,11 +2,13 @@ export type EducationRole = "admin" | "teacher" | "student" | "parent";
 
 export type EducationSection =
   | "Genel Bakış"
+  | "Gün Planı"
   | "Öğrenciler"
   | "Sınıflar"
   | "Ders Programı"
   | "Yoklama"
   | "Sınavlar"
+  | "Ödevler"
   | "İletişim"
   | "Kayıt ve Ödemeler"
   | "Otomasyonlar"
@@ -16,11 +18,13 @@ export type EducationSection =
 const access: Record<EducationRole, EducationSection[]> = {
   admin: [
     "Genel Bakış",
+    "Gün Planı",
     "Öğrenciler",
     "Sınıflar",
     "Ders Programı",
     "Yoklama",
     "Sınavlar",
+    "Ödevler",
     "İletişim",
     "Kayıt ve Ödemeler",
     "Otomasyonlar",
@@ -29,19 +33,22 @@ const access: Record<EducationRole, EducationSection[]> = {
   ],
   teacher: [
     "Genel Bakış",
+    "Gün Planı",
     "Öğrenciler",
     "Sınıflar",
     "Ders Programı",
     "Yoklama",
     "Sınavlar",
+    "Ödevler",
     "İletişim",
     "Raporlar",
   ],
-  student: ["Genel Bakış", "Ders Programı", "Sınavlar", "İletişim"],
+  student: ["Genel Bakış", "Ders Programı", "Sınavlar", "Ödevler", "İletişim"],
   parent: [
     "Genel Bakış",
     "Ders Programı",
     "Sınavlar",
+    "Ödevler",
     "İletişim",
     "Kayıt ve Ödemeler",
   ],
