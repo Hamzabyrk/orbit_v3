@@ -109,3 +109,26 @@ export type DayPlanEvent = {
   subtitle: string;
   isMock: true;
 };
+
+export type HomeworkStatus = "Aktif" | "Süresi Doldu" | "Tamamlandı";
+
+export type HomeworkSubject =
+  | "Matematik"
+  | "Türkçe"
+  | "Fizik"
+  | "Kimya"
+  | "Biyoloji"
+  | "Geometri";
+
+export type Homework = {
+  id: string;
+  classGroup: string;
+  subject: HomeworkSubject;
+  title: string;
+  description: string;
+  assignedBy: string;
+  assignedDate: string;
+  dueDate: string;
+  status: HomeworkStatus;
+  isMock: true;
+};

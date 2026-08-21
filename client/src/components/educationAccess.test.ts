@@ -8,7 +8,7 @@ describe("education role access", () => {
   it("gives the administrator access to the full Faz 1 MVP navigation", () => {
     expect(availableEducationSections("admin")).toContain("Otomasyonlar");
     expect(availableEducationSections("admin")).toContain("Kayıt ve Ödemeler");
-    expect(availableEducationSections("admin")).toHaveLength(12);
+    expect(availableEducationSections("admin")).toHaveLength(13);
   });
 
   it("gives the day-plan workspace to admin and teacher only", () => {
@@ -32,9 +32,17 @@ describe("education role access", () => {
       "Genel Bakış",
       "Ders Programı",
       "Sınavlar",
+      "Ödevler",
       "İletişim",
     ]);
     expect(canAccessEducationSection("parent", "Kayıt ve Ödemeler")).toBe(true);
     expect(canAccessEducationSection("parent", "Öğrenciler")).toBe(false);
+  });
+
+  it("gives every role access to Ödevler, with capability handled inside the page", () => {
+    expect(canAccessEducationSection("admin", "Ödevler")).toBe(true);
+    expect(canAccessEducationSection("teacher", "Ödevler")).toBe(true);
+    expect(canAccessEducationSection("student", "Ödevler")).toBe(true);
+    expect(canAccessEducationSection("parent", "Ödevler")).toBe(true);
   });
 });

@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-08-21 — Ödevler (Homework) — 4 Rol İçin Farklı Yetkilerle
+
+**Kim:** Claude (Arda Bülent ile birlikte, `feat/4-kullanici-paneli-gelistirme` branch'inde, `Hamzabyrk/orbit_v3` reposu)
+
+**Ne yapıldı:**
+
+- Yeni "Ödevler" bölümü eklendi — bu, Gün Planı/Ayarlar'dan farklı olarak **tüm 4 rolün** erişebildiği ama yetkisi farklı olan ilk bölüm: öğretmen sadece sorumlu olduğu sınıflara (Merve Karaca → YKS 12-A & YKS 11-C) gerçek bir formla (placeholder değil) yeni ödev oluşturabiliyor; admin tüm sınıfların ödevlerini görüntülüyor; öğrenci/veli sadece kendi sınıflarının (YKS 12-A) ödevlerini görüntülüyor. Hepsi salt-görüntüleme, sadece öğretmen ekleme yapabiliyor.
+- Mevcut 3'lü rol-filtre deseni (`visibleStudents`/`AttendancePage`/`ClassesPage`'de zaten kullanılan) birebir tekrar kullanıldı — yeni bir mimari icat edilmedi.
+- `educationAccess.ts`'e `"Ödevler"` eklendi, dört rolün de erişim dizisine dahil edildi (Gün Planı/Ayarlar admin/teacher-only'ydi, bu ilk herkese-açık-farklı-yetkili bölüm).
+- Yeni dosyalar: `HomeworkPage.tsx` (liste + rol filtresi), `HomeworkCard.tsx` (kart), `HomeworkCreateDialog.tsx` (öğretmen için gerçek oluşturma formu — shadcn `Dialog`/`Select`/`Input`/`Textarea`, sınıf seçimi öğretmenin kendi sınıflarıyla sınırlı).
+- Oluşturulan ödev `homework` state'ine eklenip `demoStorage` ile kalıcı hale geliyor (`automations`/`dayPlanTasks` ile aynı desen), `resetDemoData()`'ya dahil edildi.
+- `pnpm check`, `pnpm lint`, `pnpm test` (15/15), `pnpm build` geçti; dev server'da tüm 4 rol tek tek test edildi (admin 7/7 görür-oluşturamaz, öğretmen 5/5 görür+oluşturabilir ve sınıf seçimi kendi 2 sınıfıyla sınırlı, öğrenci/veli sadece YKS 12-A'yı görür-oluşturamaz), gerçek bir ödev oluşturuldu ve kalıcılığı doğrulandı, sıfırlama ile 7 kayda geri dönüldüğü doğrulandı.
+- Not: Tarayıcı otomasyonunda `computer.type` aksiyonunun React controlled input'una bazen React `onChange`'i tetiklemeden yazdığı gözlemlendi (muhtemelen bu spesifik input bileşenindeki IME composition sarmalayıcısıyla ilgili bir otomasyon ortamı etkileşimi) — gerçek kullanıcı yazımını etkilemez, form JS ile değer atanıp doğrulandı.
+
+**Sırada ne var:**
+
+1. Kullanıcının orijinal 3 parçalık isteği (Ayarlar genişletme, Ödevler) tamamlandı. Sıradaki adım kullanıcının kararı — commit/push ve olası PR açma.
+2. Hamza/Codex'in `feat/1-platform-integrations` (Draft PR #2) hâlâ ayrı merge bekliyor; asıl auth/Supabase Auth/RLS fazı hâlâ başlamadı.
+
+---
+
 ## 2026-08-21 — Ayarlar Sayfasının Kategorili Yapıya Genişletilmesi
 
 **Kim:** Claude (Arda Bülent ile birlikte, `feat/4-kullanici-paneli-gelistirme` branch'inde, `Hamzabyrk/orbit_v3` reposu)

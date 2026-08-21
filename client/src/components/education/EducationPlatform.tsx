@@ -13,6 +13,7 @@ import {
   dayPlanTasksByRole,
   initialAttendances,
   initialAutomations,
+  initialHomework,
   roleMeta,
   students,
 } from "./mockData";
@@ -22,6 +23,7 @@ import { AutomationsPage } from "./pages/AutomationsPage";
 import { ClassesPage } from "./pages/ClassesPage";
 import { CommunicationsPage } from "./pages/CommunicationsPage";
 import { DayPlanPage } from "./pages/DayPlanPage";
+import { HomeworkPage } from "./pages/HomeworkPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { SchedulePage } from "./pages/SchedulePage";
@@ -32,6 +34,7 @@ import type {
   AttendanceState,
   DayPlanRole,
   DayPlanTask,
+  Homework,
   Role,
   Section,
   Student,
@@ -58,6 +61,9 @@ export function EducationPlatform({
   const [dayPlanTasks, setDayPlanTasks] = useState<
     Record<DayPlanRole, DayPlanTask[]>
   >(() => readDemoData("dayPlanTasks", dayPlanTasksByRole));
+  const [homework, setHomework] = useState<Homework[]>(() =>
+    readDemoData("homework", initialHomework)
+  );
   const [message, setMessage] = useState("");
   const meta = roleMeta[role];
   const navItems = allNav.filter(item =>
@@ -92,16 +98,22 @@ export function EducationPlatform({
     writeDemoData("dayPlanTasks", dayPlanTasks);
   }, [dayPlanTasks]);
 
+  useEffect(() => {
+    writeDemoData("homework", homework);
+  }, [homework]);
+
   const resetDemoData = () => {
     clearDemoData("attendances");
     clearDemoData("automations");
     clearDemoData("dayPlanTasks");
+    clearDemoData("homework");
     setAttendances(initialAttendances);
     setAutomations(initialAutomations);
     setDayPlanTasks(dayPlanTasksByRole);
+    setHomework(initialHomework);
     toast.success("Demo verileri sıfırlandı", {
       description:
-        "Yoklama ve otomasyon verileri ilk demo durumuna döndürüldü.",
+        "Yoklama, otomasyon, gün planı ve ödev verileri ilk demo durumuna döndürüldü.",
     });
   };
 
@@ -179,6 +191,10 @@ export function EducationPlatform({
       );
     if (active === "Sınavlar")
       return <AssessmentsPage role={role} onNavigate={navigate} />;
+    if (active === "Ödevler")
+      return (
+        <HomeworkPage role={role} homework={homework} setHomework={setHomework} />
+      );
     if (active === "İletişim")
       return (
         <CommunicationsPage

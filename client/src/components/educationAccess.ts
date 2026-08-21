@@ -8,6 +8,7 @@ export type EducationSection =
   | "Ders Programı"
   | "Yoklama"
   | "Sınavlar"
+  | "Ödevler"
   | "İletişim"
   | "Kayıt ve Ödemeler"
   | "Otomasyonlar"
@@ -23,6 +24,7 @@ const access: Record<EducationRole, EducationSection[]> = {
     "Ders Programı",
     "Yoklama",
     "Sınavlar",
+    "Ödevler",
     "İletişim",
     "Kayıt ve Ödemeler",
     "Otomasyonlar",
@@ -37,14 +39,22 @@ const access: Record<EducationRole, EducationSection[]> = {
     "Ders Programı",
     "Yoklama",
     "Sınavlar",
+    "Ödevler",
     "İletişim",
     "Raporlar",
   ],
-  student: ["Genel Bakış", "Ders Programı", "Sınavlar", "İletişim"],
+  student: [
+    "Genel Bakış",
+    "Ders Programı",
+    "Sınavlar",
+    "Ödevler",
+    "İletişim",
+  ],
   parent: [
     "Genel Bakış",
     "Ders Programı",
     "Sınavlar",
+    "Ödevler",
     "İletişim",
     "Kayıt ve Ödemeler",
   ],
