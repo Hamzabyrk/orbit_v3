@@ -22,7 +22,7 @@
 - Bu makinede Docker/Supabase local DB bulunmadığı için yerel `supabase test db` çalışmadı; aynı migration ve pgTAP testleri GitHub'ın izole Supabase workflow'unda başarıyla geçti.
 - Arda PR #9'u onayladı; ana CI, Vercel Preview ve Tenant RLS workflow'ları yeşile döndü. `20260821183000_auth_tenant_foundation.sql` migration'ı ve `bootstrap-organization` Edge Function production `orbit-dershane` projesine deploy edildi.
 - İlk tenant için kurum `orbitdershane`, şube `orbit123`, yönetici `Ahmet Yılmaz` olarak onaylandı. `yonetici@orbit.edu.tr` adresi Supabase tarafından `email_address_invalid` ile reddedildi; DNS/MX kaydı da bulunmadı. Davet oluşmadığı için atomik bootstrap çalıştırılmadı ve yarım kurum/üyelik kaydı oluşmadı.
-- Yönetici bilgisi Hamza Bayrak / `hmzbyrk16@gmail.com` olarak güncellendi. Henüz `platform_admin` kullanıcısı bulunmayan ilk production seed'i, yetkili yerel kontrol düzleminde service-role anahtarı çıktıya yazdırılmadan davet + atomik bootstrap RPC ile yapıldı; `orbitdershane` kurumu, `orbit123` varsayılan şubesi ve kurum-geneli aktif admin üyeliği oluşturuldu.
+- Yönetici bilgisi Hamza Bayrak ve onaylı, erişilebilir yönetici e-postası olarak güncellendi. Henüz `platform_admin` kullanıcısı bulunmayan ilk production seed'i, yetkili yerel kontrol düzleminde service-role anahtarı çıktıya yazdırılmadan davet + atomik bootstrap RPC ile yapıldı; `orbitdershane` kurumu, `orbit123` varsayılan şubesi ve kurum-geneli aktif admin üyeliği oluşturuldu.
 - Production doğrulamasında kurum, varsayılan şube, admin üyeliği, `Hamza Bayrak` profili ve `organization.bootstrap` audit kaydının her birinden tam bir kayıt döndüğü görüldü.
 
 **Sırada ne var:**
