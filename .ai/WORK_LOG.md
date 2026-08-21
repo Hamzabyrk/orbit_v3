@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-08-21 — Vercel Production Deploy ve Supabase Güvenlik Bağlantısı
+
+**Kim:** Codex (Hamza Bayrak onayıyla, `feat/1-platform-integrations` branch'inde)
+
+**Ne yapıldı:**
+
+- GitHub Issue #1 açıldı ve çalışma doğrudan `main` yerine feature branch üzerinde yürütüldü.
+- ORBİT Vercel ekibinde `orbit-v3` projesi oluşturuldu ve `Hamzabyrk/orbit_v3` GitHub reposuna otomatik deployment için bağlandı; Production/Preview/Development ortamlarına `VITE_SUPABASE_URL` ve public anon key eklendi. `service_role` anahtarı kullanılmadı.
+- Production build `https://orbit-v3-topaz.vercel.app` adresinde yayınlandı.
+- Mevcut `orbit-dershane` Supabase projesi bağlandı. Denetimde sıfır belge satırı ve sıfır storage nesnesi bulundu.
+- Anonim SELECT/INSERT/DELETE ve storage okuma/yükleme/silme politikaları migration ile kaldırıldı; `workspace-documents` bucket'ı private yapıldı. Son doğrulamada tablo politikası `0`, storage politikası `0`, bucket `public=false` olarak ölçüldü.
+- Supabase CLI yapılandırması ve uzak migration geçmişiyle eşleşen timestamp'li migration dosyaları repoya eklendi.
+- `pnpm test` (7/7), TypeScript, ESLint ve production build başarıyla tamamlandı.
+- Draft PR #2 için GitHub Actions `quality-gate` işi başarıyla geçti.
+
+**Sırada ne var:**
+
+1. Arda'yı GitHub repo ve Vercel ORBİT ekibinde gereken rollerle doğrulamak.
+2. Supabase Auth + tenant sahipliği tasarlanmadan belge yazma/okuma politikası eklememek.
+
+---
+
 ## 2026-08-18 — Graph-First Düşünme, Blast Radius ve Sistemik Risk Protokolü
 
 **Kim:** Antigravity (Arda Bülent ile birlikte, `feat/orbit-core-init` branch'inde)
