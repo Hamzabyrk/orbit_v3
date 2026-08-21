@@ -196,7 +196,7 @@ export function EducationPlatform({
         />
       );
     if (active === "Raporlar") return <ReportsPage role={role} />;
-    return <SettingsPage onResetDemoData={resetDemoData} />;
+    return <SettingsPage role={role} onResetDemoData={resetDemoData} />;
   };
 
   return (

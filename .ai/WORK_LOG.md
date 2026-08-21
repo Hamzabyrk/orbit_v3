@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-08-21 — Ayarlar Sayfasının Kategorili Yapıya Genişletilmesi
+
+**Kim:** Claude (Arda Bülent ile birlikte, `feat/4-kullanici-paneli-gelistirme` branch'inde, `Hamzabyrk/orbit_v3` reposu)
+
+**Ne yapıldı:**
+
+- `SettingsPage.tsx` 3 statik karttan, sol tarafta kategori listesi + sağda detay paneli olan 8 kategorili bir yapıya genişletildi (Profil, Kurum, Bildirimler, Roller ve Erişim, Sistem, Güvenlik, Veri Yönetimi, Veri İçe Aktarma) — referans bir SaaS uygulamasının canlı sürümü (demo1/demo1 ile) incelenerek tasarlandı. Sayfa hâlâ sadece admin'e açık, `educationAccess.ts`'e dokunulmadı.
+- Profil/Kurum/Sistem/Güvenlik kategorileri gerçek düzenlenebilir form alanları + "Değişiklikleri Kaydet" butonu içeriyor (ephemeral, backend yok); Bildirimler ve Güvenlik'te gerçek shadcn `Switch` kullanıldı — bu, `education/` modülünde ilk shadcn kullanımı (repo genelinde zaten kurulu, kullanıcı onayıyla).
+- "Roller ve Erişim" kategorisi artık `educationAccess.ts`'in gerçek `access` verisinden (mevcut 2 export edilen fonksiyon üzerinden, dosyaya dokunmadan) üretilen canlı bir erişim matrisi gösteriyor — sahte/statik içerik değil.
+- "Veri Yönetimi"deki "Demo Verilerini Sıfırla" birebir aynı işlevle korundu, üzerine shadcn `Dialog` ile bir onay adımı eklendi (geri alınamaz aksiyon artık onaysız tetiklenmiyor); yanına referanstaki dışa aktarma kartına simetrik bir placeholder eklendi.
+- Yeni "Veri İçe Aktarma" kategorisi: bağımlılıksız, elle yapılmış dosya seçici/sürükle-bırak alanı (CSV/Excel), gerçek dosya adını toast'ta gösteriyor.
+- `pnpm check`, `pnpm lint`, `pnpm test` (14/14), `pnpm build` geçti; dev server'da admin olarak 8 kategorinin tamamı, "Değişiklikleri Kaydet" toast'ları, switch'ler, erişim matrisinin gerçek verilerle eşleştiği, sıfırlama onay diyaloğunun gerçekten çalıştığı (regresyon yok), dosya seçme + sürükle-bırakın toast attığı ve öğretmen/öğrenci/veli rollerinde "Ayarlar"ın hâlâ hiç görünmediği tek tek doğrulandı.
+- Not: Test sırasında otomasyon tarayıcı sekmesinin CSS animasyonlarını tick'lemediği (muhtemelen arka planda/throttle edilmiş sekme) fark edildi — bu, Dialog kapanışında görünmez bir overlay'in DOM'da takılı kalmasına yol açtı; `animationend` event'ini elle tetikleyince sorunun anında düzeldiği doğrulandı, yani bu gerçek kullanıcıyı etkilemeyen bir otomasyon-ortamı artefaktı, kod tarafında bir hata değil.
+
+**Sırada ne var:**
+
+1. Kullanıcının bir sonraki fazı: rol-bazlı bir "Ödevler" bölümü (öğretmen sadece sorumlu olduğu sınıflara girer — mevcut eşleme Merve Karaca → YKS 12-A & YKS 11-C, Bora Ekin → YKS 12-B —, admin hepsini görür, öğrenci/veli/admin sadece görüntüler). Ayrı bir plan turu olarak ele alınacak.
+
+---
+
 ## 2026-08-21 — Gün Planı (To-Do List + Takvim) — Yönetici & Öğretmen Paneli
 
 **Kim:** Claude (Arda Bülent ile birlikte, `feat/4-kullanici-paneli-gelistirme` branch'inde, `Hamzabyrk/orbit_v3` reposu)
