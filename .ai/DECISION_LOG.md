@@ -119,3 +119,5 @@
 **Gerekçe:** Demo hızını kaybetmeden production yetki atlatmasını kapatmak; iki kurum arasında IDOR/veri sızıntısını RLS katmanında önlemek; Supabase `auth.users` şemasını uygulama rol alanlarıyla kirletmemek.
 
 **Alternatifler:** Rolü JWT user metadata veya frontend state'inde tutmak daha az tablo gerektirirdi; ancak çoklu kurum/şube ve rol değişikliklerinde eski token/istemci verisine güvenme riski nedeniyle reddedildi.
+
+**İlk production seed notu (2026-08-21):** Production Auth'ta henüz `platform_admin` operatörü bulunmadığı için ilk pilot kurum, kullanıcıya açık bir endpoint yerine yetkili yerel kontrol düzleminden oluşturuldu. Service-role anahtarı çıktıya veya repoya yazdırılmadan admin daveti gönderildi ve aynı `internal_bootstrap_organization` atomik RPC'si çalıştırıldı. Sonraki kurum kurulumları kalıcı platform operatörü tanımlandıktan sonra Edge Function üzerinden yürütülecektir.

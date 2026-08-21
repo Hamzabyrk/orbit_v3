@@ -101,14 +101,15 @@ client/src/
 
 ## 7. v1.1 Auth ve Tenant Temeli (Issue #8)
 
-**Durum:** Migration ve `bootstrap-organization` Edge Function production Supabase'e deploy edildi; PR merge'i ve ilk tenant kurulumu geçerli yönetici e-postası bekliyor.
+**Durum:** Migration ve `bootstrap-organization` Edge Function production Supabase'e deploy edildi; ilk tenant, varsayılan şube ve admin üyeliği oluşturulup doğrulandı. PR merge'i ve Vercel Production doğrulaması bekleniyor.
 
 - Kimlik doğrulama production'da Supabase Auth e-posta/şifre oturumuyla çalışır. Rol istemciden alınmaz; aktif `organization_memberships` kaydından çözülür.
 - Local geliştirme ve Vercel Preview derlemeleri demo modundadır. Vercel Production derlemesinde rol geçişi gizlenir ve demo şifresi kabul edilmez.
 - Tenant çekirdeği `profiles`, `organizations`, `branches`, `organization_memberships` ve `audit_events` tablolarından oluşur.
 - Organizasyon yöneticisi org-wide üyelik taşır; aktif ekran bağlamı varsayılan şubeden başlar. Şube sınırlı üyelikler yalnızca kendi şubesini görür.
-- İlk kurum, varsayılan şube ve admin daveti yalnızca `platform_admin` app metadata'sına sahip operatörün çağırabildiği `bootstrap-organization` Edge Function üzerinden hazırlanır.
+- Normal kurum kurulumları yalnızca `platform_admin` app metadata'sına sahip operatörün çağırabildiği `bootstrap-organization` Edge Function üzerinden hazırlanır. Hiç platform operatörü bulunmayan ilk production seed'i, yetkili yerel kontrol düzleminden service-role daveti + aynı atomik RPC ile bir defaya mahsus oluşturuldu.
 - Tarayıcıya yalnızca anon key verilir. `service_role` yalnızca Supabase Edge Function sunucu ortamında kullanılır.
 - RLS istemci yazılarını deny-by-default bırakır; üyeler yalnızca kendi tenant kapsamlarını, adminler ise yetkili audit kapsamını okuyabilir.
-- İlk tenant için `orbitdershane` / `orbit123` kararı verildi. `yonetici@orbit.edu.tr` adresinin DNS/MX kaydı olmadığı ve Supabase tarafından `email_address_invalid` ile reddedildiği doğrulandı; yarım kullanıcı/tenant kaydı oluşmadı.
+- İlk başarısız denemede `yonetici@orbit.edu.tr` adresinin DNS/MX kaydı olmadığı ve Supabase tarafından `email_address_invalid` ile reddedildiği doğrulandı; yarım kullanıcı/tenant kaydı oluşmadı.
+- Geçerli yönetici bilgileriyle `orbitdershane` kurumu, `orbit123` varsayılan şubesi ve Hamza Bayrak için kurum-geneli aktif admin üyeliği production'da oluşturuldu. Davet, profil ve `organization.bootstrap` audit kaydı ayrı sorgularla doğrulandı.
 - v1.2 iş tabloları ve v1.3 mock temizliği bu dalın bilinçli kapsamı dışındadır.
