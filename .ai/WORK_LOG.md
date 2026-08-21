@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-08-21 — Gün Planı (To-Do List + Takvim) — Yönetici & Öğretmen Paneli
+
+**Kim:** Claude (Arda Bülent ile birlikte, `feat/4-kullanici-paneli-gelistirme` branch'inde, `Hamzabyrk/orbit_v3` reposu)
+
+**Ne yapıldı:**
+
+- Yönetici ve öğretmen panellerine yeni bir "Gün Planı" bölümü eklendi: üstte "To-Do List" (4 kolonlu Kanban görev panosu — Planla/Bugün/Odaklan/Tamamlandı) ve "Takvim" (aylık takvim + günlük ajanda) sekmeleri.
+- `educationAccess.ts`'e `"Gün Planı"` section'ı eklendi, sadece `admin`/`teacher` erişebiliyor (`student`/`parent`'a kapalı) — hem birim testle hem tarayıcıda rol geçişleriyle doğrulandı.
+- Veri role-özel: yönetici ve öğretmen kendi ayrı mock görev/randevu listelerine sahip (`dayPlanTasksByRole`/`dayPlanEventsByRole`, `mockData.ts`).
+- Görev durumu değişimi (dropdown ile kolon taşıma) tam fonksiyonel ve `demoStorage` ile kalıcı (mevcut `attendances`/`automations` deseniyle aynı, `resetDemoData()`'ya dahil edildi); takvimde gün seçimi ajandayı güncelliyor. "+ Yeni görev" / "+ Yeni Görüşme Ekle" ve kolon-içi "+" butonları, uygulamanın geri kalanındaki "Yeni sınıf" konvansiyonuyla tutarlı şekilde placeholder toast gösteriyor.
+- Yeni dosyalar: `DayPlanPage.tsx`, `DayPlanToDoBoard.tsx`, `DayPlanTaskCard.tsx`, `DayPlanCalendar.tsx`, `DayPlanMonthGrid.tsx`, `DayPlanAgenda.tsx`, `dayPlanHelpers.ts` (+ test). Yeni npm bağımlılığı eklenmedi (`date-fns`, `lucide-react`, mevcut `Badge`/`PageHeader`/`StatCard` yeterliydi).
+- `pnpm check`, `pnpm lint`, `pnpm test` (14/14), `pnpm build` başarıyla geçti; dev server'da admin ve öğretmen olarak gerçek tarayıcı testi yapıldı (nav görünürlüğü, kolon taşıma, kalıcılık, takvim gün seçimi, placeholder toast'lar, rol-özel veri izolasyonu tek tek doğrulandı).
+- Not: `pnpm run format:check` bu Windows checkout'ta 38 dosyada CRLF/LF uyuşmazlığı uyarısı veriyor (`core.autocrlf=true` vs `.prettierrc`'deki `endOfLine: "lf"`) — bu, bu iş kapsamının dışında, repo genelini etkileyen ortam kaynaklı bir durum; CI Linux'ta çalıştığı için etkilenmiyor.
+
+**Sırada ne var:**
+
+1. Hamza/Codex'in `feat/1-platform-integrations` (Draft PR #2, sadece Vercel/Supabase platform bağlantısı — henüz gerçek auth/DB fazı değil) işi ayrı olarak merge edilmeyi bekliyor.
+2. Asıl auth + Supabase Auth + RLS fazı (mock veri temizliği dahil) henüz başlamadı, ayrı bir Issue olarak planlanacak.
+
+---
+
 ## 2026-08-18 — Graph-First Düşünme, Blast Radius ve Sistemik Risk Protokolü
 
 **Kim:** Antigravity (Arda Bülent ile birlikte, `feat/orbit-core-init` branch'inde)

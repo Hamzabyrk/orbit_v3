@@ -62,3 +62,50 @@ export type PaymentRow = {
   status: "Güncel" | "Hatırlatma gerekli" | "Gecikme riski";
   isMock: true;
 };
+
+export type DayPlanRole = Extract<Role, "admin" | "teacher">;
+
+export type DayPlanTaskStatus = "Planla" | "Bugün" | "Odaklan" | "Tamamlandı";
+
+export type DayPlanTaskPriority = "Düşük" | "Orta" | "Yüksek";
+
+export type DayPlanTaskCategory =
+  | "Yoklama"
+  | "Veli İletişimi"
+  | "Sınav"
+  | "Rapor"
+  | "Kayıt"
+  | "Ders Programı";
+
+export type DayPlanTask = {
+  id: string;
+  title: string;
+  detail: string;
+  status: DayPlanTaskStatus;
+  priority: DayPlanTaskPriority;
+  category: DayPlanTaskCategory;
+  duration: string;
+  dueLabel: string;
+  isMock: true;
+};
+
+export type DayPlanAppointmentMode = "Google Meet" | "Yüz yüze" | "Telefon";
+
+export type DayPlanAppointmentType =
+  | "Veli Görüşmesi"
+  | "Öğretmen Değerlendirmesi"
+  | "Şube Toplantısı"
+  | "Rehberlik Görüşmesi"
+  | "Aday Kayıt Görüşmesi";
+
+export type DayPlanEvent = {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  mode: DayPlanAppointmentMode;
+  type: DayPlanAppointmentType;
+  title: string;
+  subtitle: string;
+  isMock: true;
+};
