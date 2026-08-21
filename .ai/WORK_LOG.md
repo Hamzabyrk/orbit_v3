@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-08-21 - Functional MVP Kararları ve Sürüm Kapıları
+
+**Kim:** Codex (Hamza Bayrak onayıyla, `feat/6-functional-mvp-roadmap` branch'inde)
+
+**Ne yapıldı:**
+
+- GitHub Issue #6 açıldı; çalışma güncel `main`den ayrı feature branch üzerinde başlatıldı.
+- Auth/demo davranışı, tenant üyelik modeli, pilot admin kurulumu, öğrenci hesabı, Günlük Akış/Gün Planı ayrımı, sınav sıralaması gizliliği, temiz kurum durumu ve teslim sırası için sekiz soru-cevap `.ai/ROADMAP.md` içine kalıcı karar kaydı olarak eklendi.
+- Günlük Akış ile kişisel Gün Planı ayrı veri modelleri ve ayrı RLS kapsamları olarak kesinleştirildi.
+- Önceki toplu Auth/backend fazı; v1.1 Auth, v1.2 ilişkisel DB/RLS, v1.3 dinamik frontend/mock temizliği, v1.4 CRUD ve v1.5 kapalı beta sürümlerine ayrıldı.
+- Phase 2; v1.6 Storage, v1.7 toplu veri aktarımı, v1.8 raporlama ve v2.0 Core Product kapılarıyla kaydedildi.
+- Bu işte uygulama kodu, Supabase şeması ve deployment değiştirilmedi.
+
+**Sırada ne var:**
+
+1. Dokümantasyon kalite kontrollerini tamamlayıp Issue #6 için draft PR açmak.
+2. Plan onayından sonra v1.1 Auth ve tenant temeli için ayrı uygulama issue/branch'i başlatmak.
+
+---
+
 ## 2026-08-21 — PR #5 Kalite Kapısı ve Main Senkronizasyonu
 
 **Kim:** Codex (Hamza Bayrak onayıyla, `feat/4-kullanici-paneli-gelistirme` branch'inde)
