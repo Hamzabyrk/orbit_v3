@@ -117,7 +117,7 @@ Bu bölüm, ileride bir karar değiştirildiğinde eski bağlamın kaybolmaması
 - [x] `audit_events` temeli.
 - [x] RLS yardımcı fonksiyonları ve kurumlar arası negatif güvenlik testleri.
 
-**Uygulama durumu (Issue #8):** Kod, migration ve testler feature branch üzerinde hazırdır. Frontend kalite kapısı ile uzak SQL lint/dry-run geçmiştir. Production migration/Edge Function deployment'ı, SQL testlerinin Docker/Supabase test veritabanında çalışması, diğer ekip üyesinin review'u ve PR merge'i sonrasında yapılacaktır.
+**Uygulama durumu (Issue #8):** Kod, migration ve testler feature branch üzerinde hazırdır. Ana CI, Vercel Preview ve GitHub Docker ortamındaki migration/pgTAP Tenant RLS testleri geçmiştir. Arda review onayını vermiş; migration ve Edge Function production Supabase'e deploy edilmiştir. İlk tenant kurulumu, verilen `yonetici@orbit.edu.tr` adresi geçersiz olduğu için güvenli biçimde durdurulmuştur; geçerli yönetici e-postası ve PR merge'i beklenmektedir.
 
 **Release gate:** Production kullanıcısı rolünü istemciden değiştiremez; iki farklı kurum birbirinin hiçbir kaydını okuyamaz/yazamaz.
 

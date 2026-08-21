@@ -19,14 +19,16 @@
 - `npm run check`, `npm run lint`, `npm test` (24/24) ve `npm run build` geçti. Bağlı Supabase projesinde `db lint --linked --level error` ve `db push --dry-run` geçti.
 - İlk PR koşusunda lockfile'daki güncel Supabase client'ın Node 22+ native WebSocket gereksinimi CI'ın Node 20 ayarıyla çakıştı; kalite kapısı desteklenen Node 22 sürümüne yükseltildi.
 - `supabase/**` değişikliklerinde çalışan ayrı `Supabase Database Tests` workflow'u eklendi; migration'lar ve pgTAP tenant/RLS negatif testleri GitHub'ın izole Docker ortamında otomatik çalışır.
-- pgTAP test dosyası hazırlandı; bu makinede Docker/Supabase local DB bulunmadığı için `supabase test db` çalıştırılamadı (`127.0.0.1:54322` kapalı). Production şeması bu nedenle PR review/merge öncesinde değiştirilmedi.
+- Bu makinede Docker/Supabase local DB bulunmadığı için yerel `supabase test db` çalışmadı; aynı migration ve pgTAP testleri GitHub'ın izole Supabase workflow'unda başarıyla geçti.
+- Arda PR #9'u onayladı; ana CI, Vercel Preview ve Tenant RLS workflow'ları yeşile döndü. `20260821183000_auth_tenant_foundation.sql` migration'ı ve `bootstrap-organization` Edge Function production `orbit-dershane` projesine deploy edildi.
+- İlk tenant için kurum `orbitdershane`, şube `orbit123`, yönetici `Ahmet Yılmaz` olarak onaylandı. `yonetici@orbit.edu.tr` adresi Supabase tarafından `email_address_invalid` ile reddedildi; DNS/MX kaydı da bulunmadı. Davet oluşmadığı için atomik bootstrap çalıştırılmadı ve yarım kurum/üyelik kaydı oluşmadı.
 
 **Sırada ne var:**
 
-1. Draft PR açıp Arda'nın review'unu ve yeşil CI'ı almak.
-2. Docker/Supabase test veritabanında `supabase test db` çalıştırmak.
-3. Review/merge sonrasında migration ve Edge Function'ı production'a deploy etmek; platform operatör hesabına `platform_admin` app metadata'sını kontrollü vermek.
-4. v1.2 ilişkisel iş tablolarına release gate tamamlanmadan başlamamak.
+1. Ahmet Yılmaz için davet alabilen, gerçek ve erişilebilir bir e-posta adresi almak.
+2. Daveti gönderip atomik bootstrap RPC'siyle `orbitdershane` / `orbit123` tenant'ını ve admin üyeliğini oluşturmak.
+3. PR #9'u merge edip Vercel Production deployment ve gerçek login akışını doğrulamak.
+4. Platform operatör hesabına `platform_admin` app metadata'sını kontrollü vermek; v1.2'ye release gate tamamlanmadan başlamamak.
 
 ---
 
