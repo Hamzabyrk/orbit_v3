@@ -18,6 +18,7 @@
 - Supabase local auth ayarları invitation-only, minimum 8 karakter karma şifre, e-posta doğrulaması ve güvenli şifre değişimi olacak şekilde sıkılaştırıldı.
 - `npm run check`, `npm run lint`, `npm test` (24/24) ve `npm run build` geçti. Bağlı Supabase projesinde `db lint --linked --level error` ve `db push --dry-run` geçti.
 - İlk PR koşusunda lockfile'daki güncel Supabase client'ın Node 22+ native WebSocket gereksinimi CI'ın Node 20 ayarıyla çakıştı; kalite kapısı desteklenen Node 22 sürümüne yükseltildi.
+- `supabase/**` değişikliklerinde çalışan ayrı `Supabase Database Tests` workflow'u eklendi; migration'lar ve pgTAP tenant/RLS negatif testleri GitHub'ın izole Docker ortamında otomatik çalışır.
 - pgTAP test dosyası hazırlandı; bu makinede Docker/Supabase local DB bulunmadığı için `supabase test db` çalıştırılamadı (`127.0.0.1:54322` kapalı). Production şeması bu nedenle PR review/merge öncesinde değiştirilmedi.
 
 **Sırada ne var:**
