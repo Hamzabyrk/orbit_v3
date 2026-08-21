@@ -1,5 +1,8 @@
 import { ChevronRight } from "lucide-react";
-import type { SettingsCategoryId, SettingsCategoryMeta } from "./settingsCategories";
+import type {
+  SettingsCategoryId,
+  SettingsCategoryMeta,
+} from "./settingsCategories";
 
 export function SettingsCategoryList({
   categories,

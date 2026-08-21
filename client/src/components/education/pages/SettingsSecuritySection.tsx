@@ -83,9 +83,9 @@ export function SettingsSecuritySection() {
       <p className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-[10px] leading-5 text-amber-800">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
         <span>
-          Bu tercihler yerel demo davranışını temsil eder; gerçek Supabase
-          Auth ve oturum güvenliği <strong>.ai/ROADMAP.md</strong> Aşama 3
-          kapsamında kalıcı veri tabanı fazında aktifleşecek.
+          Bu tercihler yerel demo davranışını temsil eder; gerçek Supabase Auth
+          ve oturum güvenliği <strong>.ai/ROADMAP.md</strong> Aşama 3 kapsamında
+          kalıcı veri tabanı fazında aktifleşecek.
         </span>
       </p>
     </>

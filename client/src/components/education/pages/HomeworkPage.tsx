@@ -18,7 +18,8 @@ export function HomeworkPage({
   const visible =
     role === "teacher"
       ? homework.filter(
-          item => item.classGroup === "YKS 12-A" || item.classGroup === "YKS 11-C"
+          item =>
+            item.classGroup === "YKS 12-A" || item.classGroup === "YKS 11-C"
         )
       : role === "student" || role === "parent"
         ? homework.filter(item => item.classGroup === "YKS 12-A")

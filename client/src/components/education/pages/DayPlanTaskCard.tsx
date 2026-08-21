@@ -46,9 +46,7 @@ export function DayPlanTaskCard({
       <p className="mt-2.5 text-[12px] font-extrabold text-slate-800">
         {task.title}
       </p>
-      <p className="mt-1 text-[10px] leading-4 text-slate-500">
-        {task.detail}
-      </p>
+      <p className="mt-1 text-[10px] leading-4 text-slate-500">{task.detail}</p>
       <div className="mt-3 flex items-center justify-between text-[10px] text-slate-400">
         <span className="flex items-center gap-1">
           <Clock className="h-3 w-3" />

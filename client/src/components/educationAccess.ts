@@ -43,13 +43,7 @@ const access: Record<EducationRole, EducationSection[]> = {
     "İletişim",
     "Raporlar",
   ],
-  student: [
-    "Genel Bakış",
-    "Ders Programı",
-    "Sınavlar",
-    "Ödevler",
-    "İletişim",
-  ],
+  student: ["Genel Bakış", "Ders Programı", "Sınavlar", "Ödevler", "İletişim"],
   parent: [
     "Genel Bakış",
     "Ders Programı",

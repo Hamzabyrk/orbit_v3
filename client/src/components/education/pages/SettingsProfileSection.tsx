@@ -35,11 +35,7 @@ export function SettingsProfileSection({ role }: { role: Role }) {
           onChange={setEmail}
           type="email"
         />
-        <SettingsFormField
-          label="Telefon"
-          value={phone}
-          onChange={setPhone}
-        />
+        <SettingsFormField label="Telefon" value={phone} onChange={setPhone} />
         <SettingsFormField label="Rol" value={roleMeta[role].label} disabled />
       </div>
     </>

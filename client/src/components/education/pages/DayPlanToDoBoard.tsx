@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Plus, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, StatCard } from "../shared";
-import type { DayPlanTask, DayPlanTaskCategory, DayPlanTaskStatus } from "../types";
+import type {
+  DayPlanTask,
+  DayPlanTaskCategory,
+  DayPlanTaskStatus,
+} from "../types";
 import { DayPlanTaskCard } from "./DayPlanTaskCard";
 import { getTaskCompletionPercent, getTodayTaskCount } from "./dayPlanHelpers";
 
@@ -58,8 +62,7 @@ export function DayPlanToDoBoard({
           <div className="mt-4 flex items-center justify-between gap-3">
             <p className="max-w-sm text-[11px] leading-5 text-white/70">
               Şu an {getTodayTaskCount(tasks)} odak görevi var. Önce yüksek
-              öncelikli işleri netleştirin, sonra sıradaki zaman kutusuna
-              geçin.
+              öncelikli işleri netleştirin, sonra sıradaki zaman kutusuna geçin.
             </p>
             <span className="whitespace-nowrap rounded-xl border border-white/15 bg-white/10 px-3.5 py-2 text-[11px] font-bold">
               Bugünkü plan: {getTodayTaskCount(tasks)} görev
@@ -130,9 +133,7 @@ export function DayPlanToDoBoard({
                   <Plus className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <p className="mt-0.5 text-[10px] text-slate-400">
-                {column.hint}
-              </p>
+              <p className="mt-0.5 text-[10px] text-slate-400">{column.hint}</p>
               <div className="mt-3 space-y-2.5">
                 {columnTasks.length === 0 ? (
                   <p className="rounded-xl border border-dashed border-slate-200 p-3 text-center text-[10px] text-slate-400">

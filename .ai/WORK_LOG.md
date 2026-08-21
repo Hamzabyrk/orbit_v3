@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-08-21 — PR #5 Kalite Kapısı ve Main Senkronizasyonu
+
+**Kim:** Codex (Hamza Bayrak onayıyla, `feat/4-kullanici-paneli-gelistirme` branch'inde)
+
+**Ne yapıldı:**
+
+- Arda'nın PR #5 branch'i güncel `main` ile birleştirildi; platform entegrasyonu ve Supabase güvenlik migration'ları kullanıcı paneli geliştirmeleriyle aynı geçmişe alındı.
+- `.ai/WORK_LOG.md` çatışması iki tarafın kayıtları korunarak çözüldü.
+- GitHub Actions logunda bildirilen 12 dosyanın Prettier biçim hataları düzeltildi.
+- `npm run lint`, `npm run check`, `npm test` (15/15) ve `npm run build` başarıyla tamamlandı.
+
+**Sırada ne var:**
+
+1. Branch'i uzak PR'a gönderip GitHub Actions ve Vercel kontrollerinin yeniden çalışmasını doğrulamak.
+2. Vercel kontrolü commit sahibinin ekip üyeliği nedeniyle yeniden hata verirse Arda'nın ORBİT Vercel ekibine davetini tamamlamak.
+
+---
+
 ## 2026-08-21 — Ödevler (Homework) — 4 Rol İçin Farklı Yetkilerle
 
 **Kim:** Claude (Arda Bülent ile birlikte, `feat/4-kullanici-paneli-gelistirme` branch'inde, `Hamzabyrk/orbit_v3` reposu)
@@ -63,6 +81,26 @@
 
 1. Hamza/Codex'in `feat/1-platform-integrations` (Draft PR #2, sadece Vercel/Supabase platform bağlantısı — henüz gerçek auth/DB fazı değil) işi ayrı olarak merge edilmeyi bekliyor.
 2. Asıl auth + Supabase Auth + RLS fazı (mock veri temizliği dahil) henüz başlamadı, ayrı bir Issue olarak planlanacak.
+
+## 2026-08-21 — Vercel Production Deploy ve Supabase Güvenlik Bağlantısı
+
+**Kim:** Codex (Hamza Bayrak onayıyla, `feat/1-platform-integrations` branch'inde)
+
+**Ne yapıldı:**
+
+- GitHub Issue #1 açıldı ve çalışma doğrudan `main` yerine feature branch üzerinde yürütüldü.
+- ORBİT Vercel ekibinde `orbit-v3` projesi oluşturuldu ve `Hamzabyrk/orbit_v3` GitHub reposuna otomatik deployment için bağlandı; Production/Preview/Development ortamlarına `VITE_SUPABASE_URL` ve public anon key eklendi. `service_role` anahtarı kullanılmadı.
+- Production build `https://orbit-v3-topaz.vercel.app` adresinde yayınlandı.
+- Mevcut `orbit-dershane` Supabase projesi bağlandı. Denetimde sıfır belge satırı ve sıfır storage nesnesi bulundu.
+- Anonim SELECT/INSERT/DELETE ve storage okuma/yükleme/silme politikaları migration ile kaldırıldı; `workspace-documents` bucket'ı private yapıldı. Son doğrulamada tablo politikası `0`, storage politikası `0`, bucket `public=false` olarak ölçüldü.
+- Supabase CLI yapılandırması ve uzak migration geçmişiyle eşleşen timestamp'li migration dosyaları repoya eklendi.
+- `pnpm test` (7/7), TypeScript, ESLint ve production build başarıyla tamamlandı.
+- Draft PR #2 için GitHub Actions `quality-gate` işi başarıyla geçti.
+
+**Sırada ne var:**
+
+1. Arda'yı GitHub repo ve Vercel ORBİT ekibinde gereken rollerle doğrulamak.
+2. Supabase Auth + tenant sahipliği tasarlanmadan belge yazma/okuma politikası eklememek.
 
 ---
 

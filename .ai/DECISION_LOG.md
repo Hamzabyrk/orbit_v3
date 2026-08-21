@@ -78,3 +78,22 @@
 3. Risk durumunda proaktif itiraz (pushback) yaparak güvenli alternatifi sunmakla yükümlü kılınmıştır.
 
 **Gerekçe:** Mimari bozulmaları, beklenmedik maliyet patlamalarını ve regülasyon ihlallerini daha ilk satır kod yazılmadan graf seviyesinde önlemek.
+
+---
+
+### Karar: ORBİT Vercel Ekibi + Mevcut Supabase Projesiyle Güvenli Platform Bağlantısı
+
+**Durum:** Alındı
+**Tarih:** 2026-08-21
+**Kararı Onaylayan(lar):** Hamza Bayrak
+
+**Bağlam:** `orbit_v3` için ayrı bir Vercel deployment'ı ve Supabase bağlantısı gerekiyordu. Supabase hesabında iki aktif ücretsiz proje bulunduğu için üçüncü proje maliyet/limit riski taşıyordu. Mevcut `orbit-dershane` projesinde belge tablosu ve storage bucket için anonim okuma, ekleme ve silme politikaları tespit edildi.
+
+**Karar:**
+
+1. Vercel projesi iki kişilik erişime uygun `ORBİT` ekibi altında `orbit-v3` adıyla oluşturuldu ve `Hamzabyrk/orbit_v3` GitHub reposuna otomatik deployment için bağlandı.
+2. Yeni ve potansiyel olarak ücretli Supabase projesi yerine mevcut `orbit-dershane` projesi yeniden kullanıldı.
+3. `VITE_SUPABASE_URL` ve yalnızca public `VITE_SUPABASE_ANON_KEY`, Vercel Production/Preview/Development ortamlarına eklendi; `service_role` anahtarı aktarılmadı.
+4. Belge tablosundaki ve storage bucket'taki tüm public/anon politikalar kaldırıldı, bucket private yapıldı. Auth ve tenant sahipliği gelene kadar erişim deny-by-default kalacak.
+
+**Gerekçe:** Ücretsiz katmanı korurken iki kişilik ekip erişimini sağlamak; public Vite anahtarının yetkisiz veri okuma/yükleme/silme aracına dönüşmesini engellemek; gerçek veri ve Auth kapsamını yol haritasındaki Aşama 3'e bırakmak.

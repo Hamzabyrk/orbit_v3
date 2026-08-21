@@ -193,7 +193,11 @@ export function EducationPlatform({
       return <AssessmentsPage role={role} onNavigate={navigate} />;
     if (active === "Ödevler")
       return (
-        <HomeworkPage role={role} homework={homework} setHomework={setHomework} />
+        <HomeworkPage
+          role={role}
+          homework={homework}
+          setHomework={setHomework}
+        />
       );
     if (active === "İletişim")
       return (

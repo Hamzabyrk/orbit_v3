@@ -38,9 +38,9 @@ describe("getMonthGridDays", () => {
     expect(days.some(day => day.getDate() === 1 && day.getMonth() === 7)).toBe(
       true
     );
-    expect(
-      days.some(day => day.getDate() === 31 && day.getMonth() === 7)
-    ).toBe(true);
+    expect(days.some(day => day.getDate() === 31 && day.getMonth() === 7)).toBe(
+      true
+    );
   });
 });
 

@@ -10,7 +10,10 @@ import { SettingsNotificationsSection } from "./SettingsNotificationsSection";
 import { SettingsProfileSection } from "./SettingsProfileSection";
 import { SettingsSecuritySection } from "./SettingsSecuritySection";
 import { SettingsSystemSection } from "./SettingsSystemSection";
-import { SETTINGS_CATEGORIES, type SettingsCategoryId } from "./settingsCategories";
+import {
+  SETTINGS_CATEGORIES,
+  type SettingsCategoryId,
+} from "./settingsCategories";
 
 export function SettingsPage({
   role,

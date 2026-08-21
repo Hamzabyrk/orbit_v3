@@ -17,7 +17,7 @@ Bu dosya, projenin her aşamasında nelerin yapılacağını, hangi özellikleri
 - [ ] **Öğrenci Yönetimi CRUD (`feat/core-shared-modules`):** Öğrenci ekleme/düzenleme (Ad, No, Sınıf, Tel, Veli Bilgileri).
 - [ ] **4 Rol Canlı Arayüzü:** Admin, Öğretmen, Öğrenci, Veli ekranlarının interaktif hale getirilmesi.
 - [x] **Mock Veri İzolasyonu:** `isMock: true` bayraklı hazır veriler ve "Demo Verileri Sıfırla" butonu.
-- [ ] **Vercel Deploy:** GitHub entegrasyonu ile canlıya alma.
+- [x] **Vercel Deploy:** ORBİT Vercel ekibinde GitHub bağlantılı production deploy (`https://orbit-v3-topaz.vercel.app`).
 
 ---
 
@@ -45,6 +45,8 @@ Bu dosya, projenin her aşamasında nelerin yapılacağını, hangi özellikleri
 - [ ] Row Level Security (RLS) politikalarının her tablo için aktif edilmesi.
 - [ ] KVKK uyumlu kişisel veri saklama ve şifreleme denetimi.
 - [ ] `PROJECT_ARCHITECT.md` §06 altındaki 13 Zorunlu Backend & Güvenlik Kuralının eksiksiz doğrulanması.
+
+> **Hazırlık durumu (2026-08-21):** `orbit-dershane` Supabase projesi Vercel'e bağlandı. Mevcut belge tablosunda RLS açık, tüm public/anon politikalar kaldırılmış ve storage bucket private yapılmıştır. Auth/tenant politikaları tamamlanana kadar gerçek veri yazımı bilinçli olarak kapalıdır; Aşama 3 kapsamı tamamlanmış sayılmaz.
 
 ---
 

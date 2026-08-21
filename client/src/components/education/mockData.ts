@@ -380,8 +380,7 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
     {
       id: "dpt-a3",
       title: "Çorlu şube haftalık değerlendirme toplantısı",
-      detail:
-        "Öğretmen kadrosuyla haftalık başarı ve devam özetini paylaş.",
+      detail: "Öğretmen kadrosuyla haftalık başarı ve devam özetini paylaş.",
       status: "Bugün",
       priority: "Yüksek",
       category: "Rapor",

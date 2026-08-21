@@ -57,8 +57,7 @@ export function HomeworkCreateDialog({
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
 
-  const canSubmit =
-    classGroup !== "" && title.trim() !== "" && dueDate !== "";
+  const canSubmit = classGroup !== "" && title.trim() !== "" && dueDate !== "";
 
   const resetForm = () => {
     setClassGroup(TEACHER_CLASSES[0] ?? "");
