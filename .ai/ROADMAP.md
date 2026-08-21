@@ -109,13 +109,15 @@ Bu bölüm, ileride bir karar değiştirildiğinde eski bağlamın kaybolmaması
 
 **Hedef:** Kimliği doğrulanmış kullanıcıyı güvenli kurum üyeliğine bağlamak.
 
-- [ ] `profiles`, `organizations`, `branches`, `organization_memberships` şeması.
-- [ ] Rol enum'u ve aktif kurum/şube bağlamı.
-- [ ] Gerçek Supabase Auth session provider; mevcut login tasarımının korunması.
-- [ ] Preview demo modu ve production rol geçişi kilidi.
-- [ ] İlk kurum/admin kurulum ve davet Edge Function'ı.
-- [ ] `audit_events` temeli.
-- [ ] RLS yardımcı fonksiyonları ve kurumlar arası negatif güvenlik testleri.
+- [x] `profiles`, `organizations`, `branches`, `organization_memberships` şeması.
+- [x] Rol enum'u ve aktif kurum/şube bağlamı.
+- [x] Gerçek Supabase Auth session provider; mevcut login tasarımının korunması.
+- [x] Preview demo modu ve production rol geçişi kilidi.
+- [x] İlk kurum/admin kurulum ve davet Edge Function'ı.
+- [x] `audit_events` temeli.
+- [x] RLS yardımcı fonksiyonları ve kurumlar arası negatif güvenlik testleri.
+
+**Uygulama durumu (Issue #8):** Kod, migration ve testler feature branch üzerinde hazırdır. Ana CI, Vercel Preview ve GitHub Docker ortamındaki migration/pgTAP Tenant RLS testleri geçmiştir. Arda review onayını vermiş; migration ve Edge Function production Supabase'e deploy edilmiştir. İlk tenant kurulumu, verilen `yonetici@orbit.edu.tr` adresi geçersiz olduğu için güvenli biçimde durdurulmuştur; geçerli yönetici e-postası ve PR merge'i beklenmektedir.
 
 **Release gate:** Production kullanıcısı rolünü istemciden değiştiremez; iki farklı kurum birbirinin hiçbir kaydını okuyamaz/yazamaz.
 

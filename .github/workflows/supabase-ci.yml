@@ -1,0 +1,38 @@
+name: Supabase Database Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/**"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+
+permissions:
+  contents: read
+
+jobs:
+  tenant-rls:
+    name: Tenant RLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Supabase CLI kurulumu
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.115.0
+
+      - name: Yerel Supabase test ortamını başlat
+        run: supabase start
+
+      - name: Migration ve pgTAP RLS testleri
+        run: supabase test db
+
+      - name: Test ortamını kapat
+        if: always()
+        run: supabase stop --no-backup

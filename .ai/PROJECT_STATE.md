@@ -96,3 +96,19 @@ client/src/
 2. Öğrenci kayıt formunun (Ad, No, Sınıf, Telefon, Veli Adı/Telefonu) tam interaktif CRUD'a dönüştürülmesi.
 3. Yoklama ve sınıf içi durum güncellemelerinin anlık arayüze yansıması.
 4. `isMock: true` alanının gerçek backend/Supabase entegrasyonunda kaldırılması (Aşama 3 kapsamında).
+
+---
+
+## 7. v1.1 Auth ve Tenant Temeli (Issue #8)
+
+**Durum:** Migration ve `bootstrap-organization` Edge Function production Supabase'e deploy edildi; PR merge'i ve ilk tenant kurulumu geçerli yönetici e-postası bekliyor.
+
+- Kimlik doğrulama production'da Supabase Auth e-posta/şifre oturumuyla çalışır. Rol istemciden alınmaz; aktif `organization_memberships` kaydından çözülür.
+- Local geliştirme ve Vercel Preview derlemeleri demo modundadır. Vercel Production derlemesinde rol geçişi gizlenir ve demo şifresi kabul edilmez.
+- Tenant çekirdeği `profiles`, `organizations`, `branches`, `organization_memberships` ve `audit_events` tablolarından oluşur.
+- Organizasyon yöneticisi org-wide üyelik taşır; aktif ekran bağlamı varsayılan şubeden başlar. Şube sınırlı üyelikler yalnızca kendi şubesini görür.
+- İlk kurum, varsayılan şube ve admin daveti yalnızca `platform_admin` app metadata'sına sahip operatörün çağırabildiği `bootstrap-organization` Edge Function üzerinden hazırlanır.
+- Tarayıcıya yalnızca anon key verilir. `service_role` yalnızca Supabase Edge Function sunucu ortamında kullanılır.
+- RLS istemci yazılarını deny-by-default bırakır; üyeler yalnızca kendi tenant kapsamlarını, adminler ise yetkili audit kapsamını okuyabilir.
+- İlk tenant için `orbitdershane` / `orbit123` kararı verildi. `yonetici@orbit.edu.tr` adresinin DNS/MX kaydı olmadığı ve Supabase tarafından `email_address_invalid` ile reddedildiği doğrulandı; yarım kullanıcı/tenant kaydı oluşmadı.
+- v1.2 iş tabloları ve v1.3 mock temizliği bu dalın bilinçli kapsamı dışındadır.

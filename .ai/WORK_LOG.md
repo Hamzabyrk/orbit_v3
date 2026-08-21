@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-08-21 - v1.1 Supabase Auth ve Tenant Temeli
+
+**Kim:** Codex (Hamza Bayrak onayıyla, `feat/8-auth-tenant-foundation` branch'inde)
+
+**Ne yapıldı:**
+
+- GitHub Issue #8 açıldı ve çalışma merge edilmiş roadmap sonrası güncel `main`den ayrı feature branch üzerinde başlatıldı.
+- `profiles`, `organizations`, `branches`, `organization_memberships` ve `audit_events` tabloları; rol/üyelik enum'ları, indeksler, foreign key'ler ve deny-by-default RLS politikaları migration olarak eklendi.
+- Org-wide admin ile şube sınırlı üyelik ayrımı ve `current_user_has_membership` güvenlik helper'ı kuruldu. Kurumlar arası okuma/yazma ile sahte audit üretimini reddeden pgTAP negatif testleri eklendi.
+- Mevcut login UI korunarak Supabase Auth session provider bağlandı. Production rolü üyelik kaydından gelir; local/Vercel Preview demo davranışı sürer, Production rol geçişi gizlenir.
+- İlk kurum + varsayılan şube + admin daveti için `platform_admin` kontrolü, Zod girdi doğrulaması, origin allowlist'i ve sunucu tarafı `service_role` kullanan `bootstrap-organization` Edge Function eklendi.
+- Supabase local auth ayarları invitation-only, minimum 8 karakter karma şifre, e-posta doğrulaması ve güvenli şifre değişimi olacak şekilde sıkılaştırıldı.
+- `npm run check`, `npm run lint`, `npm test` (24/24) ve `npm run build` geçti. Bağlı Supabase projesinde `db lint --linked --level error` ve `db push --dry-run` geçti.
+- İlk PR koşusunda lockfile'daki güncel Supabase client'ın Node 22+ native WebSocket gereksinimi CI'ın Node 20 ayarıyla çakıştı; kalite kapısı desteklenen Node 22 sürümüne yükseltildi.
+- `supabase/**` değişikliklerinde çalışan ayrı `Supabase Database Tests` workflow'u eklendi; migration'lar ve pgTAP tenant/RLS negatif testleri GitHub'ın izole Docker ortamında otomatik çalışır.
+- Bu makinede Docker/Supabase local DB bulunmadığı için yerel `supabase test db` çalışmadı; aynı migration ve pgTAP testleri GitHub'ın izole Supabase workflow'unda başarıyla geçti.
+- Arda PR #9'u onayladı; ana CI, Vercel Preview ve Tenant RLS workflow'ları yeşile döndü. `20260821183000_auth_tenant_foundation.sql` migration'ı ve `bootstrap-organization` Edge Function production `orbit-dershane` projesine deploy edildi.
+- İlk tenant için kurum `orbitdershane`, şube `orbit123`, yönetici `Ahmet Yılmaz` olarak onaylandı. `yonetici@orbit.edu.tr` adresi Supabase tarafından `email_address_invalid` ile reddedildi; DNS/MX kaydı da bulunmadı. Davet oluşmadığı için atomik bootstrap çalıştırılmadı ve yarım kurum/üyelik kaydı oluşmadı.
+
+**Sırada ne var:**
+
+1. Ahmet Yılmaz için davet alabilen, gerçek ve erişilebilir bir e-posta adresi almak.
+2. Daveti gönderip atomik bootstrap RPC'siyle `orbitdershane` / `orbit123` tenant'ını ve admin üyeliğini oluşturmak.
+3. PR #9'u merge edip Vercel Production deployment ve gerçek login akışını doğrulamak.
+4. Platform operatör hesabına `platform_admin` app metadata'sını kontrollü vermek; v1.2'ye release gate tamamlanmadan başlamamak.
+
+---
+
 ## 2026-08-21 - Functional MVP Kararları ve Sürüm Kapıları
 
 **Kim:** Codex (Hamza Bayrak onayıyla, `feat/6-functional-mvp-roadmap` branch'inde)
