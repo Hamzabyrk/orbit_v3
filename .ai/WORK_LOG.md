@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-08-21 - v1.1 Supabase Auth ve Tenant Temeli
+
+**Kim:** Codex (Hamza Bayrak onayıyla, `feat/8-auth-tenant-foundation` branch'inde)
+
+**Ne yapıldı:**
+
+- GitHub Issue #8 açıldı ve çalışma merge edilmiş roadmap sonrası güncel `main`den ayrı feature branch üzerinde başlatıldı.
+- `profiles`, `organizations`, `branches`, `organization_memberships` ve `audit_events` tabloları; rol/üyelik enum'ları, indeksler, foreign key'ler ve deny-by-default RLS politikaları migration olarak eklendi.
+- Org-wide admin ile şube sınırlı üyelik ayrımı ve `current_user_has_membership` güvenlik helper'ı kuruldu. Kurumlar arası okuma/yazma ile sahte audit üretimini reddeden pgTAP negatif testleri eklendi.
+- Mevcut login UI korunarak Supabase Auth session provider bağlandı. Production rolü üyelik kaydından gelir; local/Vercel Preview demo davranışı sürer, Production rol geçişi gizlenir.
+- İlk kurum + varsayılan şube + admin daveti için `platform_admin` kontrolü, Zod girdi doğrulaması, origin allowlist'i ve sunucu tarafı `service_role` kullanan `bootstrap-organization` Edge Function eklendi.
+- Supabase local auth ayarları invitation-only, minimum 8 karakter karma şifre, e-posta doğrulaması ve güvenli şifre değişimi olacak şekilde sıkılaştırıldı.
+- `npm run check`, `npm run lint`, `npm test` (24/24) ve `npm run build` geçti. Bağlı Supabase projesinde `db lint --linked --level error` ve `db push --dry-run` geçti.
+- pgTAP test dosyası hazırlandı; bu makinede Docker/Supabase local DB bulunmadığı için `supabase test db` çalıştırılamadı (`127.0.0.1:54322` kapalı). Production şeması bu nedenle PR review/merge öncesinde değiştirilmedi.
+
+**Sırada ne var:**
+
+1. Draft PR açıp Arda'nın review'unu ve yeşil CI'ı almak.
+2. Docker/Supabase test veritabanında `supabase test db` çalıştırmak.
+3. Review/merge sonrasında migration ve Edge Function'ı production'a deploy etmek; platform operatör hesabına `platform_admin` app metadata'sını kontrollü vermek.
+4. v1.2 ilişkisel iş tablolarına release gate tamamlanmadan başlamamak.
+
+---
+
 ## 2026-08-21 - Functional MVP Kararları ve Sürüm Kapıları
 
 **Kim:** Codex (Hamza Bayrak onayıyla, `feat/6-functional-mvp-roadmap` branch'inde)

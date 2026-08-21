@@ -109,13 +109,15 @@ Bu bölüm, ileride bir karar değiştirildiğinde eski bağlamın kaybolmaması
 
 **Hedef:** Kimliği doğrulanmış kullanıcıyı güvenli kurum üyeliğine bağlamak.
 
-- [ ] `profiles`, `organizations`, `branches`, `organization_memberships` şeması.
-- [ ] Rol enum'u ve aktif kurum/şube bağlamı.
-- [ ] Gerçek Supabase Auth session provider; mevcut login tasarımının korunması.
-- [ ] Preview demo modu ve production rol geçişi kilidi.
-- [ ] İlk kurum/admin kurulum ve davet Edge Function'ı.
-- [ ] `audit_events` temeli.
-- [ ] RLS yardımcı fonksiyonları ve kurumlar arası negatif güvenlik testleri.
+- [x] `profiles`, `organizations`, `branches`, `organization_memberships` şeması.
+- [x] Rol enum'u ve aktif kurum/şube bağlamı.
+- [x] Gerçek Supabase Auth session provider; mevcut login tasarımının korunması.
+- [x] Preview demo modu ve production rol geçişi kilidi.
+- [x] İlk kurum/admin kurulum ve davet Edge Function'ı.
+- [x] `audit_events` temeli.
+- [x] RLS yardımcı fonksiyonları ve kurumlar arası negatif güvenlik testleri.
+
+**Uygulama durumu (Issue #8):** Kod, migration ve testler feature branch üzerinde hazırdır. Frontend kalite kapısı ile uzak SQL lint/dry-run geçmiştir. Production migration/Edge Function deployment'ı, SQL testlerinin Docker/Supabase test veritabanında çalışması, diğer ekip üyesinin review'u ve PR merge'i sonrasında yapılacaktır.
 
 **Release gate:** Production kullanıcısı rolünü istemciden değiştiremez; iki farklı kurum birbirinin hiçbir kaydını okuyamaz/yazamaz.
 

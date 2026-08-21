@@ -97,3 +97,25 @@
 4. Belge tablosundaki ve storage bucket'taki tüm public/anon politikalar kaldırıldı, bucket private yapıldı. Auth ve tenant sahipliği gelene kadar erişim deny-by-default kalacak.
 
 **Gerekçe:** Ücretsiz katmanı korurken iki kişilik ekip erişimini sağlamak; public Vite anahtarının yetkisiz veri okuma/yükleme/silme aracına dönüşmesini engellemek; gerçek veri ve Auth kapsamını yol haritasındaki Aşama 3'e bırakmak.
+
+---
+
+### Karar: v1.1 Membership Tabanlı Auth, Tenant RLS ve Ortam Ayrımı
+
+**Durum:** Alındı
+**Tarih:** 2026-08-21
+**Kararı Onaylayan(lar):** Hamza Bayrak
+
+**Bağlam:** v1.0 demosunda login ve sağ üst rol geçişi tamamen istemci state'iyle çalışıyordu. Bu davranış production'da herhangi bir ziyaretçinin admin görünümüne geçmesine izin verdiği için gerçek kullanıcı/veri aşamasına güvenli bir temel oluşturmuyordu.
+
+**Karar:**
+
+1. Production kimliği Supabase Auth e-posta/şifre oturumundan, rol ve tenant kapsamı `organization_memberships` kaydından gelir; rol hiçbir zaman form veya localStorage değerinden yetki olarak kabul edilmez.
+2. Local geliştirme ve Vercel Preview demo rol geçişini korur; Vercel Production derlemesi demo davranışını fail-closed biçimde kapatır.
+3. Bir org-wide admin üyeliği tüm kurum şubelerini kapsar; şube üyelikleri yalnızca kendi şubesini kapsar. İlk aktif ekran bağlamı varsayılan şubedir.
+4. İlk kurum/admin kurulumu public onboarding ile değil, `platform_admin` app metadata kontrolü yapan Edge Function ve yalnızca `service_role` rolüne açık atomik SQL fonksiyonuyla yürür.
+5. Audit kayıtları yalnızca yetkili sunucu işlemlerinden yazılır; kişisel veri metadata'ya eklenmez. İstemci audit olayı üretemez.
+
+**Gerekçe:** Demo hızını kaybetmeden production yetki atlatmasını kapatmak; iki kurum arasında IDOR/veri sızıntısını RLS katmanında önlemek; Supabase `auth.users` şemasını uygulama rol alanlarıyla kirletmemek.
+
+**Alternatifler:** Rolü JWT user metadata veya frontend state'inde tutmak daha az tablo gerektirirdi; ancak çoklu kurum/şube ve rol değişikliklerinde eski token/istemci verisine güvenme riski nedeniyle reddedildi.
