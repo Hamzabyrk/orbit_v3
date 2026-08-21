@@ -17,6 +17,7 @@
 - İlk kurum + varsayılan şube + admin daveti için `platform_admin` kontrolü, Zod girdi doğrulaması, origin allowlist'i ve sunucu tarafı `service_role` kullanan `bootstrap-organization` Edge Function eklendi.
 - Supabase local auth ayarları invitation-only, minimum 8 karakter karma şifre, e-posta doğrulaması ve güvenli şifre değişimi olacak şekilde sıkılaştırıldı.
 - `npm run check`, `npm run lint`, `npm test` (24/24) ve `npm run build` geçti. Bağlı Supabase projesinde `db lint --linked --level error` ve `db push --dry-run` geçti.
+- İlk PR koşusunda lockfile'daki güncel Supabase client'ın Node 22+ native WebSocket gereksinimi CI'ın Node 20 ayarıyla çakıştı; kalite kapısı desteklenen Node 22 sürümüne yükseltildi.
 - pgTAP test dosyası hazırlandı; bu makinede Docker/Supabase local DB bulunmadığı için `supabase test db` çalıştırılamadı (`127.0.0.1:54322` kapalı). Production şeması bu nedenle PR review/merge öncesinde değiştirilmedi.
 
 **Sırada ne var:**
