@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-08-22 — Hamza Platform Sahipliği ve Production Altyapı Transferi
+
+**Kim:** Codex (Hamza Bayrak onayıyla, `feat/14-hamza-platform-migration` branch'inde)
+
+**Ne yapıldı:**
+
+- GitHub Issue #14 açıldı ve altyapı sahipliği çalışması güncel `main`den ayrı feature branch/worktree üzerinde başlatıldı.
+- Kaynak `orbit-dershane` Supabase projesi salt-okunur envanterle denetlendi: 1 Auth kullanıcısı, 1 profil, 1 kurum, 1 şube, 1 üyelik, 1 audit kaydı; sıfır belge ve sıfır Storage nesnesi doğrulandı.
+- Hamza hesabında ücretsiz `ORBIT Platform` Supabase organizasyonu oluşturuldu. Veri kaybı riski taşıyan sil-yeniden-kur yaklaşımı yerine proje transferi seçildi.
+- Transfer önkoşulu olarak eski GitHub production entegrasyonu kontrollü biçimde kapatıldı; `orbit-dershane` projesi kimliği, bölgesi ve verileri korunarak `ORBIT Platform` organizasyonuna transfer edildi.
+- Transfer sonrası Auth ve tenant kayıt sayıları yeniden sorgulandı ve kaynak envanteriyle birebir eşleşti.
+- Hamza yeni organizasyonda Owner olarak doğrulandı. Arda'ya aynı organizasyon için Owner daveti gönderildi; kabul durumu henüz `Invited`.
+- `Hamzabyrk/orbit_v3` Supabase GitHub entegrasyonu repo kökü + `main` production branch ayarıyla yeniden etkinleştirildi.
+- Vercel `orbit-v3` projesinin Hamza'nın Owner olduğu `ORBİT` Hobby takımında bulunduğu, production deployment'ın `Ready` olduğu ve `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` değişkenlerinin tüm ortamlarda mevcut olduğu doğrulandı.
+- Supabase proje referansı ve anahtarları transferde değişmediği için Vercel bağlantısı kesilmedi. Gereksiz `POSTGRES_PASSWORD` / `SUPABASE_SECRET_KEY` aktarımını önlemek amacıyla geniş yetkili Vercel Marketplace kurulumu bilinçli olarak yapılmadı.
+
+**Sırada ne var:**
+
+1. Arda'nın `ORBIT Platform` Owner davetini kabul ettiğini doğrulamak.
+2. `feat/14-hamza-platform-migration` dokümantasyon değişikliklerini kalite kontrollerinden geçirip Issue #14'e bağlı PR açmak.
+3. Production login smoke testini Hamza hesabıyla tamamlayıp v1.2 release gate'ine kanıt olarak kaydetmek.
+
+---
+
 ## 2026-08-21 - v1.1 Supabase Auth ve Tenant Temeli
 
 **Kim:** Codex (Hamza Bayrak onayıyla, `feat/8-auth-tenant-foundation` branch'inde)

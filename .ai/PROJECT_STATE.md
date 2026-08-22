@@ -101,7 +101,7 @@ client/src/
 
 ## 7. v1.1 Auth ve Tenant Temeli (Issue #8)
 
-**Durum:** Migration ve `bootstrap-organization` Edge Function production Supabase'e deploy edildi; PR merge'i ve ilk tenant kurulumu geçerli yönetici e-postası bekliyor.
+**Durum:** PR #9 merge edildi; migration ve `bootstrap-organization` Edge Function production Supabase'e deploy edildi; ilk tenant Hamza Bayrak yönetici hesabıyla kuruldu ve production login akışı doğrulandı.
 
 - Kimlik doğrulama production'da Supabase Auth e-posta/şifre oturumuyla çalışır. Rol istemciden alınmaz; aktif `organization_memberships` kaydından çözülür.
 - Local geliştirme ve Vercel Preview derlemeleri demo modundadır. Vercel Production derlemesinde rol geçişi gizlenir ve demo şifresi kabul edilmez.
@@ -112,3 +112,17 @@ client/src/
 - RLS istemci yazılarını deny-by-default bırakır; üyeler yalnızca kendi tenant kapsamlarını, adminler ise yetkili audit kapsamını okuyabilir.
 - İlk tenant için `orbitdershane` / `orbit123` kararı verildi. `yonetici@orbit.edu.tr` adresinin DNS/MX kaydı olmadığı ve Supabase tarafından `email_address_invalid` ile reddedildiği doğrulandı; yarım kullanıcı/tenant kaydı oluşmadı.
 - v1.2 iş tabloları ve v1.3 mock temizliği bu dalın bilinçli kapsamı dışındadır.
+
+---
+
+## 8. Platform Sahipliği ve Production Bağlantıları (Issue #14)
+
+**Durum:** Supabase sahiplik transferi ve production bağlantı doğrulaması tamamlandı; Arda'nın yeni organizasyon Owner davetini kabul etmesi bekleniyor.
+
+- Production Supabase projesi `orbit-dershane`, silinmeden ve proje kimliği değiştirilmeden Hamza'nın sahibi olduğu `ORBIT Platform` organizasyonuna transfer edildi.
+- Transfer sonrasında Auth kullanıcısı, profil, kurum, şube, üyelik ve audit kayıt sayıları kaynak envanteriyle eşleşti; `workspace_documents` ve Storage nesne sayıları sıfır kaldı.
+- Hamza `ORBIT Platform` Owner'ıdır. Arda'nın `Owner` daveti gönderildi; davet kabul edilene kadar durum `Invited` olarak izlenecektir.
+- `Hamzabyrk/orbit_v3` GitHub production entegrasyonu repo kökü, `main` branch'i ve production migration uygulamasıyla yeniden etkinleştirildi.
+- Vercel `orbit-v3` projesi Hamza'nın Owner olduğu `ORBİT` Hobby takımındadır. Production adresi `https://orbit-v3-topaz.vercel.app` ve deployment durumu `Ready` olarak doğrulandı.
+- Vercel'deki `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` tüm ortamlarda korunmuştur. Proje kimliği ve API anahtarları transferde değişmediği için uygulama bağlantısı kesilmedi.
+- Least-privilege gereği Vercel Marketplace Supabase kurulumu yapılmadı; bu kurulum uygulamanın ihtiyaç duymadığı veritabanı parolası ve Supabase secret key gibi sunucu sırlarını da Vercel'e aktaracaktı.
