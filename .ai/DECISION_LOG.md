@@ -14,6 +14,8 @@
 **Karar:** Repo GitHub üzerinde Private'a çevrildi.
 **Gerekçe:** Ticari/finansal iş mantığı ve müşteri veri modelleri üçüncü tarafların erişimine kapalı tutulmalı.
 
+**Bu karar 2026-08-23 tarihinde değiştirildi — bkz. aşağıdaki "Repo görünürlüğü Public'e alındı" kaydı.**
+
 ---
 
 ### Karar: MoneyFlow kalıntılarının temizlenmesi ve ORBIT Eğitim Çekirdeğinin kurulması
@@ -231,3 +233,51 @@
 **Gerekçe:** Auto-deploy'un kapatılması repo-production ayrışmasını geri getirir ki asıl sorunumuz odur. Şu an veri ve müşteri olmadığı için yanlış bir migration'ın etki alanı düşük; ilk müşteriyle birlikte bu denge tersine döner, o yüzden karar tarihsiz bırakılmayıp tetikleyiciye bağlandı.
 
 **Alternatifler:** Auto-deploy'u şimdi kapatmak insan kapısını geri getirirdi; migration'ların elle uygulanması repo ile production'ın yeniden ayrışmasına kapı açtığı için reddedildi. GitHub Team planı (kullanıcı başı aylık ücret) sıfır bütçe hedefiyle çeliştiği için bu aşamada alınmadı.
+
+---
+
+### Karar: Repo görünürlüğü Public'e alındı (2026-08-17 kararını değiştirir)
+
+**Durum:** Alındı
+**Tarih:** 2026-08-23
+**Kararı Onaylayan(lar):** Arda Bülent (repo sahibi)
+
+**Bağlam:** Vercel, Hobby planında **private** repolarda yalnızca Vercel projesine erişimi olan commit author'ların deployment tetiklemesine izin veriyor. Arda, Hamza'nın `ORBİT` Vercel takımının üyesi olmadığı için (üyelik ücretli) Arda'nın authored ettiği her PR'da Vercel check'i başarısız oluyor ve preview deployment üretilmiyordu. Vercel'in kendi dokümantasyonunda bu durum için önerilen çözümlerden biri repoyu public yapmak veya Pro plana geçmektir.
+
+**Karar:** `Hamzabyrk/orbit_v3` reposu Public'e alındı. Bu, 2026-08-17 tarihli "Repo görünürlüğü — Private" kararını geçersiz kılar.
+
+**Gerekçe:** Sıfır bütçe hedefi korunarak build/preview akışının açılması. Ürün geliştirme aşamasında, gerçek kullanıcısı ve müşteri verisi olmayan bir sistem için erişilebilir bir CI/preview hattının değeri, mimarinin gizliliğinden yüksek görüldü.
+
+**Kabul edilen riskler:**
+
+1. Repo, çok kiracılı şema tasarımını, RLS mimarisini, Edge Function mantığını ve `.ai/` altındaki yol haritası ile karar kaydını üçüncü taraflara açar. Bu ticari bir maliyettir ve bilerek kabul edilmiştir.
+2. **Karar geri alınamaz.** Public yapıldıktan sonra repo klonlanabilir, GitHub araması indeksler ve üçüncü taraf arşivler kopyasını saklar. Tekrar Private'a çevirmek, yayınlanmış içeriği geri almaz.
+3. `.ai/WORK_LOG.md`, kararın alındığı anda **kapatılmamış** bir güvenlik zincirini (açık `anon` RPC yetkisi + açık production signup) ayrıntısıyla anlatıyordu. Bu nedenle Issue #18 (fonksiyon yetkileri) ve production Auth ayarlarının kapatılması, planlanan sıradaki yerlerinden alınıp **zaman kritik** işler haline getirilmiştir.
+
+**Alternatifler:** Vercel Pro planı sıfır bütçe hedefiyle çeliştiği için alınmadı. Vercel Deploy Hooks ile takım üyeliği olmadan deployment tetiklemek değerlendirildi; kurulum maliyeti nedeniyle şimdilik ertelendi, gerekirse yeniden ele alınacaktır. Preview olmadan yalnızca yerelde doğrulama yapmak da mümkündü; UI değişikliği içeren fazlarda (v1.1.2) yetersiz kalacağı için tercih edilmedi.
+
+---
+
+### Karar: Stabilizasyon fazında tek kişilik merge'e sınırlı izin
+
+**Durum:** Alındı
+**Tarih:** 2026-08-23
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `CONTRIBUTING.md` madde 3 ve yukarıdaki auto-deploy kararı, `main`e giden her PR için karşı tarafın onayını zorunlu kılıyor. Ancak GitHub Free planında private/public repo ayrımından bağımsız olarak bu kural araçla zorlanamıyor; yalnızca disiplinle uygulanıyor. Stabilizasyon çalışması sırasında ekip üyelerinden biri saatlerce müsait olmayabiliyor ve açık bir güvenlik bulgusunun kapatılması onay beklemek yüzünden gecikiyor.
+
+Kuralı sessizce çiğnemek, bu projede tedavi edilen asıl hastalığın (belgenin bir şey, gerçeğin başka şey söylemesi) tekrarı olurdu. Bu nedenle kural çiğnenmek yerine gerçeğe uyduruldu.
+
+**Karar:**
+
+1. Stabilizasyon fazı boyunca (v1.1.1 ve v1.1.2 kapanana kadar), diğer ekip üyesi müsait değilken, aşağıdaki koşulların **tamamını** sağlayan bir PR tek kişi tarafından merge edilebilir:
+   - Tüm CI kontrolleri yeşil (`quality-gate`, ve `supabase/**` değiştiyse `Supabase Database Tests`)
+   - Mevcut production verisini silmiyor veya geri döndürülemez biçimde değiştirmiyor
+   - Merge gerekçesi ve tek kişilik merge'in sebebi PR açıklamasına yazılmış
+2. Tek kişilik merge edilen her PR, karşı ekip üyesi müsait olduğunda **geriye dönük olarak** gözden geçirilir; itiraz olursa düzeltme yeni bir PR ile yapılır, merge geri alınmaz.
+3. Bu izin v1.1.2 kapandığında sona erer ve `CONTRIBUTING.md` madde 3'e dönülür. İzin süresizleştirilmek istenirse yeni bir ADR gerekir.
+4. Veri silen, şema düşüren veya production Auth/altyapı ayarlarını değiştiren PR'lar bu iznin **dışındadır**; onlar her durumda iki kişilik onay gerektirir.
+
+**Gerekçe:** İki kişilik bir ekipte, uygulanamayan bir kuralın kâğıt üzerinde durması onu zamanla tümüyle işlevsiz kılar. Sınırlı, tarihli ve koşullu bir izin, kuralın kalan kısmını korur. 4. maddedeki istisna, iznin gerçekten tehlikeli olabileceği tek alanı dışarıda bırakır.
+
+**Alternatifler:** Kuralı olduğu gibi bırakıp fiilen uymamak değerlendirildi ve reddedildi; belge ile davranışın ayrışması bu projenin tekrar eden hata kalıbıdır. Kuralı tamamen kaldırmak da reddedildi; PR #11, #13 ve #15'in review'suz merge edilmesi ile sonrasında ortaya çıkan tutarsızlıklar arasındaki bağ göz önüne alındığında, onay mekanizmasının değeri kanıtlanmıştır.
