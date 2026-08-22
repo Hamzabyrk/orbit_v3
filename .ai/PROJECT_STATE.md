@@ -101,28 +101,51 @@ client/src/
 
 ## 7. v1.1 Auth ve Tenant Temeli (Issue #8)
 
-**Durum:** PR #9 merge edildi; migration ve `bootstrap-organization` Edge Function production Supabase'e deploy edildi; ilk tenant Hamza Bayrak yönetici hesabıyla kuruldu ve production login akışı doğrulandı.
+**Durum:** Kısmen tamamlandı — **release gate kapanmadı.** PR #9 merge edildi; migration ve `bootstrap-organization` Edge Function production Supabase'e deploy edildi. İlk tenant oluşturuldu ancak Edge Function akışıyla değil, kontrol düzleminden doğrudan RPC ile; onboarding mekanizması hiç doğrulanmadı. Production login akışı **doğrulanamadı**: kurucu yöneticinin e-posta/şifre girişi çalışmıyor ve UI'da şifre belirleme ekranı yok. Kalan işler v1.1.1 ve v1.1.2 ara sürümlerine alındı (bkz. `ROADMAP.md`).
 
 - Kimlik doğrulama production'da Supabase Auth e-posta/şifre oturumuyla çalışır. Rol istemciden alınmaz; aktif `organization_memberships` kaydından çözülür.
 - Local geliştirme ve Vercel Preview derlemeleri demo modundadır. Vercel Production derlemesinde rol geçişi gizlenir ve demo şifresi kabul edilmez.
 - Tenant çekirdeği `profiles`, `organizations`, `branches`, `organization_memberships` ve `audit_events` tablolarından oluşur.
 - Organizasyon yöneticisi org-wide üyelik taşır; aktif ekran bağlamı varsayılan şubeden başlar. Şube sınırlı üyelikler yalnızca kendi şubesini görür.
-- İlk kurum, varsayılan şube ve admin daveti yalnızca `platform_admin` app metadata'sına sahip operatörün çağırabildiği `bootstrap-organization` Edge Function üzerinden hazırlanır.
+- İlk kurum, varsayılan şube ve admin daveti `bootstrap-organization` Edge Function üzerinden hazırlanır. Bu fonksiyonun operatör kontrolü v1.1'de `platform_admin` app metadata'sına dayanıyordu; v1.1.2'de `platform_operators` tablosuna taşınacaktır (bkz. bölüm 9). Bugün hiçbir hesapta `platform_admin` bayrağı bulunmadığı için fonksiyon fiilen çağrılamaz durumdadır.
 - Tarayıcıya yalnızca anon key verilir. `service_role` yalnızca Supabase Edge Function sunucu ortamında kullanılır.
 - RLS istemci yazılarını deny-by-default bırakır; üyeler yalnızca kendi tenant kapsamlarını, adminler ise yetkili audit kapsamını okuyabilir.
-- İlk tenant için `orbitdershane` / `orbit123` kararı verildi. `yonetici@orbit.edu.tr` adresinin DNS/MX kaydı olmadığı ve Supabase tarafından `email_address_invalid` ile reddedildiği doğrulandı; yarım kullanıcı/tenant kaydı oluşmadı.
+- İlk tenant için `orbitdershane` / `orbit123` kararı verildi. İlk denemede `yonetici@orbit.edu.tr` adresi `email_address_invalid` ile reddedildi ve yarım kayıt oluşmadı; ardından kurum kurucu ekip üyesinin hesabıyla kuruldu. Bu kayıt **test verisi** sayılır ve panel hazır olduğunda silinip mekanizma üzerinden yeniden kurulacaktır (bkz. `DECISION_LOG.md`).
 - v1.2 iş tabloları ve v1.3 mock temizliği bu dalın bilinçli kapsamı dışındadır.
 
 ---
 
 ## 8. Platform Sahipliği ve Production Bağlantıları (Issue #14)
 
-**Durum:** Supabase sahiplik transferi ve production bağlantı doğrulaması tamamlandı; Arda'nın yeni organizasyon Owner davetini kabul etmesi bekleniyor.
+**Durum:** Tamamlandı. Supabase sahiplik transferi ve production bağlantıları doğrulandı; Arda `ORBIT Platform` Owner davetini kabul etti.
 
 - Production Supabase projesi `orbit-dershane`, silinmeden ve proje kimliği değiştirilmeden Hamza'nın sahibi olduğu `ORBIT Platform` organizasyonuna transfer edildi.
 - Transfer sonrasında Auth kullanıcısı, profil, kurum, şube, üyelik ve audit kayıt sayıları kaynak envanteriyle eşleşti; `workspace_documents` ve Storage nesne sayıları sıfır kaldı.
-- Hamza `ORBIT Platform` Owner'ıdır. Arda'nın `Owner` daveti gönderildi; davet kabul edilene kadar durum `Invited` olarak izlenecektir.
+- Hamza ve Arda `ORBIT Platform` organizasyonunda Owner'dır.
 - `Hamzabyrk/orbit_v3` GitHub production entegrasyonu repo kökü, `main` branch'i ve production migration uygulamasıyla yeniden etkinleştirildi.
 - Vercel `orbit-v3` projesi Hamza'nın Owner olduğu `ORBİT` Hobby takımındadır. Production adresi `https://orbit-v3-topaz.vercel.app` ve deployment durumu `Ready` olarak doğrulandı.
 - Vercel'deki `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` tüm ortamlarda korunmuştur. Proje kimliği ve API anahtarları transferde değişmediği için uygulama bağlantısı kesilmedi.
-- Least-privilege gereği Vercel Marketplace Supabase kurulumu yapılmadı; bu kurulum uygulamanın ihtiyaç duymadığı veritabanı parolası ve Supabase secret key gibi sunucu sırlarını da Vercel'e aktaracaktı.
+- Least-privilege gereği Vercel Marketplace Supabase kurulumu yapılmaması kararlaştırılmıştı. **Bu karar korunmadı:** Vercel `orbit-v3` projesine `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `SUPABASE_SECRET_KEY`, `POSTGRES_PASSWORD` ve `POSTGRES_URL` türevleri dahil 16 sunucu değişkeni eklendi. Bu değerlerin production istemci bundle'ına sızmadığı doğrulandı (Vite yalnızca `VITE_` önekli değişkenleri istemciye açar) ve hassas olanlar Vercel'de `Sensitive` işaretli olduğu için API üzerinden geri okunamıyor. Kalan risk build ortamıdır; uygulamanın ihtiyaç duymadığı bu değişkenlerin temizliği v1.1.1 kapsamındadır.
+- Uygulamanın gerçekten kullandığı değişkenler yalnızca `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY`'dir. `NEXT_PUBLIC_` önekli değişkenler bu Vite projesinde hiçbir kod tarafından okunmaz.
+
+---
+
+## 9. Platform Operatörü Ekseni ve `/platform` Paneli (Issue #16, hedef v1.1.2)
+
+**Durum:** Karar alındı, henüz uygulanmadı. Ayrıntılı gerekçe için bkz. `DECISION_LOG.md` — "Platform operatörü ayrı bir eksendir".
+
+Sistemde iki bağımsız kimlik ekseni bulunur. Bir kullanıcı ikisinden birine, hiçbirine veya (teoride) her ikisine de ait olabilir:
+
+```
+auth.users
+  ├─→ organization_memberships   → kurum içi rol (app_role)      → /          dershane paneli
+  └─→ platform_operators         → platform ekseni               → /platform  yönetim paneli
+```
+
+- **`app_role` enum'u (`admin`, `teacher`, `student`, `parent`) genişletilmez.** Bu roller her zaman bir kuruma bağlıdır; platform operatörü hiçbir kuruma ait değildir.
+- Operatör kaydının tek doğruluk kaynağı `platform_operators` tablosudur. `auth.users.app_metadata` üzerinde bayrak tutulmaz. Yetki kontrolü, `current_user_has_membership()` ile aynı desende yazılacak `current_user_is_platform_operator()` security-definer fonksiyonu ile yapılır.
+- Panel `client/src/platform/` altında kendi bileşen ağacıyla yaşar. `client/src/components/education/` ağacına dokunulmaz (`PROJECT_ARCHITECT.md` §00 kural 7).
+- Yetkilendirme her zaman sunucudadır. Rota koruması yalnızca kullanıcı deneyimi içindir; her platform işlemi operatör kontrolünü sunucuda yapan bir Edge Function üzerinden yürür.
+- **Kapsam kabı ile sınırlıdır:** kurum, şube, kurum yöneticisi hesabı ve operatör listesi yönetilir. Öğrenci, not, yoklama, ödev ve ödeme verisine erişim yoktur — bu, mevcut RLS politikalarının doğal sonucudur ve "platform operatörü her şeyi okur" türünde bir policy eklenmeyecektir.
+- Kuruma bağlı olmayan platform işlemleri `platform_audit_events` tablosuna yazılır; `audit_events.organization_id` NOT NULL olduğu için o tablo kullanılamaz.
+- İlk operatör hesapları, panel kendi kendini oluşturamayacağı için bir defaya mahsus kontrollü biçimde eklenir. Bu, "kayıtlar elle oluşturulmaz" kuralının tek tanımlı istisnasıdır.

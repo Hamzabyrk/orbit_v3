@@ -1,6 +1,55 @@
 # WORK_LOG.md — ORBIT
 
 > Hangi geliştirici/YZ ne yaptı, sırada hangi bilet var. Format: `PROJECT_ARCHITECT.md` §01.
+>
+> **Kayıt disiplini:** Bu dosyadaki geçmiş girdiler silinmez veya geri alınmaz. Bir kayıt sonradan yanlış çıkarsa, o girdinin altına `**Sonradan düzeltme (tarih):**` satırı eklenir ve güncel durum en üstteki girdide anlatılır. Gerekçe için bkz. `DECISION_LOG.md` — "Hafıza kayıtları ileriye doğru düzeltilir".
+
+---
+
+## 2026-08-23 — Stabilizasyon Denetimi ve Hafıza Düzeltmesi (Issue #16)
+
+**Kim:** Claude (Arda Bülent onayıyla, `fix/16-ai-memory-truth` branch'inde)
+
+**Ne yapıldı:**
+
+- Production Supabase, GitHub reposu ve canlı site uçtan uca salt-okunur denetimden geçirildi. Bulgular doğrudan canlı sistemden doğrulandı; yalnızca dokümana güvenilmedi.
+- `.ai/` hafıza dosyalarının production gerçekliğiyle çeliştiği tespit edildi ve bu PR ile giderildi (ayrıntı aşağıdaki düzeltme notlarında).
+- Bu PR'da uygulama kodu, Supabase şeması ve deployment **değiştirilmedi**.
+
+**Doğrulanan production durumu (2026-08-23):**
+
+- Supabase projesi `orbit-dershane`, ref değişmeden `ORBIT Platform` organizasyonuna transfer edilmiş; Arda Owner davetini kabul etmiştir.
+- Auth'ta tek kullanıcı var: kurucu yönetici hesabı. Hiçbir kullanıcıda `platform_admin` app metadata'sı **yok**, dolayısıyla `bootstrap-organization` Edge Function'ı şu an kimse tarafından çağrılamıyor.
+- Tenant çekirdeği mevcut: 1 kurum (`orbitdershane`), 1 varsayılan şube, 1 org-geneli aktif admin üyeliği, 1 `organization.bootstrap` audit kaydı.
+- Production build doğru şekilde production modunda; demo rol geçişi ve demo şifresi kapalı.
+- Tenant tablolarında `anon` rolünün hiçbir yetkisi yok; RLS politikaları ve `current_user_has_membership` org-geneli üyelik davranışı doğru çalışıyor. Edge Function'ın `platform_admin` kapısı ve `verify_jwt` doğrulaması çalışıyor.
+
+**Tespit edilen açık bulgular (bu PR'da düzeltilmiyor, sonraki fazlara alındı):**
+
+1. `internal_bootstrap_organization`, `handle_new_auth_user` ve `current_user_has_membership` fonksiyonları `anon` ve `authenticated` rollerine açık. Migration'daki `revoke ... from public`, Supabase'in varsayılan `anon`/`authenticated` EXECUTE grant'larını kaldırmıyor.
+2. Production Auth'ta yeni kayıt (signup) **açık** ve minimum şifre uzunluğu 6. `supabase/config.toml` ise `enable_signup = false` ve `minimum_password_length = 8` diyor — `config.toml` yalnızca yerel ortamı yönetir, production ayarlarını değiştirmez.
+3. (1) ve (2) birlikte sömürülebilir bir zincir oluşturuyor: kayıt ol, kendi kullanıcı kimliğinle RPC'yi çağır, kendine kurum ve admin üyeliği aç. Mevcut kurum verisi risk altında değil; risk ücretsiz katmanın sahte kurumlarla doldurulması ve sahte audit kaydı üretilmesi.
+4. `workspace_documents` tablosunda RLS açık ama hiçbir policy yok; `storage.objects` üzerinde de policy yok. "Belgeler" özelliği production'da işlevsiz. Ayrıca tablo üzerinde `anon` ve `authenticated` hâlâ tam DML yetkisine sahip.
+5. Edge Function `ALLOWED_ORIGINS` secret'ı set edilmemiş görünüyor; production fallback listesi üzerinden `http://localhost:5173` origin'ini kabul ediyor. Ayrıca origin kontrolü `Origin` başlığı olmayan isteklerde tamamen atlanıyor — bu allowlist bir güvenlik sınırı değil, yalnızca CORS hijyenidir.
+6. CI'da `pnpm audit` adımı `continue-on-error: true` ile çalışıyor; bağımlılık taraması kalite kapısını düşüremiyor.
+7. Vercel Preview deployment koruması kapalı. Preview derlemeleri demo modunda olduğundan preview adresini bilen herkes demo şifresiyle girebiliyor.
+8. Vercel `orbit-v3` projesine uygulamanın ihtiyaç duymadığı 16 sunucu değişkeni eklenmiş (`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `POSTGRES_PASSWORD` vb.). Production JS bundle'ı tarandı: bu değerler **istemciye sızmamış**, Vite'ın `VITE_` prefix kuralı tutmuş. Kalan risk build ortamıdır.
+9. `client/src/components/education/EducationPlatform.tsx` içindeki yoklama/ödev/gün planı yazmaları `isDemoMode` ile korunmuyor; production'da yalnızca tarayıcı `localStorage`'ına yazılıyor.
+10. Production giriş ekranında demo içeriği görünüyor (örnek veli adı ve uydurma kurum istatistikleri).
+11. GitHub Free planında private repo için branch protection ve ruleset **uygulanmıyor**. `CODEOWNERS` ve `CONTRIBUTING.md` zorunlu review kuralı tanımlıyor ancak PR #11, #13 ve #15 review'suz merge edilmiş.
+
+**Erişim durumu — kritik:**
+
+Kurucu yöneticinin gizli sekmeden e-posta/şifre ile girişi başarısız oldu. Erişimi, süresi dolmayan tek bir davet oturumuna bağlı; UI'da şifre belirleme veya sıfırlama ekranı bulunmuyor. İkinci bir kullanıcı hesabı yok. Yani ürünün şu anda kullanılabilir insan erişimi tek noktaya bağlı. Bu nedenle JWT secret rotasyonu, şifre akışı kurulana kadar **yapılmayacaktır** — rotasyon mevcut oturumu da düşürür.
+
+**Sırada ne var:**
+
+1. Faz B1 — fonksiyon grant'larını sıkılaştıran migration ve buna karşılık gelen negatif pgTAP testi.
+2. Faz B2 — production Auth ayarları, Vercel değişken temizliği ve Preview koruması (elle yapılacak kontrol listesi).
+3. Faz B3 — dashboard'dan elle yönetilen ayarların `.ai/` altına yazılı kontrol listesi olarak eklenmesi.
+4. Faz B4 — CI kalite kapısının sıkılaştırılması ve yıkıcı migration guard'ı.
+5. Faz C1 — şifre belirleme/sıfırlama akışı (tek erişim noktası riskini kaldırır, panelin ön koşuludur).
+6. Faz C2 — `platform_operators` şeması. Faz D — `/platform` paneli. Faz F — test kurumunun silinip panel üzerinden yeniden kurulması.
 
 ---
 
@@ -25,6 +74,12 @@
 1. Arda'nın `ORBIT Platform` Owner davetini kabul ettiğini doğrulamak.
 2. `feat/14-hamza-platform-migration` dokümantasyon değişikliklerini kalite kontrollerinden geçirip Issue #14'e bağlı PR açmak.
 3. Production login smoke testini Hamza hesabıyla tamamlayıp v1.2 release gate'ine kanıt olarak kaydetmek.
+
+**Sonradan düzeltme (2026-08-23, Issue #16):**
+
+- 1. madde tamamlandı: Arda `ORBIT Platform` Owner davetini kabul etti. 2. madde tamamlandı: PR #15 merge edildi.
+- 3. madde **tamamlanmadı**. Production login smoke testi başarısız: kurucu yönetici gizli sekmeden e-posta/şifre ile giriş yapamadı. Mevcut erişim yalnızca süresi dolmayan bir davet oturumundan geliyor ve UI'da şifre belirleme ekranı yok.
+- Yukarıdaki "geniş yetkili Vercel Marketplace kurulumu bilinçli olarak yapılmadı" ifadesi yazıldığı anda doğruydu, ancak **sonrasında geçersiz kaldı**: Vercel `orbit-v3` projesine `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `POSTGRES_PASSWORD` dahil 16 sunucu değişkeni eklenmiş durumda. Bu değerler istemci bundle'ına sızmamıştır; temizliği Faz B2 kapsamındadır.
 
 ---
 
@@ -53,6 +108,17 @@
 2. Daveti gönderip atomik bootstrap RPC'siyle `orbitdershane` / `orbit123` tenant'ını ve admin üyeliğini oluşturmak.
 3. PR #9'u merge edip Vercel Production deployment ve gerçek login akışını doğrulamak.
 4. Platform operatör hesabına `platform_admin` app metadata'sını kontrollü vermek; v1.2'ye release gate tamamlanmadan başlamamak.
+
+**Sonradan düzeltme (2026-08-23, Issue #16):**
+
+Yukarıdaki "Davet oluşmadığı için atomik bootstrap çalıştırılmadı ve yarım kurum/üyelik kaydı oluşmadı" cümlesi yalnızca **ilk deneme** için doğruydu ve sonrasında geçersiz kaldı. Canlı veritabanı doğrulaması:
+
+- İlk deneme gerçekten başarısız oldu; `yonetici@orbit.edu.tr` adresi `email_address_invalid` ile reddedildi ve yarım kayıt oluşmadı.
+- **Ardından tenant kuruldu.** Yönetici olarak kurucu ekip üyesinin gerçek e-posta adresi kullanıldı; `orbitdershane` kurumu, `orbit123` varsayılan şubesi, kurum-geneli aktif admin üyeliği ve `organization.bootstrap` audit kaydı production'da mevcuttur.
+- **Kurulum tasarlanan akıştan yapılmadı.** `bootstrap-organization` Edge Function'ı yerine, yetkili yerel kontrol düzleminden doğrudan `internal_bootstrap_organization` RPC'si çağrıldı. Kanıt: audit kaydı, yönetici kullanıcı satırından iki saniye sonra ve e-posta onayından on dakika önce oluşmuş; ayrıca o anda hiçbir hesapta `platform_admin` bayrağı bulunmuyordu. Bu bayrak bugün de hiçbir hesapta yok.
+- **Sonuç:** Tasarlanan onboarding mekanizması hiç çalıştırılmadı, dolayısıyla çalıştığı doğrulanmış değildir. Bu, `bootstrap-organization`'ın gerçek bir kurulumda test edilmediği anlamına gelir.
+- Yukarıdaki 1., 2. ve 3. maddeler bu nedenle kapanmış sayılır; 4. madde (`platform_admin` verilmesi) **hâlâ açıktır** ve Faz C2/D kapsamında `platform_operators` tablosuyla yeniden ele alınacaktır.
+- v1.1 release gate'i **kapanmamıştır**; ayrıntı için bkz. `ROADMAP.md` v1.1 bölümü.
 
 ---
 

@@ -117,9 +117,46 @@ Bu bölüm, ileride bir karar değiştirildiğinde eski bağlamın kaybolmaması
 - [x] `audit_events` temeli.
 - [x] RLS yardımcı fonksiyonları ve kurumlar arası negatif güvenlik testleri.
 
-**Uygulama durumu (Issue #8):** Kod, migration ve testler feature branch üzerinde hazırdır. Ana CI, Vercel Preview ve GitHub Docker ortamındaki migration/pgTAP Tenant RLS testleri geçmiştir. Arda review onayını vermiş; migration ve Edge Function production Supabase'e deploy edilmiştir. İlk tenant kurulumu, verilen `yonetici@orbit.edu.tr` adresi geçersiz olduğu için güvenli biçimde durdurulmuştur; geçerli yönetici e-postası ve PR merge'i beklenmektedir.
+**Uygulama durumu (Issue #8, 2026-08-23 güncellemesi):** Kod, migration ve testler merge edildi (PR #9); CI, Vercel Preview ve pgTAP Tenant RLS testleri geçti; migration ve Edge Function production'a deploy edildi. İlk tenant oluşturuldu ancak `bootstrap-organization` Edge Function akışıyla değil, kontrol düzleminden doğrudan RPC ile — onboarding mekanizması hiç doğrulanmadı ve hiçbir hesapta `platform_admin` bayrağı bulunmuyor.
 
 **Release gate:** Production kullanıcısı rolünü istemciden değiştiremez; iki farklı kurum birbirinin hiçbir kaydını okuyamaz/yazamaz.
+
+**Release gate durumu: KAPANMADI.** Denetimde (Issue #16) tespit edilenler:
+
+- Tenant izolasyonu tarafı geçiyor: `anon` rolünün tenant tablolarında hiçbir yetkisi yok, RLS politikaları ve org-geneli üyelik davranışı doğru çalışıyor, production'da demo rol geçişi kapalı.
+- Ancak `internal_bootstrap_organization`, `handle_new_auth_user` ve `current_user_has_membership` fonksiyonları `anon` ve `authenticated` rollerine açık; production'da yeni kayıt (signup) da açık. Bu ikisi birlikte, yetkisiz bir kullanıcının kendisine kurum ve admin üyeliği açmasına imkân veriyor.
+- Production login akışı doğrulanamadı: kurucu yöneticinin e-posta/şifre girişi çalışmıyor, UI'da şifre belirleme/sıfırlama ekranı yok.
+
+Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sürüm kapanmadan geçilmez** (`PROJECT_ARCHITECT.md` §00 kural 6).
+
+### v1.1.1 - Güvenlik Kapanışı ve Ortam Ayarlarının Hizalanması
+
+**Hedef:** v1.1 release gate'ini gerçekten kapatmak; repo ile production arasındaki ayarların ayrışmasını sonlandırmak.
+
+- [ ] Migration: `internal_bootstrap_organization`, `handle_new_auth_user`, `current_user_has_membership` ve `set_updated_at` fonksiyonlarından `anon` ve `authenticated` EXECUTE yetkilerinin kaldırılması.
+- [ ] Migration: `workspace_documents` üzerindeki `anon` ve `authenticated` DML yetkilerinin kaldırılması.
+- [ ] pgTAP: `anon` rolünün bu fonksiyonları çağıramadığını doğrulayan negatif testler.
+- [ ] Production Auth ayarları: signup kapatma, minimum şifre uzunluğu 8, sızmış şifre koruması, Site URL ve redirect listesi, oturum zaman aşımı.
+- [ ] Edge Function `ALLOWED_ORIGINS` secret'ının production'a set edilmesi.
+- [ ] Vercel: uygulamanın kullanmadığı 16 sunucu değişkeninin silinmesi ve Preview deployment korumasının açılması.
+- [ ] `.ai/` altına "dashboard'dan elle yönetilen ayarlar" kontrol listesi; `config.toml`'un production'ı yönetmediğinin açıkça yazılması.
+- [ ] CI: `pnpm audit` adımından `continue-on-error` kaldırılması ve yıkıcı migration guard'ı eklenmesi.
+
+**Release gate:** `anon` anahtarıyla hiçbir SECURITY DEFINER fonksiyonu çağrılamaz; production'da yeni kayıt açılamaz; Supabase security advisor'da açık WARN kalmaz; repo ile production ayarları arasındaki bilinen farklar yazılı kontrol listesinde izlenir.
+
+### v1.1.2 - Şifre Akışı ve Platform Operatörü Paneli
+
+**Hedef:** Ürüne insan erişimini tek bir oturuma bağlı olmaktan çıkarmak ve kurum/kullanıcı kurulumunu tasarlanan mekanizma üzerinden yapılabilir hale getirmek.
+
+- [ ] Şifre belirleme ve sıfırlama ekranları; davet bağlantısıyla gelen kullanıcının kalıcı şifre kurabilmesi.
+- [ ] `platform_operators` tablosu, `current_user_is_platform_operator()` yardımcısı ve `platform_audit_events` tablosu.
+- [ ] `bootstrap-organization` Edge Function'ının `app_metadata.platform_admin` yerine `platform_operators` tablosunu okuyacak biçimde güncellenmesi.
+- [ ] `/platform` rotası, giriş ekranı ve panel iskeleti (`client/src/platform/` altında, dershane ağacına dokunmadan).
+- [ ] Panelden kurum + varsayılan şube + kurum yöneticisi oluşturma akışı.
+- [ ] İlk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi.
+- [ ] Test kurumu `orbitdershane`'in silinip ilk kurumun panel üzerinden yeniden kurulması.
+
+**Release gate:** Kurum ve kurum yöneticisi yalnızca panel üzerinden oluşturulabilir; davet edilen kullanıcı kendi şifresini kurup giriş yapabilir; platform operatörü hiçbir kurumun öğrenci/not/yoklama/ödeme verisini okuyamaz; her platform işlemi denetim kaydı üretir.
 
 ### v1.2 - İlişkisel Veritabanı ve RLS
 
