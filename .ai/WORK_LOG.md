@@ -24,12 +24,11 @@
 - İlk tenant için kurum `orbitdershane`, şube `orbit123`, yönetici `Ahmet Yılmaz` olarak onaylandı. `yonetici@orbit.edu.tr` adresi Supabase tarafından `email_address_invalid` ile reddedildi; DNS/MX kaydı da bulunmadı. Davet oluşmadığı için atomik bootstrap çalıştırılmadı ve yarım kurum/üyelik kaydı oluşmadı.
 - Yönetici bilgisi Hamza Bayrak ve onaylı, erişilebilir yönetici e-postası olarak güncellendi. Henüz `platform_admin` kullanıcısı bulunmayan ilk production seed'i, yetkili yerel kontrol düzleminde service-role anahtarı çıktıya yazdırılmadan davet + atomik bootstrap RPC ile yapıldı; `orbitdershane` kurumu, `orbit123` varsayılan şubesi ve kurum-geneli aktif admin üyeliği oluşturuldu.
 - Production doğrulamasında kurum, varsayılan şube, admin üyeliği, `Hamza Bayrak` profili ve `organization.bootstrap` audit kaydının her birinden tam bir kayıt döndüğü görüldü.
-- Davet bağlantısı Supabase oturumu oluşturabilir; ancak mevcut UI'da şifre belirleme/değiştirme ekranı bulunmadığı doğrulandı. Kullanıcının login UI'ını bu aşamada değiştirmeme kararı gereği bu PR'da auth arayüzü eklenmedi; kalıcı e-posta/şifre girişinin uçtan uca kabulü için bu sınır ayrıca ele alınmalıdır.
 
 **Sırada ne var:**
 
 1. PR #9'u merge edip Vercel Production deployment'ını doğrulamak.
-2. Hamza Bayrak'ın gelen Supabase davetini kabul ederek ilk production oturumunu doğrulaması; kalıcı şifre belirleme akışını mevcut UI kapsam kararına göre ayrıca planlamak.
+2. Hamza Bayrak'ın gelen Supabase daveti üzerinden şifresini belirlemesi ve gerçek production login akışını doğrulamak.
 3. Platform operatör hesabına `platform_admin` app metadata'sını kontrollü vermek; v1.2'ye release gate tamamlanmadan başlamamak.
 
 ---
