@@ -22,14 +22,13 @@
 - Bu makinede Docker/Supabase local DB bulunmadığı için yerel `supabase test db` çalışmadı; aynı migration ve pgTAP testleri GitHub'ın izole Supabase workflow'unda başarıyla geçti.
 - Arda PR #9'u onayladı; ana CI, Vercel Preview ve Tenant RLS workflow'ları yeşile döndü. `20260821183000_auth_tenant_foundation.sql` migration'ı ve `bootstrap-organization` Edge Function production `orbit-dershane` projesine deploy edildi.
 - İlk tenant için kurum `orbitdershane`, şube `orbit123`, yönetici `Ahmet Yılmaz` olarak onaylandı. `yonetici@orbit.edu.tr` adresi Supabase tarafından `email_address_invalid` ile reddedildi; DNS/MX kaydı da bulunmadı. Davet oluşmadığı için atomik bootstrap çalıştırılmadı ve yarım kurum/üyelik kaydı oluşmadı.
-- Yönetici bilgisi Hamza Bayrak / `hmzbyrk16@gmail.com` olarak güncellendi. Henüz `platform_admin` kullanıcısı bulunmayan ilk production seed'i, yetkili yerel kontrol düzleminde service-role anahtarı çıktıya yazdırılmadan davet + atomik bootstrap RPC ile yapıldı; `orbitdershane` kurumu, `orbit123` varsayılan şubesi ve kurum-geneli aktif admin üyeliği oluşturuldu.
-- Production doğrulamasında kurum, varsayılan şube, admin üyeliği, `Hamza Bayrak` profili ve `organization.bootstrap` audit kaydının her birinden tam bir kayıt döndüğü görüldü.
 
 **Sırada ne var:**
 
-1. PR #9'u merge edip Vercel Production deployment'ını doğrulamak.
-2. Hamza Bayrak'ın gelen Supabase daveti üzerinden şifresini belirlemesi ve gerçek production login akışını doğrulamak.
-3. Platform operatör hesabına `platform_admin` app metadata'sını kontrollü vermek; v1.2'ye release gate tamamlanmadan başlamamak.
+1. Ahmet Yılmaz için davet alabilen, gerçek ve erişilebilir bir e-posta adresi almak.
+2. Daveti gönderip atomik bootstrap RPC'siyle `orbitdershane` / `orbit123` tenant'ını ve admin üyeliğini oluşturmak.
+3. PR #9'u merge edip Vercel Production deployment ve gerçek login akışını doğrulamak.
+4. Platform operatör hesabına `platform_admin` app metadata'sını kontrollü vermek; v1.2'ye release gate tamamlanmadan başlamamak.
 
 ---
 
