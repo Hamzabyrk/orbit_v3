@@ -27,10 +27,14 @@ Farklı zamanlarda farklı YZ araçları (Claude, Cursor, Gemini vb.) kullanıla
 
 ```
 .ai/
-├── PROJECT_STATE.md    # Mevcut mimari, seçilen teknolojiler, DB şeması ve modüller
-├── DECISION_LOG.md     # Alınan kararlar ve gerekçeleri (Mini-ADR formatında)
-└── WORK_LOG.md         # Hangi geliştirici/YZ ne yaptı, sırada hangi bilet var
+├── PROJECT_STATE.md      # Mevcut mimari, seçilen teknolojiler, DB şeması ve modüller
+├── DECISION_LOG.md       # Alınan kararlar ve gerekçeleri (Mini-ADR formatında)
+├── WORK_LOG.md           # Hangi geliştirici/YZ ne yaptı, sırada hangi bilet var
+├── ROADMAP.md            # Sürüm kapsamları, kabul kriterleri ve release gate'ler
+└── PLATFORM_SETTINGS.md  # Kod dışında, sağlayıcı panellerinden yönetilen ayarların kaydı
 ```
+
+> **`PLATFORM_SETTINGS.md` neden ayrı bir dosya:** Supabase, Vercel ve GitHub'daki bazı ayarlar repodan deploy edilmez; yalnızca panelden elle değiştirilir. `supabase/config.toml` production'ı **yönetmez** — bu yanılgı projede beş ayrı sorunun kökeni oldu. Ayrıca o dosya, açılması ekibi sistemden kilitleyecek ayarların neden kapalı olduğunu ve hangi şartla açılacağını kayıt altına alır; bu yönüyle dokümantasyon değil emniyet supabıdır. Panel üzerinden bir ayar değiştiren herkes aynı PR'da o dosyayı da günceller.
 
 ### Her Ajan İçin Çalışma Döngüsü:
 
