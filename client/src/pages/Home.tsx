@@ -54,12 +54,20 @@ export default function Home() {
     return <EducationLoginScreen demoMode={demoMode} onLogin={signIn} />;
   }
 
+  // Kurum üyeliği olmayan ama platform operatörü olan kullanıcı buraya değil
+  // panele aittir. Kimlik iki ekseni de taşıdığı için, her ikisine birden
+  // sahip olan biri dershane panelinde kalır ve panele kendi rotasından
+  // ulaşır; öncelik kuralı koymuyoruz.
+  if (!identity.membership) {
+    return <Redirect to="/platform" />;
+  }
+
   return (
     <EducationPlatform
-      initialRole={identity.role}
+      initialRole={identity.membership.role}
       displayName={identity.displayName}
-      organizationName={identity.organizationName}
-      branchName={identity.branchName}
+      organizationName={identity.membership.organizationName}
+      branchName={identity.membership.branchName}
       canSwitchRole={demoMode}
       onRoleChange={switchDemoRole}
       onLogout={handleLogout}

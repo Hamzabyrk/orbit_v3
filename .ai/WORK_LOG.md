@@ -6,6 +6,35 @@
 
 ---
 
+## 2026-08-24 — Kimlik İki Eksene Ayrıldı ve `/platform` Rotası (Issue #39)
+
+**Kim:** Claude (Arda Bülent talebiyle, `feat/39-platform-operator-identity` branch'inde)
+
+Faz D2. Panelin ön koşulu olan kimlik katmanı düzeltildi.
+
+**🔴 Panel yazılmadan önce fark edilen tasarım hatası.** `loadAuthenticatedIdentity` aktif kurum üyeliği bulamazsa hata fırlatıyor, `AuthProvider` da bunu yakalayıp oturumu kapatıyordu. Platform operatörünün tasarım gereği kurum üyeliği yok. Yani panel bugün yazılsaydı, **operatör giriş yapar yapmaz sistemden atılacak** ve panele hiç ulaşamayacaktı. Hata paneli yazarken değil, ön koşulu gözden geçirirken çıktı.
+
+**Kimlik bir birlik (union) değil, iki bağımsız eksen olarak modellendi.** `AuthIdentity` artık `membership` ve `platformOperator` alanlarını ayrı ayrı taşıyor; her ikisi de `null` olabilir. Ayrımlı birlik (discriminated union) + öncelik kuralı daha basit olurdu ama **hem kurum üyesi hem operatör olan kişi diğer panele hiç ulaşamazdı** — ki test kurumu silinene kadar (Faz F) kurucu ekip üyeleri tam olarak bu durumda. İki eksen de çözümleniyor, hangi panelin gösterileceğine çağıran taraf karar veriyor.
+
+- `authService.ts` üçe bölündü: `loadMembershipIdentity` (üyelik yoksa `null`, tanınmayan rolde hata), `loadPlatformOperatorIdentity` (kullanıcının kendi oturumuyla sorgular; `platform_operators` RLS'i operatör olmayana satır göstermediği için ayrıcalıklı istemci gerekmiyor), `loadAuthenticatedIdentity` (ikisini paralel çözer, **yalnızca ikisi birden boşsa** reddeder).
+- Sorgu hatası hiçbir eksende yutulmuyor: yetki çözümlenemediğinde fail-open olmak kabul edilemez, hata yukarı taşınıyor ve oturum kapanıyor.
+- `/platform` rotası ve `client/src/platform/PlatformShell.tsx` eklendi; dershane ağacından (`components/education/`) ayrı duruyor. İçerik D3'te doldurulacak.
+- Panelin istemci tarafı yetki kontrolü **güvenlik sınırı değil**, yalnızca kullanıcı deneyimi; gerçek sınır RLS ve Edge Function tarafında. Kod içinde de böyle not edildi.
+
+**Ayrı `/platform` giriş ekranı fikri ROADMAP'ten temizlendi.** Karar tek alanlı giriş numarası tasarımıyla birlikte zaten geri alınmıştı (bkz. `DECISION_LOG.md`), ancak ROADMAP maddesi eski hâliyle duruyordu. Yedinci drift vakası, yine kendi dokümanımızda.
+
+**Testler:** `authService.identity.test.ts` (7 test) Supabase istemcisi taklit edilerek yazıldı. Kritik olanı, üyeliği olmayan operatörün oturumdan atılmadığını doğrulayan test — düzeltilen hatanın kalıcı regresyon koruması. Ayrıca: iki ekseni birden taşıyan kullanıcı, iki eksen de boşken reddetme, her iki sorgunun hata durumu ve tanınmayan rol.
+
+**Yan düzeltme — CRLF artıkları.** `.gitattributes` eklendikten sonra çalışma kopyasında yenilenmemiş 36 dosya `git status`'ta değişmiş görünüyor, `git diff` ise boş dönüyordu. Dosyalar yeniden checkout edilerek hizalandı; artık gerçek değişiklikler gürültüye karışmıyor.
+
+**Sırada ne var:**
+
+1. Faz D3 — `/platform` paneli: kurum listesi, kurum oluşturma akışı, operatör listesi ve platform denetim kaydı (salt okunur).
+2. Faz D4 — ilk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi.
+3. v1.3 — mock veri temizliği, boş durum ekranları ve istemci tarafı hareketsizlik zaman aşımı. Panelden **sonra**, ilk gerçek kurumdan **önce**.
+
+---
+
 ## 2026-08-23 — Doğrulama Denetimi (Issue #29)
 
 **Kim:** Claude (Arda Bülent talebiyle, `fix/29-security-headers-and-settings-record` branch'inde)
@@ -68,7 +97,9 @@ v1.1.1 ve v1.1.2 çalışmalarından sonra, bir sonraki faza geçmeden önce yap
 
 **Yol boyunca bulunan ve düzeltilen CI açığı:** Her iki workflow'da da `pull_request: branches: [main]` filtresi vardı. Sonuç: base'i `main` olmayan bir PR (yığılı çalışma) **hiçbir kontrol almıyordu** — ne `quality-gate`, ne `Tenant RLS`, ne yıkıcı migration guard'ı. Kalite kapısı yığılı çalışıldığı anda sessizce devre dışı kalıyordu. Bu, migration ve pgTAP testleri içeren bir PR sıfır kontrolle açıldığında somut olarak görüldü. `pull_request` için hedef dal filtresi kaldırıldı; `push` için `main` filtresi ve `supabase-ci`'daki yol filtresi korundu.
 
-**Kapsam dışında bırakılan:** `bootstrap-organization` Edge Function'ının bu tabloyu okuyacak biçimde güncellenmesi bilinçli olarak bu PR'a alınmadı. Edge Function'lar Supabase GitHub entegrasyonuyla **otomatik deploy edilmez**; yalnızca `supabase/migrations/` uygulanır. Fonksiyonu burada değiştirmek, repo ile production arasında yeni bir ayrışma yaratırdı. Değişiklik, deploy'uyla birlikte panel işinde yapılacaktır.
+**Kapsam dışında bırakılan:** `bootstrap-organization` Edge Function'ının bu tabloyu okuyacak biçimde güncellenmesi bu PR'a alınmadı; değişiklik ayrı bir işte yapıldı (Issue #37).
+
+**Sonradan düzeltme (2026-08-24):** Yukarıdaki gerekçede "Edge Function'lar Supabase GitHub entegrasyonuyla otomatik deploy edilmez" deniyordu. **Bu yanlıştı.** Entegrasyon `supabase/functions/` altını da deploy ediyor; Issue #37 merge edildiğinde fonksiyon elle bir işlem yapılmadan production'a indi ve doğrulandı. `PLATFORM_SETTINGS.md` bölüm 2 zaten en baştan doğru söylüyordu (Edge Function kodu repo'dan deploy edilir); hatalı iddia sonradan eklendi ve o tabloyla çelişiyordu. İşi ayırma kararı yine de doğruydu, ama gerekçesi yanlıştı.
 
 **Sırada ne var:**
 

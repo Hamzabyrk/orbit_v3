@@ -15,14 +15,20 @@ import type { AuthIdentity, AuthProviderProps, LoginInput } from "./types";
 function createDemoIdentity(role: EducationRole): AuthIdentity {
   return {
     userId: `demo-${role}`,
-    membershipId: `demo-membership-${role}`,
-    role,
     displayName: roleMeta[role].name,
-    organizationId: "demo-organization",
-    organizationName: "Trakya pilotu",
-    branchId: "demo-branch",
-    branchName: "Çorlu Şube",
     demo: true,
+    membership: {
+      membershipId: `demo-membership-${role}`,
+      role,
+      organizationId: "demo-organization",
+      organizationName: "Trakya pilotu",
+      organizationCode: null,
+      branchId: "demo-branch",
+      branchName: "Çorlu Şube",
+    },
+    // Demo kimliği hiçbir zaman platform operatörü değildir; demo modu satış
+    // sunumu içindir ve kurum kurma yetkisi taşımaz.
+    platformOperator: null,
   };
 }
 
