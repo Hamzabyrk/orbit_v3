@@ -11,6 +11,21 @@ if (!supabaseConfigured) {
   );
 }
 
+/**
+ * Kullanıcı bu sayfaya bir şifre sıfırlama bağlantısıyla mı geldi.
+ *
+ * `createClient`, varsayılan `detectSessionInUrl` davranışıyla adres
+ * çubuğundaki hash'i okuyup temizler. `PASSWORD_RECOVERY` olayı ise kısa bir
+ * gecikmeyle gelir. Bu bayrak istemci oluşturulmadan ÖNCE okunur; aksi halde
+ * şifre belirleme ekranı, olay gelene kadar kısa süreliğine "bağlantı
+ * geçersiz" gösterirdi.
+ *
+ * Modül gövdesindeki ifadeler sırayla çalıştığı için bu okuma deterministiktir.
+ */
+export const arrivedWithRecoveryLink =
+  typeof window !== "undefined" &&
+  window.location.hash.includes("type=recovery");
+
 // Fall back to a syntactically valid placeholder so a missing config doesn't
 // crash the whole app at import time — calls will just fail until the real
 // env vars are set, instead of taking down every page that imports this module.

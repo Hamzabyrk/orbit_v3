@@ -6,6 +6,72 @@
 
 ---
 
+## 2026-08-23 — Platform Operatörü Şeması (Issue #27)
+
+**Kim:** Claude (Arda Bülent onayıyla, `feat/27-platform-operators-schema` branch'inde)
+
+**Ne yapıldı:**
+
+- `platform_operators` tablosu, `current_user_is_platform_operator()` yardımcısı ve `platform_audit_events` tablosu migration olarak eklendi.
+- Platform operatörlüğü `app_role` enum'una eklenmedi. O enum her zaman bir kuruma bağlıdır; platform operatörü hiçbir kuruma ait değildir ve beşinci bir değer sahte bir "platform kurumu" kaydı yaratmayı zorunlu kılardı.
+- `auth.users.app_metadata.platform_admin` bayrağı kullanılmadı; tek doğruluk kaynağı tablodur. Aynı bilgiyi iki düzlemde saklamak, bu projede beş kez soruna yol açmış olan drift kalıbının aynısı olurdu.
+- `platform_audit_events` ayrı bir tablodur çünkü `audit_events.organization_id` NOT NULL'dır ve "operatör eklendi" gibi kurum-üstü olaylar oraya yazılamaz. Yeni tabloda `organization_id` nullable.
+- RLS: operatörler birbirini görebilir, operatör olmayan hiçbir satır göremez. İstemciden **yazma yolu yoktur**; operatör ekleme ve denetim kaydı üretme yalnızca `service_role` ile çalışan Edge Function üzerinden yapılacaktır. Aksi halde bir operatör kendi yetkisini yükseltebilir veya sahte denetim kaydı üretebilirdi.
+- Fonksiyon yetkileri Issue #18 dersine göre açıkça bildirildi: `anon`'dan kaldırıldı, `authenticated`'a bırakıldı. RLS policy ifadeleri bu fonksiyonu çağıran rolün ayrıcalıklarıyla değerlendirildiği için yetkinin kaldırılması operatörlerin kendi listelerini bile okuyamamasına yol açardı.
+- On iki pgTAP testi eklendi. Üçü, platform operatörünün `organizations`, `branches` ve `organization_memberships` kayıtlarını **göremediğini** doğruluyor; bu, KVKK gerekçesiyle verilen "operatör kapları yönetir, içeriği görmez" taahhüdünün çalıştırılabilir karşılığıdır ve ileride sessizce gevşetilirse CI'da kırılır.
+
+**Düzeltilen önceki değerlendirme:** `PLATFORM_SETTINGS.md` bölüm 5'te "preview deployment koruması kapalı, adresi bilen herkes demo şifresiyle girebilir" yazıyordu. Bu **yanlıştı**. Preview adresleri `302` ile Vercel SSO'ya yönlendiriyor; doğrulandı. Kayıt düzeltildi. Demo şifresiyle dışarıdan erişim riski yok; bedeli, preview'ı incelemek için o Vercel takımına ait bir oturum gerekmesi.
+
+**Yol boyunca bulunan ve düzeltilen CI açığı:** Her iki workflow'da da `pull_request: branches: [main]` filtresi vardı. Sonuç: base'i `main` olmayan bir PR (yığılı çalışma) **hiçbir kontrol almıyordu** — ne `quality-gate`, ne `Tenant RLS`, ne yıkıcı migration guard'ı. Kalite kapısı yığılı çalışıldığı anda sessizce devre dışı kalıyordu. Bu, migration ve pgTAP testleri içeren bir PR sıfır kontrolle açıldığında somut olarak görüldü. `pull_request` için hedef dal filtresi kaldırıldı; `push` için `main` filtresi ve `supabase-ci`'daki yol filtresi korundu.
+
+**Kapsam dışında bırakılan:** `bootstrap-organization` Edge Function'ının bu tabloyu okuyacak biçimde güncellenmesi bilinçli olarak bu PR'a alınmadı. Edge Function'lar Supabase GitHub entegrasyonuyla **otomatik deploy edilmez**; yalnızca `supabase/migrations/` uygulanır. Fonksiyonu burada değiştirmek, repo ile production arasında yeni bir ayrışma yaratırdı. Değişiklik, deploy'uyla birlikte panel işinde yapılacaktır.
+
+**Sırada ne var:**
+
+1. `bootstrap-organization` Edge Function'ının güncellenmesi ve deploy'u.
+2. `/platform` rotası, giriş ekranı ve panel iskeleti.
+3. İlk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi.
+4. Test kurumunun silinip ilk kurumun panel üzerinden yeniden kurulması.
+
+---
+
+## 2026-08-23 — v1.1.1 Kalite Kapısı ve v1.1.2 Şifre Akışı (Issue #22, #25)
+
+**Kim:** Claude (Arda Bülent onayıyla; `fix/22-ci-quality-gate` ve `feat/25-password-recovery-flow` branch'lerinde). PR #23'ü Hamza Bayrak onayladı.
+
+**Ne yapıldı — kalite kapısı (Issue #22, PR #23):**
+
+- Bağımlılık taraması engelleyici hale getirildi, ancak doğrudan `continue-on-error` kaldırılmadı. Önce mevcut duruma bakıldı: tüm bağımlılıklarda 20 high ve 2 critical açık vardı; kapı öylece açılsaydı CI her PR'da kırmızı kalır ve zamanla göz ardı edilmeye başlanırdı. Tarama ikiye ayrıldı: production bağımlılıkları engelleyici, geliştirme bağımlılıkları görünür ama engellemeyen.
+- Production'daki iki high seviyeli açık gerçekten kapatıldı. İkisi de aynı advisory'ydi: lodash `_.template` kod enjeksiyonu, `recharts` ve `mermaid` zincirlerinden transitive olarak geliyordu. Repoda zaten kullanılan `pnpm.overrides` deseniyle `>=4.18.1`'e sabitlendi. Production audit artık 0 high, 0 critical.
+- Yıkıcı migration guard'ı eklendi. `drop table/schema/database`, `drop column`, `truncate` ve `delete from` engellenir; `drop policy` engellemez ama uyarır. Kaçış yolu `-- ALLOW-DESTRUCTIVE: <gerekçe>` satırıdır.
+- Guard mevcut migration'lara karşı kalibre edildi: SQL bu repoda küçük harfle yazıldığı için eşleştirme büyük/küçük harf duyarsız, ve satır yorumları taramadan önce temizleniyor çünkü `20260822221832` numaralı migration açıklama metninde `DELETE/TRUNCATE` geçiyor.
+- Guard yalnızca PR'da değişen dosyaları tarar. Tüm geçmişi tarasaydı, meşru bir yıkıcı migration merge edildiği anda kapı kalıcı olarak kırmızıya dönerdi.
+- `.gitattributes` eklendi; Windows'taki `core.autocrlf` ile `prettier endOfLine: "lf"` çakışması giderildi.
+
+**Guard uçtan uca doğrulandı.** PR #23 `supabase/**` altına dokunmadığı için guard orada tetiklenmiyordu. Tek kullanımlık bir dal (PR #24) açıldı, içine kasıtlı yıkıcı bir migration konuldu, guard doğru dosyayı ve doğru satır numarasını bildirerek işi altı saniyede düşürdü, dal merge edilmeden kapatıldı. Aynı koşuda `Tenant RLS` işi geçti, yani guard mevcut testleri engellemiyor.
+
+**Ne yapıldı — şifre akışı (Issue #25):**
+
+- **Çözülen çekirdek sorun:** `AuthProvider` içindeki `onAuthStateChange` aboneliği her auth olayında kimliği yüklüyordu. Supabase'in şifre sıfırlama bağlantısı da geçerli bir oturum açtığı için, bağlantıya tıklayan kullanıcı hiç şifre ekranı görmeden panele giriyor ve şifresini asla belirleyemiyordu. `PASSWORD_RECOVERY` olayı artık ayrı ele alınıyor ve bayrak, şifre belirlenene veya vazgeçilene kadar kalıcı; aksi halde sonradan gelen `SIGNED_IN` olayları kullanıcıyı panele geri düşürürdü.
+- `arrivedWithRecoveryLink`, `createClient` çağrılmadan önce URL hash'ini okur. `createClient` hash'i temizlediği ve olay kısa bir gecikmeyle geldiği için, aksi halde ekran önce "bağlantı geçersiz" gösterip sonra forma dönerdi.
+- `/sifre-sifirla` ve `/sifre-belirle` rotaları eklendi. İkincisi Supabase sıfırlama e-postasının hedefidir ve Redirect URL listesiyle uyumludur.
+- Şifre politikasının istemci doğrulaması sekiz birim testiyle eklendi. Büyük/küçük harf kontrolü Unicode özellik sınıfları yerine karakterin kendi büyük/küçük hâliyle karşılaştırılıyor; projenin `tsconfig` hedefi regex `u` bayrağını desteklemiyor ve yalnızca `[a-z]`/`[A-Z]` kullanmak Türkçe harfleri harf saymayarak geçerli şifreleri reddederdi.
+- Şifre kaydedildikten sonra oturum **kapatılıyor** ve kullanıcı yeni şifresiyle giriş yapıyor. Doğrudan panele almak daha hızlı olurdu ancak şifrenin gerçekten çalıştığı doğrulanmamış kalırdı; bu akışın var olma sebebi tam olarak o belirsizliği ortadan kaldırmak.
+- Hesabın kayıtlı olup olmadığı sızdırılmıyor; sıfırlama talebi her durumda aynı onay mesajını gösteriyor.
+- Demo modunda akış kapalı ve ekran bunu açıkça söylüyor.
+- `EducationLoginScreen` bilinçli olarak refactor edilmedi; ortak `AuthShell` kabuğu yalnızca yeni ekranlarda kullanıldı, çalışan giriş akışına dokunulmadı.
+
+**Doğrulama:** 32 birim testi (24'ten yükseldi), `tsc --noEmit` temiz, `eslint` temiz, `vite build` başarılı.
+
+**Sırada ne var:**
+
+1. `platform_operators` şeması, `current_user_is_platform_operator()` ve `platform_audit_events` migration'ı.
+2. `bootstrap-organization` Edge Function'ının bu tabloyu okuyacak biçimde güncellenmesi.
+3. `/platform` paneli ve panelden kurum/kullanıcı oluşturma akışı.
+4. Şifre akışı production'da uçtan uca doğrulandıktan sonra `PLATFORM_SETTINGS.md` bölüm 4'teki beş ertelenmiş ayarın açılması.
+
+---
+
 ## 2026-08-23 — v1.1.1 Güvenlik Kapanışı ve Platform Ayarlarının Kayda Alınması (Issue #18, #20)
 
 **Kim:** Claude (Arda Bülent onayıyla; `fix/18-harden-function-grants` ve `docs/20-platform-settings-registry` branch'lerinde). PR #19'u Hamza Bayrak onayladı.

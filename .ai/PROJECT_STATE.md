@@ -113,6 +113,15 @@ client/src/
 - İlk tenant için `orbitdershane` / `orbit123` kararı verildi. İlk denemede `yonetici@orbit.edu.tr` adresi `email_address_invalid` ile reddedildi ve yarım kayıt oluşmadı; ardından kurum kurucu ekip üyesinin hesabıyla kuruldu. Bu kayıt **test verisi** sayılır ve panel hazır olduğunda silinip mekanizma üzerinden yeniden kurulacaktır (bkz. `DECISION_LOG.md`).
 - v1.2 iş tabloları ve v1.3 mock temizliği bu dalın bilinçli kapsamı dışındadır.
 
+### Şifre belirleme ve sıfırlama akışı (Issue #25)
+
+- Giriş ekranındaki "Şifremi unuttum" bağlantısı `/sifre-sifirla` adresine gider; oradan Supabase şifre sıfırlama e-postası tetiklenir. Hesabın kayıtlı olup olmadığı sızdırılmaz, her durumda aynı onay mesajı gösterilir.
+- E-postadaki bağlantı `/sifre-belirle` adresine döner. Bu değer Supabase Redirect URL listesiyle uyumlu olmalıdır; liste `PLATFORM_SETTINGS.md` bölüm 3.2'de kayıtlıdır.
+- **Şifre sıfırlama bağlantısı da geçerli bir Supabase oturumu açar.** Bu nedenle `PASSWORD_RECOVERY` olayı normal girişten ayrıştırılır ve kullanıcı panele alınmaz; aksi halde şifresini hiç belirleyemeden içeri girerdi. Bayrak, şifre belirlenene veya vazgeçilene kadar kalıcıdır.
+- Yeni şifre kaydedildikten sonra oturum kapatılır ve kullanıcı yeni şifresiyle giriş yapar. Bu bilinçli bir karardır: akışın amacı şifrenin gerçekten çalıştığını doğrulamaktır.
+- Şifre politikası istemcide de doğrulanır (minimum 8 karakter, küçük harf + büyük harf + rakam) ancak kaynak doğruluk sunucudadır. Politika panelden değiştirilirse `client/src/auth/passwordPolicy.ts` ve testleri güncellenmelidir.
+- Akış demo modunda (yerel geliştirme ve Vercel Preview) kapalıdır.
+
 ---
 
 ## 8. Platform Sahipliği ve Production Bağlantıları (Issue #14)
@@ -132,7 +141,7 @@ client/src/
 
 ## 9. Platform Operatörü Ekseni ve `/platform` Paneli (Issue #16, hedef v1.1.2)
 
-**Durum:** Karar alındı, henüz uygulanmadı. Ayrıntılı gerekçe için bkz. `DECISION_LOG.md` — "Platform operatörü ayrı bir eksendir".
+**Durum:** Veritabanı şeması eklendi (Issue #27); panel ve Edge Function güncellemesi bekliyor. Ayrıntılı gerekçe için bkz. `DECISION_LOG.md` — "Platform operatörü ayrı bir eksendir".
 
 Sistemde iki bağımsız kimlik ekseni bulunur. Bir kullanıcı ikisinden birine, hiçbirine veya (teoride) her ikisine de ait olabilir:
 
@@ -148,4 +157,7 @@ auth.users
 - Yetkilendirme her zaman sunucudadır. Rota koruması yalnızca kullanıcı deneyimi içindir; her platform işlemi operatör kontrolünü sunucuda yapan bir Edge Function üzerinden yürür.
 - **Kapsam kabı ile sınırlıdır:** kurum, şube, kurum yöneticisi hesabı ve operatör listesi yönetilir. Öğrenci, not, yoklama, ödev ve ödeme verisine erişim yoktur — bu, mevcut RLS politikalarının doğal sonucudur ve "platform operatörü her şeyi okur" türünde bir policy eklenmeyecektir.
 - Kuruma bağlı olmayan platform işlemleri `platform_audit_events` tablosuna yazılır; `audit_events.organization_id` NOT NULL olduğu için o tablo kullanılamaz.
+- Şemadaki roller `owner` ve `operator`, durumlar `active` ve `suspended`'dır. Yalnızca `active` operatörler yetkili sayılır.
+- `platform_operators` ve `platform_audit_events` tablolarına **istemciden yazma yolu yoktur**; ekleme ve denetim kaydı üretme yalnızca `service_role` ile çalışan Edge Function üzerinden yapılır. Aksi halde bir operatör kendi yetkisini yükseltebilir veya sahte denetim kaydı üretebilirdi.
+- Operatörün kurum içeriğine erişemediği `supabase/tests/database/platform_operators.test.sql` içinde üç ayrı testle doğrulanır. Bu, KVKK gerekçesiyle verilen taahhüdün çalıştırılabilir karşılığıdır ve ileride sessizce gevşetilirse CI'da kırılır.
 - İlk operatör hesapları, panel kendi kendini oluşturamayacağı için bir defaya mahsus kontrollü biçimde eklenir. Bu, "kayıtlar elle oluşturulmaz" kuralının tek tanımlı istisnasıdır.

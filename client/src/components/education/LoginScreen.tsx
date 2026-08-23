@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { OrbitMark } from "@/components/OrbitMark";
+import { Link } from "wouter";
 import { ChevronRight, LayoutDashboard, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import type { LoginInput } from "@/auth/types";
@@ -148,10 +149,20 @@ export function EducationLoginScreen({
                 doldurulur.
               </p>
             ) : (
-              <p className="mt-5 text-[10px] leading-5 text-slate-400">
-                Rolünüz ve erişebileceğiniz kurum, güvenli üyelik kaydınızdan
-                otomatik belirlenir.
-              </p>
+              <>
+                <p className="mt-4 text-[11px] leading-5">
+                  <Link
+                    href="/sifre-sifirla"
+                    className="font-bold text-blue-600 hover:text-blue-700"
+                  >
+                    Şifremi unuttum
+                  </Link>
+                </p>
+                <p className="mt-3 text-[10px] leading-5 text-slate-400">
+                  Rolünüz ve erişebileceğiniz kurum, güvenli üyelik kaydınızdan
+                  otomatik belirlenir.
+                </p>
+              </>
             )}
           </div>
           <aside className="relative hidden overflow-hidden bg-slate-900 p-10 text-white lg:block">
