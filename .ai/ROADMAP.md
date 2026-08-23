@@ -38,6 +38,19 @@ Bu bölüm, ileride bir karar değiştirildiğinde eski bağlamın kaybolmaması
 
 **Gerekçe:** Çocuk kullanıcılar, benzersiz kimlik gereksinimi ve KVKK güvenliği.
 
+**Güncelleme (2026-08-23):** Bu cevabın "sahte e-posta üretilmeyecek" kısmı daraltılmıştır. Gerekçe ve tam metin için bkz. `DECISION_LOG.md` — "Kimlik ve Giriş Bilgisi Mimarisi".
+
+Kararın asıl niyeti korunmuştur: **ortak hesap ve paylaşılan geçici şifre hâlâ yasaktır**, her kişinin kimliği benzersizdir. Değişen tek şey, e-postası olmayan ancak gerçekten giriş yapması gereken kullanıcılar için bir yol açılmasıdır.
+
+| Durum                             | Uygulama                                                                             |
+| --------------------------------- | ------------------------------------------------------------------------------------ |
+| Giriş yapmayacak küçük öğrenci    | Auth hesabı **açılmaz**; `auth_user_id` boş kalır, bağlı veli kendi hesabından görür |
+| Giriş yapacak, e-postası var      | Davet akışı; kullanıcı kendi şifresini belirler                                      |
+| Giriş yapacak, e-postası yok      | 8 haneli kişi numarası ve kişiye özel geçici şifre                                   |
+| Ortak hesap veya paylaşılan şifre | Her durumda yasak                                                                    |
+
+Sentetik adres bir varsayılan değil, erişime ihtiyacı olup e-postası bulunmayan kullanıcılar için yedek yoldur. E-postası olmayan yetişkin bir kursiyer veya öğretmen de aynı yolu kullanır; bu nedenle şema öğrenciye özel değildir.
+
 ### Soru 5 - Günlük Akış ile Gün Planı aynı özellik mi olacak?
 
 **Onaylı cevap:** Hayır, iki ayrı veri modeli ve ayrı sorumluluk olarak geliştirilecek.
@@ -185,6 +198,8 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 ### v1.3 - Dinamik Frontend ve Temiz Kurum Görünümü
 
+> **Sıra kararı (2026-08-23):** Bu sürüm, platform paneli tamamlandıktan **hemen sonra** ve ilk gerçek kurum açılmadan **önce** yapılacaktır. Bugün 13 dosya mock veriden besleniyor; kurum yöneticisi hesabına ilk girdiğinde kendi kurumu boşken karşısına sahte öğrenci isimleri ve uydurma istatistikler çıkar. Bu, pilotun ilk izlenimini bitirir ve ürünün gerçekliğini sorgulatır.
+
 **Hedef:** Dört paneli gerçek oturum ve Supabase verisiyle çalıştırmak, production mock verisini kaldırmak.
 
 - [ ] `mockData.ts`, `isMock: true` tipleri ve `orbit:demo:*` production bağımlılığının kaldırılması.
@@ -220,6 +235,8 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Dört rol için kabul testi ve tenant izolasyon testi.
 - [ ] İlk admin/öğretmen/öğrenci/veli davet akışı.
 - [ ] KVKK veri envanteri, log sanitization ve erişim matrisi denetimi.
+- [ ] KVKK hukuki hazırlık: kurumla veri işleme sözleşmesi (kurum veri sorumlusu, ORBIT veri işleyen), velilere aydınlatma metni ve açık rıza akışı, silme hakkı uygulaması (`PROJECT_ARCHITECT.md` §06 B12).
+- [ ] Kişisel verinin yurt dışında (Supabase `eu-central-1`, Frankfurt) tutulmasına ilişkin kararın netleştirilmesi ve belgelenmesi.
 - [ ] Rate limit, CORS, security headers ve production hata mesajları denetimi.
 - [ ] Realtime kopması, ağ hatası ve boş veri fallback senaryoları.
 - [ ] Supabase/Vercel ücretsiz katman kullanım ve bütçe alarmı kontrolü.

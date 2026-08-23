@@ -281,3 +281,83 @@ Kuralı sessizce çiğnemek, bu projede tedavi edilen asıl hastalığın (belge
 **Gerekçe:** İki kişilik bir ekipte, uygulanamayan bir kuralın kâğıt üzerinde durması onu zamanla tümüyle işlevsiz kılar. Sınırlı, tarihli ve koşullu bir izin, kuralın kalan kısmını korur. 4. maddedeki istisna, iznin gerçekten tehlikeli olabileceği tek alanı dışarıda bırakır.
 
 **Alternatifler:** Kuralı olduğu gibi bırakıp fiilen uymamak değerlendirildi ve reddedildi; belge ile davranışın ayrışması bu projenin tekrar eden hata kalıbıdır. Kuralı tamamen kaldırmak da reddedildi; PR #11, #13 ve #15'in review'suz merge edilmesi ile sonrasında ortaya çıkan tutarsızlıklar arasındaki bağ göz önüne alındığında, onay mekanizmasının değeri kanıtlanmıştır.
+
+---
+
+### Karar: Kimlik ve Giriş Bilgisi Mimarisi
+
+**Durum:** Alındı
+**Tarih:** 2026-08-23
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Ürünün hedef kitlesinde herkesin e-postası yok. Kurum yöneticileri ve çoğu öğretmen e-posta kullanıyor; öğrencilerin özellikle küçük yaş grubunda çoğunun yok, velilerin ise neredeyse tamamında telefon var ama e-posta değişken. Supabase Auth ise giriş için e-posta veya telefon istiyor, kullanıcı adı desteklemiyor.
+
+T.C. Kimlik numarası KVKK gerekçesiyle kimlik belirteci olarak kullanılmayacaktır. e-Okul'un T.C. Kimlik + okul numarası ile şifresiz giriş modeli örnek alınmamıştır; düşük güvenlikli bir tasarımdır.
+
+Sorun üç ayrı parçadan oluşur ve genelde birbirine karıştırılır: kimlik belirteci, kimlik kanıtı ve ilk kimlik bilgisinin teslimi. Asıl zor olan üçüncüsüdür.
+
+**Karar:**
+
+**1. Giriş belirteci: e-posta veya 8 haneli kişi numarası.**
+
+Giriş formu tek bir alan sorar. İstemci girdiyi şöyle yorumlar:
+
+- `@` içeriyorsa e-posta adresidir, olduğu gibi kullanılır
+- 8 haneli sayıysa `<numara>@orbit.invalid` sentetik adresine çevrilir
+
+Numara `<kurum:4 hane><kişi:4 hane>` biçimindedir ve **global olarak benzersizdir**; bu nedenle giriş ekranında ayrıca kurum kodu sorulmaz.
+
+- Her iki bölüm de **1000'den başlar**. Baştaki sıfır hiç oluşmaz; kullanıcı `0042`'yi `42` diye yazıp giriş yapamaz duruma düşmez.
+- Kapasite: 9000 kurum × 9000 kişi.
+- Numara **rol kodlamaz.** Roller değişebilir (öğrenci ileride asistan olabilir) ve rolü kimliğe gömmek, rol değişiminde kimlik değiştirmeyi gerektirirdi. Rol `organization_memberships` kaydında durur.
+- Numara "öğrenci numarası" değil **kişi numarasıdır**; e-postası olmayan öğrenci, veli ve öğretmen aynı şemayı kullanır.
+- Kurumun kendi iç öğrenci numarası ayrı bir alanda saklanır. İkisini birleştirmek, kuruma numaralandırma sistemini değiştirtmek anlamına gelirdi.
+
+**2. Sentetik adresler istemcide deterministik olarak üretilir.**
+
+Yaygın alternatif, her girişte kullanıcı adını e-postaya çeviren `service_role` yetkili bir Edge Function kullanmaktır. Bu yaklaşım **reddedilmiştir**: kullanıcı şifresi bizim sunucu kodumuzdan geçerdi ve giriş yoluna ayrıcalıklı bir bileşen eklenirdi.
+
+Numara global olarak benzersiz olduğu için istemci sentetik adresi kendisi kurabilir ve doğrudan `signInWithPassword` çağırabilir. Giriş yolunda ayrıcalıklı hiçbir bileşen yoktur; şifre tarayıcıdan doğrudan Supabase'e gider.
+
+`.invalid` uzantısı RFC 2606 gereği hiçbir zaman çözümlenemez; bu adreslere kimse posta gönderemez ve gerçek bir adresle çakışamaz. `.local` **kullanılmaz**; o uzantı mDNS için ayrılmıştır ve yerel ağlarda çözümleme sorunlarına yol açar.
+
+**3. İlk şifre geçicidir, bir kez gösterilir ve asla saklanmaz.**
+
+- Kullanıcı oluşturulurken kişiye özel, rastgele bir geçici şifre üretilir. Herkese aynı standart şifre verilmez.
+- Şifre **yalnızca oluşturma anında ekranda gösterilir**; veritabanına düz metin olarak yazılmaz. Kaybolursa yönetici yenisini üretir.
+- Kullanıcı ilk girişte şifresini değiştirmek **zorundadır**; değiştirmeden başka hiçbir ekrana gidemez.
+- Geçici şifrenin ömrü sınırlıdır. Dağıtılıp hiç kullanılmayan kâğıtlardaki şifreler süresiz geçerli kalmaz.
+- Şifre kâğıttan okunabilir olmalıdır. Onaltılık dizeler (`9b2d4a6f7c`) bu amaçla kullanılmaz.
+
+**4. Pilot aşamada teslim yöntemi: yazdırılabilir liste ve varsa e-posta.**
+
+Panel, oluşturma anında yazdırılabilir bir liste üretir. E-postası olan kullanıcılara ayrıca gönderilir. SMS ve WhatsApp bu aşamada kurulmaz; `profiles.phone` alanı doldurulur ama kullanılmaz, böylece ileride bir otomasyon eklendiğinde veri hazır olur.
+
+**5. E-postası olmayan kullanıcı için sıfırlama kanalı kurum yöneticisidir.**
+
+Bu kişiler kendi başlarına şifre sıfırlayamaz. Panelde kullanıcı başına "şifre sıfırla" işlemi bulunmak zorundadır; aksi halde kurum her unutulan şifrede geliştirme ekibine başvurur. Bunun sonucu olarak kurum yöneticisi hesabı yüksek değerli bir hedeftir ve gerçek e-posta ile korunur.
+
+**Gerekçe:** Tek alanlı giriş, iki alanlı girişe göre sahada belirgin biçimde daha az hata üretir; hedef kitlenin bir kısmı ilkokul çağında ve kâğıttan okuyarak giriş yapacaktır. Sentetik adresin istemcide üretilebilmesi, giriş yolundan ayrıcalıklı bir bileşeni tamamen kaldırır. Geçici şifrenin bir kez gösterilip saklanmaması, düz metin şifre saklama gereğini ortadan kaldırır ve KVKK açısından savunulabilir tek konumdur.
+
+Numarada isim taşınmaması bilinçlidir: K-12 kimlik yönetimi rehberleri, kimlik belirtecinin opak, değişmez ve kişisel veri içermeyen bir değer olmasını önerir. `ahmet.yilmaz@...` biçimi ismi belirtece gömerdi; ayrıca aynı isimli iki kişide çakışır ve isim değişikliğinde kimliğin değişmesini gerektirirdi.
+
+**Alternatifler:**
+
+- **Telefon numarasıyla giriş (Supabase phone auth):** Velilerin neredeyse tamamında telefon var. Reddedildi; operatörler numaraları geri dönüşüme sokuyor ve geri dönüştürülmüş bir numarayı alan kişi önceki kullanıcının hesabına erişebiliyor. Supabase de bu yöntemi bu nedenle önermiyor. Ayrıca SMS maliyeti sıfır bütçe hedefiyle çelişiyor.
+- **UUID tabanlı kullanıcı adı (`user_123e4567@...`):** Benzersizliği garanti eder ancak kâğıttan okunup yazılamaz. Kimlik hem benzersiz hem kullanılabilir olmak zorundadır.
+- **İsim tabanlı kullanıcı adı:** Hatırlaması kolaydır ancak belirtece kişisel veri gömer, çakışır ve isim değişikliğinde kırılır.
+- **Kurum kodu + kullanıcı adı iki ayrı alan:** İlk tasarımdı. Numaraya kurum kodunun gömülmesiyle gereksiz hale geldi.
+- **Kontrol hanesi (Luhn) eklemek:** Yazım hatalarını yakalar ve daha iyi hata mesajı verir. Numarayı dokuz haneye çıkardığı için tercih edilmedi; kâğıttan okunabilirlik daha değerli görüldü.
+
+**Uygulama sırası notu:** Bu karar bugün alınmıştır ancak tamamı bugün uygulanmayacaktır. Kurum yöneticileri gerçek e-posta adresine sahip olacağı için, platform paneli onları mevcut davet ve şifre belirleme akışıyla oluşturabilir; sentetik adres ve geçici şifre makinesi ilk kez kurum yöneticisi kendi öğretmen ve öğrencilerini eklerken gerekecektir. Karar erken sabitlenmiştir çünkü kimlik şemasını sonradan değiştirmek, oluşturulmuş her hesabı etkiler.
+
+**Ek karar (2026-08-23): Platform operatörleri için ayrı giriş ekranı yapılmayacaktır.**
+
+Daha önceki "Platform operatörü ayrı bir eksendir" kararında `/platform` altında ayrı bir giriş ekranı öngörülmüştü. Gerekçeleri iki taneydi ve ikisi de yukarıdaki kimlik kararıyla birlikte geçersiz kaldı:
+
+1. _"Kurum girişi kurum kodu soracağı için operatörlerde karşılığı olmaz."_ Numaraya kurum kodu gömüldüğü için giriş ekranı artık tek alan soruyor ve o alan e-postayı da kabul ediyor. Operatörler gerçek e-posta kullanır; aynı ekran ikisine de hizmet eder.
+2. _"Kurum girişi ileride kuruma özel markalanabilir."_ Giriş anında hangi kurumun kullanıcısı olduğunu bilmiyoruz — kimlik ancak doğrulamadan sonra çözülüyor. Dolayısıyla giriş ekranı zaten kuruma göre markalanamaz.
+
+**Karar:** Tek giriş ekranı, girişten sonra dallanma. Kimlik çözümlendiğinde kullanıcı `platform_operators` kaydına sahipse `/platform` paneline, kurum üyeliğine sahipse dershane paneline yönlendirilir. Panellerin kendisi ayrı kalmaya devam eder; ayrışan şey giriş değil, girişten sonraki hedeftir.
+
+**Uygulama notu:** `authService.loadAuthenticatedIdentity` şu anda aktif bir kurum üyeliği bulamazsa hata fırlatıyor ve `AuthProvider` kullanıcıyı oturumdan atıyor. Platform operatörünün tasarım gereği hiçbir kurum üyeliği yoktur; bu nedenle kimlik çözümlemesi, üyelik bulunamadığında `platform_operators` kaydına da bakacak biçimde genişletilmelidir. Aksi halde operatör giriş yapar yapmaz sistemden atılır.
