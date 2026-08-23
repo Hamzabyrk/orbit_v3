@@ -6,6 +6,45 @@
 
 ---
 
+## 2026-08-23 — v1.1.1 Güvenlik Kapanışı ve Platform Ayarlarının Kayda Alınması (Issue #18, #20)
+
+**Kim:** Claude (Arda Bülent onayıyla; `fix/18-harden-function-grants` ve `docs/20-platform-settings-registry` branch'lerinde). PR #19'u Hamza Bayrak onayladı.
+
+**Ne yapıldı:**
+
+- `anon` ve `authenticated` rollerinin `internal_bootstrap_organization` ve `handle_new_auth_user` üzerindeki EXECUTE yetkileri, `current_user_has_membership` üzerindeki `anon` yetkisi ve `workspace_documents` üzerindeki DML yetkileri migration ile kaldırıldı.
+- `current_user_has_membership` için `authenticated` yetkisi bilinçli olarak **korundu**. RLS policy ifadeleri çağıran rolün ayrıcalıklarıyla değerlendirildiği ve bu fonksiyon dört tablonun policy'sinde birden kullanıldığı için yetkinin kaldırılması tüm tenant okuma akışını kıracaktı. Bu, ilk plandaki "dört fonksiyondan da kaldır" yaklaşımının hatalı olduğunun tespitidir.
+- `set_updated_at` kapsam dışında bırakıldı: SECURITY DEFINER değil ve `trigger` tipi döndürdüğü için trigger bağlamı dışında çağrılamıyor.
+- `supabase/tests/database/function_grants.test.sql` eklendi. Sekiz testin beşi negatif (yetkiler gerçekten kalktı mı), üçü regresyon (auth trigger'ı hâlâ profil oluşturuyor, `authenticated` hâlâ üyelik sorgulayabiliyor ve profilini güncelleyebiliyor).
+- Production Auth ayarları panelden hizalandı: yeni kayıt kapatıldı, minimum şifre uzunluğu 8'e çıkarıldı, şifre karmaşıklığı zorunlu kılındı.
+- **Site URL düzeltildi.** `https://orbit-v3-orb-i-t.vercel.app/` ayarlıydı; bu adres Vercel SSO girişine 302 yönlendiriyor. Auth e-postalarındaki bağlantılar kullanıcıyı Vercel login ekranına götüreceği için v1.1.2 şifre sıfırlama akışı kırık doğacaktı. Çalışan public adres `https://orbit-v3-topaz.vercel.app` olarak ayarlandı.
+- Redirect URL listesindeki dört hatalı kayıt kaldırıldı (ikisi SSO korumalı domaine işaret ediyordu, ikisinde wildcard yanlış konumdaydı) ve eksik `/**` varyantları eklendi.
+- Edge Function `ALLOWED_ORIGINS` secret'ı production adresiyle set edildi.
+- Vercel `orbit-v3` projesindeki, uygulamanın kullanmadığı 16 sunucu değişkeni silindi; proje yalnızca `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` ile kaldı. Supabase→Vercel env senkronizasyonu kapatıldı.
+- `.ai/PLATFORM_SETTINGS.md` eklendi ve `PROJECT_ARCHITECT.md` §01 ortak hafıza listesine işlendi.
+
+**Canlıda doğrulanan sonuçlar:**
+
+- `anon` → `internal_bootstrap_organization`: önce `HTTP 409` (fonksiyon çalışıyordu), sonra `42501 permission denied`.
+- Yeni kayıt: önce `weak_password` (açıktı), sonra `email_provider_disabled`.
+- Şifre politikası: önce "at least 6 characters", sonra "at least 8 characters".
+- `anon` → `workspace_documents`: `42501 permission denied`.
+- `ALLOWED_ORIGINS`: yalnızca production adresi geçiyor; `localhost` ve bilinmeyen origin'ler `origin_not_allowed` alıyor.
+- Supabase security advisor uyarıları sekizden üçe düştü; kalan üçü `PLATFORM_SETTINGS.md` bölüm 5'te kabul edilmiş açıklardır.
+- Regresyon kontrolü temiz: production sitesi HTTP 200, mevcut oturum canlı, tenant kayıt sayıları değişmedi.
+
+**Repo public'e alınırken oluşan açık pencere denetlendi:** Kötüye kullanım bulgusu yok. Tüm tenant kayıtlarının ve tek Auth kullanıcısının oluşturulma zamanı 2026-08-21 19:04'tür, yani repo public'e alınmadan öncedir.
+
+**Ertelenen ve gerekçesi kayda geçen ayarlar:** `require current password when updating`, `secure password change`, oturum zaman aşımı, JWT secret ve `service_role` rotasyonu. Beşi de aynı sebeple bekliyor: kurucu yöneticinin şifre girişi çalışmıyor ve erişimi tek bir oturuma bağlı. Ayrıntı ve açılma şartı için bkz. `PLATFORM_SETTINGS.md` bölüm 4.
+
+**Sırada ne var:**
+
+1. v1.1.2 — şifre belirleme/sıfırlama akışı. Ertelenen beş ayarın ve Arda'nın hesabının kilidi buna bağlı; kritik yol budur.
+2. v1.1.1 kalan iki madde: CI'daki `pnpm audit` kapısı ile yıkıcı migration guard'ı, ve `.gitattributes`.
+3. v1.1.2 — `platform_operators` şeması, `/platform` paneli, test kurumunun panel üzerinden yeniden kurulması.
+
+---
+
 ## 2026-08-23 — Stabilizasyon Denetimi ve Hafıza Düzeltmesi (Issue #16)
 
 **Kim:** Claude (Arda Bülent onayıyla, `fix/16-ai-memory-truth` branch'inde)

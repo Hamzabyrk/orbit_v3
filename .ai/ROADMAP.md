@@ -133,16 +133,23 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 **Hedef:** v1.1 release gate'ini gerçekten kapatmak; repo ile production arasındaki ayarların ayrışmasını sonlandırmak.
 
-- [ ] Migration: `internal_bootstrap_organization`, `handle_new_auth_user`, `current_user_has_membership` ve `set_updated_at` fonksiyonlarından `anon` ve `authenticated` EXECUTE yetkilerinin kaldırılması.
-- [ ] Migration: `workspace_documents` üzerindeki `anon` ve `authenticated` DML yetkilerinin kaldırılması.
-- [ ] pgTAP: `anon` rolünün bu fonksiyonları çağıramadığını doğrulayan negatif testler.
-- [ ] Production Auth ayarları: signup kapatma, minimum şifre uzunluğu 8, sızmış şifre koruması, Site URL ve redirect listesi, oturum zaman aşımı.
-- [ ] Edge Function `ALLOWED_ORIGINS` secret'ının production'a set edilmesi.
-- [ ] Vercel: uygulamanın kullanmadığı 16 sunucu değişkeninin silinmesi ve Preview deployment korumasının açılması.
-- [ ] `.ai/` altına "dashboard'dan elle yönetilen ayarlar" kontrol listesi; `config.toml`'un production'ı yönetmediğinin açıkça yazılması.
+- [x] Migration: `internal_bootstrap_organization` ve `handle_new_auth_user` fonksiyonlarından `anon` ve `authenticated`, `current_user_has_membership`'ten yalnızca `anon` EXECUTE yetkisinin kaldırılması (Issue #18, PR #19).
+- [x] Migration: `workspace_documents` üzerindeki `anon` ve `authenticated` DML yetkilerinin kaldırılması (PR #19).
+- [x] pgTAP: `anon` ve `authenticated` rollerinin ayrıcalıklı fonksiyonları çağıramadığını doğrulayan negatif testler ve trigger/RLS regresyon testleri (PR #19).
+- [x] Production Auth ayarları: signup kapatıldı, minimum şifre uzunluğu 8, şifre karmaşıklığı, Site URL ve redirect listesi düzeltildi (Issue #20).
+- [x] Edge Function `ALLOWED_ORIGINS` secret'ının production'a set edilmesi (Issue #20).
+- [x] Vercel: uygulamanın kullanmadığı 16 sunucu değişkeni silindi; Supabase→Vercel env senkronizasyonu kapatıldı (Issue #20).
+- [x] `.ai/PLATFORM_SETTINGS.md` eklendi; `config.toml`'un production'ı yönetmediği, elle yönetilen ayarların envanteri ve kabul edilmiş açıklar kayda geçti (Issue #20).
 - [ ] CI: `pnpm audit` adımından `continue-on-error` kaldırılması ve yıkıcı migration guard'ı eklenmesi.
+- [ ] `.gitattributes` ile satır sonlarının normalize edilmesi (Windows'ta `core.autocrlf` ile `prettier endOfLine: lf` çakışıyor, `format:check` yerelde 45 dosyada sahte hata veriyor).
 
-**Release gate:** `anon` anahtarıyla hiçbir SECURITY DEFINER fonksiyonu çağrılamaz; production'da yeni kayıt açılamaz; Supabase security advisor'da açık WARN kalmaz; repo ile production ayarları arasındaki bilinen farklar yazılı kontrol listesinde izlenir.
+**Kapsam dışına alınanlar (gerekçeleriyle `PLATFORM_SETTINGS.md` bölüm 4 ve 5'te kayıtlı):**
+
+- Sızmış şifre koruması Supabase Pro plan gerektiriyor; sıfır bütçe hedefi nedeniyle açılmadı.
+- Oturum zaman aşımı, `secure password change` ve `require current password` ayarları v1.1.2 sonrasına ertelendi; şu an açılmaları ekibin tamamını sistemden kilitler.
+- Preview deployment koruması bilinçli olarak kapalı bırakıldı; açılması ekip üyelerinden birini preview'lardan tamamen dışlar ve karşılığında yalnızca demo verisi korunur.
+
+**Release gate:** `anon` anahtarıyla hiçbir SECURITY DEFINER fonksiyonu çağrılamaz; production'da yeni kayıt açılamaz; Supabase security advisor'da `PLATFORM_SETTINGS.md` bölüm 5'te kabul edilmiş olanlar dışında uyarı kalmaz; repo ile production ayarları arasındaki bilinen farklar `PLATFORM_SETTINGS.md` üzerinden izlenir.
 
 ### v1.1.2 - Şifre Akışı ve Platform Operatörü Paneli
 
