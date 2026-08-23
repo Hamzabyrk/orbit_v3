@@ -1,8 +1,10 @@
 name: Supabase Database Tests
 
 on:
+  # Hedef dal filtresi bilinçli olarak yok; bkz. ci.yml'deki aynı not.
+  # Yol filtresi korunuyor: bu workflow yalnızca veritabanı değişikliklerinde
+  # anlamlı ve `supabase start` her koşuda birkaç dakika sürüyor.
   pull_request:
-    branches: [main]
     paths:
       - "supabase/**"
   push:

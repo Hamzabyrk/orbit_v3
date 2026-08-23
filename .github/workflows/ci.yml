@@ -1,8 +1,11 @@
 name: CI Pipeline
 
 on:
+  # Hedef dal filtresi bilinçli olarak yok. `branches: [main]` yazıldığında,
+  # base'i main olmayan bir PR (yığılı/stacked çalışma) hiçbir kontrol
+  # almıyordu — kalite kapısı sessizce devre dışı kalıyordu. Her PR
+  # doğrulanmalıdır, hangi dala hedeflenirse hedeflensin.
   pull_request:
-    branches: [main]
   push:
     branches: [main]
 
