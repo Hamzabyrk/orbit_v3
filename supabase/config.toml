@@ -217,8 +217,18 @@ web3 = 30
 # secret = ""
 
 [auth.email]
-# Allow/disallow new user signups via email to your project.
-enable_signup = false
+# DIKKAT: Bu anahtarin adi yaniltici. Ustteki [auth] enable_signup yeni kayit
+# acmayi yonetir; BU anahtar ise e-posta saglayicisinin kendisini acar/kapatir.
+# false yapilirsa hic kimse e-posta/sifre ile GIRIS yapamaz ve sifre sifirlama
+# akisi da calismaz.
+#
+# Bu tuzak projede iki kez isledi: hem burada hem de Supabase panelinde
+# "yeni kayit kapatilsin" istenirken saglayici kapatildi ve production'da
+# e-posta girisi tamamen durdu (Issue #29).
+#
+# Dogru yapilandirma: burasi true (saglayici acik), [auth] enable_signup false
+# (yeni kayit kapali).
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
