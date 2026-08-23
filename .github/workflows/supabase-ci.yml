@@ -14,6 +14,105 @@ permissions:
   contents: read
 
 jobs:
+  # Supabase GitHub entegrasyonu, main'e merge edilen her migration'ı production
+  # veritabanına otomatik uygular. Geçerli ama yıkıcı bir SQL ifadesi gözden
+  # kaçarsa veri kaybı geri alınamaz. Bu iş, yalnızca PR'da DEĞİŞEN migration
+  # dosyalarını tarar; tüm geçmişi tarasaydı meşru bir yıkıcı migration merge
+  # edildiği anda kalıcı olarak kırmızıya dönerdi.
+  destructive-migration-guard:
+    name: Yıkıcı Migration Kontrolü
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Base ile head arasında diff alabilmek için tam geçmiş gerekiyor.
+          fetch-depth: 0
+
+      - name: Değişen migration dosyalarını tara
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -uo pipefail
+
+          files=$(git diff --name-only --diff-filter=AM "$BASE_SHA...$HEAD_SHA" -- 'supabase/migrations/*.sql' || true)
+
+          if [ -z "$files" ]; then
+            echo "Bu PR'da eklenen veya değiştirilen migration dosyası yok."
+            exit 0
+          fi
+
+          echo "Taranan dosyalar:"
+          echo "$files"
+          echo
+
+          # Veri kaybına yol açan ifadeler. SQL bu repoda küçük harfle yazıldığı
+          # için eşleştirme büyük/küçük harf duyarsızdır.
+          blocking='drop[[:space:]]+(table|schema|database)|drop[[:space:]]+column|truncate[[:space:]]|delete[[:space:]]+from'
+
+          # Veriyi silmez ama işlevi sessizce kırabilir. 20260821000000 numaralı
+          # migration yerine yenisini koymadan altı policy düşürdüğü için
+          # "Belgeler" özelliği production'da hâlâ işlevsiz.
+          warning='drop[[:space:]]+policy'
+
+          failed=0
+
+          for f in $files; do
+            # İşaretleyici, yorumlar temizlenmeden önce aranır.
+            if grep -qiE '^[[:space:]]*--[[:space:]]*ALLOW-DESTRUCTIVE:[[:space:]]*[^[:space:]]' "$f"; then
+              reason=$(grep -iE '^[[:space:]]*--[[:space:]]*ALLOW-DESTRUCTIVE:' "$f" | head -1)
+              echo "::notice file=$f::Bilinçli yıkıcı migration, kontrol atlanıyor. $reason"
+              continue
+            fi
+
+            # Satır yorumları temizlenir; aksi halde açıklama metnindeki
+            # "DELETE/TRUNCATE" gibi ifadeler sahte alarm üretir. Satır sayısı
+            # korunur ki bildirilen satır numaraları doğru kalsın.
+            stripped=$(sed 's/--.*$//' "$f")
+
+            hits=$(printf '%s\n' "$stripped" | grep -inE "$blocking" || true)
+            if [ -n "$hits" ]; then
+              echo "::error file=$f::Yıkıcı SQL ifadesi bulundu"
+              printf '%s\n' "$hits" | while IFS= read -r line; do
+                echo "  $f:$line"
+              done
+              failed=1
+            fi
+
+            warns=$(printf '%s\n' "$stripped" | grep -inE "$warning" || true)
+            if [ -n "$warns" ]; then
+              echo "::warning file=$f::drop policy bulundu — yerine yeni bir policy eklendiğini doğrulayın, aksi halde özellik sessizce işlevsiz kalır"
+              printf '%s\n' "$warns" | while IFS= read -r line; do
+                echo "  $f:$line"
+              done
+            fi
+          done
+
+          if [ "$failed" -eq 1 ]; then
+            cat <<'MSG'
+
+          ------------------------------------------------------------------
+          Bu migration production veritabanına merge ile birlikte otomatik
+          uygulanacak ve yukarıdaki ifadeler geri alınamaz veri kaybına yol
+          açabilir.
+
+          Yıkıcı işlem gerçekten amaçlanıyorsa, migration dosyasının başına
+          gerekçesiyle birlikte şu satırı ekleyin:
+
+            -- ALLOW-DESTRUCTIVE: <neden gerekli olduğunun kısa açıklaması>
+
+          Gerekçe PR açıklamasında da belirtilmeli ve karşı ekip üyesi
+          tarafından ayrıca onaylanmalıdır.
+          ------------------------------------------------------------------
+          MSG
+            exit 1
+          fi
+
+          echo "Yıkıcı ifade bulunamadı."
+
   tenant-rls:
     name: Tenant RLS
     runs-on: ubuntu-latest

@@ -1,0 +1,30 @@
+# Satır sonlarını tüm platformlarda normalize et.
+#
+# Repoda .gitattributes bulunmadığı için Windows'ta git'in core.autocrlf=true
+# ayarı çalışma kopyasını CRLF'e çeviriyor, .prettierrc ise endOfLine: "lf"
+# istiyordu. Sonuç: `pnpm run format:check` Windows'ta dokunulmamış onlarca
+# dosyada sahte hata veriyor, `pnpm run format` çalıştırılırsa da bu dosyalar
+# baştan yazılıp devasa bir sahte diff üretiyordu. CI Ubuntu'da çalıştığı için
+# sorun yalnızca yerel geliştirmede görünüyordu.
+#
+# Index'teki blob'lar zaten LF olarak saklanıyor; bu dosya çalışma kopyasını da
+# aynı hizaya getirir.
+* text=auto eol=lf
+
+# İkili dosyalar dönüştürülmemeli. Şu an repoda bulunmayanlar da ileride
+# eklendiğinde bozulmasın diye baştan tanımlandı.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.avif binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.mp4 binary
+*.zip binary
