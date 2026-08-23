@@ -51,17 +51,29 @@ Son doğrulama: **2026-08-23**, Issue #20.
 
 ### 3.1 Supabase — Authentication
 
-| Ayar                      | Değer                              | Doğrulama                                                 |
-| ------------------------- | ---------------------------------- | --------------------------------------------------------- |
-| Email sağlayıcı           | Açık                               | Panel                                                     |
-| Yeni kayıt (signup)       | **Kapalı**                         | API: `email_provider_disabled`                            |
-| Minimum şifre uzunluğu    | **8**                              | API: `"Password should be at least 8 characters"`         |
-| Şifre karmaşıklığı        | Küçük + büyük harf + rakam         | Panel                                                     |
-| Secure email change       | Açık                               | Panel                                                     |
-| Email OTP ömrü / uzunluğu | 3600 sn / 8 hane                   | Panel                                                     |
-| Captcha koruması          | Kapalı                             | Panel                                                     |
-| Sızmış şifre koruması     | Kapalı — **Pro plan gerektiriyor** | Panel (bkz. bölüm 5)                                      |
-| Oturum zaman aşımı        | Yapılandırılmadı                   | `auth.sessions.not_after` boş, oturum süresiz yenileniyor |
+| Ayar                      | Değer                              | Doğrulama                                                  |
+| ------------------------- | ---------------------------------- | ---------------------------------------------------------- |
+| Email sağlayıcı           | **Açık**                           | API: giriş denemesi `invalid_credentials` döner            |
+| Yeni kayıt (signup)       | **Kapalı**                         | API: `signup_disabled`                                     |
+| Minimum şifre uzunluğu    | **8**                              | Panel — anonim sonda ile doğrulanamaz (aşağıdaki nota bak) |
+| Şifre karmaşıklığı        | Küçük + büyük harf + rakam         | Panel                                                      |
+| Secure email change       | Açık                               | Panel                                                      |
+| Email OTP ömrü / uzunluğu | 3600 sn / 8 hane                   | Panel                                                      |
+| Captcha koruması          | Kapalı                             | Panel                                                      |
+| Sızmış şifre koruması     | Kapalı — **Pro plan gerektiriyor** | Panel (bkz. bölüm 5)                                       |
+| Oturum zaman aşımı        | Yapılandırılmadı                   | `auth.sessions.not_after` boş, oturum süresiz yenileniyor  |
+
+> ⚠️ **`Enable email provider` ile `Allow new users to sign up` ayrı ayarlardır ve karıştırılmamalıdır.**
+>
+> Birincisi `Auth Providers → Email` altındadır ve e-posta/şifre ile **giriş yapmayı** yönetir. İkincisi aynı sayfanın üstündeki `User Signups` bölümündedir ve yalnızca **yeni kayıt** açmayı yönetir.
+>
+> 2026-08-23'te kayıt kapatılmak istenirken sağlayıcı kapatıldı. Sonuç: hiç kimse şifreyle giriş yapamaz hâle geldi ve şifre sıfırlama akışı da çalışmadı. Kurucu yöneticinin erişimi yalnızca mevcut oturumu sayesinde sürdü.
+>
+> **Değiştirme sırası:** önce kayıt kapatılır, sonra sağlayıcı açılır. Ters sırada kısa süreli bir açık kayıt penceresi oluşur.
+>
+> **Eski doğrulama yöntemi yanıltıcıydı.** `email_provider_disabled` hata kodu hem sağlayıcı kapalıyken hem kayıt kapalıyken dönüyordu; ikisini ayırt edemiyordu. Doğru ayrım bölüm 6'daki güncel komutlardadır.
+>
+> Şifre politikası (minimum uzunluk, karmaşıklık) kayıt kapalıyken anonim olarak sondalanamaz; kayıt denemesi politika kontrolüne varmadan `signup_disabled` ile reddedilir. Politika ancak panelden veya gerçek bir şifre belirleme sırasında doğrulanabilir.
 
 ### 3.2 Supabase — URL yapılandırması
 
@@ -102,12 +114,14 @@ Son doğrulama: **2026-08-23**, Issue #20.
 
 Proje `orbit-v3`, Hamza'nın sahibi olduğu `ORBİT` Hobby takımında.
 
-| Ayar                          | Değer                                                                                          |
-| ----------------------------- | ---------------------------------------------------------------------------------------------- |
-| Ortam değişkenleri            | Yalnızca `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` (Production, Preview, Development)    |
-| Public production adresi      | `https://orbit-v3-topaz.vercel.app`                                                            |
-| `orbit-v3-orb-i-t.vercel.app` | Vercel SSO korumalı, auth akışlarında **kullanılmaz**                                          |
-| Preview deployment koruması   | **Etkin** — preview adresleri Vercel SSO gerektiriyor (2026-08-23'te doğrulandı, bkz. bölüm 5) |
+| Ayar                          | Değer                                                                                                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ortam değişkenleri            | Yalnızca `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` (Production, Preview, Development)                                                           |
+| Public production adresi      | `https://orbit-v3-topaz.vercel.app`                                                                                                                   |
+| `orbit-v3-orb-i-t.vercel.app` | Vercel SSO korumalı, auth akışlarında **kullanılmaz**                                                                                                 |
+| Preview deployment koruması   | **Etkin** — preview adresleri Vercel SSO gerektiriyor (2026-08-23'te doğrulandı, bkz. bölüm 5)                                                        |
+| Güvenlik başlıkları           | `vercel.json` ile repodan yönetilir — CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy. HSTS'i Vercel kendisi ekler. |
+| SPA rewrite                   | `vercel.json` — istemci rotalarının doğrudan açılabilmesi için zorunlu                                                                                |
 
 > Supabase→Vercel env senkronizasyonu **kapalı tutulmalıdır.** Açıkken projeye `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `POSTGRES_PASSWORD` dahil 16 sunucu değişkeni basılmıştı. Uygulama bir Vite SPA'dır; bunların hiçbirini okumaz. Değerler istemci bundle'ına sızmamıştı (Vite yalnızca `VITE_` önekli değişkenleri açar), ancak build ortamına erişilebilir durumdaydılar.
 >
@@ -158,41 +172,93 @@ Bilinen, kapatılmayan ve **bilinçli olarak kabul edilen** durumlar. Her deneti
 
 ---
 
+| Auth e-postaları Supabase'in paylaşımlı SMTP'siyle gönderiliyor | Davet, şifre sıfırlama ve e-posta doğrulama mailleri Supabase'in yerleşik servisinden çıkıyor. Supabase bu servisi **production için uygun olmadığını açıkça belirterek** sunuyor: saatlik gönderim limiti çok düşük ve teslimat garantisi yok, spam klasörüne düşmesi olağan. İki kişilik ekip testleri için yeterli. | **Pilot kuruma açılmadan önce.** Kurum yöneticilerine gönderilen davet ve sıfırlama maillerinin ulaşmaması, ilk müşteride öğrenilecek bir hata olmamalı. Seçenekler bölüm 7'de. |
+| Google Fonts, Google'ın sunucularından yükleniyor | `client/src/index.css:2` fontları `fonts.googleapis.com` üzerinden çekiyor. Bu, siteyi açan **her ziyaretçinin IP adresinin Google'a gitmesi** demektir. GDPR kapsamında Alman mahkemeleri bunu ihlal saymıştı; KVKK GDPR'ı model aldığı ve ürün çocuk verisi işlediği için aynı değerlendirme muhtemeldir. Bugün kapatılmadı çünkü fontları kendi sunucumuzda barındırmak ayrı bir iştir ve CSP düzeltmesiyle karıştırılmamalıdır. | Pilot kuruma açılmadan önce; fontlar `client/public/` altına indirilip `@import` kaldırılmalı, ardından CSP'den `fonts.googleapis.com` ve `fonts.gstatic.com` çıkarılmalı |
+| Altı indekssiz foreign key (INFO) | Tablolar şu an boş. İndeks eklemek advisor çıktısını "unindexed FK"den "unused index"e çevirmekten başka işe yaramaz; iki uyarı da bugün eylem gerektirmiyor. | v1.2 iş tabloları ve gerçek veri geldiğinde indeksleme topluca ele alınacak |
+| `set_updated_at` `anon`'a açık | SECURITY DEFINER değil ve `trigger` tipi döndürdüğü için trigger bağlamı dışında çağrılamıyor; risk oluşturmuyor. Acil bir güvenlik düzeltmesinde gereksiz yüzey değiştirmemek için Issue #18 kapsamı dışında bırakıldı. | — |
+
+---
+
 ## 6. Doğrulama komutları
 
 Envanterin hâlâ geçerli olduğunu sınamak için. `<ANON_KEY>` yerine public publishable anahtar konur.
 
 ```bash
 URL=https://xyxnyiadidjyalcphhfj.supabase.co
+KEY=<PUBLIC_PUBLISHABLE_KEY>
 
-# Yeni kayıt kapalı olmalı -> email_provider_disabled
-curl -s -X POST "$URL/auth/v1/signup" -H "apikey: <ANON_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"probe@example.com","password":"Xk9mQw2zPl"}'
+# 1) E-posta saglayicisi ACIK olmali.
+#    Beklenen: invalid_credentials
+#    Sorunluysa: email_provider_disabled  -> saglayici kapali, kimse giris yapamaz
+curl -s -X POST "$URL/auth/v1/token?grant_type=password" -H "apikey: $KEY"   -H "Content-Type: application/json"   -d '{"email":"kontrol@example.com","password":"YanlisSifre123"}'
 
-# Sifre politikasi 8 karakter olmali -> weak_password / "at least 8 characters"
-curl -s -X POST "$URL/auth/v1/signup" -H "apikey: <ANON_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"probe@example.com","password":"abc"}'
+# 2) Yeni kayit KAPALI olmali.
+#    Beklenen: signup_disabled
+#    email_provider_disabled donuyorsa saglayici da kapali demektir; 1. komutla ayirt edin.
+curl -s -X POST "$URL/auth/v1/signup" -H "apikey: $KEY"   -H "Content-Type: application/json"   -d '{"email":"kontrol@example.com","password":"Xk9mQw2zPl"}'
 
-# anon ayricalikli RPC'yi cagiramamali -> 42501
-curl -s -X POST "$URL/rest/v1/rpc/internal_bootstrap_organization" \
-  -H "apikey: <ANON_KEY>" -H "Authorization: Bearer <ANON_KEY>" \
-  -H "Content-Type: application/json" \
-  -d '{"organization_name":"a","organization_slug":"a","branch_name":"a","admin_user_id":"00000000-0000-0000-0000-000000000000","actor_user_id":"00000000-0000-0000-0000-000000000000"}'
+# 3) Sifre sifirlama CALISMALI. Beklenen: HTTP 200
+#    Var olmayan bir adres kullanilir; e-posta gonderilmez ve hesap varligi sizdirilmaz.
+curl -s -o /dev/null -w "%{http_code}
+" -X POST   "$URL/auth/v1/recover?redirect_to=https%3A%2F%2Forbit-v3-topaz.vercel.app%2Fsifre-belirle"   -H "apikey: $KEY" -H "Content-Type: application/json"   -d '{"email":"bulunmayan-adres-kontrol@example.com"}'
 
-# anon tenant tablolarini okuyamamali -> 42501
-curl -s "$URL/rest/v1/organizations?select=id" \
-  -H "apikey: <ANON_KEY>" -H "Authorization: Bearer <ANON_KEY>"
+# 4) anon ayricalikli RPC'leri cagiramamali -> 42501
+curl -s -X POST "$URL/rest/v1/rpc/internal_bootstrap_organization"   -H "apikey: $KEY" -H "Authorization: Bearer $KEY"   -H "Content-Type: application/json"   -d '{"organization_name":"a","organization_slug":"a","branch_name":"a","admin_user_id":"00000000-0000-0000-0000-000000000000","actor_user_id":"00000000-0000-0000-0000-000000000000"}'
 
-# ALLOWED_ORIGINS yalnizca production adresini kabul etmeli
-# topaz -> forbidden (origin gecti, operator kontrolune takildi)
-# digerleri -> origin_not_allowed
-for o in "https://orbit-v3-topaz.vercel.app" "http://localhost:5173"; do
-  curl -s -X POST "$URL/functions/v1/bootstrap-organization" \
-    -H "Origin: $o" -H "Authorization: Bearer <ANON_KEY>" \
-    -H "apikey: <ANON_KEY>" -H "Content-Type: application/json" -d '{}'
+curl -s -X POST "$URL/rest/v1/rpc/current_user_is_platform_operator"   -H "apikey: $KEY" -H "Authorization: Bearer $KEY"   -H "Content-Type: application/json" -d '{}'
+
+# 5) anon hicbir tabloyu okuyamamali -> 42501
+for t in organizations branches organization_memberships profiles audit_events          platform_operators platform_audit_events workspace_documents; do
+  printf "%-26s " "$t"
+  curl -s "$URL/rest/v1/$t?select=*&limit=1" -H "apikey: $KEY" -H "Authorization: Bearer $KEY" | head -c 60
+  echo
+done
+
+# 6) Guvenlik basliklari yerinde olmali
+curl -s -D - -o /dev/null https://orbit-v3-topaz.vercel.app/   | grep -iE "content-security-policy|x-frame-options|x-content-type-options|referrer-policy|strict-transport"
+
+# 7) SPA rotalari dogrudan acilabilmeli -> hepsi 200
+for p in / /sifre-sifirla /sifre-belirle; do
+  printf "%-16s %s
+" "$p" "$(curl -s -o /dev/null -w '%{http_code}' https://orbit-v3-topaz.vercel.app$p)"
 done
 ```
 
 Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. Beklenen kalıcı uyarılar: `workspace_documents` policy yokluğu (INFO), `current_user_has_membership` (WARN), sızmış şifre koruması (WARN). **Bunların dışında bir uyarı çıkarsa incelenmelidir.**
+
+---
+
+## 7. Auth e-posta gönderimi — seçenekler ve kısıtlar
+
+Şu an Supabase'in paylaşımlı SMTP'si kullanılıyor. Aşağıdaki üç yol değerlendirildi; **karar henüz verilmedi**, verildiğinde `DECISION_LOG.md`'ye ADR olarak yazılacaktır.
+
+### A. Kişisel Gmail hesabı (SMTP)
+
+Supabase paneline `smtp.gmail.com:587` ve bir **Gmail Uygulama Şifresi** girilir. Hesap şifresi değil; Uygulama Şifresi ayrı üretilir ve iki adımlı doğrulama açık olmalıdır.
+
+- ✅ Bugün kurulabilir, ek maliyet yok, Gmail'in SPF/DKIM kayıtları teslimatı makul tutar
+- ✅ Supabase'in saatlik limiti devreden çıkar; limit artık Gmail'inki olur (günlük birkaç yüz mail)
+- ⚠️ **Gönderen adresi kişisel olur.** Dershane yöneticisi "ORBIT şifre sıfırlama" mailini bir şahsın Gmail adresinden alır; kurumsal görünmez ve spam ihtimalini artırır.
+- ⚠️ Uygulama Şifresi Supabase ayarlarında saklanır. Sızarsa o hesap adına **mail gönderilebilir** (okunamaz — Uygulama Şifresi yalnızca SMTP kapsamındadır).
+- ⚠️ Google, otomatik/toplu gönderimi kendi kullanım şartlarında teşvik etmiyor; hesap kısıtlanabilir.
+
+### B. İşlemsel e-posta sağlayıcısı, alan adı olmadan
+
+Brevo veya Mailjet gibi servisler, alan adı sahibi olmadan **doğrulanmış bir gönderen e-posta adresi** ile gönderime izin verir (ücretsiz katmanlarda günlük birkaç yüz mail).
+
+- ✅ Gerçek işlemsel altyapı: teslimat raporu, bounce yönetimi, DKIM
+- ✅ Kişisel Gmail hesabı riske girmez
+- ⚠️ Gönderen adresi yine kişisel bir adres olur; kurumsal görünüm sağlamaz
+
+### C. Kendi alan adı + işlemsel sağlayıcı
+
+`orbit.app` benzeri bir alan adı alınır, DNS'e SPF/DKIM kayıtları eklenir, Resend/SendGrid/Brevo üzerinden `destek@...` adresinden gönderilir.
+
+- ✅ Tek profesyonel çözüm; teslimat, güven ve marka açısından doğru olan bu
+- ⚠️ Alan adı yıllık ücret gerektirir (sıfır bütçe hedefiyle çelişen tek madde)
+
+### Değerlendirme
+
+A ve B, pilot öncesi geçici çözümlerdir; ikisi de gönderen adresi sorununu çözmez. C, ticarileşme kapısıyla (`ROADMAP.md` v2.0) birlikte ele alınmalıdır.
+
+**Hangisi seçilirse seçilsin, Supabase'in yerleşik SMTP'si ilk gerçek kurum davetinden önce terk edilmelidir.**

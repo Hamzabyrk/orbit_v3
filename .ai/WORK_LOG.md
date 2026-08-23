@@ -6,6 +6,50 @@
 
 ---
 
+## 2026-08-23 — Doğrulama Denetimi (Issue #29)
+
+**Kim:** Claude (Arda Bülent talebiyle, `fix/29-security-headers-and-settings-record` branch'inde)
+
+v1.1.1 ve v1.1.2 çalışmalarından sonra, bir sonraki faza geçmeden önce yapılan doğrulama turu.
+
+**🔴 Kritik bulgu — production'da e-posta girişi tamamen kapalıymış:**
+
+- `POST /auth/v1/token` → `email_provider_disabled` / "Email logins are disabled". Supabase panelinde `Auth Providers → Email` durumu **Disabled** idi.
+- Sonuç: hiçbir kullanıcı şifreyle giriş yapamıyordu ve Issue #25'te eklenen şifre sıfırlama akışı da çalışmıyordu. Kurucu yöneticinin erişimi yalnızca süresi dolmayan mevcut oturumu sayesinde sürüyordu.
+- Kök neden: yeni kayıt kapatılmak istenirken Email sağlayıcı panelindeki "Enable email provider" anahtarı kapatılmış. "Allow new users to sign up" ise aynı sayfanın üst bölümünde ayrı bir ayar.
+- Panelden düzeltildi. Doğrulandı: giriş → `invalid_credentials` (açık), kayıt → `signup_disabled` (kapalı), sıfırlama → `HTTP 200` (çalışıyor).
+- Yan fayda: kayıt artık `signup_disabled` döndürüyor, yani hata kodu ayırt edici hâle geldi.
+
+**🟠 Güvenlik başlıkları eksikti.** Production'da yalnızca Vercel'in eklediği `Strict-Transport-Security` vardı. `PROJECT_ARCHITECT.md` §06 B3 CSP ve X-Frame-Options'ı zorunlu kılıyor. `vercel.json` üzerinden CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` ve `Permissions-Policy` eklendi. En somut kazanım clickjacking koruması: giriş ekranı artık iframe içine alınamıyor.
+
+**🟠 Altıncı drift vakası — bu kez kendi dokümanımızda.** `PLATFORM_SETTINGS.md` "Email sağlayıcı: Açık" diyordu; değildi. Daha önemlisi, "yeni kayıt kapalı" kanıtı olarak gösterilen API sondası yanıltıcıydı: `email_provider_disabled` hem sağlayıcı kapalıyken hem kayıt kapalıyken dönüyor ve ikisini ayırt edemiyor. Semptom doğru okunmuş ama yanlış sebebe bağlanmıştı. Kayıt düzeltildi ve bölüm 6'daki doğrulama komutları ayırt edici hâle getirildi.
+
+**CSP preview'da uygulamayı kırdı ve düzeltildi.** İlk taslak `fonts.googleapis.com` isteğini blokluyordu. Sebep, dış kaynak taramasını eksik yapmam: `index.html` ve `.ts`/`.tsx` dosyalarına baktım ama CSS'e bakmadım; oysa `client/src/index.css:2` Google Fonts'u `@import` ile çekiyor. `style-src` ve `font-src` genişletildi, preview'da yeniden doğrulandı: fontlar 200 dönüyor, konsolda ihlal yok, ekran doğru render oluyor. Bu, CSP'yi doğrudan production'a göndermeyip önce preview'da sınamanın karşılığıdır.
+
+**Yeni kayda geçen KVKK maddesi:** Google Fonts'un Google sunucularından yüklenmesi, her ziyaretçinin IP adresini Google'a gönderiyor. Pilot kuruma açılmadan önce fontların kendi sunucumuzda barındırılması gerekiyor; `PLATFORM_SETTINGS.md` bölüm 5'e tetikleyicisiyle işlendi.
+
+**Kayda geçen üçüncü madde — auth e-posta gönderimi.** Davet, şifre sıfırlama ve doğrulama mailleri şu an Supabase'in paylaşımlı SMTP'sinden çıkıyor. Supabase bu servisi production için uygun olmadığını belirterek sunuyor: saatlik limit çok düşük, teslimat garantisi yok. İki kişilik ekip testleri için yeterli, ancak ilk kurum davetinden önce terk edilmeli — kurum yöneticisine ulaşmayan bir davet maili, ilk müşteride öğrenilecek bir hata olmamalı. Üç seçenek (kişisel Gmail SMTP, alan adsız işlemsel sağlayıcı, kendi alan adı) kısıtlarıyla birlikte `PLATFORM_SETTINGS.md` bölüm 7'ye yazıldı. Karar henüz verilmedi.
+
+**Denetimde temiz çıkanlar:**
+
+- Sekiz canlı güvenlik sondası: `anon` ayrıcalıklı RPC'leri çağıramıyor, hiçbir tabloyu okuyamıyor
+- Dört SECURITY DEFINER fonksiyonunun tamamında `search_path=""`; yetkiler amaçlandığı gibi
+- Sekiz tablonun tamamında RLS açık, her birinde en az bir policy (`workspace_documents` bilinçli istisna); `anon`'un hiçbirinde yetkisi yok
+- Production bundle'ında sır sızıntısı yok; gömülü tek JWT public anon anahtarı
+- SPA rewrite production'da çalışıyor; HTTP→HTTPS yönlendirmesi var
+- Storage kilitli; API'ye açık şemalar yalnızca `public` ve `realtime`; eklentiler standart
+- Supabase advisor'da kabul edilmiş olanlar dışında bulgu yok
+
+**Kabul edilip kayda geçirilenler:** altı indekssiz foreign key (tablolar boş; indeks eklemek uyarıyı "unused index"e çevirmekten başka işe yaramaz, v1.2'de topluca ele alınacak) ve `set_updated_at`'in `anon`'a açık kalması (SECURITY DEFINER değil, trigger dışında çağrılamıyor).
+
+**Sırada ne var:**
+
+1. Kurucu yöneticinin şifresini sıfırlaması ve gizli sekmeden giriş yaparak akışı uçtan uca doğrulaması.
+2. Bu doğrulandığında `PLATFORM_SETTINGS.md` bölüm 4'teki beş ertelenmiş ayarın açılması.
+3. `/platform` paneli ve `bootstrap-organization` Edge Function güncellemesi.
+
+---
+
 ## 2026-08-23 — Platform Operatörü Şeması (Issue #27)
 
 **Kim:** Claude (Arda Bülent onayıyla, `feat/27-platform-operators-schema` branch'inde)
