@@ -22,6 +22,8 @@
 
 **Düzeltilen önceki değerlendirme:** `PLATFORM_SETTINGS.md` bölüm 5'te "preview deployment koruması kapalı, adresi bilen herkes demo şifresiyle girebilir" yazıyordu. Bu **yanlıştı**. Preview adresleri `302` ile Vercel SSO'ya yönlendiriyor; doğrulandı. Kayıt düzeltildi. Demo şifresiyle dışarıdan erişim riski yok; bedeli, preview'ı incelemek için o Vercel takımına ait bir oturum gerekmesi.
 
+**Yol boyunca bulunan ve düzeltilen CI açığı:** Her iki workflow'da da `pull_request: branches: [main]` filtresi vardı. Sonuç: base'i `main` olmayan bir PR (yığılı çalışma) **hiçbir kontrol almıyordu** — ne `quality-gate`, ne `Tenant RLS`, ne yıkıcı migration guard'ı. Kalite kapısı yığılı çalışıldığı anda sessizce devre dışı kalıyordu. Bu, migration ve pgTAP testleri içeren bir PR sıfır kontrolle açıldığında somut olarak görüldü. `pull_request` için hedef dal filtresi kaldırıldı; `push` için `main` filtresi ve `supabase-ci`'daki yol filtresi korundu.
+
 **Kapsam dışında bırakılan:** `bootstrap-organization` Edge Function'ının bu tabloyu okuyacak biçimde güncellenmesi bilinçli olarak bu PR'a alınmadı. Edge Function'lar Supabase GitHub entegrasyonuyla **otomatik deploy edilmez**; yalnızca `supabase/migrations/` uygulanır. Fonksiyonu burada değiştirmek, repo ile production arasında yeni bir ayrışma yaratırdı. Değişiklik, deploy'uyla birlikte panel işinde yapılacaktır.
 
 **Sırada ne var:**

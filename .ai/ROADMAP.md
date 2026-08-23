@@ -142,6 +142,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [x] `.ai/PLATFORM_SETTINGS.md` eklendi; `config.toml`'un production'ı yönetmediği, elle yönetilen ayarların envanteri ve kabul edilmiş açıklar kayda geçti (Issue #20).
 - [x] CI: bağımlılık taraması engelleyici hale getirildi ve yıkıcı migration guard'ı eklendi (Issue #22, PR #23). Kapı production bağımlılıklarına uygulanır; geliştirme bağımlılıkları görünür ama engellemez, aksi halde kapı kalıcı olarak kırmızı kalırdı. Production'daki iki high seviyeli lodash açığı `pnpm.overrides` ile kapatıldı.
 - [x] `.gitattributes` ile satır sonları normalize edildi (Issue #22, PR #23).
+- [x] CI tetikleyicileri düzeltildi: `pull_request` artık hedef dal filtresi olmadan çalışır (Issue #27). Öncesinde base'i `main` olmayan PR'lar hiçbir kontrol almıyordu.
 
 **Kapsam dışına alınanlar (gerekçeleriyle `PLATFORM_SETTINGS.md` bölüm 4 ve 5'te kayıtlı):**
 
