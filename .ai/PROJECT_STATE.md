@@ -186,6 +186,36 @@ Kararların gerekçeleri için bkz. `DECISION_LOG.md` — "Kimlik ve Giriş Bilg
 - **Şablon biz veririz.** Rastgele Excel dosyalarından sütun eşleştirmeye çalışmak kapsam dışıdır.
 - **Fotoğraf/OCR ile veri çıkarma yapılmaz.** Öğrenci listesi görüntüsünü bir OCR servisine göndermek, çocukların kişisel verisini üçüncü tarafa aktarmak anlamına gelir ve ayrı bir veri işleme sözleşmesi gerektirir. El yazısı Türkçe isimlerde doğruluk da düşüktür ve hatalar sessizdir.
 
+### Giriş hesabı kime açılır — kararı kurum verir
+
+Sistemde **kayıtlı olmak** ile **giriş hesabı olmak** iki ayrı şeydir ve karıştırılmamalıdır.
+
+|               | Nedir                                      | Kimde bulunur               |
+| ------------- | ------------------------------------------ | --------------------------- |
+| Öğrenci kaydı | Ad, sınıf, not, yoklama, ödeme             | Herkeste                    |
+| Giriş hesabı  | `auth.users` satırı, giriş numarası, şifre | Yalnızca giriş yapacaklarda |
+
+Dokuz yaşındaki bir öğrenci sisteme kayıtlıdır, öğretmeni not girer, velisi kendi hesabından takip eder; ancak kendi giriş hesabı yoktur. On ikinci sınıftaki bir öğrenci kendi deneme sonuçlarını görmek isteyebilir ve hesabı olur. İkisi de sistemdedir.
+
+Gerekçe KVKK'daki veri minimizasyonu ilkesidir: hiç giriş yapmayacak bir çocuk için kimlik oluşturmak, ihtiyaç duyulmayan kişisel veriyi işlemektir.
+
+**Kararı ORBIT vermez, kurum verir.** İlkokul dershanesiyle YKS kursunun ihtiyacı aynı değildir. Kurum iki yerden seçer:
+
+1. **İçe aktarma şablonunda `Giriş Hesabı` sütunu** — satır bazında evet/hayır
+2. **Öğrenci listesinde işlem** — sonradan fikir değişirse tek işlemle hesap üretilir
+
+Bu tercih için veritabanında ayrı bir bayrak **tutulmaz**: `students.auth_user_id` doluysa hesap vardır, boşsa yoktur. Şablondaki sütun saklanan bir alan değil, içe aktarma anına ait bir talimattır. Aynı bilgiyi iki yerde tutmak bu projede tekrar eden hata kalıbıdır.
+
+### Şema ekleme sırası
+
+| Ne zaman                    | Ne                                                                                                                 | Neden                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Platform paneliyle birlikte | `organizations.code` (4 hane, 1000'den artan, benzersiz)                                                           | Panel kurum üretmeye başladığı anda her kurumun kodu olmalı; sonradan geriye dönük atamak gerekirdi |
+| v1.2                        | `students`, `guardians`, `student_guardians`, `classes`, `class_enrollments` ve `students.auth_user_id` (nullable) | Panelin bu tablolara ihtiyacı yok; kurum, şube ve yönetici tabloları zaten mevcut                   |
+| İçe aktarma (v1.4)          | `profiles.login_number`, `profiles.must_change_password`, `profiles.phone`                                         | Numara ve geçici şifre ilk kez burada üretilir                                                      |
+
+Sonradan nullable kolon eklemek ucuz ve kırıcı değildir; bu nedenle şemanın tamamını erkenden kurmak gerekmez. `organizations.code` istisnadır çünkü veri üretimi onunla başlar.
+
 ### Henüz tasarlanmamış, pilot öncesi gereken adımlar
 
 - Öğrenci veya öğretmenin kurumdan ayrılması (`membership_status = suspended` mevcut, akış yok)
