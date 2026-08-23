@@ -208,11 +208,11 @@ Bu tercih için veritabanında ayrı bir bayrak **tutulmaz**: `students.auth_use
 
 ### Şema ekleme sırası
 
-| Ne zaman                    | Ne                                                                                                                 | Neden                                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Platform paneliyle birlikte | `organizations.code` (4 hane, 1000'den artan, benzersiz)                                                           | Panel kurum üretmeye başladığı anda her kurumun kodu olmalı; sonradan geriye dönük atamak gerekirdi |
-| v1.2                        | `students`, `guardians`, `student_guardians`, `classes`, `class_enrollments` ve `students.auth_user_id` (nullable) | Panelin bu tablolara ihtiyacı yok; kurum, şube ve yönetici tabloları zaten mevcut                   |
-| İçe aktarma (v1.4)          | `profiles.login_number`, `profiles.must_change_password`, `profiles.phone`                                         | Numara ve geçici şifre ilk kez burada üretilir                                                      |
+| Ne zaman                | Ne                                                                                                                 | Neden                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| **Eklendi (Issue #37)** | `organizations.code` (4 hane, 1000'den artan, benzersiz)                                                           | Panel kurum üretmeye başladığı anda her kurumun kodu olmalı; sonradan geriye dönük atamak gerekirdi |
+| v1.2                    | `students`, `guardians`, `student_guardians`, `classes`, `class_enrollments` ve `students.auth_user_id` (nullable) | Panelin bu tablolara ihtiyacı yok; kurum, şube ve yönetici tabloları zaten mevcut                   |
+| İçe aktarma (v1.4)      | `profiles.login_number`, `profiles.must_change_password`, `profiles.phone`                                         | Numara ve geçici şifre ilk kez burada üretilir                                                      |
 
 Sonradan nullable kolon eklemek ucuz ve kırıcı değildir; bu nedenle şemanın tamamını erkenden kurmak gerekmez. `organizations.code` istisnadır çünkü veri üretimi onunla başlar.
 

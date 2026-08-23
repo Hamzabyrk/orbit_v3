@@ -89,11 +89,37 @@ Deno.serve(async request => {
   const { data: userData, error: userError } =
     await authClient.auth.getUser(token);
 
-  if (
-    userError ||
-    !userData.user ||
-    userData.user.app_metadata.platform_admin !== true
-  ) {
+  if (userError || !userData.user) {
+    return jsonResponse({ error: "forbidden" }, 403, origin);
+  }
+
+  // Operatörlük `platform_operators` tablosundan okunur, JWT'deki
+  // `app_metadata.platform_admin` bayrağından değil. Aynı bilgiyi iki düzlemde
+  // saklamak bu projede altı kez soruna yol açmış olan drift kalıbıdır; tek
+  // doğruluk kaynağı tablodur (bkz. `.ai/DECISION_LOG.md` — "Platform
+  // operatörü ayrı bir eksendir").
+  //
+  // Sorgu `service_role` ile yapılır. Kullanıcının kendi token'ıyla yapılsaydı
+  // RLS devreye girer ve operatör olmayan biri için satır dönmezdi; sonuç aynı
+  // olurdu ancak "operatör değil" ile "sorgu başarısız" ayrımı kaybolurdu.
+  const operatorCheckClient = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const { data: operator, error: operatorError } = await operatorCheckClient
+    .from("platform_operators")
+    .select("user_id")
+    .eq("user_id", userData.user.id)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (operatorError) {
+    // Yetki kontrolü yapılamadıysa isteği geçirmek yerine reddediyoruz.
+    console.error("[bootstrap-organization] operator lookup failed");
+    return jsonResponse({ error: "service_unavailable" }, 503, origin);
+  }
+
+  if (!operator) {
     return jsonResponse({ error: "forbidden" }, 403, origin);
   }
 
