@@ -5,13 +5,24 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
+import SetPassword from "./pages/SetPassword";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path="/" component={Home} />
+      {/*
+        Şifre akışı rotaları kimlik doğrulaması gerektirmez; kullanıcı buraya
+        zaten oturumu olmadığı için gelir. /sifre-belirle adresi, Supabase
+        şifre sıfırlama e-postasındaki bağlantının hedefidir ve bu değer
+        Supabase Redirect URL listesiyle uyumlu olmalıdır
+        (bkz. .ai/PLATFORM_SETTINGS.md bölüm 3.2).
+      */}
+      <Route path="/sifre-sifirla" component={ForgotPassword} />
+      <Route path="/sifre-belirle" component={SetPassword} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

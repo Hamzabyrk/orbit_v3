@@ -2,11 +2,19 @@ import { OrbitMark } from "@/components/OrbitMark";
 import { EducationLoginScreen } from "@/components/education/LoginScreen";
 import { EducationPlatform } from "@/components/education/EducationPlatform";
 import { useAuth } from "@/auth/useAuth";
+import { Redirect } from "wouter";
 import { toast } from "sonner";
 
 export default function Home() {
-  const { identity, loading, demoMode, signIn, signOut, switchDemoRole } =
-    useAuth();
+  const {
+    identity,
+    loading,
+    demoMode,
+    passwordRecovery,
+    signIn,
+    signOut,
+    switchDemoRole,
+  } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -32,6 +40,14 @@ export default function Home() {
         </div>
       </main>
     );
+  }
+
+  // Davet bağlantıları Site URL'e, yani bu sayfaya düşebilir. Kurtarma
+  // sürerken kullanıcıyı giriş formunda bırakmak yerine şifre belirleme
+  // ekranına yönlendiriyoruz; aksi halde açık bir oturumu varken tekrar giriş
+  // yapmaya çalışır ve şifresini asla belirleyemez.
+  if (passwordRecovery) {
+    return <Redirect to="/sifre-belirle" />;
   }
 
   if (!identity) {
