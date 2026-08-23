@@ -161,3 +161,34 @@ auth.users
 - `platform_operators` ve `platform_audit_events` tablolarına **istemciden yazma yolu yoktur**; ekleme ve denetim kaydı üretme yalnızca `service_role` ile çalışan Edge Function üzerinden yapılır. Aksi halde bir operatör kendi yetkisini yükseltebilir veya sahte denetim kaydı üretebilirdi.
 - Operatörün kurum içeriğine erişemediği `supabase/tests/database/platform_operators.test.sql` içinde üç ayrı testle doğrulanır. Bu, KVKK gerekçesiyle verilen taahhüdün çalıştırılabilir karşılığıdır ve ileride sessizce gevşetilirse CI'da kırılır.
 - İlk operatör hesapları, panel kendi kendini oluşturamayacağı için bir defaya mahsus kontrollü biçimde eklenir. Bu, "kayıtlar elle oluşturulmaz" kuralının tek tanımlı istisnasıdır.
+
+---
+
+## 10. Kurum Kurulum İş Akışı (uçtan uca)
+
+Kararların gerekçeleri için bkz. `DECISION_LOG.md` — "Kimlik ve Giriş Bilgisi Mimarisi".
+
+### Adım adım
+
+1. **Platform operatörü kurumu oluşturur.** Panel; kurumu, varsayılan şubeyi, kurum kodunu (1000'den otomatik artan) ve kurum yöneticisi hesabını üretir. Yönetici gerçek e-posta adresine sahiptir.
+2. **Yönetici davet e-postasıyla kendi şifresini belirler.** Mevcut şifre belirleme akışı kullanılır.
+3. **Yönetici sınıfları oluşturur.** Öğrenciler sınıfa atanacağı için bu adım öğrenci aktarımından önce gelmek zorundadır.
+4. **Yönetici öğretmen ve öğrencileri içe aktarır.** Panelden indirilen şablon doldurulur, yüklenir, önce doğrulama önizlemesi gösterilir, onaydan sonra kayıt yapılır.
+5. **Sistem giriş bilgilerini üretir.** E-postası olanlara davet gönderilir; olmayanlara 8 haneli kişi numarası ve geçici şifre üretilir.
+6. **Yönetici yazdırılabilir listeyi bir kez indirir** ve dağıtır.
+7. **Kullanıcılar ilk girişte şifrelerini değiştirir.**
+
+### Bağlayıcı kurallar
+
+- **Platform operatörü kurum yöneticisinin şifresini bilmez.** Yönetici şifresini davet bağlantısıyla kendisi belirler. Aksi halde operatör o hesaba girip kurum içeriğini görebilir ve "operatör kapları yönetir, içeriği görmez" taahhüdü fiilen geçersiz kalırdı.
+- **Geçici şifreler düz metin saklanmaz.** Oluşturma anında bir kez gösterilir. Kaybedilirse yeniden üretilir; bu nedenle hem tek kişi hem sınıf bazında "şifreyi yeniden üret" işlemi bulunmak zorundadır.
+- **İçe aktarma yarım kalmamalıdır.** Doğrulama kayıttan önce yapılır, işlem parçalara bölünür ve tekrar çalıştırıldığında aynı kişiyi iki kez oluşturmaz.
+- **Şablon biz veririz.** Rastgele Excel dosyalarından sütun eşleştirmeye çalışmak kapsam dışıdır.
+- **Fotoğraf/OCR ile veri çıkarma yapılmaz.** Öğrenci listesi görüntüsünü bir OCR servisine göndermek, çocukların kişisel verisini üçüncü tarafa aktarmak anlamına gelir ve ayrı bir veri işleme sözleşmesi gerektirir. El yazısı Türkçe isimlerde doğruluk da düşüktür ve hatalar sessizdir.
+
+### Henüz tasarlanmamış, pilot öncesi gereken adımlar
+
+- Öğrenci veya öğretmenin kurumdan ayrılması (`membership_status = suspended` mevcut, akış yok)
+- Kurumun ikinci ve sonraki şubelerinin eklenmesi
+- KVKK silme hakkı (`PROJECT_ARCHITECT.md` §06 B12)
+- Veri işleme sözleşmesi, aydınlatma metni ve açık rıza akışı

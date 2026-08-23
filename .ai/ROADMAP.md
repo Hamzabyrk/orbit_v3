@@ -185,6 +185,8 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 ### v1.3 - Dinamik Frontend ve Temiz Kurum Görünümü
 
+> **Sıra kararı (2026-08-23):** Bu sürüm, platform paneli tamamlandıktan **hemen sonra** ve ilk gerçek kurum açılmadan **önce** yapılacaktır. Bugün 13 dosya mock veriden besleniyor; kurum yöneticisi hesabına ilk girdiğinde kendi kurumu boşken karşısına sahte öğrenci isimleri ve uydurma istatistikler çıkar. Bu, pilotun ilk izlenimini bitirir ve ürünün gerçekliğini sorgulatır.
+
 **Hedef:** Dört paneli gerçek oturum ve Supabase verisiyle çalıştırmak, production mock verisini kaldırmak.
 
 - [ ] `mockData.ts`, `isMock: true` tipleri ve `orbit:demo:*` production bağımlılığının kaldırılması.
