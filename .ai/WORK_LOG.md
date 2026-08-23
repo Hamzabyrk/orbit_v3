@@ -24,6 +24,10 @@ v1.1.1 ve v1.1.2 çalışmalarından sonra, bir sonraki faza geçmeden önce yap
 
 **🟠 Altıncı drift vakası — bu kez kendi dokümanımızda.** `PLATFORM_SETTINGS.md` "Email sağlayıcı: Açık" diyordu; değildi. Daha önemlisi, "yeni kayıt kapalı" kanıtı olarak gösterilen API sondası yanıltıcıydı: `email_provider_disabled` hem sağlayıcı kapalıyken hem kayıt kapalıyken dönüyor ve ikisini ayırt edemiyor. Semptom doğru okunmuş ama yanlış sebebe bağlanmıştı. Kayıt düzeltildi ve bölüm 6'daki doğrulama komutları ayırt edici hâle getirildi.
 
+**CSP preview'da uygulamayı kırdı ve düzeltildi.** İlk taslak `fonts.googleapis.com` isteğini blokluyordu. Sebep, dış kaynak taramasını eksik yapmam: `index.html` ve `.ts`/`.tsx` dosyalarına baktım ama CSS'e bakmadım; oysa `client/src/index.css:2` Google Fonts'u `@import` ile çekiyor. `style-src` ve `font-src` genişletildi, preview'da yeniden doğrulandı: fontlar 200 dönüyor, konsolda ihlal yok, ekran doğru render oluyor. Bu, CSP'yi doğrudan production'a göndermeyip önce preview'da sınamanın karşılığıdır.
+
+**Yeni kayda geçen KVKK maddesi:** Google Fonts'un Google sunucularından yüklenmesi, her ziyaretçinin IP adresini Google'a gönderiyor. Pilot kuruma açılmadan önce fontların kendi sunucumuzda barındırılması gerekiyor; `PLATFORM_SETTINGS.md` bölüm 5'e tetikleyicisiyle işlendi.
+
 **Denetimde temiz çıkanlar:**
 
 - Sekiz canlı güvenlik sondası: `anon` ayrıcalıklı RPC'leri çağıramıyor, hiçbir tabloyu okuyamıyor

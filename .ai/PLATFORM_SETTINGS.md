@@ -172,6 +172,7 @@ Bilinen, kapatılmayan ve **bilinçli olarak kabul edilen** durumlar. Her deneti
 
 ---
 
+| Google Fonts, Google'ın sunucularından yükleniyor | `client/src/index.css:2` fontları `fonts.googleapis.com` üzerinden çekiyor. Bu, siteyi açan **her ziyaretçinin IP adresinin Google'a gitmesi** demektir. GDPR kapsamında Alman mahkemeleri bunu ihlal saymıştı; KVKK GDPR'ı model aldığı ve ürün çocuk verisi işlediği için aynı değerlendirme muhtemeldir. Bugün kapatılmadı çünkü fontları kendi sunucumuzda barındırmak ayrı bir iştir ve CSP düzeltmesiyle karıştırılmamalıdır. | Pilot kuruma açılmadan önce; fontlar `client/public/` altına indirilip `@import` kaldırılmalı, ardından CSP'den `fonts.googleapis.com` ve `fonts.gstatic.com` çıkarılmalı |
 | Altı indekssiz foreign key (INFO) | Tablolar şu an boş. İndeks eklemek advisor çıktısını "unindexed FK"den "unused index"e çevirmekten başka işe yaramaz; iki uyarı da bugün eylem gerektirmiyor. | v1.2 iş tabloları ve gerçek veri geldiğinde indeksleme topluca ele alınacak |
 | `set_updated_at` `anon`'a açık | SECURITY DEFINER değil ve `trigger` tipi döndürdüğü için trigger bağlamı dışında çağrılamıyor; risk oluşturmuyor. Acil bir güvenlik düzeltmesinde gereksiz yüzey değiştirmemek için Issue #18 kapsamı dışında bırakıldı. | — |
 
