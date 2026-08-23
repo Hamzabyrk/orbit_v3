@@ -350,3 +350,14 @@ Numarada isim taşınmaması bilinçlidir: K-12 kimlik yönetimi rehberleri, kim
 - **Kontrol hanesi (Luhn) eklemek:** Yazım hatalarını yakalar ve daha iyi hata mesajı verir. Numarayı dokuz haneye çıkardığı için tercih edilmedi; kâğıttan okunabilirlik daha değerli görüldü.
 
 **Uygulama sırası notu:** Bu karar bugün alınmıştır ancak tamamı bugün uygulanmayacaktır. Kurum yöneticileri gerçek e-posta adresine sahip olacağı için, platform paneli onları mevcut davet ve şifre belirleme akışıyla oluşturabilir; sentetik adres ve geçici şifre makinesi ilk kez kurum yöneticisi kendi öğretmen ve öğrencilerini eklerken gerekecektir. Karar erken sabitlenmiştir çünkü kimlik şemasını sonradan değiştirmek, oluşturulmuş her hesabı etkiler.
+
+**Ek karar (2026-08-23): Platform operatörleri için ayrı giriş ekranı yapılmayacaktır.**
+
+Daha önceki "Platform operatörü ayrı bir eksendir" kararında `/platform` altında ayrı bir giriş ekranı öngörülmüştü. Gerekçeleri iki taneydi ve ikisi de yukarıdaki kimlik kararıyla birlikte geçersiz kaldı:
+
+1. _"Kurum girişi kurum kodu soracağı için operatörlerde karşılığı olmaz."_ Numaraya kurum kodu gömüldüğü için giriş ekranı artık tek alan soruyor ve o alan e-postayı da kabul ediyor. Operatörler gerçek e-posta kullanır; aynı ekran ikisine de hizmet eder.
+2. _"Kurum girişi ileride kuruma özel markalanabilir."_ Giriş anında hangi kurumun kullanıcısı olduğunu bilmiyoruz — kimlik ancak doğrulamadan sonra çözülüyor. Dolayısıyla giriş ekranı zaten kuruma göre markalanamaz.
+
+**Karar:** Tek giriş ekranı, girişten sonra dallanma. Kimlik çözümlendiğinde kullanıcı `platform_operators` kaydına sahipse `/platform` paneline, kurum üyeliğine sahipse dershane paneline yönlendirilir. Panellerin kendisi ayrı kalmaya devam eder; ayrışan şey giriş değil, girişten sonraki hedeftir.
+
+**Uygulama notu:** `authService.loadAuthenticatedIdentity` şu anda aktif bir kurum üyeliği bulamazsa hata fırlatıyor ve `AuthProvider` kullanıcıyı oturumdan atıyor. Platform operatörünün tasarım gereği hiçbir kurum üyeliği yoktur; bu nedenle kimlik çözümlemesi, üyelik bulunamadığında `platform_operators` kaydına da bakacak biçimde genişletilmelidir. Aksi halde operatör giriş yapar yapmaz sistemden atılır.
