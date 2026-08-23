@@ -51,17 +51,17 @@ Son doğrulama: **2026-08-23**, Issue #20.
 
 ### 3.1 Supabase — Authentication
 
-| Ayar                      | Değer                              | Doğrulama                                                  |
-| ------------------------- | ---------------------------------- | ---------------------------------------------------------- |
-| Email sağlayıcı           | **Açık**                           | API: giriş denemesi `invalid_credentials` döner            |
-| Yeni kayıt (signup)       | **Kapalı**                         | API: `signup_disabled`                                     |
-| Minimum şifre uzunluğu    | **8**                              | Panel — anonim sonda ile doğrulanamaz (aşağıdaki nota bak) |
-| Şifre karmaşıklığı        | Küçük + büyük harf + rakam         | Panel                                                      |
-| Secure email change       | Açık                               | Panel                                                      |
-| Email OTP ömrü / uzunluğu | 3600 sn / 8 hane                   | Panel                                                      |
-| Captcha koruması          | Kapalı                             | Panel                                                      |
-| Sızmış şifre koruması     | Kapalı — **Pro plan gerektiriyor** | Panel (bkz. bölüm 5)                                       |
-| Oturum zaman aşımı        | Yapılandırılmadı                   | `auth.sessions.not_after` boş, oturum süresiz yenileniyor  |
+| Ayar                      | Değer                                      | Doğrulama                                                  |
+| ------------------------- | ------------------------------------------ | ---------------------------------------------------------- |
+| Email sağlayıcı           | **Açık**                                   | API: giriş denemesi `invalid_credentials` döner            |
+| Yeni kayıt (signup)       | **Kapalı**                                 | API: `signup_disabled`                                     |
+| Minimum şifre uzunluğu    | **8**                                      | Panel — anonim sonda ile doğrulanamaz (aşağıdaki nota bak) |
+| Şifre karmaşıklığı        | Küçük + büyük harf + rakam                 | Panel                                                      |
+| Secure email change       | Açık                                       | Panel                                                      |
+| Email OTP ömrü / uzunluğu | 3600 sn / 8 hane                           | Panel                                                      |
+| Captcha koruması          | Kapalı                                     | Panel                                                      |
+| Sızmış şifre koruması     | Kapalı — **Pro plan gerektiriyor**         | Panel (bkz. bölüm 5)                                       |
+| Oturum zaman aşımı        | Yapılandırılamıyor — Pro plan gerektiriyor | Panel; `auth.sessions.not_after` boş                       |
 
 > ⚠️ **`Enable email provider` ile `Allow new users to sign up` ayrı ayarlardır ve karıştırılmamalıdır.**
 >
@@ -144,15 +144,17 @@ Aşağıdaki ayarlar "eksik" görünür ama **kapalı olmaları kasıtlıdır.**
 
 **Ortak gerekçe:** Kurucu yöneticinin e-posta/şifre girişi çalışmıyor (gizli sekme testiyle doğrulandı). Erişimi, süresi dolmayan tek bir davet oturumuna bağlı. UI'da şifre belirleme veya sıfırlama ekranı yok ve ikinci bir kullanıcı hesabı bulunmuyor.
 
-| Ayar                                      | Neden kapalı                                                                         | Açılma şartı                                        |
-| ----------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| `Require current password when updating`  | Şifre kurtarma akışını, mevcut şifresi olmayan kullanıcı için **tamamen kilitler**   | Şart A                                              |
-| `Secure password change`                  | Şifre değiştirmek için "son 24 saat içinde giriş" şartı koyar; mevcut oturum sınırda | Şart A                                              |
-| Oturum zaman aşımı (inactivity / timebox) | Tek çalışan oturumu anında düşürür                                                   | Şart A                                              |
-| JWT secret rotasyonu                      | Tüm oturumları geçersiz kılar                                                        | Şart A                                              |
-| `service_role` anahtarı rotasyonu         | Edge Function ve yönetim erişimini kırar; sıra gerektirir                            | Şart A + Edge Function secret'larının güncellenmesi |
+| Ayar                                      | Neden kapalı                                                                                                                                                                                                                                 | Açılma şartı                                                                                                                                                     |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Require current password when updating`  | **Hâlâ kapalı.** Şifre kurtarma akışıyla etkileşimi denenmedi: kurtarmada kullanıcının oturumu vardır ama eski şifresini bilmez. Yanlışsa tek kurtarma mekanizması kırılır.                                                                  | İkinci ekip üyesinin hesabı açıldıktan sonra, iki hesapla test edilerek                                                                                          |
+| `Secure password change`                  | **2026-08-23'te açıldı.**                                                                                                                                                                                                                    | —                                                                                                                                                                |
+| Oturum zaman aşımı (inactivity / timebox) | **Supabase Pro plan gerektiriyor**, ücretsiz katmanda açılamıyor. Bkz. bölüm 5.                                                                                                                                                              | Pro plana geçiş veya istemci tarafı hareketsizlik sayacı                                                                                                         |
+| JWT secret rotasyonu                      | **Şart A yetmez.** Production'daki anon anahtarı JWT secret ile imzalanmış eski format bir JWT'dir; secret döndürülürse o anahtar geçersiz olur ve uygulama, Vercel değişkeni güncellenip yeniden deploy edilene kadar **tamamen çalışmaz**. | Önce Vercel'deki `VITE_SUPABASE_ANON_KEY` yeni format `sb_publishable_` anahtarıyla değiştirilmeli ve deploy doğrulanmalı; rotasyon ancak ondan sonra güvenlidir |
+| `service_role` anahtarı rotasyonu         | Eski format anahtarlar JWT secret'a bağlı olduğu için yukarıdaki kesinti riskini paylaşır.                                                                                                                                                   | JWT rotasyonu için gereken hazırlık tamamlandıktan sonra                                                                                                         |
 
 **Şart A:** v1.1.2 kapsamındaki şifre belirleme/sıfırlama akışı production'da çalışır durumda olmalı **ve** her iki ekip üyesinin de e-posta/şifre ile giriş yapabildiği doğrulanmış olmalıdır.
+
+**Şart A durumu (2026-08-23):** Yarısı sağlandı. Şifre sıfırlama akışı production'da uçtan uca çalıştı ve kurucu yönetici kendi şifresiyle giriş yaptı. Ancak ikinci ekip üyesinin henüz hesabı yoktur; sisteme girebilen tek kişi vardır. `Require current password` testi iki hesap gerektirdiği için beklemektedir.
 
 Şart sağlandığında bu bölüm güncellenir ve ayarlar bölüm 3'e taşınır.
 
@@ -173,6 +175,7 @@ Bilinen, kapatılmayan ve **bilinçli olarak kabul edilen** durumlar. Her deneti
 ---
 
 | Auth e-postaları Supabase'in paylaşımlı SMTP'siyle gönderiliyor | Davet, şifre sıfırlama ve e-posta doğrulama mailleri Supabase'in yerleşik servisinden çıkıyor. Supabase bu servisi **production için uygun olmadığını açıkça belirterek** sunuyor: saatlik gönderim limiti çok düşük ve teslimat garantisi yok, spam klasörüne düşmesi olağan. İki kişilik ekip testleri için yeterli. | **Pilot kuruma açılmadan önce.** Kurum yöneticilerine gönderilen davet ve sıfırlama maillerinin ulaşmaması, ilk müşteride öğrenilecek bir hata olmamalı. Seçenekler bölüm 7'de. |
+| Oturum zaman aşımı yapılandırılamıyor | Supabase'de `inactivity timeout` ve `time-box` ayarları Pro plan gerektiriyor; ücretsiz katmanda oturumlar süresiz yenilenmeye devam ediyor. Gerçek tehdit modelimiz dershanenin ortak bilgisayarında açık bırakılan tarayıcıdır; buna karşı istemci tarafında hareketsizlik sayacı etkilidir ve bedavadır. Dürüst sınırı: bu gerçek bir güvenlik kontrolü değildir — token'ı ele geçirmiş bir saldırgan istemci kodunu yok sayar. Açık bırakılmış tarayıcıya karşı ise işe yarar. | İstemci tarafı hareketsizlik sayacı v1.3'e alındı; Pro plana geçilirse sunucu tarafı ayar tercih edilmelidir |
 | Kişisel veri Frankfurt'ta (eu-central-1) tutuluyor | KVKK'da kişisel verinin yurt dışına aktarılması ayrı bir rejime tabidir; açık rıza, taahhütname veya yeterlilik kararı gerektirir. Bu teknik bir hata değil, **kayda geçmemiş bir karardır**. Bir dershaneye satış yapılırken "verilerim nerede tutuluyor" sorusu kesinlikle gelecektir. Bugün gerçek müşteri verisi bulunmadığı için acil değildir. | **İlk gerçek kurum verisi girmeden önce.** Seçenekler: Supabase'i Türkiye'ye yakın/uygun bir bölgeye taşımak, taahhütname yoluna gitmek, veya aydınlatma metni ve açık rızada açıkça belirtmek. |
 | Google Fonts, Google'ın sunucularından yükleniyor | `client/src/index.css:2` fontları `fonts.googleapis.com` üzerinden çekiyor. Bu, siteyi açan **her ziyaretçinin IP adresinin Google'a gitmesi** demektir. GDPR kapsamında Alman mahkemeleri bunu ihlal saymıştı; KVKK GDPR'ı model aldığı ve ürün çocuk verisi işlediği için aynı değerlendirme muhtemeldir. Bugün kapatılmadı çünkü fontları kendi sunucumuzda barındırmak ayrı bir iştir ve CSP düzeltmesiyle karıştırılmamalıdır. | Pilot kuruma açılmadan önce; fontlar `client/public/` altına indirilip `@import` kaldırılmalı, ardından CSP'den `fonts.googleapis.com` ve `fonts.gstatic.com` çıkarılmalı |
 | Altı indekssiz foreign key (INFO) | Tablolar şu an boş. İndeks eklemek advisor çıktısını "unindexed FK"den "unused index"e çevirmekten başka işe yaramaz; iki uyarı da bugün eylem gerektirmiyor. | v1.2 iş tabloları ve gerçek veri geldiğinde indeksleme topluca ele alınacak |

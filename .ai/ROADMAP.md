@@ -209,6 +209,8 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Sağ üst rol göstergesinin gerçek üyelikten gelmesi; demo geçişinin environment ile sınırlandırılması.
 - [ ] Kurum/sınıf kapsamlı Realtime invalidation ve abonelikleri.
 
+- [ ] İstemci tarafı hareketsizlik sayacı: belirli süre işlem yoksa oturum kapatılır. Supabase'in sunucu tarafı oturum zaman aşımı Pro plan gerektirdiği için ücretsiz karşılığıdır; dershanenin ortak bilgisayarında açık bırakılan tarayıcı senaryosuna karşı etkilidir.
+
 **Release gate:** Yeni kurum yalnızca admin ve boş ekranlarla açılır; production bundle içinde demo kişi/kurum verisi bulunmaz; aynı veri farklı yetkili oturumlarda doğru kapsamda güncellenir.
 
 ### v1.4 - Yetkili CRUD ve Operasyon Akışları
