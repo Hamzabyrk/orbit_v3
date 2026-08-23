@@ -6,6 +6,33 @@
 
 ---
 
+## 2026-08-23 — Platform Operatörü Şeması (Issue #27)
+
+**Kim:** Claude (Arda Bülent onayıyla, `feat/27-platform-operators-schema` branch'inde)
+
+**Ne yapıldı:**
+
+- `platform_operators` tablosu, `current_user_is_platform_operator()` yardımcısı ve `platform_audit_events` tablosu migration olarak eklendi.
+- Platform operatörlüğü `app_role` enum'una eklenmedi. O enum her zaman bir kuruma bağlıdır; platform operatörü hiçbir kuruma ait değildir ve beşinci bir değer sahte bir "platform kurumu" kaydı yaratmayı zorunlu kılardı.
+- `auth.users.app_metadata.platform_admin` bayrağı kullanılmadı; tek doğruluk kaynağı tablodur. Aynı bilgiyi iki düzlemde saklamak, bu projede beş kez soruna yol açmış olan drift kalıbının aynısı olurdu.
+- `platform_audit_events` ayrı bir tablodur çünkü `audit_events.organization_id` NOT NULL'dır ve "operatör eklendi" gibi kurum-üstü olaylar oraya yazılamaz. Yeni tabloda `organization_id` nullable.
+- RLS: operatörler birbirini görebilir, operatör olmayan hiçbir satır göremez. İstemciden **yazma yolu yoktur**; operatör ekleme ve denetim kaydı üretme yalnızca `service_role` ile çalışan Edge Function üzerinden yapılacaktır. Aksi halde bir operatör kendi yetkisini yükseltebilir veya sahte denetim kaydı üretebilirdi.
+- Fonksiyon yetkileri Issue #18 dersine göre açıkça bildirildi: `anon`'dan kaldırıldı, `authenticated`'a bırakıldı. RLS policy ifadeleri bu fonksiyonu çağıran rolün ayrıcalıklarıyla değerlendirildiği için yetkinin kaldırılması operatörlerin kendi listelerini bile okuyamamasına yol açardı.
+- On iki pgTAP testi eklendi. Üçü, platform operatörünün `organizations`, `branches` ve `organization_memberships` kayıtlarını **göremediğini** doğruluyor; bu, KVKK gerekçesiyle verilen "operatör kapları yönetir, içeriği görmez" taahhüdünün çalıştırılabilir karşılığıdır ve ileride sessizce gevşetilirse CI'da kırılır.
+
+**Düzeltilen önceki değerlendirme:** `PLATFORM_SETTINGS.md` bölüm 5'te "preview deployment koruması kapalı, adresi bilen herkes demo şifresiyle girebilir" yazıyordu. Bu **yanlıştı**. Preview adresleri `302` ile Vercel SSO'ya yönlendiriyor; doğrulandı. Kayıt düzeltildi. Demo şifresiyle dışarıdan erişim riski yok; bedeli, preview'ı incelemek için o Vercel takımına ait bir oturum gerekmesi.
+
+**Kapsam dışında bırakılan:** `bootstrap-organization` Edge Function'ının bu tabloyu okuyacak biçimde güncellenmesi bilinçli olarak bu PR'a alınmadı. Edge Function'lar Supabase GitHub entegrasyonuyla **otomatik deploy edilmez**; yalnızca `supabase/migrations/` uygulanır. Fonksiyonu burada değiştirmek, repo ile production arasında yeni bir ayrışma yaratırdı. Değişiklik, deploy'uyla birlikte panel işinde yapılacaktır.
+
+**Sırada ne var:**
+
+1. `bootstrap-organization` Edge Function'ının güncellenmesi ve deploy'u.
+2. `/platform` rotası, giriş ekranı ve panel iskeleti.
+3. İlk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi.
+4. Test kurumunun silinip ilk kurumun panel üzerinden yeniden kurulması.
+
+---
+
 ## 2026-08-23 — v1.1.1 Kalite Kapısı ve v1.1.2 Şifre Akışı (Issue #22, #25)
 
 **Kim:** Claude (Arda Bülent onayıyla; `fix/22-ci-quality-gate` ve `feat/25-password-recovery-flow` branch'lerinde). PR #23'ü Hamza Bayrak onayladı.
