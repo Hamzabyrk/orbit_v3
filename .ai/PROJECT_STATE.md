@@ -113,6 +113,15 @@ client/src/
 - İlk tenant için `orbitdershane` / `orbit123` kararı verildi. İlk denemede `yonetici@orbit.edu.tr` adresi `email_address_invalid` ile reddedildi ve yarım kayıt oluşmadı; ardından kurum kurucu ekip üyesinin hesabıyla kuruldu. Bu kayıt **test verisi** sayılır ve panel hazır olduğunda silinip mekanizma üzerinden yeniden kurulacaktır (bkz. `DECISION_LOG.md`).
 - v1.2 iş tabloları ve v1.3 mock temizliği bu dalın bilinçli kapsamı dışındadır.
 
+### Şifre belirleme ve sıfırlama akışı (Issue #25)
+
+- Giriş ekranındaki "Şifremi unuttum" bağlantısı `/sifre-sifirla` adresine gider; oradan Supabase şifre sıfırlama e-postası tetiklenir. Hesabın kayıtlı olup olmadığı sızdırılmaz, her durumda aynı onay mesajı gösterilir.
+- E-postadaki bağlantı `/sifre-belirle` adresine döner. Bu değer Supabase Redirect URL listesiyle uyumlu olmalıdır; liste `PLATFORM_SETTINGS.md` bölüm 3.2'de kayıtlıdır.
+- **Şifre sıfırlama bağlantısı da geçerli bir Supabase oturumu açar.** Bu nedenle `PASSWORD_RECOVERY` olayı normal girişten ayrıştırılır ve kullanıcı panele alınmaz; aksi halde şifresini hiç belirleyemeden içeri girerdi. Bayrak, şifre belirlenene veya vazgeçilene kadar kalıcıdır.
+- Yeni şifre kaydedildikten sonra oturum kapatılır ve kullanıcı yeni şifresiyle giriş yapar. Bu bilinçli bir karardır: akışın amacı şifrenin gerçekten çalıştığını doğrulamaktır.
+- Şifre politikası istemcide de doğrulanır (minimum 8 karakter, küçük harf + büyük harf + rakam) ancak kaynak doğruluk sunucudadır. Politika panelden değiştirilirse `client/src/auth/passwordPolicy.ts` ve testleri güncellenmelidir.
+- Akış demo modunda (yerel geliştirme ve Vercel Preview) kapalıdır.
+
 ---
 
 ## 8. Platform Sahipliği ve Production Bağlantıları (Issue #14)
