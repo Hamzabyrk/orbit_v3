@@ -134,6 +134,15 @@ jobs:
       - name: Migration ve pgTAP RLS testleri
         run: supabase test db
 
+      # Kimlik mimarisinin tamamı, Supabase'in teslim edilemez alan adlarını
+      # (`@orbit.invalid`) kabul etmesine dayanıyor. Bu bir SQL testi olamaz:
+      # admin.createUser bir GoTrue API çağrısıdır ve auth.users'a doğrudan
+      # INSERT yapmak GoTrue'nun doğrulamasını atlar. Tek seferlik kanıt değil,
+      # kalıcı regresyon testidir; Supabase davranışı değiştirirse bunu bir
+      # müşteri değil CI bildirir.
+      - name: Sentetik e-posta ile giriş kanıtı
+        run: bash supabase/tests/auth/synthetic_email.sh
+
       - name: Test ortamını kapat
         if: always()
         run: supabase stop --no-backup
