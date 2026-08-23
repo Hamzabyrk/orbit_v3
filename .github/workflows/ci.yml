@@ -38,6 +38,17 @@ jobs:
       - name: Build Kontrolü
         run: pnpm build
 
-      - name: Bağımlılık Güvenlik Taraması (Audit)
+      # Kapı yalnızca production bağımlılıklarına uygulanır. ORBIT bir Vite
+      # SPA'dır; kullanıcının tarayıcısına ulaşan kod yalnızca production
+      # ağacından gelir. devDependencies'teki açıklar CI makinesinde çalışan
+      # derleme araçlarını ilgilendirir ve büyük çoğunluğu transitive olduğu
+      # için doğrudan kapatılamaz. Tamamını engelleyici yapmak, kapının kalıcı
+      # olarak kırmızı kalmasına ve zamanla göz ardı edilmesine yol açardı.
+      - name: Bağımlılık Güvenlik Taraması — Production (engelleyici)
+        run: pnpm audit --prod --audit-level=high
+
+      # Geliştirme bağımlılıkları engellemez ama görünür kalır; tedarik zinciri
+      # riski böylece takip edilebilir.
+      - name: Bağımlılık Güvenlik Taraması — Geliştirme (bilgilendirme)
         run: pnpm audit --audit-level=high
         continue-on-error: true
