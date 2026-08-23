@@ -172,7 +172,8 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 - [x] Şifre belirleme ve sıfırlama ekranları (Issue #25). `/sifre-sifirla` ve `/sifre-belirle` rotaları, şifre politikasının istemci doğrulaması ve `PASSWORD_RECOVERY` olayının normal girişten ayrıştırılması.
 - [x] `platform_operators` tablosu, `current_user_is_platform_operator()` yardımcısı ve `platform_audit_events` tablosu (Issue #27). Operatörün kurum içeriğini göremediği pgTAP ile doğrulandı.
-- [ ] `bootstrap-organization` Edge Function'ının `app_metadata.platform_admin` yerine `platform_operators` tablosunu okuyacak biçimde güncellenmesi.
+- [x] `bootstrap-organization` Edge Function'ı `app_metadata.platform_admin` yerine `platform_operators` tablosunu okuyor (Issue #37). Edge Function'lar GitHub entegrasyonuyla otomatik deploy edilmediği için **elle deploy gerektirir**; bkz. `PLATFORM_SETTINGS.md` bölüm 2.
+- [x] `organizations.code` eklendi: 1000'den başlayan, benzersiz, dört haneli kurum kodu (Issue #37). Giriş numarasının ilk yarısıdır.
 - [ ] `/platform` rotası, giriş ekranı ve panel iskeleti (`client/src/platform/` altında, dershane ağacına dokunmadan).
 - [ ] Panelden kurum + varsayılan şube + kurum yöneticisi oluşturma akışı.
 - [ ] İlk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi.
