@@ -172,6 +172,7 @@ Bilinen, kapatılmayan ve **bilinçli olarak kabul edilen** durumlar. Her deneti
 
 ---
 
+| Auth e-postaları Supabase'in paylaşımlı SMTP'siyle gönderiliyor | Davet, şifre sıfırlama ve e-posta doğrulama mailleri Supabase'in yerleşik servisinden çıkıyor. Supabase bu servisi **production için uygun olmadığını açıkça belirterek** sunuyor: saatlik gönderim limiti çok düşük ve teslimat garantisi yok, spam klasörüne düşmesi olağan. İki kişilik ekip testleri için yeterli. | **Pilot kuruma açılmadan önce.** Kurum yöneticilerine gönderilen davet ve sıfırlama maillerinin ulaşmaması, ilk müşteride öğrenilecek bir hata olmamalı. Seçenekler bölüm 7'de. |
 | Google Fonts, Google'ın sunucularından yükleniyor | `client/src/index.css:2` fontları `fonts.googleapis.com` üzerinden çekiyor. Bu, siteyi açan **her ziyaretçinin IP adresinin Google'a gitmesi** demektir. GDPR kapsamında Alman mahkemeleri bunu ihlal saymıştı; KVKK GDPR'ı model aldığı ve ürün çocuk verisi işlediği için aynı değerlendirme muhtemeldir. Bugün kapatılmadı çünkü fontları kendi sunucumuzda barındırmak ayrı bir iştir ve CSP düzeltmesiyle karıştırılmamalıdır. | Pilot kuruma açılmadan önce; fontlar `client/public/` altına indirilip `@import` kaldırılmalı, ardından CSP'den `fonts.googleapis.com` ve `fonts.gstatic.com` çıkarılmalı |
 | Altı indekssiz foreign key (INFO) | Tablolar şu an boş. İndeks eklemek advisor çıktısını "unindexed FK"den "unused index"e çevirmekten başka işe yaramaz; iki uyarı da bugün eylem gerektirmiyor. | v1.2 iş tabloları ve gerçek veri geldiğinde indeksleme topluca ele alınacak |
 | `set_updated_at` `anon`'a açık | SECURITY DEFINER değil ve `trigger` tipi döndürdüğü için trigger bağlamı dışında çağrılamıyor; risk oluşturmuyor. Acil bir güvenlik düzeltmesinde gereksiz yüzey değiştirmemek için Issue #18 kapsamı dışında bırakıldı. | — |
@@ -224,3 +225,40 @@ done
 ```
 
 Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. Beklenen kalıcı uyarılar: `workspace_documents` policy yokluğu (INFO), `current_user_has_membership` (WARN), sızmış şifre koruması (WARN). **Bunların dışında bir uyarı çıkarsa incelenmelidir.**
+
+---
+
+## 7. Auth e-posta gönderimi — seçenekler ve kısıtlar
+
+Şu an Supabase'in paylaşımlı SMTP'si kullanılıyor. Aşağıdaki üç yol değerlendirildi; **karar henüz verilmedi**, verildiğinde `DECISION_LOG.md`'ye ADR olarak yazılacaktır.
+
+### A. Kişisel Gmail hesabı (SMTP)
+
+Supabase paneline `smtp.gmail.com:587` ve bir **Gmail Uygulama Şifresi** girilir. Hesap şifresi değil; Uygulama Şifresi ayrı üretilir ve iki adımlı doğrulama açık olmalıdır.
+
+- ✅ Bugün kurulabilir, ek maliyet yok, Gmail'in SPF/DKIM kayıtları teslimatı makul tutar
+- ✅ Supabase'in saatlik limiti devreden çıkar; limit artık Gmail'inki olur (günlük birkaç yüz mail)
+- ⚠️ **Gönderen adresi kişisel olur.** Dershane yöneticisi "ORBIT şifre sıfırlama" mailini bir şahsın Gmail adresinden alır; kurumsal görünmez ve spam ihtimalini artırır.
+- ⚠️ Uygulama Şifresi Supabase ayarlarında saklanır. Sızarsa o hesap adına **mail gönderilebilir** (okunamaz — Uygulama Şifresi yalnızca SMTP kapsamındadır).
+- ⚠️ Google, otomatik/toplu gönderimi kendi kullanım şartlarında teşvik etmiyor; hesap kısıtlanabilir.
+
+### B. İşlemsel e-posta sağlayıcısı, alan adı olmadan
+
+Brevo veya Mailjet gibi servisler, alan adı sahibi olmadan **doğrulanmış bir gönderen e-posta adresi** ile gönderime izin verir (ücretsiz katmanlarda günlük birkaç yüz mail).
+
+- ✅ Gerçek işlemsel altyapı: teslimat raporu, bounce yönetimi, DKIM
+- ✅ Kişisel Gmail hesabı riske girmez
+- ⚠️ Gönderen adresi yine kişisel bir adres olur; kurumsal görünüm sağlamaz
+
+### C. Kendi alan adı + işlemsel sağlayıcı
+
+`orbit.app` benzeri bir alan adı alınır, DNS'e SPF/DKIM kayıtları eklenir, Resend/SendGrid/Brevo üzerinden `destek@...` adresinden gönderilir.
+
+- ✅ Tek profesyonel çözüm; teslimat, güven ve marka açısından doğru olan bu
+- ⚠️ Alan adı yıllık ücret gerektirir (sıfır bütçe hedefiyle çelişen tek madde)
+
+### Değerlendirme
+
+A ve B, pilot öncesi geçici çözümlerdir; ikisi de gönderen adresi sorununu çözmez. C, ticarileşme kapısıyla (`ROADMAP.md` v2.0) birlikte ele alınmalıdır.
+
+**Hangisi seçilirse seçilsin, Supabase'in yerleşik SMTP'si ilk gerçek kurum davetinden önce terk edilmelidir.**

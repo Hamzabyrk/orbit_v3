@@ -28,6 +28,8 @@ v1.1.1 ve v1.1.2 çalışmalarından sonra, bir sonraki faza geçmeden önce yap
 
 **Yeni kayda geçen KVKK maddesi:** Google Fonts'un Google sunucularından yüklenmesi, her ziyaretçinin IP adresini Google'a gönderiyor. Pilot kuruma açılmadan önce fontların kendi sunucumuzda barındırılması gerekiyor; `PLATFORM_SETTINGS.md` bölüm 5'e tetikleyicisiyle işlendi.
 
+**Kayda geçen üçüncü madde — auth e-posta gönderimi.** Davet, şifre sıfırlama ve doğrulama mailleri şu an Supabase'in paylaşımlı SMTP'sinden çıkıyor. Supabase bu servisi production için uygun olmadığını belirterek sunuyor: saatlik limit çok düşük, teslimat garantisi yok. İki kişilik ekip testleri için yeterli, ancak ilk kurum davetinden önce terk edilmeli — kurum yöneticisine ulaşmayan bir davet maili, ilk müşteride öğrenilecek bir hata olmamalı. Üç seçenek (kişisel Gmail SMTP, alan adsız işlemsel sağlayıcı, kendi alan adı) kısıtlarıyla birlikte `PLATFORM_SETTINGS.md` bölüm 7'ye yazıldı. Karar henüz verilmedi.
+
 **Denetimde temiz çıkanlar:**
 
 - Sekiz canlı güvenlik sondası: `anon` ayrıcalıklı RPC'leri çağıramıyor, hiçbir tabloyu okuyamıyor
