@@ -62,7 +62,7 @@ fi
 user_id=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/tmp/create_body','utf8')).id||'')")
 [ -n "$user_id" ] || fail "kullanıcı oluşturuldu ama id dönmedi"
 
-echo "1/4 kullanıcı oluşturuldu (HTTP ${create_response}, id ${user_id})"
+echo "1/5 kullanıcı oluşturuldu (HTTP ${create_response}, id ${user_id})"
 
 # --- 2) Bu kullanıcı e-posta/şifre ile giriş yapabiliyor mu? -----------------
 
@@ -82,7 +82,7 @@ fi
 access_token=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('/tmp/signin_body','utf8')).access_token||'')")
 [ -n "$access_token" ] || fail "giriş başarılı görünüyor ama access_token dönmedi"
 
-echo "2/4 giriş başarılı, geçerli oturum alındı"
+echo "2/5 giriş başarılı, geçerli oturum alındı"
 
 # --- 3) Profil trigger'ı sentetik kullanıcı için de çalışıyor mu? ------------
 #
@@ -96,7 +96,7 @@ profile_count=$(psql "${DB_URL}" -tAc \
 [ "$profile_count" = "1" ] ||
   fail "sentetik kullanıcı için profil oluşmadı (bulunan: ${profile_count:-yok})"
 
-echo "3/4 profil kaydı oluştu"
+echo "3/5 profil kaydı oluştu"
 
 # --- 4) Yanlış şifre reddediliyor mu? ---------------------------------------
 #
@@ -111,6 +111,27 @@ wrong_response=$(curl -s -o /dev/null -w '%{http_code}' \
 [ "$wrong_response" = "400" ] ||
   fail "yanlış şifre reddedilmedi (HTTP ${wrong_response})"
 
-echo "4/4 yanlış şifre reddedildi"
+echo "4/5 yanlış şifre reddedildi"
+
+# --- 5) E-posta sağlayıcısı açıkken yeni kayıt kapalı mı? -------------------
+#
+# `[auth] enable_signup` ile `[auth.email] enable_signup` ayrı şeylerdir ve
+# isimleri yanıltıcıdır. İkincisi sağlayıcının kendisini açar. Bu ayrımın
+# karışması production'da e-posta girişini tamamen durdurmuştu (Issue #29).
+# Bu adım, yerel yapılandırmanın doğru kombinasyonda olduğunu sabitler:
+# sağlayıcı açık, yeni kayıt kapalı.
+
+signup_response=$(curl -s -o /tmp/signup_body -w '%{http_code}'   -X POST "${API_URL}/auth/v1/signup"   -H "apikey: ${ANON_KEY}"   -H "Content-Type: application/json"   -d '{"email":"yeni-kayit-kontrol@orbit.invalid","password":"Orbit2026Test"}')
+
+if ! grep -q "signup_disabled" /tmp/signup_body; then
+  echo "--- yanıt ---"
+  cat /tmp/signup_body
+  echo
+  fail "yeni kayıt kapalı olmalıydı (HTTP ${signup_response}).
+email_provider_disabled dönüyorsa sağlayıcı da kapalıdır ve 2. adım zaten
+başarısız olurdu; başka bir kod dönüyorsa yeni kayıt açık kalmış demektir."
+fi
+
+echo "5/5 yeni kayıt kapalı, sağlayıcı açık"
 echo
 echo "Sentetik e-posta mimarisi doğrulandı."
