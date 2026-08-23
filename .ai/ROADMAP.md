@@ -142,6 +142,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [x] `.ai/PLATFORM_SETTINGS.md` eklendi; `config.toml`'un production'ı yönetmediği, elle yönetilen ayarların envanteri ve kabul edilmiş açıklar kayda geçti (Issue #20).
 - [x] CI: bağımlılık taraması engelleyici hale getirildi ve yıkıcı migration guard'ı eklendi (Issue #22, PR #23). Kapı production bağımlılıklarına uygulanır; geliştirme bağımlılıkları görünür ama engellemez, aksi halde kapı kalıcı olarak kırmızı kalırdı. Production'daki iki high seviyeli lodash açığı `pnpm.overrides` ile kapatıldı.
 - [x] `.gitattributes` ile satır sonları normalize edildi (Issue #22, PR #23).
+- [x] CI tetikleyicileri düzeltildi: `pull_request` artık hedef dal filtresi olmadan çalışır (Issue #27). Öncesinde base'i `main` olmayan PR'lar hiçbir kontrol almıyordu.
 
 **Kapsam dışına alınanlar (gerekçeleriyle `PLATFORM_SETTINGS.md` bölüm 4 ve 5'te kayıtlı):**
 
@@ -156,7 +157,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 **Hedef:** Ürüne insan erişimini tek bir oturuma bağlı olmaktan çıkarmak ve kurum/kullanıcı kurulumunu tasarlanan mekanizma üzerinden yapılabilir hale getirmek.
 
 - [x] Şifre belirleme ve sıfırlama ekranları (Issue #25). `/sifre-sifirla` ve `/sifre-belirle` rotaları, şifre politikasının istemci doğrulaması ve `PASSWORD_RECOVERY` olayının normal girişten ayrıştırılması.
-- [ ] `platform_operators` tablosu, `current_user_is_platform_operator()` yardımcısı ve `platform_audit_events` tablosu.
+- [x] `platform_operators` tablosu, `current_user_is_platform_operator()` yardımcısı ve `platform_audit_events` tablosu (Issue #27). Operatörün kurum içeriğini göremediği pgTAP ile doğrulandı.
 - [ ] `bootstrap-organization` Edge Function'ının `app_metadata.platform_admin` yerine `platform_operators` tablosunu okuyacak biçimde güncellenmesi.
 - [ ] `/platform` rotası, giriş ekranı ve panel iskeleti (`client/src/platform/` altında, dershane ağacına dokunmadan).
 - [ ] Panelden kurum + varsayılan şube + kurum yöneticisi oluşturma akışı.

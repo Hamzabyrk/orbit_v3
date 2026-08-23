@@ -141,7 +141,7 @@ client/src/
 
 ## 9. Platform Operatörü Ekseni ve `/platform` Paneli (Issue #16, hedef v1.1.2)
 
-**Durum:** Karar alındı, henüz uygulanmadı. Ayrıntılı gerekçe için bkz. `DECISION_LOG.md` — "Platform operatörü ayrı bir eksendir".
+**Durum:** Veritabanı şeması eklendi (Issue #27); panel ve Edge Function güncellemesi bekliyor. Ayrıntılı gerekçe için bkz. `DECISION_LOG.md` — "Platform operatörü ayrı bir eksendir".
 
 Sistemde iki bağımsız kimlik ekseni bulunur. Bir kullanıcı ikisinden birine, hiçbirine veya (teoride) her ikisine de ait olabilir:
 
@@ -157,4 +157,7 @@ auth.users
 - Yetkilendirme her zaman sunucudadır. Rota koruması yalnızca kullanıcı deneyimi içindir; her platform işlemi operatör kontrolünü sunucuda yapan bir Edge Function üzerinden yürür.
 - **Kapsam kabı ile sınırlıdır:** kurum, şube, kurum yöneticisi hesabı ve operatör listesi yönetilir. Öğrenci, not, yoklama, ödev ve ödeme verisine erişim yoktur — bu, mevcut RLS politikalarının doğal sonucudur ve "platform operatörü her şeyi okur" türünde bir policy eklenmeyecektir.
 - Kuruma bağlı olmayan platform işlemleri `platform_audit_events` tablosuna yazılır; `audit_events.organization_id` NOT NULL olduğu için o tablo kullanılamaz.
+- Şemadaki roller `owner` ve `operator`, durumlar `active` ve `suspended`'dır. Yalnızca `active` operatörler yetkili sayılır.
+- `platform_operators` ve `platform_audit_events` tablolarına **istemciden yazma yolu yoktur**; ekleme ve denetim kaydı üretme yalnızca `service_role` ile çalışan Edge Function üzerinden yapılır. Aksi halde bir operatör kendi yetkisini yükseltebilir veya sahte denetim kaydı üretebilirdi.
+- Operatörün kurum içeriğine erişemediği `supabase/tests/database/platform_operators.test.sql` içinde üç ayrı testle doğrulanır. Bu, KVKK gerekçesiyle verilen taahhüdün çalıştırılabilir karşılığıdır ve ileride sessizce gevşetilirse CI'da kırılır.
 - İlk operatör hesapları, panel kendi kendini oluşturamayacağı için bir defaya mahsus kontrollü biçimde eklenir. Bu, "kayıtlar elle oluşturulmaz" kuralının tek tanımlı istisnasıdır.
