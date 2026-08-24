@@ -79,33 +79,41 @@ export function EducationLoginScreen({
               Öğrenci, veli, öğretmen ve kurum yöneticileri aynı akademik
               akışta; herkes yalnızca kendisine ait çalışma alanını görür.
             </p>
-            <div className="mt-7 grid grid-cols-2 gap-2">
-              {(Object.keys(roleMeta) as Role[]).map(role => {
-                const Icon = roleMeta[role].icon;
-                const selected = demoMode && selectedRole === role;
-                return (
-                  <button
-                    key={role}
-                    type="button"
-                    disabled={!demoMode}
-                    onClick={() => selectRole(role)}
-                    className={`rounded-xl border p-3 text-left transition disabled:cursor-default ${selected ? "border-slate-900 bg-slate-900 text-white shadow-[0_8px_18px_rgba(15,23,42,.12)]" : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/50"}`}
-                  >
-                    <Icon
-                      className={`h-4 w-4 ${selected ? "text-white" : "text-blue-600"}`}
-                    />
-                    <p className="mt-2 text-[11px] font-extrabold">
-                      {roleMeta[role].label}
-                    </p>
-                    <p
-                      className={`mt-0.5 text-[9px] ${selected ? "text-white/70" : "text-slate-400"}`}
+            {/*
+              Rol kartları YALNIZCA demo modunda görünür. Gerçek girişte rol
+              kullanıcının kendi üyelik kaydından gelir; seçilecek bir şey
+              yoktur. Önceden kartlar `disabled` olarak duruyordu — tıklanmayan
+              ama görünen dört kart, "önce rolümü seçmem mi gerekiyor?"
+              sorusunu doğuruyordu ve giriş ekranının tek işi bunu sormamaktı.
+            */}
+            {demoMode ? (
+              <div className="mt-7 grid grid-cols-2 gap-2">
+                {(Object.keys(roleMeta) as Role[]).map(role => {
+                  const Icon = roleMeta[role].icon;
+                  const selected = selectedRole === role;
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => selectRole(role)}
+                      className={`rounded-xl border p-3 text-left transition ${selected ? "border-slate-900 bg-slate-900 text-white shadow-[0_8px_18px_rgba(15,23,42,.12)]" : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/50"}`}
                     >
-                      {roleMeta[role].description}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
+                      <Icon
+                        className={`h-4 w-4 ${selected ? "text-white" : "text-blue-600"}`}
+                      />
+                      <p className="mt-2 text-[11px] font-extrabold">
+                        {roleMeta[role].label}
+                      </p>
+                      <p
+                        className={`mt-0.5 text-[9px] ${selected ? "text-white/70" : "text-slate-400"}`}
+                      >
+                        {roleMeta[role].description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
             <form onSubmit={submit} className="mt-7 space-y-3">
               <label className="block">
                 <span className="mb-1.5 block text-[11px] font-bold text-slate-600">

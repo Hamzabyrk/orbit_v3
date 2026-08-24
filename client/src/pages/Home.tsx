@@ -70,6 +70,7 @@ export default function Home() {
       branchName={identity.membership.branchName}
       canSwitchRole={demoMode}
       onRoleChange={switchDemoRole}
+      canAccessPlatform={Boolean(identity.platformOperator)}
       onLogout={handleLogout}
     />
   );
