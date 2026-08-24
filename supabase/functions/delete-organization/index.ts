@@ -159,8 +159,19 @@ Deno.serve(async request => {
   // başarısız olsaydı, kurum üyesiz kalırdı — kimsenin giremediği bir kurum.
   // Bu sıradaki olası hata ise kuruma ait olmayan artık hesaplar bırakır; onlar
   // üyeliksiz oldukları için giriş yapsalar bile anında dışarı atılır.
+  //
+  // `member_user_ids` yalnızca kimliği başka hiçbir yerden talep edilmeyen
+  // üyeleri içerir. Platform operatörlüğü veya başka bir kurumda üyeliği
+  // olanlar `protected_user_ids` altında dönüyor ve auth hesaplarına
+  // dokunulmuyor.
+  //
+  // Ayrım olmadığında, tek bir kuruma kapsamlanmış bu işlem küresel bir eylem
+  // yapıyordu: kişinin kimliğini siliyordu. Operatörlük de `on delete cascade`
+  // ile birlikte gidiyordu (Issue #63).
   const memberIds = ((result as { member_user_ids?: unknown } | null)
     ?.member_user_ids ?? []) as string[];
+  const protectedIds = ((result as { protected_user_ids?: unknown } | null)
+    ?.protected_user_ids ?? []) as string[];
 
   let orphaned = 0;
 
@@ -177,6 +188,7 @@ Deno.serve(async request => {
       data: {
         ...(result as Record<string, unknown>),
         orphaned_users: orphaned,
+        protected_identity_count: protectedIds.length,
       },
     },
     200,
