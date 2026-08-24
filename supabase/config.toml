@@ -392,7 +392,22 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
+# ⚠️ Supabase GitHub entegrasyonu YALNIZCA burada listelenen fonksiyonları
+# deploy eder. `supabase/functions/` altına yeni bir dizin eklemek YETMEZ:
+# mevcut fonksiyonlar güncellenir ama yeni fonksiyon oluşturulmaz ve istemci
+# çağırdığında sessizce genel hataya düşer.
+#
+# 2026-08-24'te `reset-admin-password` tam olarak bu yüzden çalışmadı; kod
+# merge edildi, `bootstrap-organization` v26'ya güncellendi, yeni fonksiyon
+# hiç oluşturulmadı. Yeni Edge Function ekleyen herkes buraya da satır ekler.
+
 [functions.bootstrap-organization]
+verify_jwt = true
+
+[functions.reset-admin-password]
+verify_jwt = true
+
+[functions.delete-organization]
 verify_jwt = true
 
 # [edge_runtime.secrets]

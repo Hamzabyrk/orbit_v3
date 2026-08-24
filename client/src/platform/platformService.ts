@@ -86,6 +86,10 @@ const CREATE_ERROR_MESSAGES: Record<string, string> = {
     "Bu kurumun aktif bir yöneticisi bulunamadı. Geliştirme ekibine bildirin.",
   organization_not_found: "Kurum bulunamadı. Listeyi yenileyip tekrar deneyin.",
   password_update_failed: "Yeni şifre kaydedilemedi. Lütfen tekrar deneyin.",
+  confirmation_mismatch:
+    "Yazdığınız ad kurum adıyla eşleşmiyor. Silme işlemi yapılmadı.",
+  organization_delete_failed:
+    "Kurum silinemedi. Listeyi yenileyip tekrar deneyin.",
 };
 
 export function createOrganizationErrorMessage(code: unknown): string {
@@ -321,4 +325,53 @@ export async function createOrganization(
   throw new Error(
     createOrganizationErrorMessage(await readFunctionErrorCode(error))
   );
+}
+
+export type DeleteOrganizationResult = {
+  organizationName: string;
+  organizationCode: number | null;
+  deletedMemberships: number;
+  deletedBranches: number;
+  deletedAuditEvents: number;
+  orphanedUsers: number;
+};
+
+/**
+ * Kurumu ve ona bağlı her şeyi siler. **Geri alınamaz.**
+ *
+ * `confirmName` sunucuda da doğrulanıyor; yalnızca istemcide kontrol etmek,
+ * doğrudan API çağrısı yapan biri için hiçbir engel olmazdı.
+ */
+export async function deleteOrganization(
+  organizationId: string,
+  confirmName: string
+): Promise<DeleteOrganizationResult> {
+  const { data, error } = await supabase.functions.invoke(
+    "delete-organization",
+    { body: { organizationId, confirmName } }
+  );
+
+  if (error) {
+    throw new Error(
+      createOrganizationErrorMessage(await readFunctionErrorCode(error))
+    );
+  }
+
+  const payload = ((data as { data?: Record<string, unknown> } | null)?.data ??
+    {}) as Record<string, unknown>;
+
+  return {
+    organizationName:
+      typeof payload.organization_name === "string"
+        ? payload.organization_name
+        : confirmName,
+    organizationCode:
+      typeof payload.organization_code === "number"
+        ? payload.organization_code
+        : null,
+    deletedMemberships: Number(payload.deleted_memberships ?? 0),
+    deletedBranches: Number(payload.deleted_branches ?? 0),
+    deletedAuditEvents: Number(payload.deleted_audit_events ?? 0),
+    orphanedUsers: Number(payload.orphaned_users ?? 0),
+  };
 }
