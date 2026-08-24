@@ -153,11 +153,17 @@ select throws_ok(
 -- Operatörün hiçbir `organization_memberships` kaydı olmadığı için mevcut
 -- tenant RLS politikaları onu zaten dışarıda tutar. Bu testler o davranışın
 -- ileride sessizce gevşetilmesini engeller.
+--
+-- Sonradan düzeltme (2026-08-24, Issue #41): aşağıdaki ilk iddia `0` idi.
+-- `20260824014500_platform_operator_reads.sql` ile kurum **kabı** operatöre
+-- açıldı; kurum listesi olmadan panelin işlevi yok. Sınır kaymadı, netleşti:
+-- operatör kurumun var olduğunu görür, içinde ne olduğunu görmez. Alttaki iki
+-- iddia (şube ve üyelik) o sınırın bekçisidir ve kapalı kalır.
 
 select is(
   (select count(*) from public.organizations),
-  0::bigint,
-  'platform operator cannot read any organization'
+  1::bigint,
+  'platform operator can read the organization container'
 );
 
 select is(
