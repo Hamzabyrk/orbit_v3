@@ -10,9 +10,85 @@ const requestSchema = z.object({
     .max(80)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   branchName: z.string().trim().min(2).max(120),
-  adminEmail: z.string().trim().email().max(254),
   adminFullName: z.string().trim().min(2).max(120),
 });
+
+/**
+ * Sentetik adresin alan adı. RFC 2606 gereği `.invalid` hiçbir zaman
+ * çözümlenmez. İstemcideki `loginIdentifier.ts` ile aynı değer olmak zorunda;
+ * ikisi ayrışırsa oluşturulan hesaba giriş yapılamaz.
+ */
+const SYNTHETIC_EMAIL_DOMAIN = "orbit.invalid";
+
+/** Yeni bir kurumun ilk kişisi. Veritabanı da aynı değeri hesaplar ve doğrular. */
+const FIRST_PERSON_CODE = 1000;
+
+/**
+ * Geçici şifre alfabesi.
+ *
+ * Karışan karakterler bilinçli olarak yok: `0`/`O`, `1`/`l`/`I`. Şifre kâğıda
+ * yazılıp elden veriliyor; okuyan kişi yanlış karakteri denerse hesabı
+ * kilitlenmiş sanır ve destek çağrısı üretir.
+ */
+const PASSWORD_LOWER = "abcdefghijkmnopqrstuvwxyz";
+const PASSWORD_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+const PASSWORD_DIGIT = "23456789";
+const PASSWORD_ALPHABET = PASSWORD_LOWER + PASSWORD_UPPER + PASSWORD_DIGIT;
+const PASSWORD_LENGTH = 12;
+
+/**
+ * Kişiye özel geçici şifre üretir.
+ *
+ * `crypto.getRandomValues` kullanılıyor; `Math.random` kriptografik değildir ve
+ * üretilen şifreler tahmin edilebilir olurdu.
+ *
+ * Modulo sapması (`% alphabet.length`) burada önemsizdir: alfabe 59 karakter,
+ * 256'nın 59'a bölümünden kalan küçük bir eğrilik yaratır ve 12 karakterlik bir
+ * şifrede saldırgana kayda değer bir avantaj sağlamaz. Yine de eğriliği
+ * tamamen kaldırmak ucuz olduğu için aralık dışındaki baytlar atılıyor.
+ *
+ * Şifre politikası küçük harf, büyük harf ve rakamın üçünü de istiyor; rastgele
+ * seçim üçünü de içermeyebileceği için ilk üç karakter her sınıftan birer tane
+ * olacak şekilde garanti ediliyor, sonra tamamı karıştırılıyor.
+ */
+function generateTemporaryPassword(): string {
+  const pick = (alphabet: string): string => {
+    const limit = 256 - (256 % alphabet.length);
+    const buffer = new Uint8Array(1);
+
+    for (;;) {
+      crypto.getRandomValues(buffer);
+      if (buffer[0] < limit) {
+        return alphabet[buffer[0] % alphabet.length];
+      }
+    }
+  };
+
+  const characters = [
+    pick(PASSWORD_LOWER),
+    pick(PASSWORD_UPPER),
+    pick(PASSWORD_DIGIT),
+  ];
+
+  while (characters.length < PASSWORD_LENGTH) {
+    characters.push(pick(PASSWORD_ALPHABET));
+  }
+
+  // Fisher-Yates. Garanti edilen üç karakter hep baştaki üç konumda kalmasın;
+  // aksi halde şifrenin ilk üç hanesinin karakter sınıfı önceden bilinirdi.
+  const randomIndices = new Uint32Array(characters.length);
+  crypto.getRandomValues(randomIndices);
+
+  for (let index = characters.length - 1; index > 0; index -= 1) {
+    const swapWith = randomIndices[index] % (index + 1);
+    [characters[index], characters[swapWith]] = [
+      characters[swapWith],
+      characters[index],
+    ];
+  }
+
+  return characters.join("");
+}
 
 const allowedOrigins = new Set(
   (
@@ -133,13 +209,38 @@ Deno.serve(async request => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: invited, error: inviteError } =
-    await adminClient.auth.admin.inviteUserByEmail(input.adminEmail, {
-      data: { full_name: input.adminFullName },
+
+  // Sıra zorunlu: sentetik adres kurum kodunu içeriyor, dolayısıyla kod
+  // kullanıcıdan önce; kullanıcı ise üyeliğin foreign key'i olduğu için
+  // kurumdan önce yaratılmak zorunda. Kod bu yüzden ayrı ayrılıyor.
+  const { data: reservedCode, error: reserveError } = await adminClient.rpc(
+    "internal_reserve_organization_code"
+  );
+
+  if (reserveError || typeof reservedCode !== "number") {
+    console.error("[bootstrap-organization] code reservation failed");
+    return jsonResponse({ error: "service_unavailable" }, 503, origin);
+  }
+
+  const loginNumber = `${reservedCode}${FIRST_PERSON_CODE}`;
+  const syntheticEmail = `${loginNumber}@${SYNTHETIC_EMAIL_DOMAIN}`;
+  const temporaryPassword = generateTemporaryPassword();
+
+  // `inviteUserByEmail` DEĞİL. Davet, teslim edilemez `.invalid` adresini
+  // reddeder; kabul etse bile kullanıcı şifresini belirlemeden panele düşer.
+  // `email_confirm: true` çünkü doğrulanacak bir kutu yok — adres zaten
+  // yalnızca kimlik belirteci.
+  const { data: created, error: createError } =
+    await adminClient.auth.admin.createUser({
+      email: syntheticEmail,
+      password: temporaryPassword,
+      email_confirm: true,
+      user_metadata: { full_name: input.adminFullName },
     });
 
-  if (inviteError || !invited.user) {
-    return jsonResponse({ error: "admin_invite_failed" }, 409, origin);
+  if (createError || !created.user) {
+    console.error("[bootstrap-organization] admin user creation failed");
+    return jsonResponse({ error: "admin_create_failed" }, 409, origin);
   }
 
   const { data: bootstrap, error: bootstrapError } = await adminClient.rpc(
@@ -147,18 +248,23 @@ Deno.serve(async request => {
     {
       organization_name: input.organizationName,
       organization_slug: input.organizationSlug,
+      organization_code: reservedCode,
       branch_name: input.branchName,
-      admin_user_id: invited.user.id,
+      admin_user_id: created.user.id,
+      admin_person_code: FIRST_PERSON_CODE,
       actor_user_id: userData.user.id,
     }
   );
 
   if (bootstrapError) {
+    // Kurum kurulamadıysa yaratılan kullanıcı ortada kalmamalı: kimseye ait
+    // olmayan, hiçbir kuruma bağlı olmayan bir hesap giriş yapabilir ve
+    // kimlik çözümlemesinde hataya düşer.
     const { error: cleanupError } = await adminClient.auth.admin.deleteUser(
-      invited.user.id
+      created.user.id
     );
     if (cleanupError) {
-      console.error("[bootstrap-organization] invited user cleanup failed");
+      console.error("[bootstrap-organization] user cleanup failed");
     }
     return jsonResponse(
       { error: "organization_bootstrap_failed" },
@@ -187,7 +293,13 @@ Deno.serve(async request => {
         organization_name: input.organizationName,
         organization_slug: input.organizationSlug,
         branch_name: input.branchName,
-        admin_email: input.adminEmail,
+        admin_full_name: input.adminFullName,
+        // Giriş numarası kaydediliyor, geçici şifre KAYDEDİLMİYOR. Şifre
+        // yalnızca bu yanıtta bir kez görünür ve hiçbir yere yazılmaz.
+        // Denetim kaydının amacı "operatör kimlik bilgisi üretti" olgusunu
+        // görünür kılmak; şifrenin kendisini saklamak değil.
+        login_number: (bootstrap as { login_number?: string } | null)
+          ?.login_number,
       },
     });
 
@@ -199,5 +311,17 @@ Deno.serve(async request => {
     console.error("[bootstrap-organization] platform audit write failed");
   }
 
-  return jsonResponse({ data: bootstrap }, 201, origin);
+  // Geçici şifre yanıtta BİR KEZ dönüyor ve hiçbir yere yazılmıyor. Operatör
+  // ekranda görür, kuruma teslim eder; kaybolursa yenisi üretilir. Düz metin
+  // şifre saklamak KVKK açısından savunulamaz ve gereksizdir.
+  return jsonResponse(
+    {
+      data: {
+        ...(bootstrap as Record<string, unknown>),
+        temporary_password: temporaryPassword,
+      },
+    },
+    201,
+    origin
+  );
 });

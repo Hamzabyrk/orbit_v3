@@ -54,11 +54,17 @@ export default function Home() {
     return <EducationLoginScreen demoMode={demoMode} onLogin={signIn} />;
   }
 
-  // Kurum üyeliği olmayan ama platform operatörü olan kullanıcı buraya değil
-  // panele aittir. Kimlik iki ekseni de taşıdığı için, her ikisine birden
-  // sahip olan biri dershane panelinde kalır ve panele kendi rotasından
-  // ulaşır; öncelik kuralı koymuyoruz.
-  if (!identity.membership) {
+  // Platform operatörü panele aittir, dershane paneline değil.
+  //
+  // Önceden yalnızca "üyeliği yoksa" yönlendiriliyordu ve öncelik kuralı
+  // bilinçli olarak konmamıştı; gerekçe, kurucu ekibin test kurumunda üyeliği
+  // olmasıydı. Test kurumu kaldırıldığı ve operatörlerin kurum üyeliği
+  // bulunmayacağı için o gerekçe ortadan kalktı. Bkz. `DECISION_LOG.md` —
+  // "Platform operatörü girişte panele düşer".
+  //
+  // Kimliğin iki eksenli modeli korunuyor: hem üye hem operatör olan biri
+  // dershane paneline menüdeki bağlantıyla ulaşır.
+  if (identity.platformOperator || !identity.membership) {
     return <Redirect to="/platform" />;
   }
 

@@ -105,10 +105,17 @@ Son doğrulama: **2026-08-23**, Issue #20.
 
 ### 3.4 Supabase — entegrasyonlar
 
-| Entegrasyon | Durum                                                                                                                 |
-| ----------- | --------------------------------------------------------------------------------------------------------------------- |
-| GitHub      | Açık — `Hamzabyrk/orbit_v3`, repo kökü, `main` production branch. **Merge sonrası migration'lar otomatik uygulanır.** |
-| Vercel      | **Bağlantı yok (0 project connection).** Bilinçli — bkz. bölüm 3.5.                                                   |
+| Entegrasyon                    | Durum                                                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| GitHub                         | Açık — `Hamzabyrk/orbit_v3`, repo kökü, `main` production branch. **Merge sonrası migration'lar otomatik uygulanır.**         |
+| Vercel                         | **Bağlantı yok (0 project connection).** Bilinçli — bkz. bölüm 3.5.                                                           |
+| Branching (preview veritabanı) | **Kullanılamıyor — Pro plan gerektiriyor.** Biz kapatmadık; organizasyon planı `free` olduğu için Supabase her PR'da atlıyor. |
+
+> **"Supabase Preview — skipping" her PR'da görünür ve bir arıza değildir.** GitHub entegrasyonu bağlı, ancak Branching ücretli planda. Doğrulama: `list_branches` yalnızca production `main` kaydını döndürüyor, hiç preview branch'i yok; organizasyon planı `free`.
+>
+> **Kaybımız:** PR'lar migration'ları geçici bir kopya veritabanında denemiyor.
+>
+> **Yerine koyduğumuz:** CI'daki `Tenant RLS` işi (`.github/workflows/supabase-ci.yml`) her PR'da `supabase start` ile sıfırdan bir veritabanı kuruyor, tüm migration'ları uyguluyor ve pgTAP testlerini çalıştırıyor. Ayrıca `Yıkıcı Migration Kontrolü` değişen migration dosyalarını tarıyor. Aynı korumayı ücretsiz sağlıyorlar.
 
 ### 3.5 Vercel
 

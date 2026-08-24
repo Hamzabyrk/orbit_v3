@@ -9,8 +9,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { CredentialsPanel } from "./CredentialsPanel";
 import { Label } from "@/components/ui/label";
-import { createOrganization } from "./platformService";
+import {
+  createOrganization,
+  type OrganizationCredentials,
+} from "./platformService";
 import {
   isValidOrganizationSlug,
   slugifyOrganizationName,
@@ -22,7 +26,6 @@ type FormState = {
   organizationName: string;
   organizationSlug: string;
   branchName: string;
-  adminEmail: string;
   adminFullName: string;
 };
 
@@ -30,7 +33,6 @@ const EMPTY_FORM: FormState = {
   organizationName: "",
   organizationSlug: "",
   branchName: DEFAULT_BRANCH_NAME,
-  adminEmail: "",
   adminFullName: "",
 };
 
@@ -48,6 +50,10 @@ export function OrganizationCreateDialog({
   // düzeltmesi her tuş vuruşunda geri alınırdı.
   const [slugEdited, setSlugEdited] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Doluysa diyalog forma değil, giriş bilgisi ekranına döner.
+  const [credentials, setCredentials] = useState<
+    (OrganizationCredentials & { organizationName: string }) | null
+  >(null);
 
   const update = (patch: Partial<FormState>) =>
     setForm(current => ({ ...current, ...patch }));
@@ -64,6 +70,7 @@ export function OrganizationCreateDialog({
   const reset = () => {
     setForm(EMPTY_FORM);
     setSlugEdited(false);
+    setCredentials(null);
   };
 
   const handleOpenChange = (next: boolean) => {
@@ -89,10 +96,6 @@ export function OrganizationCreateDialog({
       return "Yönetici adı en az iki karakter olmalı.";
     }
 
-    if (!form.adminEmail.includes("@")) {
-      return "Yönetici e-postası geçerli görünmüyor.";
-    }
-
     return null;
   })();
 
@@ -104,20 +107,20 @@ export function OrganizationCreateDialog({
     setSubmitting(true);
 
     try {
-      await createOrganization({
+      const result = await createOrganization({
         organizationName: form.organizationName.trim(),
         organizationSlug: form.organizationSlug.trim(),
         branchName: form.branchName.trim(),
-        adminEmail: form.adminEmail.trim(),
         adminFullName: form.adminFullName.trim(),
       });
 
-      toast.success("Kurum oluşturuldu", {
-        description: `${form.organizationName.trim()} kuruldu. Yöneticiye şifre belirleme daveti gönderildi.`,
+      // Diyalog KAPANMIYOR. Geçici şifre hiçbir yere kaydedilmediği için bu
+      // ekran kapandığında bir daha görülemez; operatör bilgileri alana kadar
+      // açık kalmak zorunda.
+      setCredentials({
+        ...result,
+        organizationName: form.organizationName.trim(),
       });
-
-      reset();
-      onOpenChange(false);
       onCreated();
     } catch (error) {
       toast.error("Kurum oluşturulamadı", {
@@ -129,6 +132,31 @@ export function OrganizationCreateDialog({
     }
   };
 
+  if (credentials) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>Kurum oluşturuldu</DialogTitle>
+            <DialogDescription>
+              Kurum yöneticisinin giriş bilgileri aşağıda. Bu ekran bir kez
+              gösterilir.
+            </DialogDescription>
+          </DialogHeader>
+
+          <CredentialsPanel
+            organizationName={credentials.organizationName}
+            credentials={credentials}
+            onDone={() => {
+              reset();
+              onOpenChange(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[520px]">
@@ -136,7 +164,7 @@ export function OrganizationCreateDialog({
           <DialogTitle>Yeni kurum oluştur</DialogTitle>
           <DialogDescription>
             Kurum, varsayılan şube ve kurum yöneticisi tek işlemde oluşturulur.
-            Kurum kodu otomatik atanır.
+            Kurum kodu ve giriş numarası otomatik atanır.
           </DialogDescription>
         </DialogHeader>
 
@@ -192,22 +220,11 @@ export function OrganizationCreateDialog({
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="admin-email">Yönetici e-postası</Label>
-            <Input
-              id="admin-email"
-              type="email"
-              value={form.adminEmail}
-              onChange={event => update({ adminEmail: event.target.value })}
-              placeholder="yonetici@kurum.com"
-              autoComplete="off"
-            />
-            <p className="text-[11px] leading-4 text-muted-foreground">
-              Bu adrese şifre belirleme daveti gider, bu yüzden gerçek ve
-              erişilebilir olmalı. Kurum yöneticisi hesabı yüksek değerli bir
-              hedeftir ve gerçek e-posta ile korunur.
-            </p>
-          </div>
+          <p className="rounded-xl bg-muted/60 p-3 text-[11px] leading-5 text-muted-foreground">
+            E-posta sorulmuyor. Kurum yöneticisi giriş numarası ve geçici
+            şifreyle açılır; kendi e-postasını ilk girişte kendisi ekler ve
+            doğrular. Bilgiler oluşturmadan hemen sonra bir kez gösterilir.
+          </p>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2">
