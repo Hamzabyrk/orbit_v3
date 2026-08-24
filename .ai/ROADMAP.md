@@ -179,7 +179,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [x] Panelden kurum + varsayılan şube + kurum yöneticisi oluşturma akışı (Issue #41). Kurum listesi, operatör listesi ve platform denetim kaydı da aynı panelde; ikisi salt okunur.
 - [x] Operatörün kurum **kabını** okuyabilmesi (Issue #41). `organizations_select_member` üyelik istediği için kurum listesi operatöre boş dönüyordu. Kap açıldı, içerik (`branches`, `organization_memberships`, `audit_events`) kapalı kaldı ve bu sınır pgTAP ile sabitlendi.
 - [x] Kurum oluşturma artık `platform_audit_events`'e de yazıyor (Issue #41). Öncesinde yalnızca kurumun kendi `audit_events` kaydına yazılıyordu; operatör o tabloyu okuyamadığı için panelin denetim listesi hiç dolmayacaktı.
-- [ ] İlk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi. **Panel bu adım tamamlanana kadar kimseye açılmaz** — operatör kaydı olmayan herkes "erişiminiz yok" ekranını görür.
+- [~] İlk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi (Issue #43). **Yarısı yapıldı:** Hamza Bayrak 2026-08-24'te `owner` olarak eklendi ve RLS'in ona kurum/operatör/denetim listelerini gerçekten verdiği kimliğine bürünülerek doğrulandı. Arda Bülent'in **hesabı henüz yok**; hesap açıldığında ikinci operatör kaydı eklenecek.
 - [ ] Test kurumu `orbitdershane`'in silinip ilk kurumun panel üzerinden yeniden kurulması.
 
 **Release gate:** Kurum ve kurum yöneticisi yalnızca panel üzerinden oluşturulabilir; davet edilen kullanıcı kendi şifresini kurup giriş yapabilir; platform operatörü hiçbir kurumun öğrenci/not/yoklama/ödeme verisini okuyamaz; her platform işlemi denetim kaydı üretir.
