@@ -709,3 +709,106 @@ Bu karar, `PROJECT_STATE.md` bölüm 10'daki düzeltilmiş taahhüdün somut hâ
 - **Operatöre kalıcı okuma yetkisi vermek:** En kolayı. Reddedildi; "operatör kapları yönetir, içeriği görmez" taahhüdünü tamamen ortadan kaldırır ve kuruma satış yaparken savunulamaz.
 - **Hiçbir erişim vermemek:** Bugünkü durum. İşlemez; her sorun için kurumdan ekran görüntüsü istemek zorunda kalırız.
 - **Destek oturumunda yazma yetkisi de vermek:** Reddedildi; teşhis için gereksiz, sorumluluk açısından risklidir.
+
+---
+
+### Karar: Rol, atama ve bağlantı üç ayrı kavramdır
+
+**Durum:** Alındı
+**Tarih:** 2026-08-25
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** "Bir kişinin bir kurumda tek üyeliği olur" kısıtı konduktan sonra doğal soru geldi: **peki bir kişinin aynı kurumda iki yetkisi olursa ne olacak?**
+
+Soru gerçek durumlara dayanıyor ve üçü de sahada yaygın:
+
+1. Küçük bir dershanenin sahibi hem yönetiyor hem ders veriyor.
+2. Çocuğu aynı dershanede okuyan bir öğretmen.
+3. Alt sınıflara ders veren 12. sınıf öğrencisi.
+
+İnceleme, bugünkü `app_role` enum'unun (`admin`/`teacher`/`student`/`parent`) **üç farklı kavramı tek kutuya koyduğunu** gösterdi.
+
+**Karar:** Üç kavram ayrılır ve karıştırılmaz.
+
+| Kavram       | Ne belirtir                    | Nerede yaşar                                     |
+| ------------ | ------------------------------ | ------------------------------------------------ |
+| **Rol**      | Kişinin kurumdaki temel işlevi | `organization_memberships.role`                  |
+| **Atama**    | Hangi sınıf/ders/şube onun     | Ayrı atama tabloları (v1.2)                      |
+| **Bağlantı** | Kime bağlı olduğu              | `student_guardians` gibi ilişki tabloları (v1.2) |
+
+Bu ayrımın üç somut sonucu var:
+
+**1. Ders vermek bir atama, rol değil.** Yönetici aynı zamanda ders verebilir; rolü `admin` kalır, hangi sınıfların onun olduğu atama kaydından gelir. `admin` yetkileri `teacher` yetkilerini zaten kapsar. İkinci bir üyelik gerekmez.
+
+**2. `parent` bir rol OLARAK KALIR, ama kapsamı bağlantıdan gelir.** Rol hangi panelin açılacağını belirler; hangi öğrencinin görüleceğini `student_guardians` bağlantısı belirler.
+
+> **Sonradan düzeltme (2026-08-25):** Bu madde ilk yazımında _"`parent` rol olmaktan çıkarılır"_ diyordu. Gerekçe, öğretmen-veli durumunun tek hesapla ifade edilememesiydi.
+>
+> Arda Bülent daha basit bir çözüm gösterdi: **birden fazla rolü olan kişi için ikinci bir hesap.** O zaman `parent`'ın rol olarak kalmasında hiçbir sakınca yok ve v1.2'den bir şema değişikliği eksiliyor. Enum'dan çıkarma önerisi, ikinci hesabın daha basit çözdüğü bir soruna karşı fazladan karmaşıklıktı.
+
+> ⚠️ **Yönetici-veli durumunda çıkar çatışması vardır.** Yönetici hem notu/yoklamayı düzenleyebilen kişi hem de o öğrencinin velisidir; kendi çocuğunun kaydını değiştirebilir. Bu **teknik bir açık değildir** — yönetici zaten her öğrencinin kaydını değiştirebilir — ancak sonucu ağırdır ve fark edilmesi güçtür.
+>
+> Karşılığı erişimi kısıtlamak değil, **izlenebilirlik**tir: not, yoklama ve ödeme değişiklikleri kurumun kendi denetim kaydına yazılmalı ve kaydın kim tarafından yapıldığı görünmelidir. v1.4'te CRUD akışları yazılırken bu kayıtlar atlanamaz.
+>
+> Erişimi kısıtlamak — "yönetici kendi çocuğunun notunu düzenleyemesin" — bilinçli olarak reddedilmiştir: tek yöneticili küçük bir kurumda o öğrencinin notunu girecek başka kimse olmayabilir ve sistem kullanılamaz hâle gelir.
+
+**3. Birden fazla rol gerektiren HER durumda kurum ikinci hesap açar.** Öğretmen-veli, yönetici-veli, öğrenci-asistan — hepsinde aynı yol.
+
+Her hesabın kendi rolü ve kendi yetkisi vardır. Veli hesabı gerçekten velidir; tüm öğrencileri göremez, çünkü yetkisi yoktur. Yönetici hesabı ayrıdır. Yeni bir yetki mantığı gerekmez — her rolün paneli zaten var.
+
+**Gerekçe:** İlk iki durum **rol sorunu değildi**; öyle görünmelerinin sebebi enum'un üç kavramı birleştirmesiydi. Doğru modellendiklerinde tek hesapla çözülüyorlar ve ikinci hesaba hiç gerek kalmıyor.
+
+Üçüncü durum gerçekten iki roldür ve nadirdir. Nadir bir durum için rol kümesi, rol hiyerarşisi veya çoklu üyelik gibi kalıcı bir karmaşıklık taşımak, her RLS politikasını ve her kimlik çözümlemesini etkiler — bedeli faydasından büyüktür. İkinci hesap, kararı kuruma bırakır ve sistemde hiçbir iz bırakmaz.
+
+**İkinci hesabın bedeli — açıkça kabul ediliyor:**
+
+- Kişi iki giriş numarası taşır ve hangisinin ne olduğunu hatırlamak zorundadır.
+- Verisi bölünür; iki hesap arasında hiçbir bağ yoktur.
+- **KVKK:** aynı veri sahibinin iki kaydı olur. "Verilerimi sil" talebinde tüm hesapların bulunması gerekir; eksik silme riski doğar. Silme akışı yazılırken (v2.0) bu ihtimal hesaba katılmalıdır.
+
+Bu bedel, **yalnızca üçüncü durum için** kabul ediliyor. İlk iki durumda ikinci hesap açmak yanlış olur: öğretmen-veli iki hesapla günde birkaç kez çıkış-giriş yapmak zorunda kalır ve pratikte veli hesabını hiç kullanmaz.
+
+**Hesaplar arası geçiş düğmesi.**
+
+Birden fazla rolü olan kişi, rolü kadar hesaba sahiptir. Her giriş-çıkışta şifre yazmak günlük kullanımda katlanılabilir değil; bu yüzden sağ üstte hesaplar arası geçiş düğmeleri bulunur.
+
+**Hangi düğmelerin görüneceği kişinin gerçekten sahip olduğu hesaplardan türetilir.** Sabit bir liste veya sabit bir sayı yoktur. Örnekler — tamamı değil:
+
+| Kişi                       | Görünen düğmeler                         |
+| -------------------------- | ---------------------------------------- |
+| Yalnızca öğretmen          | **Hiçbiri** — bileşen hiç render edilmez |
+| Yönetici + veli            | `Yönetici` · `Veli` — öğretmen görünmez  |
+| Öğretmen + veli            | `Öğretmen` · `Veli`                      |
+| Yönetici + öğretmen + veli | Üçü birden                               |
+
+**Bu bir şablon değil, bir sistemdir.** İki tasarım kuralı bağlayıcıdır:
+
+1. **Hesap sayısı sınırsızdır.** İkili geçiş (toggle) olarak yazılmaz; N hesap üzerinden döner. Bugün en fazla üç rol var, yarın dört olabilir.
+2. **Roller kodda sabitlenmez.** Düğme, kişinin hesaplarında hangi rol varsa onu gösterir; rol isimlerini kendisi bilmez. İleride `muhasebeci` gibi yeni bir rol eklendiğinde — ve o kişi aynı zamanda veli olduğunda — geçiş bileşenine **tek satır** dokunulmaz.
+
+İkinci kural, roller büyüdükçe her yeni rolde aynı bileşeni düzenlemek zorunda kalmamak içindir. Rol listesini bileşene gömmek, bugün üç satırlık bir kolaylık, altı ay sonra unutulacak bir bakım borcudur.
+
+**Bu düğme yeni bir yetki mantığı getirmez.** Her hesabın rolü ve yetkisi zaten kendindedir; veli hesabı tüm öğrencileri göremez çünkü yetkisi yoktur. Düğme yalnızca çıkış-giriş zahmetini kaldırır. Rollerin panelleri de zaten mevcuttur.
+
+**Geçiş şifre sormaz.** Sorması daha güvenli olurdu ancak günde birkaç kez şifre yazmak kimsenin katlanacağı şey değildir; pratikte düğme kullanılmaz ve kişi tek hesapta kalır. Ortak bilgisayar riskini hareketsizlik sayacı karşılıyor.
+
+**Bağlayıcı sonuç — sayaç tüm oturumları birden kapatır.** Şifresiz geçiş, iki oturumun aynı anda saklanması demektir. Hareketsizlik sayacı yalnızca aktif oturumu kapatırsa diğeri açık kalır ve sayacın var olma sebebi ortadan kalkar.
+
+**Hesaplar bir kişi kaydına bağlanır — ikili bağ olarak DEĞİL.** "Bu kişinin diğer hesapları hangileri" sorusunun cevabı bir yerde durmak zorunda; düğmenin çalışması için zaten gerekli.
+
+Modelleme biçimi önemli: hesaptan hesaba işaret eden bir alan (`linked_account_id`) iki hesapta çalışır, **üçte kırılır** — üç hesabın hangi ikisinin bağlanacağı belirsizdir ve zincir kopabilir. Doğrusu **hesapların ait olduğu bir kişi kaydı**: N hesap aynı kişiye bağlanır, kaç tane olduğu fark etmez.
+
+Aynı kayıt KVKK açısından da gerekli: aksi halde bir insanın birden fazla kaydı olur, aralarında hiçbir bağ bulunmaz ve "verilerimi sil" talebinde biri gözden kaçabilir.
+
+**Uygulama sırası:**
+
+- **Bugün geçerli:** bir kişi, bir kurumda, bir üyelik, bir kod, bir numara (Issue #65 ile şemada zorlanıyor).
+- **v1.2:** `student_guardians` bağlantısı ve öğretmen-sınıf/ders atamaları. `parent` enum değeri **kalır**; kaldırılması gerekmiyor (yukarıdaki düzeltmeye bakın).
+- **v1.3:** Hesaplar arası geçiş düğmesi ve kişi kaydı. Hareketsizlik sayacının tüm oturumları kapatacak biçimde genişletilmesi aynı işin parçasıdır.
+- **v2.0:** hesap silme/anonimleştirme akışında çoklu hesap ihtimali.
+
+**Alternatifler:**
+
+- **Rol kümesi (`role[]`) veya rol hiyerarşisi:** Her RLS politikası "bu kişinin rollerinden herhangi biri" sorusunu sormak zorunda kalırdı. Politikaların tamamını karmaşıklaştırır ve bugün gerçek karşılığı olmayan bir esneklik için ödenir.
+- **Kişi başına çoklu üyelik:** Denendi ve geri alındı (Issue #65). `person_code` üyelikte durduğu için iki üyelik iki giriş numarası üretiyor, ancak auth hesabı tek olduğundan numaralardan biri hiçbir hesaba karşılık gelmiyordu.
+- **Her durumda ikinci hesap:** Kullanıcının önerisinin genel hâli. Reddedildi: öğretmen-veli günlük bir durum ve iki hesapla kullanılamaz hâle gelir.

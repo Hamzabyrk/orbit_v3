@@ -256,6 +256,15 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Dashboard, öğrenci, sınıf, program, ödeme, sınav ve rapor değerlerinin canlı sorgulardan türetilmesi.
 - [ ] Tasarım değişmeden loading, error ve boş kurum durumlarının eklenmesi.
 - [ ] Sağ üst rol göstergesinin gerçek üyelikten gelmesi; demo geçişinin environment ile sınırlandırılması.
+- [ ] **Hesaplar arası geçiş düğmesi.** Birden fazla rolü olan kişi rolü kadar hesaba sahiptir; sağ üstte hesaplar arası geçiş bulunur. Düğmeler kişinin **gerçekten sahip olduğu hesaplardan** türetilir: tek hesabı olanda bileşen hiç render edilmez, yönetici-veli olan birinde öğretmen düğmesi görünmez.
+
+  **Şablon değil sistem:** hesap sayısı sınırsızdır (ikili toggle olarak yazılmaz) ve rol isimleri bileşene gömülmez. İleride `muhasebeci` gibi yeni bir rol eklendiğinde geçiş bileşenine tek satır dokunulmamalı.
+
+  Yeni bir yetki mantığı getirmez — her hesabın rolü ve yetkisi kendindedir. Geçiş **şifre sormaz**; günde birkaç kez şifre yazmak pratikte kullanılmaz hâle getirir.
+
+  **Bağlayıcı:** şifresiz geçiş iki oturumun birden saklanması demek. Hareketsizlik sayacı **tüm oturumları** kapatacak biçimde genişletilmeli; yalnızca aktif olanı kapatırsa diğeri açık kalır ve sayacın anlamı kalmaz.
+
+- [ ] **Kişi kaydı — hesapların ait olduğu grup.** "Bu kişinin diğer hesapları hangileri" bilgisi; geçiş düğmesi için zaten gerekli, KVKK "verilerimi sil" talebinde tüm kayıtların birlikte bulunabilmesi için de gerekli. **İkili bağ olarak modellenmez** (`linked_account_id` iki hesapta çalışır, üçte kırılır); N hesap aynı kişi kaydına bağlanır. Bkz. `DECISION_LOG.md` — "Rol, atama ve bağlantı üç ayrı kavramdır".
 - [ ] Kurum/sınıf kapsamlı Realtime invalidation ve abonelikleri.
 
 - [ ] İstemci tarafı hareketsizlik sayacı: belirli süre işlem yoksa oturum kapatılır. Supabase'in sunucu tarafı oturum zaman aşımı Pro plan gerektirdiği için ücretsiz karşılığıdır; dershanenin ortak bilgisayarında açık bırakılan tarayıcı senaryosuna karşı etkilidir.
@@ -275,7 +284,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Admin/öğretmen: hedefli Günlük Akış paylaşımı.
 - [ ] Kullanıcı: kendine özel Gün Planı görev ve takvim yönetimi.
 - [ ] Admin: ödeme planı/taksit kaydı; veli: yalnızca bağlı öğrencinin tutar/vade görünümü.
-- [ ] Zod doğrulama, kontrollü hata mesajları ve kritik mutasyon audit kayıtları.
+- [ ] Zod doğrulama, kontrollü hata mesajları ve kritik mutasyon audit kayıtları. **Not, yoklama ve ödeme değişiklikleri atlanamaz:** kurum yöneticisi aynı zamanda bir öğrencinin velisi olabilir ve kendi çocuğunun kaydını değiştirebilir. Erişimi kısıtlamak reddedildi (tek yöneticili kurumda sistem kullanılamaz hâle gelir); karşılığı izlenebilirliktir. Bkz. `DECISION_LOG.md` — "Rol, atama ve bağlantı üç ayrı kavramdır".
 
 **Release gate:** Yetkisiz CRUD, doğrudan API isteğiyle de RLS tarafından reddedilir; admin değişikliği ilgili öğretmen/öğrenci/veli ekranında Realtime ile görünür.
 
