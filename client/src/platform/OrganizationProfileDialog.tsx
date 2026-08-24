@@ -98,6 +98,14 @@ export function OrganizationProfileDialog({
         description: `${result.organizationName} ve bağlı ${result.deletedMemberships} üyelik, ${result.deletedBranches} şube kaydı kaldırıldı.`,
       });
 
+      if (result.protectedOperators > 0) {
+        // Sessiz kalmamalı: operatör "tüm kullanıcılar silindi" sanıp
+        // korunmuş bir hesabın varlığından habersiz kalmasın.
+        toast.info("Platform operatörü hesapları korundu", {
+          description: `${result.protectedOperators} üyenin hesabı silinmedi çünkü platform operatörü. Kurum üyelikleri kaldırıldı.`,
+        });
+      }
+
       if (result.orphanedUsers > 0) {
         // Sessizce geçilmemeli: veritabanı temiz ama auth tarafında artık
         // hesaplar kaldı. Giriş yapsalar bile üyeliksiz oldukları için dışarı
@@ -196,9 +204,14 @@ export function OrganizationProfileDialog({
                 <p className="font-bold">Silinecekler</p>
                 <ul className="mt-1.5 list-inside list-disc space-y-0.5">
                   <li>Kurum kaydı ve şubeleri</li>
-                  <li>Tüm kullanıcı hesapları ve üyelikleri</li>
+                  <li>Kullanıcı hesapları ve üyelikleri</li>
                   <li>Kurumun kendi denetim kaydı</li>
                 </ul>
+                <p className="mt-2 text-[11px] opacity-90">
+                  Platform operatörü olan üyelerin hesapları{" "}
+                  <strong>silinmez</strong>; yalnızca bu kurumla ilişkileri
+                  kalkar.
+                </p>
               </div>
 
               <p className="text-muted-foreground">
