@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PlatformEmptyState, PlatformSection } from "./PlatformShell";
 import { OrganizationCreateDialog } from "./OrganizationCreateDialog";
-import { AdminPasswordResetDialog } from "./AdminPasswordResetDialog";
+import { OrganizationProfileDialog } from "./OrganizationProfileDialog";
 import type { PlatformOrganization } from "./platformService";
 
 function formatDate(value: string): string {
@@ -20,10 +20,9 @@ export function PlatformOrganizations({
   onCreated: () => void;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  // Doluysa o kurumun yöneticisi için şifre üretme diyaloğu açılır.
-  const [resetTarget, setResetTarget] = useState<PlatformOrganization | null>(
-    null
-  );
+  // Doluysa o kurumun profil diyaloğu açılır: şifre üretme ve silme oradadır.
+  const [profileTarget, setProfileTarget] =
+    useState<PlatformOrganization | null>(null);
 
   return (
     <PlatformSection
@@ -54,7 +53,7 @@ export function PlatformOrganizations({
                 <th className="px-4 py-3 font-bold">Kısa ad</th>
                 <th className="px-4 py-3 font-bold">Kuruluş</th>
                 <th className="px-4 py-3 font-bold">Durum</th>
-                <th className="px-4 py-3 font-bold">Yönetici</th>
+                <th className="px-4 py-3 font-bold">İşlem</th>
               </tr>
             </thead>
             <tbody>
@@ -87,10 +86,10 @@ export function PlatformOrganizations({
                   <td className="px-4 py-3">
                     <button
                       type="button"
-                      onClick={() => setResetTarget(organization)}
+                      onClick={() => setProfileTarget(organization)}
                       className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
                     >
-                      Yeni şifre üret
+                      Kurum profili
                     </button>
                   </td>
                 </tr>
@@ -112,9 +111,10 @@ export function PlatformOrganizations({
         onCreated={onCreated}
       />
 
-      <AdminPasswordResetDialog
-        organization={resetTarget}
-        onClose={() => setResetTarget(null)}
+      <OrganizationProfileDialog
+        organization={profileTarget}
+        onClose={() => setProfileTarget(null)}
+        onChanged={onCreated}
       />
     </PlatformSection>
   );

@@ -28,17 +28,25 @@ Kök neden tek ve basit:
 
 ## 2. Hangi ayar nerede yaşar
 
-| Alan                               | Kaynak                 | `config.toml` etkiler mi? | Repo'dan deploy edilir mi?    |
-| ---------------------------------- | ---------------------- | ------------------------- | ----------------------------- |
-| Tablo, fonksiyon, RLS, yetkiler    | `supabase/migrations/` | Yerelde evet              | ✅ `main`e merge ile otomatik |
-| Edge Function kodu                 | `supabase/functions/`  | —                         | ✅                            |
-| Edge Function secret'ları          | Supabase paneli        | ❌                        | ❌ Elle                       |
-| Auth sağlayıcı ve şifre politikası | Supabase paneli        | ❌                        | ❌ Elle                       |
-| Site URL ve Redirect URL listesi   | Supabase paneli        | ❌                        | ❌ Elle                       |
-| Oturum ömrü, rate limit            | Supabase paneli        | ❌                        | ❌ Elle                       |
-| Uygulama ortam değişkenleri        | Vercel paneli          | ❌                        | ❌ Elle                       |
-| Deployment koruması, domainler     | Vercel paneli          | ❌                        | ❌ Elle                       |
-| Repo görünürlüğü, review kuralları | GitHub paneli          | ❌                        | ❌ Elle                       |
+| Alan                               | Kaynak                 | `config.toml` etkiler mi? | Repo'dan deploy edilir mi?                                        |
+| ---------------------------------- | ---------------------- | ------------------------- | ----------------------------------------------------------------- |
+| Tablo, fonksiyon, RLS, yetkiler    | `supabase/migrations/` | Yerelde evet              | ✅ `main`e merge ile otomatik                                     |
+| Edge Function kodu                 | `supabase/functions/`  | —                         | ⚠️ Yalnızca `config.toml`'da kayıtlı olanlar (aşağıdaki nota bak) |
+| Edge Function secret'ları          | Supabase paneli        | ❌                        | ❌ Elle                                                           |
+| Auth sağlayıcı ve şifre politikası | Supabase paneli        | ❌                        | ❌ Elle                                                           |
+| Site URL ve Redirect URL listesi   | Supabase paneli        | ❌                        | ❌ Elle                                                           |
+| Oturum ömrü, rate limit            | Supabase paneli        | ❌                        | ❌ Elle                                                           |
+| Uygulama ortam değişkenleri        | Vercel paneli          | ❌                        | ❌ Elle                                                           |
+| Deployment koruması, domainler     | Vercel paneli          | ❌                        | ❌ Elle                                                           |
+| Repo görünürlüğü, review kuralları | GitHub paneli          | ❌                        | ❌ Elle                                                           |
+
+> ⚠️ **Yeni bir Edge Function eklemek için `supabase/functions/` altına dizin açmak YETMEZ.**
+>
+> Supabase GitHub entegrasyonu yalnızca `supabase/config.toml` içinde `[functions.<ad>]` bölümü bulunan fonksiyonları deploy eder. Mevcut fonksiyonlar her merge'de güncellenir, ancak kayıtlı olmayan yeni bir dizin **sessizce yok sayılır**.
+>
+> **Altıncı drift vakası (2026-08-24):** `reset-admin-password` merge edildi, CI yeşil geçti, `bootstrap-organization` v26'ya güncellendi — ve yeni fonksiyon hiç oluşturulmadı. İstemci çağırdığında Supabase genel bir hata döndürdü ve panelde "Kurum oluşturulamadı" yazdı; hata mesajı bile alakasızdı çünkü kod tanınmayan bir koda düşüyordu.
+>
+> **Kural:** Yeni Edge Function ekleyen PR, aynı commit'te `config.toml`'a da satır ekler. `list_edge_functions` ile merge sonrası doğrulanır.
 
 **Kural:** Yukarıdaki tabloda "Elle" yazan bir ayarı değiştiren kişi, aynı PR'da bu dosyayı da günceller. Ayar değişikliği kod değişikliği içermiyorsa yalnızca bu dosyayı değiştiren bir PR açılır.
 
