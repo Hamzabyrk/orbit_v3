@@ -98,11 +98,11 @@ export function OrganizationProfileDialog({
         description: `${result.organizationName} ve bağlı ${result.deletedMemberships} üyelik, ${result.deletedBranches} şube kaydı kaldırıldı.`,
       });
 
-      if (result.protectedOperators > 0) {
+      if (result.protectedIdentities > 0) {
         // Sessiz kalmamalı: operatör "tüm kullanıcılar silindi" sanıp
         // korunmuş bir hesabın varlığından habersiz kalmasın.
-        toast.info("Platform operatörü hesapları korundu", {
-          description: `${result.protectedOperators} üyenin hesabı silinmedi çünkü platform operatörü. Kurum üyelikleri kaldırıldı.`,
+        toast.info("Bazı hesaplar korundu", {
+          description: `${result.protectedIdentities} üyenin hesabı silinmedi çünkü platform operatörlüğü veya başka bir kurumda üyeliği var. Bu kurumla ilişkileri kaldırıldı.`,
         });
       }
 
@@ -208,9 +208,9 @@ export function OrganizationProfileDialog({
                   <li>Kurumun kendi denetim kaydı</li>
                 </ul>
                 <p className="mt-2 text-[11px] opacity-90">
-                  Platform operatörü olan üyelerin hesapları{" "}
-                  <strong>silinmez</strong>; yalnızca bu kurumla ilişkileri
-                  kalkar.
+                  Platform operatörlüğü veya başka bir kurumda üyeliği olan
+                  kişilerin hesapları <strong>silinmez</strong>; yalnızca bu
+                  kurumla ilişkileri kalkar.
                 </p>
               </div>
 

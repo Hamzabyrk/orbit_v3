@@ -334,8 +334,8 @@ export type DeleteOrganizationResult = {
   deletedBranches: number;
   deletedAuditEvents: number;
   orphanedUsers: number;
-  /** Auth hesabı bilinçli olarak korunan platform operatörü sayısı. */
-  protectedOperators: number;
+  /** Kimliği başka bir yerden talep edildiği için auth hesabı korunan üye sayısı. */
+  protectedIdentities: number;
 };
 
 /**
@@ -375,6 +375,6 @@ export async function deleteOrganization(
     deletedBranches: Number(payload.deleted_branches ?? 0),
     deletedAuditEvents: Number(payload.deleted_audit_events ?? 0),
     orphanedUsers: Number(payload.orphaned_users ?? 0),
-    protectedOperators: Number(payload.protected_operator_count ?? 0),
+    protectedIdentities: Number(payload.protected_identity_count ?? 0),
   };
 }

@@ -88,7 +88,7 @@ select is(
   'the institution audit trail is gone'
 );
 
--- 🔴 En kritik iddialar: operatör hesapları korunuyor mu -------------------
+-- 🔴 En kritik iddialar: kimlik başka bir yerden talep ediliyorsa korunuyor mu
 
 select is(
   (select jsonb_array_length(payload -> 'member_user_ids') from delete_result),
@@ -105,7 +105,7 @@ select is(
 select is(
   (select jsonb_array_length(payload -> 'protected_user_ids') from delete_result),
   2,
-  'both operators are reported as protected'
+  'both operators are reported as protected identities'
 );
 
 -- Askıya alınmış operatör da korunur: askı geri alınabilir bir durumdur,

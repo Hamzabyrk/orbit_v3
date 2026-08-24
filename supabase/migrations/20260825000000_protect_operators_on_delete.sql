@@ -16,9 +16,20 @@
 -- ayrı bir eksendir" ilkesi tam olarak bunu önlemek içindi ama silme akışı o
 -- ilkeyi es geçiyordu.
 --
--- Düzeltme: kurum silinirken platform operatörü olan üyelerin auth hesabına
--- DOKUNULMAZ. Üyelikleri kalkar (kurumla ilişkileri biter), hesapları ve
--- operatörlükleri korunur.
+-- **Asıl hata cascade değil.** `platform_operators.user_id` → `auth.users`
+-- `on delete cascade` bağı doğrudur: auth kullanıcısı silinirse operatör kaydı
+-- da gitmelidir, aksi halde var olmayan bir kullanıcıya işaret eden sarkan bir
+-- satır kalır.
+--
+-- Hata şuydu: tek bir kuruma **kapsamlanmış** bir işlem (kurumu sil), **küresel**
+-- bir eylem yaptı (kişinin kimliğini sil). Kurum silme yalnızca kuruma ait
+-- şeyleri kaldırmalıdır; kişinin kimliği kuruma ait değildir.
+--
+-- Düzeltme bu ilkeyi ifade ediyor: **kimlik, ancak hiçbir şey onu talep
+-- etmiyorsa silinir.** Bugün "talep" iki yerden gelebilir — başka bir kurumdaki
+-- üyelik ve platform operatörlüğü. İleride yeni bir eksen eklenirse kontrol
+-- noktası hazır durumda olacak; "operatörleri koru" biçiminde yazsaydık her
+-- yeni eksende aynı hatayı tekrar keşfetmek zorunda kalırdık.
 
 create or replace function public.internal_delete_organization(
   target_organization_id uuid,
@@ -48,28 +59,43 @@ begin
     raise exception 'organization does not exist' using errcode = '23503';
   end if;
 
-  -- Üyeler ikiye ayrılıyor: auth hesabı silinebilecekler ve korunacaklar.
+  -- Üyeler ikiye ayrılıyor: kimliği silinebilecekler ve korunacaklar.
   --
-  -- Korunanlar platform operatörleridir. Operatörlük kurumdan bağımsız bir
-  -- eksendir; kurumun silinmesi o ekseni yok etmemeli. `status` filtresi
-  -- YOK: askıya alınmış bir operatörün hesabı da silinmemeli, çünkü askı geri
-  -- alınabilir bir durumdur, hesap silme ise değildir.
+  -- Ölçüt "operatör mü" değil, **başka bir şey bu kimliği talep ediyor mu**:
+  --
+  --   * Başka bir kurumdaki aktif üyelik. Bugünkü kimlik modelinde bir hesap
+  --     tek kuruma ait olduğu için bu koşul normalde tetiklenmez; yine de
+  --     kontrol ediliyor, çünkü modelin değişmesi bu fonksiyonun sessizce
+  --     yanlışa dönmesine yol açmamalı.
+  --   * Platform operatörlüğü. Kurumdan bağımsız bir eksendir; kurumun
+  --     silinmesi o ekseni yok etmemelidir.
+  --
+  -- Operatörlükte `status` filtresi YOK: askıya alınmış bir operatörün hesabı
+  -- da silinmemeli, çünkü askı geri alınabilir bir durumdur, hesap silme ise
+  -- değildir.
   select
-    coalesce(array_agg(m.user_id) filter (
-      where not exists (
-        select 1 from public.platform_operators as op
-        where op.user_id = m.user_id
-      )
-    ), '{}'),
-    coalesce(array_agg(m.user_id) filter (
-      where exists (
-        select 1 from public.platform_operators as op
-        where op.user_id = m.user_id
-      )
-    ), '{}')
+    coalesce(array_agg(m.user_id) filter (where not claimed), '{}'),
+    coalesce(array_agg(m.user_id) filter (where claimed), '{}')
   into deletable_ids, protected_ids
-  from public.organization_memberships as m
-  where m.organization_id = target_organization_id;
+  from (
+    select
+      m.user_id,
+      (
+        exists (
+          select 1
+          from public.organization_memberships as other
+          where other.user_id = m.user_id
+            and other.organization_id <> target_organization_id
+        )
+        or exists (
+          select 1
+          from public.platform_operators as op
+          where op.user_id = m.user_id
+        )
+      ) as claimed
+    from public.organization_memberships as m
+    where m.organization_id = target_organization_id
+  ) as m;
 
   -- Denetim kaydı silmeden ÖNCE yazılıyor; sonraya bırakılsaydı ve araya bir
   -- hata girseydi veriler gitmiş ama kimin sildiği kayıtsız kalmış olurdu.
@@ -95,7 +121,7 @@ begin
       'member_count',
         coalesce(array_length(deletable_ids, 1), 0)
         + coalesce(array_length(protected_ids, 1), 0),
-      'protected_operator_count', coalesce(array_length(protected_ids, 1), 0)
+      'protected_identity_count', coalesce(array_length(protected_ids, 1), 0)
     )
   );
 
@@ -127,7 +153,7 @@ end;
 $$;
 
 comment on function public.internal_delete_organization(uuid, uuid) is
-  'Kurumu ve bağlı kayıtlarını siler. `member_user_ids` yalnızca auth hesabı silinebilecek üyeleri içerir; platform operatörleri `protected_user_ids` altında döner ve hesapları korunur.';
+  'Kurumu ve bağlı kayıtlarını siler. `member_user_ids` yalnızca kimliği başka hiçbir yerden talep edilmeyen üyeleri içerir; platform operatörlüğü veya başka bir kurumda üyeliği olanlar `protected_user_ids` altında döner ve auth hesapları korunur.';
 
 revoke all on function public.internal_delete_organization(uuid, uuid)
   from public, anon, authenticated;
