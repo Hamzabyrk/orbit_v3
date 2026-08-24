@@ -53,6 +53,8 @@ Bu bölüm, ileride bir karar değiştirildiğinde eski bağlamın kaybolmaması
 
 **Gerekçe:** Supabase Auth sınırlarını korumak, çoklu tenant modelini sürdürülebilir kılmak ve ileride rol değişimini veri taşımadan yapabilmek.
 
+**Güncelleme (2026-08-24):** Cevabın _"bir kullanıcı farklı **kurumlarda** farklı rollere sahip olabilecek"_ kısmı **giriş hesabı düzeyinde geçersizdir.** Giriş numarası `<kurum:4><kişi:4>` biçiminde ve auth kimliğinin kendisi olduğu için bir hesap tek kuruma aittir; iki kurumda yer alan kişi iki ayrı hesap ve iki ayrı numara alır. _"Farklı **şubelerde** farklı roller"_ kısmı geçerliliğini korur — şube kurumun içindedir ve numarayı etkilemez. Şema da değişmez. Gerekçe ve reddedilen alternatifler için bkz. `DECISION_LOG.md` — "Bir giriş hesabı tek kuruma aittir".
+
 ### Soru 3 - İlk pilot kurum ve ilk admin nasıl oluşturulacak?
 
 **Onaylı cevap:** Kapalı beta döneminde ilk kurum, varsayılan şube ve ilk admin platform tarafında önceden oluşturulacak. Admin benzersiz e-posta adresine Supabase daveti alacak. Herkese açık self-service "kurum oluştur" onboarding akışı v1.5 sonrasına bırakılacak.
@@ -322,7 +324,8 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] `organization_memberships.person_code` + kurum başına benzersizlik ve 1000'den başlayan tahsis.
 - [ ] `bootstrap-organization`'ın `inviteUserByEmail` yerine `admin.createUser` + geçici şifre kullanması; davet yolunun kaldırılması.
 - [ ] Panelin giriş numarası ve geçici şifreyi bir kez göstermesi; yazdırılabilir çıktı.
-- [ ] pgTAP: `person_code` benzersizliği ve tahsis sırası.
+- [ ] Her geçici şifre üretiminin `platform_audit_events`'e yazılması. Operatör kimlik bilgisi ürettiğinde bunu görebilen bir kayıt kalmak zorundadır; bkz. `PROJECT_STATE.md` bölüm 10 bağlayıcı kuralı.
+- [ ] pgTAP: `person_code` benzersizliği, kurum başına 1000'den başlaması ve **aynı kişinin iki kurumda ayrı hesap alması** (bkz. `DECISION_LOG.md` — "Bir giriş hesabı tek kuruma aittir").
 
 **Release gate:** Panelden kurulan bir kurumun yöneticisi, kendisine verilen numara ve geçici şifreyle giriş yapabilir. Hiçbir adımda e-posta gerekmez.
 
@@ -349,7 +352,8 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] `profiles.phone`, `profiles.pending_email` ve doğrulama durumu alanları.
 - [ ] Kurum yöneticisi için ilk girişte **zorunlu** e-posta ekleme ve doğrulama; diğer roller için isteğe bağlı.
 - [ ] Ayarlar ekranının iletişim bölümünün gerçek veriye bağlanması (bugün mock).
-- [ ] Platform panelinde kurum yöneticisinin şifresini sıfırlama işlemi - kurtarma zincirinin son halkası.
+- [ ] Platform panelinde kurum yöneticisinin şifresini sıfırlama işlemi - kurtarma zincirinin son halkası. Denetim kaydı üretir.
+- [ ] Kurum yöneticisinin hesabında yapılan her kimlik bilgisi işleminin (geçici şifre üretimi, sıfırlama) **ona bildirilmesi**. Operatörün yetki yükseltebildiği kabul edilmiş bir gerçektir; bildirim onu gizli olmaktan çıkarır.
 - [ ] Telefon alanı doldurulur ancak doğrulanmaz; doğrulama ileriye bırakıldı.
 
 **Release gate:** Kurum yöneticisi e-postasını doğrulamadan panele giremez. Doğrulanmamış adrese şifre sıfırlama gönderilmez.

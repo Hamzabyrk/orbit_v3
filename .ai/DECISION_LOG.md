@@ -480,3 +480,38 @@ Kararın zamanlaması bilinçlidir: öğrenci ve veli ekranlarının gerçek hâ
 
 - **Baştan kendi backend'imizi yazmak:** İki kişilik, sıfır bütçeli bir ekip için aylarca tesisat yazmak demekti; ürünün kendisine hiç sıra gelmezdi.
 - **Taşınabilirliği tamamen yok saymak:** Daha hızlı ilerletirdi ama Pro plan kısıtları şimdiden hissediliyorken kapıyı bilerek kapatmak olurdu.
+
+---
+
+### Karar: Bir giriş hesabı tek kuruma aittir
+
+**Durum:** Alındı
+**Tarih:** 2026-08-24
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `ROADMAP.md` Soru 2'nin onaylı cevabı şöyleydi: _"Bir kullanıcı farklı kurum veya şubelerde farklı rollere sahip olabilecek; aktif üyelik oturum bağlamında seçilecek."_ Şema buna göre kuruldu — `organization_memberships` bir kullanıcıya birden fazla satır verebiliyor.
+
+Kimlik mimarisi kararı bu vaadi farkında olmadan geçersiz kıldı. Giriş numarası `<kurum:4><kişi:4>` biçiminde ve **auth kimliğinin kendisi**: `10421000@orbit.invalid`. Bir kişinin tek auth hesabı, tek numarası, dolayısıyla numarasına gömülü tek kurumu olur. İki dershanede ders veren bir öğretmen bu şemaya sığmıyor.
+
+Çelişki, Faz E1 `person_code` kolonunu yazmadan **önce** yakalandı. Sonradan fark edilseydi açılmış her hesabı etkilerdi.
+
+**Karar:** Bir giriş hesabı tek kuruma aittir. İki kurumda yer alan kişi, her kurumda **ayrı bir hesap ve ayrı bir giriş numarası** alır.
+
+- `organization_memberships` şeması değişmez; çoklu satır teknik olarak mümkün kalır ancak **giriş hesabı açılan** üyelik kurum başına birdir.
+- Kimliğin iki eksenli modeli etkilenmez; platform operatörlüğü zaten kurumdan bağımsızdır.
+- Kurum yöneticisi başka bir kurumun kullanıcısını göremez ve arayamaz; hesaplar birbirini tanımaz.
+
+**Gerekçe:** Tek hesapla çoklu üyelik, giriş anında kurum seçtirmeyi gerektirir ve kimlik çözümlemesini "hangi kurum bağlamındayım" durumuna bağlar. Bu durum RLS politikalarının tamamına sızar: her politika artık yalnızca "bu kullanıcı üye mi" değil, "şu anda hangi kurum bağlamında" sorusunu da sormak zorunda kalır. Oturum bağlamı istemciden geldiği için bu, yetkilendirmeye istemci kaynaklı bir girdi eklemek demektir — bugünkü en güçlü güvenlik özelliğimizi zayıflatır.
+
+Ayrı hesap ise izolasyonu güçlendirir: iki kurum arasında hiçbir teknik köprü kalmaz.
+
+**Bedeli — açıkça kabul ediliyor:** İki kurumda çalışan kişi iki numara taşır ve iki kez giriş yapar. Hedef kitlede bu durum nadirdir; küçük dershanelerde öğretmenlerin çoğu tek kurumda çalışır. Nadir bir kolaylık için, yetkilendirmenin tamamını karmaşıklaştırmak doğru takas değildir.
+
+**Soru 2'ye etkisi:** Cevabın "bir kullanıcı farklı kurumlarda rollere sahip olabilecek" kısmı, **giriş hesabı düzeyinde geçersizdir**. "Farklı şubelerde farklı roller" kısmı geçerliliğini korur — şube kurumun içindedir ve numarayı etkilemez.
+
+**Yeniden değerlendirme tetikleyicisi:** Aynı kişinin iki kurumda hesap istemesi sahada gerçekten sorun olursa. O noktada seçenek, tek hesaba çoklu üyelik değil, **hesaplar arası geçiş** olabilir: kullanıcı yine ayrı kimliklerle var olur, yalnızca arayüz aralarında geçiş sunar. Yetkilendirme sınırı bozulmaz.
+
+**Alternatifler:**
+
+- **Tek hesap, girişte kurum seçimi:** Soru 2'ye sadık kalırdı. Reddedildi; yetkilendirmeye istemci kaynaklı bağlam girdisi ekliyor.
+- **Numaradan kurum kodunu çıkarmak (yalnızca kişi numarası):** Numarayı kurumdan bağımsız kılardı ama global benzersizliği kaybederdi; o zaman girişte kurum kodu ayrıca sorulurdu ve tek alanlı giriş kararı çökerdi.
