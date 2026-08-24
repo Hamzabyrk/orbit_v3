@@ -167,5 +167,37 @@ Deno.serve(async request => {
     );
   }
 
+  // `internal_bootstrap_organization` denetim kaydını `audit_events`'e yazar,
+  // yani KURUMUN kaydına. Operatör o tabloyu okuyamaz (policy kurum admini
+  // istiyor) ve okuyabilmesi de doğru olmaz. Platform ekseninin kaydı ayrıdır;
+  // panelin denetim listesi bu satırdan besleniyor. Yazılmazsa panel kurum
+  // oluşturmayı hiç görmez.
+  const organizationId = (bootstrap as { organization_id?: string } | null)
+    ?.organization_id;
+
+  const { error: auditError } = await adminClient
+    .from("platform_audit_events")
+    .insert({
+      actor_user_id: userData.user.id,
+      action: "platform.organization_created",
+      entity_type: "organization",
+      entity_id: organizationId ?? null,
+      organization_id: organizationId ?? null,
+      metadata: {
+        organization_name: input.organizationName,
+        organization_slug: input.organizationSlug,
+        branch_name: input.branchName,
+        admin_email: input.adminEmail,
+      },
+    });
+
+  // Kurum bu noktada zaten oluştu. Denetim kaydı yazılamadı diye isteği
+  // başarısız saymak, var olan bir kurumu "oluşmadı" göstermek olurdu; çağıran
+  // taraf tekrar denerse slug çakışmasıyla karşılaşır. Hata loglanır, istek
+  // başarılı döner.
+  if (auditError) {
+    console.error("[bootstrap-organization] platform audit write failed");
+  }
+
   return jsonResponse({ data: bootstrap }, 201, origin);
 });

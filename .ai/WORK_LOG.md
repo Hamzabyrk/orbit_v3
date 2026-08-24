@@ -6,6 +6,36 @@
 
 ---
 
+## 2026-08-24 — Platform Paneli: Kurum Oluşturma, Operatör Listesi ve Denetim Kaydı (Issue #41)
+
+**Kim:** Claude (Arda Bülent talebiyle, `feat/41-platform-panel` branch'inde)
+
+Faz D3. Panelin kendisi. Ekranları yazmadan önce her ekranın bağlı olduğu veri yolunu tek tek kontrol ettim ve **üçü de bugünkü hâliyle çalışmıyordu.**
+
+**🔴 Kurum listesi operatöre boş dönüyordu.** `organizations_select_member` politikası kurum üyeliği istiyor; operatörün tasarım gereği üyeliği yok. Yani operatör kendi kurduğu kurumu bile listeleyemiyordu.
+
+Bunu düzeltmek `platform_operators.test.sql`'deki "platform operator cannot read any organization" iddiasını gevşetmeyi gerektirdi. Gevşetmenin sınırını açıkça çizdim: **KVKK taahhüdü kurumun içeriği hakkındaydı** — öğrenci, not, yoklama, ödeme. Kurumun kendisi bir kayıt değil bir **kap**: ad, slug, kod, kuruluş tarihi. Kişisel veri içermiyor ve zaten operatörün kendi oluşturduğu şey. Kap açıldı; `branches`, `organization_memberships` ve `audit_events` kapalı kaldı. Bu sınır yeni bir pgTAP dosyasıyla sabitlendi.
+
+**🔴 Operatör listesi isim yerine UUID gösterecekti.** `profiles_select_self` yalnızca kişinin kendi kaydını gösteriyor. Dar bir politika eklendi: operatör, **yalnızca diğer operatörlerin** profilini okuyabilir. Politikanın sağ koşulu (`okunan satır bir operatöre ait olmalı`) düşerse operatör sistemdeki her öğrencinin ve velinin adını görebilir hale gelirdi; testin en kritik iddiası tam olarak bunu bekliyor.
+
+**🔴 Denetim kaydı hiç dolmayacaktı.** `internal_bootstrap_organization` denetim kaydını `audit_events`'e, yani **kurumun** kaydına yazıyor. Operatör o tabloyu okuyamaz ve okuyabilmesi de doğru olmaz. Platform ekseninin kaydı ayrı bir tabloda. Edge Function'a `platform_audit_events` yazımı eklendi. Kurum zaten oluşmuş olduğu için denetim yazımı başarısız olursa istek yine başarılı dönüyor, hata loglanıyor — aksi halde var olan bir kurum "oluşmadı" gösterilir ve tekrar denendiğinde slug çakışırdı.
+
+**Panelde `service_role` kullanılmıyor.** Okumaların tamamı kullanıcının kendi oturumuyla yapılıyor, yetkiyi RLS belirliyor. Kullanılsaydı panelin açık olduğu her sekme tarayıcıda tam yetkili bir anahtar taşıyordu. Tek yazma yolu Edge Function ve o da operatörlüğü sunucuda yeniden doğruluyor.
+
+**Ekranlar:** Kurumlar (liste + oluşturma diyaloğu), Operatörler (salt okunur), Denetim Kaydı (salt okunur). Operatör ekleme panelde **yok** ve bu bilinçli — bir operatörün kendi yetkisini yükseltebilmesini engellemek için yazma yolu yalnızca sunucuda.
+
+**Slug elle yazılmıyor.** Edge Function `^[a-z0-9]+(?:-[a-z0-9]+)*$` kalıbını dayatıyor ve hedef kitle Türkçe kurum adı giriyor. Ad yazılırken slug otomatik türetiliyor (`Çorlu Işık` → `corlu-isik`), operatör isterse düzeltiyor; düzelttiyse üzerine yazılmıyor. `"İ".toLowerCase()` birleşik noktalı bir karakter ürettiği için çeviri küçültmeden **önce** yapılıyor — 9 test bunu kapsıyor.
+
+**Testler:** `organizationSlug.test.ts` (9) ve `platform_operator_reads.test.sql` (9). Toplam 66 birim testi, kalite kapısı yeşil. pgTAP CI'da Ubuntu üzerinde koşuyor; yerel Docker'da Postgres imajı inmediği için yerelde çalıştırılamadı.
+
+**Sırada ne var:**
+
+1. Faz D4 — ilk platform operatörü hesaplarının bir defaya mahsus eklenmesi. **Panel o adıma kadar kimseye açık değil**; operatör kaydı olmayan herkes "erişiminiz yok" ekranını görür. Bu adım hesap oluşturmayı gerektirdiği için Arda Bülent tarafından yapılacak.
+2. v1.3 — mock veri temizliği, boş durum ekranları ve hareketsizlik zaman aşımı.
+3. Faz F — test kurumu `orbitdershane` silinip ilk kurum panel üzerinden yeniden kurulacak.
+
+---
+
 ## 2026-08-24 — Kimlik İki Eksene Ayrıldı ve `/platform` Rotası (Issue #39)
 
 **Kim:** Claude (Arda Bülent talebiyle, `feat/39-platform-operator-identity` branch'inde)

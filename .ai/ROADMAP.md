@@ -176,8 +176,10 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [x] `organizations.code` eklendi: 1000'den başlayan, benzersiz, dört haneli kurum kodu (Issue #37). Giriş numarasının ilk yarısıdır.
 - [x] Kimlik çözümlemesi iki bağımsız ekseni birden taşıyor: kurum üyeliği ve platform operatörlüğü (Issue #39). Önceki hâlinde üyelik bulunamazsa oturum kapatılıyordu; operatörün tasarım gereği üyeliği olmadığı için giriş yapar yapmaz sistemden atılırdı.
 - [x] `/platform` rotası ve panel iskeleti (`client/src/platform/` altında, dershane ağacına dokunmadan) (Issue #39). Ayrı giriş ekranı **yok**; tek giriş, girişten sonra dallanma — bkz. `DECISION_LOG.md` ilgili değişiklik notu.
-- [ ] Panelden kurum + varsayılan şube + kurum yöneticisi oluşturma akışı.
-- [ ] İlk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi.
+- [x] Panelden kurum + varsayılan şube + kurum yöneticisi oluşturma akışı (Issue #41). Kurum listesi, operatör listesi ve platform denetim kaydı da aynı panelde; ikisi salt okunur.
+- [x] Operatörün kurum **kabını** okuyabilmesi (Issue #41). `organizations_select_member` üyelik istediği için kurum listesi operatöre boş dönüyordu. Kap açıldı, içerik (`branches`, `organization_memberships`, `audit_events`) kapalı kaldı ve bu sınır pgTAP ile sabitlendi.
+- [x] Kurum oluşturma artık `platform_audit_events`'e de yazıyor (Issue #41). Öncesinde yalnızca kurumun kendi `audit_events` kaydına yazılıyordu; operatör o tabloyu okuyamadığı için panelin denetim listesi hiç dolmayacaktı.
+- [ ] İlk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi. **Panel bu adım tamamlanana kadar kimseye açılmaz** — operatör kaydı olmayan herkes "erişiminiz yok" ekranını görür.
 - [ ] Test kurumu `orbitdershane`'in silinip ilk kurumun panel üzerinden yeniden kurulması.
 
 **Release gate:** Kurum ve kurum yöneticisi yalnızca panel üzerinden oluşturulabilir; davet edilen kullanıcı kendi şifresini kurup giriş yapabilir; platform operatörü hiçbir kurumun öğrenci/not/yoklama/ödeme verisini okuyamaz; her platform işlemi denetim kaydı üretir.
