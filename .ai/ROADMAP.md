@@ -172,9 +172,10 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 - [x] Şifre belirleme ve sıfırlama ekranları (Issue #25). `/sifre-sifirla` ve `/sifre-belirle` rotaları, şifre politikasının istemci doğrulaması ve `PASSWORD_RECOVERY` olayının normal girişten ayrıştırılması.
 - [x] `platform_operators` tablosu, `current_user_is_platform_operator()` yardımcısı ve `platform_audit_events` tablosu (Issue #27). Operatörün kurum içeriğini göremediği pgTAP ile doğrulandı.
-- [x] `bootstrap-organization` Edge Function'ı `app_metadata.platform_admin` yerine `platform_operators` tablosunu okuyor (Issue #37). Edge Function'lar GitHub entegrasyonuyla otomatik deploy edilmediği için **elle deploy gerektirir**; bkz. `PLATFORM_SETTINGS.md` bölüm 2.
+- [x] `bootstrap-organization` Edge Function'ı `app_metadata.platform_admin` yerine `platform_operators` tablosunu okuyor (Issue #37). Merge ile birlikte production'a otomatik deploy edildi ve doğrulandı.
 - [x] `organizations.code` eklendi: 1000'den başlayan, benzersiz, dört haneli kurum kodu (Issue #37). Giriş numarasının ilk yarısıdır.
-- [ ] `/platform` rotası, giriş ekranı ve panel iskeleti (`client/src/platform/` altında, dershane ağacına dokunmadan).
+- [x] Kimlik çözümlemesi iki bağımsız ekseni birden taşıyor: kurum üyeliği ve platform operatörlüğü (Issue #39). Önceki hâlinde üyelik bulunamazsa oturum kapatılıyordu; operatörün tasarım gereği üyeliği olmadığı için giriş yapar yapmaz sistemden atılırdı.
+- [x] `/platform` rotası ve panel iskeleti (`client/src/platform/` altında, dershane ağacına dokunmadan) (Issue #39). Ayrı giriş ekranı **yok**; tek giriş, girişten sonra dallanma — bkz. `DECISION_LOG.md` ilgili değişiklik notu.
 - [ ] Panelden kurum + varsayılan şube + kurum yöneticisi oluşturma akışı.
 - [ ] İlk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi.
 - [ ] Test kurumu `orbitdershane`'in silinip ilk kurumun panel üzerinden yeniden kurulması.

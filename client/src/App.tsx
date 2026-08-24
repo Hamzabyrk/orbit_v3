@@ -7,6 +7,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
+import Platform from "./pages/Platform";
 import SetPassword from "./pages/SetPassword";
 
 function Router() {
@@ -23,6 +24,11 @@ function Router() {
       */}
       <Route path="/sifre-sifirla" component={ForgotPassword} />
       <Route path="/sifre-belirle" component={SetPassword} />
+      {/*
+        Platform operatörü paneli. Giriş ekranı ayrı DEĞİL — tek giriş, girişten
+        sonra dallanma; bkz. `.ai/DECISION_LOG.md`.
+      */}
+      <Route path="/platform" component={Platform} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

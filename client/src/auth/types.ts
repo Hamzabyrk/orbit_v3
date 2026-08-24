@@ -1,16 +1,44 @@
 import type { ReactNode } from "react";
 import type { EducationRole } from "@/components/educationAccess";
 
-export type AuthIdentity = {
-  userId: string;
+/**
+ * Kurum üyeliğinden gelen kimlik yüzü. Platform operatörünün tasarım gereği
+ * yoktur; bkz. `.ai/DECISION_LOG.md` — "Platform operatörü ayrı bir eksendir".
+ */
+export type MembershipIdentity = {
   membershipId: string;
   role: EducationRole;
-  displayName: string;
   organizationId: string;
   organizationName: string;
+  /** Giriş numarasının ilk dört hanesi. */
+  organizationCode: number | null;
   branchId: string | null;
   branchName: string | null;
+};
+
+/** Platform operatörlüğünden gelen kimlik yüzü. */
+export type PlatformOperatorIdentity = {
+  role: "owner" | "operator";
+};
+
+/**
+ * Kimlik iki bağımsız eksen taşır ve bir kullanıcı ikisinden birine, hiçbirine
+ * veya her ikisine birden sahip olabilir.
+ *
+ * İkisinden birini diğerine göre öncelikli saymak yerine her ikisi de
+ * çözümleniyor; hangi panelin gösterileceğine çağıran taraf karar veriyor.
+ * Öncelik kuralı koysaydık, hem kurum üyesi hem operatör olan bir kişi
+ * diğer panele hiç ulaşamazdı — ki test kurumu silinene kadar (Faz F) kurucu
+ * ekip üyesi tam olarak bu durumda olacak.
+ */
+export type AuthIdentity = {
+  userId: string;
+  displayName: string;
   demo: boolean;
+  /** Aktif kurum üyeliği yoksa `null`. */
+  membership: MembershipIdentity | null;
+  /** Aktif platform operatörlüğü yoksa `null`. */
+  platformOperator: PlatformOperatorIdentity | null;
 };
 
 export type LoginInput = {
