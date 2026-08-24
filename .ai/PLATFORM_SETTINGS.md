@@ -51,17 +51,27 @@ Son doğrulama: **2026-08-23**, Issue #20.
 
 ### 3.1 Supabase — Authentication
 
-| Ayar                      | Değer                                      | Doğrulama                                                  |
-| ------------------------- | ------------------------------------------ | ---------------------------------------------------------- |
-| Email sağlayıcı           | **Açık**                                   | API: giriş denemesi `invalid_credentials` döner            |
-| Yeni kayıt (signup)       | **Kapalı**                                 | API: `signup_disabled`                                     |
-| Minimum şifre uzunluğu    | **8**                                      | Panel — anonim sonda ile doğrulanamaz (aşağıdaki nota bak) |
-| Şifre karmaşıklığı        | Küçük + büyük harf + rakam                 | Panel                                                      |
-| Secure email change       | Açık                                       | Panel                                                      |
-| Email OTP ömrü / uzunluğu | 3600 sn / 8 hane                           | Panel                                                      |
-| Captcha koruması          | Kapalı                                     | Panel                                                      |
-| Sızmış şifre koruması     | Kapalı — **Pro plan gerektiriyor**         | Panel (bkz. bölüm 5)                                       |
-| Oturum zaman aşımı        | Yapılandırılamıyor — Pro plan gerektiriyor | Panel; `auth.sessions.not_after` boş                       |
+| Ayar                      | Değer                                        | Doğrulama                                                  |
+| ------------------------- | -------------------------------------------- | ---------------------------------------------------------- |
+| Email sağlayıcı           | **Açık**                                     | API: giriş denemesi `invalid_credentials` döner            |
+| Yeni kayıt (signup)       | **Kapalı**                                   | API: `signup_disabled`                                     |
+| Minimum şifre uzunluğu    | **8**                                        | Panel — anonim sonda ile doğrulanamaz (aşağıdaki nota bak) |
+| Şifre karmaşıklığı        | Küçük + büyük harf + rakam                   | Panel                                                      |
+| Secure email change       | **Açık — açık kalacak** (bkz. aşağıdaki not) | Panel                                                      |
+| Email OTP ömrü / uzunluğu | 3600 sn / 8 hane                             | Panel                                                      |
+| Captcha koruması          | Kapalı                                       | Panel                                                      |
+| Sızmış şifre koruması     | Kapalı — **Pro plan gerektiriyor**           | Panel (bkz. bölüm 5)                                       |
+| Oturum zaman aşımı        | Yapılandırılamıyor — Pro plan gerektiriyor   | Panel; `auth.sessions.not_after` boş                       |
+
+> ℹ️ **`Secure email change` bilinçli olarak AÇIK kalır — kapatma önerisi ölçüm sonrası reddedildi.**
+>
+> Faz E0'da bu ayarın kapatılması önerilmişti: açıkken sentetik `@orbit.invalid` adresinden gerçek adrese geçiş imkânsız (eski kutuya da onay maili gidiyor, tek onay yetmiyor).
+>
+> Ancak ölçüm ikinci bir sonuç daha verdi: **ayar kapatılıp e-posta değiştirildiğinde sentetik adresle giriş `HTTP 400` dönüyor** — yani kişinin giriş numarası ölüyor. Kâğıda yazılıp dağıtılmış numara geçersizleşir.
+>
+> Bu yüzden tasarım değişti: **auth e-postası hiç değişmiyor.** Gerçek adres `profiles` içinde iletişim bilgisi olarak duruyor, kurtarma linkini `admin/generate_link` ile biz üretip biz gönderiyoruz. Ayar bizim yolumuza hiç girmediği için açık kalabiliyor ve hiçbir güvenlik ayarı zayıflatılmıyor.
+>
+> Bedeli, aşağıdaki bölüm 7'deki e-posta gönderim sağlayıcısının artık **isteğe bağlı değil zorunlu** olmasıdır. Ayrıntı: `DECISION_LOG.md` — "Auth e-postası hiç değişmez; kurtarma linkini biz üretir, biz göndeririz".
 
 > ⚠️ **`Enable email provider` ile `Allow new users to sign up` ayrı ayarlardır ve karıştırılmamalıdır.**
 >
