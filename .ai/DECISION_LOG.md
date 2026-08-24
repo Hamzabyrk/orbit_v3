@@ -361,3 +361,122 @@ Daha önceki "Platform operatörü ayrı bir eksendir" kararında `/platform` al
 **Karar:** Tek giriş ekranı, girişten sonra dallanma. Kimlik çözümlendiğinde kullanıcı `platform_operators` kaydına sahipse `/platform` paneline, kurum üyeliğine sahipse dershane paneline yönlendirilir. Panellerin kendisi ayrı kalmaya devam eder; ayrışan şey giriş değil, girişten sonraki hedeftir.
 
 **Uygulama notu:** `authService.loadAuthenticatedIdentity` şu anda aktif bir kurum üyeliği bulamazsa hata fırlatıyor ve `AuthProvider` kullanıcıyı oturumdan atıyor. Platform operatörünün tasarım gereği hiçbir kurum üyeliği yoktur; bu nedenle kimlik çözümlemesi, üyelik bulunamadığında `platform_operators` kaydına da bakacak biçimde genişletilmelidir. Aksi halde operatör giriş yapar yapmaz sistemden atılır.
+
+---
+
+### Karar: Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır
+
+**Durum:** Alındı
+**Tarih:** 2026-08-24
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** "Kimlik ve Giriş Bilgisi Mimarisi" kararının uygulama sırası notu, kurum yöneticilerinin gerçek e-postası olduğu gerekçesiyle onları mevcut davet akışıyla açmayı öngörüyordu. Sentetik adres ve geçici şifre makinesi yalnızca öğretmen/öğrenci/veli için kurulacaktı.
+
+Bu ayrım iki sorun üretti:
+
+1. **Davet akışı çalışmıyor.** `bootstrap-organization`, yöneticiyi `inviteUserByEmail` ile yani şifresiz yaratıyor. Davet bağlantısı `type=invite` ile dönüyor; istemci yalnızca `type=recovery` biliyor (`supabaseClient.ts`) ve yalnızca `PASSWORD_RECOVERY` olayını ayrıştırıyor (`AuthProvider.tsx`). Davetle gelen kullanıcı `SIGNED_IN` üretiyor, üyeliği olduğu için doğrudan panele düşüyor ve **şifresini hiç belirlemiyor**. O oturum kapandığında bir daha giremez. Panel bugün "çalışıyor" görünüp ilk gerçek kurumda kilitlenirdi.
+2. **İki mekanizma bakılıyor.** Yönetici için davet, diğerleri için geçici şifre. Aynı işin iki yolu, iki hata yüzeyi.
+
+**Karar:** Tüm hesaplar aynı yolla açılır — **giriş numarası + kişiye özel geçici şifre**. Davet yolu kaldırılır; `inviteUserByEmail` yerine `admin.createUser` kullanılır. Kurum yöneticisi de dahil hiç kimseye oluşturma anında e-posta sorulmaz.
+
+- Geçici şifre yalnızca oluşturma anında bir kez gösterilir, veritabanına düz metin yazılmaz.
+- Geçici şifrenin ömrü **7 gündür**.
+- İlk girişte şifre değiştirmek zorunludur; değiştirilmeden hiçbir ekrana gidilemez.
+
+**E-posta kritik yoldan çıkar ama kurtarma yolundan çıkmaz.** Bu ayrım kararın özüdür:
+
+- **Giriş** e-postaya hiç bağlı değildir; numara ve şifreyle yapılır.
+- **Kurtarma** doğrulanmış bir e-posta gerektirir. Adres doğrulanana kadar "şifremi unuttum" o adrese çalışmaz.
+- **Kurum yöneticisi için e-posta eklemek ve doğrulamak ilk girişte zorunludur.** Öğretmen, öğrenci ve veli için isteğe bağlıdır.
+
+Zorunluluğun gerekçesi: kurum yöneticisi, kendi kurumundaki herkesin şifre kurtarma kanalıdır. Kendini kilitlerse tüm kurumun sıfırlama zinciri kopar ve iş geliştirme ekibine gelir. Ayarlarda isteğe bağlı bırakılırsa çoğu yönetici hiç eklemez.
+
+**Kurtarma zinciri:** öğretmen/öğrenci/veli → kurum yöneticisi → doğrulanmış e-postası → platform operatörü.
+
+**Gerekçe:** Kendi kaydımız (`PLATFORM_SETTINGS.md` bölüm 5) Supabase'in paylaşımlı SMTP'sini "production için uygun değil, spam'e düşmesi olağan" diye işaretliyor. Kurum kurulumunu teslimat garantisi olmayan bir kanala bağlamak kırılgandır. Doğrudan oluşturma, kırık `type=invite` yolunu onarmak yerine tamamen siler; daha az kod ve daha az durum bırakır.
+
+**Neyi kaybediyoruz:** Davet, adresin sahipliğini kanıtlıyordu. Doğrudan oluşturmada adres doğrulanmadan kabul edilir; yanlış yazılmış bir adres kurtarma postasını bir yabancıya gönderebilir. Telafisi yukarıdaki "doğrulanana kadar kurtarma çalışmaz" kuralıdır.
+
+**Açık bilinmez — kod yazmadan önce test edilecek:** Sentetik adresten gerçek adrese geçiş, Supabase'in **"Secure email change"** ayarıyla çakışabilir. O ayar açıkken e-posta değişimi eski adresten de onay ister; eski adres `@orbit.invalid` olduğu için oraya posta hiç ulaşmaz ve değişim kalıcı kilitlenebilir. Ayar production'da **açıktır**. Çıkış yolları (ayarı kapatmak / doğrulamayı kendimiz yapıp `admin.updateUserById` ile yazmak / auth e-postasını hiç değiştirmemek) yerel Supabase'de denenmeden seçilmeyecektir. Bu proje tam olarak bu tür varsayımlar yüzünden yedi kez tökezledi.
+
+**Alternatifler:**
+
+- **Davet akışını onarmak (`type=invite` desteği eklemek):** Mümkündü ama e-posta bağımlılığını kritik yolda bırakırdı ve iki mekanizmayı korurdu.
+- **Herkese aynı standart şifre:** Reddedildi; bir kişinin şifresi sızdığında herkesinki sızar.
+
+---
+
+### Karar: Platform operatörü girişte panele düşer, dershane paneline değil
+
+**Durum:** Alındı
+**Tarih:** 2026-08-24
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Kimlik iki bağımsız eksen taşıyor ve `Home` bugün üyeliği önceliyor: kurum üyeliği olan kullanıcı dershane paneline düşüyor. Hamza Bayrak hem test kurumunun yöneticisi hem platform operatörü olduğu için girişte dashboard'a düştü ve panelin var olduğunu göremedi.
+
+Öncelik kuralı koymamak bilinçliydi ve gerekçesi **test kurumunun varlığıydı**: kurucu ekip üyeleri iki ekseni de taşıdığı için hangisini önceleseydik diğerine ulaşamayacaklardı.
+
+**Karar:** Platform operatörü girişte `/platform` paneline düşer. Test kurumu kaldırılıp kurucu ekibin kurum üyeliği sonlandırıldığı için öncelik kuralının eski sakıncası ortadan kalkmıştır.
+
+- Kimliğin iki eksenli modeli **korunur**; değişen yalnızca varsayılan hedeftir.
+- Hem operatör hem kurum üyesi olan biri dershane paneline menüdeki bağlantıyla ulaşır.
+- Platform operatörlerinin kurum üyeliği olmaz. Kurum içeriğine erişimleri yoktur ve bu, "operatör kapları yönetir, içeriği görmez" taahhüdünün doğal sonucudur.
+
+**Terim kuralı:** Arayüzde ve yazışmada **"admin" kelimesi kullanılmaz.** `app_role` enum'unun bir değeri zaten `admin`'dir ve **kurum yöneticisi** anlamına gelir; aynı kelimeyi platform operatörü için de kullanmak bu projenin yedi kez tökezlediği isim çakışması kalıbını yeniden kurar. Doğru terimler: **platform operatörü** ve **kurum yöneticisi**.
+
+---
+
+### Karar: Öğrenci ve veli ekranları mobil-öncelikli tasarlanır
+
+**Durum:** Alındı
+**Tarih:** 2026-08-24
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Ürünü öğrenciler ve veliler ezici çoğunlukla telefondan kullanacak; öğretmenler tablet, kurum yöneticileri masaüstü ağırlıklı. Bugünkü arayüz responsive sınıflar içeriyor ve sol menü mobilde çekmece olarak çalışıyor, ancak **hiçbir gerçek cihaz testi kaydı yok** ve kırılım noktası dağılımı dengesiz.
+
+Kararın zamanlaması bilinçlidir: öğrenci ve veli ekranlarının gerçek hâlleri **henüz yazılmadı**, hepsi mock veriyle besleniyor. Kural, o ekranlar yazılmadan önce konursa bedelsizdir; sonra konursa yeniden yazım gerektirir.
+
+**Karar:**
+
+- **Öğrenci ve veli ekranları mobil-öncelikli tasarlanır.** Önce dar ekran çalışır hâle getirilir, masaüstü genişletme olarak ele alınır.
+- **Öğretmen ekranları tablet ve masaüstünde**, kurum yöneticisi ve platform paneli **masaüstünde** birincil kabul edilir; hepsi telefonda kullanılabilir kalır ama tasarım önceliği burada değildir.
+- Yatay kaydırma gerektiren tablolar öğrenci/veli akışlarında **birincil gösterim olamaz**; kart düzeni tercih edilir.
+- Her yeni ekran, dar ekranda gözden geçirilmeden teslim edilmiş sayılmaz.
+
+**Gerekçe:** Hedef kitlenin bir bölümü ilkokul çağında ve tek cihazı ailedeki telefon. Masaüstü için tasarlanıp sonra sıkıştırılan bir arayüz, bu kullanıcılar için ürünün tamamıdır.
+
+**Kapsam dışı:** Yerel mobil uygulama. Mimari buna uygundur — backend'in tamamı (RLS, Edge Function, giriş numarası mantığı) aynen kullanılır, yalnızca arayüz yeniden yazılır — ancak bugün planlanmamıştır.
+
+---
+
+### Karar: Taşınabilirlik sınırı — yetkilendirme veritabanında, veri erişimi servis katmanında
+
+**Durum:** Alındı
+**Tarih:** 2026-08-24
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** ORBIT ayrı bir geleneksel backend sunucusu yerine BaaS (Supabase) üzerine kuruldu (`ROADMAP.md` bölüm 1). Bu, tesisatı — HTTP sunucusu, oturum yönetimi, şifre saklama, e-posta gönderimi — kiralamak demektir. İş büyürse veya sağlayıcı kısıtları engel olursa kendi sunucumuza geçme ihtimali gerçektir; Pro plan gerektiren özellikler (sızmış şifre koruması, oturum zaman aşımı) bu kısıtın ilk örnekleridir.
+
+Ölçüm (2026-08-24): Supabase'e özgü veritabanı yüzeyi yalnızca `auth.uid()` çağrısıdır ve **8 yerde** geçer. `client/src/components` ve `client/src/pages` altında doğrudan Supabase çağrısı **sıfırdır**; tüm erişim dört servis modülünden geçer.
+
+**Karar:** Taşınabilirlik bir hedef değil, **korunacak bir sınırdır**. İki kural:
+
+1. **Yetkilendirme veritabanında yaşar, uygulama kodunda değil.** Kim neyi görebilir sorusunun cevabı RLS politikalarında durur ve pgTAP ile test edilir. Edge Function'lara veya istemciye taşınmaz.
+2. **Ekran bileşenleri veri katmanını doğrudan çağırmaz.** Tüm Supabase erişimi servis modüllerinden geçer (`auth/`, `platform/`, `lib/`, ileride `data/`).
+
+İkinci kural **ESLint ile zorlanır** (`eslint.config.js`, `no-restricted-imports`). Yazılı kural unutulur; kapı sessizce kapanır ve kapandığı fark edilmez. Kuralı susturmak çözüm değildir — doğru hamle erişimi bir servis modülüne taşımaktır.
+
+**Gerekçe:** Kendi sunucumuza geçiş, bu iki kural korunduğu sürece **dört dosyanın içini değiştirmek** demektir; 15.000 satırlık arayüz ve 640 satırlık şema olduğu gibi kalır. Yetkilendirme Edge Function'lara serpilseydi taşıma, güvenliğin sıfırdan yazılması anlamına gelirdi.
+
+**Taşınırken yine de yeniden yazılacaklar — dürüst liste:**
+
+- Kimlik doğrulama servisi (GoTrue). İyi haber: şifreler bcrypt ile saklanıyor ve bcrypt hash'leri çoğu sisteme taşınabilir.
+- `auth.uid()` — standart Postgres'te oturum değişkeninden kimliği okuyan bir sarmalayıcıyla karşılanır. 8 çağrı.
+- Realtime abonelikleri (v1.3) ve Storage (v1.6). Bunlar sağlayıcı servisleridir; alternatifleri vardır ama yeniden yazım gerektirir.
+
+**Lock-in'i büyüten şeyler — bilinçli izlenecek:** her yeni Realtime aboneliği, her Storage yolu ve servis katmanını atlayan her sorgu.
+
+**Alternatifler:**
+
+- **Baştan kendi backend'imizi yazmak:** İki kişilik, sıfır bütçeli bir ekip için aylarca tesisat yazmak demekti; ürünün kendisine hiç sıra gelmezdi.
+- **Taşınabilirliği tamamen yok saymak:** Daha hızlı ilerletirdi ama Pro plan kısıtları şimdiden hissediliyorken kapıyı bilerek kapatmak olurdu.
