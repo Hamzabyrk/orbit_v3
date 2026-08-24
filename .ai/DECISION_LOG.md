@@ -772,13 +772,21 @@ Bu bedel, **yalnızca üçüncü durum için** kabul ediliyor. İlk iki durumda 
 
 Birden fazla rolü olan kişi, rolü kadar hesaba sahiptir. Her giriş-çıkışta şifre yazmak günlük kullanımda katlanılabilir değil; bu yüzden sağ üstte hesaplar arası geçiş düğmeleri bulunur.
 
-**Hangi düğmelerin görüneceği kişinin gerçekten sahip olduğu hesaplardan türetilir.** Sabit bir liste yoktur:
+**Hangi düğmelerin görüneceği kişinin gerçekten sahip olduğu hesaplardan türetilir.** Sabit bir liste veya sabit bir sayı yoktur. Örnekler — tamamı değil:
 
-| Kişi              | Görünen düğmeler                         |
-| ----------------- | ---------------------------------------- |
-| Yalnızca öğretmen | **Hiçbiri** — bileşen hiç render edilmez |
-| Yönetici + veli   | `Yönetici` · `Veli` — öğretmen görünmez  |
-| Öğretmen + veli   | `Öğretmen` · `Veli`                      |
+| Kişi                       | Görünen düğmeler                         |
+| -------------------------- | ---------------------------------------- |
+| Yalnızca öğretmen          | **Hiçbiri** — bileşen hiç render edilmez |
+| Yönetici + veli            | `Yönetici` · `Veli` — öğretmen görünmez  |
+| Öğretmen + veli            | `Öğretmen` · `Veli`                      |
+| Yönetici + öğretmen + veli | Üçü birden                               |
+
+**Bu bir şablon değil, bir sistemdir.** İki tasarım kuralı bağlayıcıdır:
+
+1. **Hesap sayısı sınırsızdır.** İkili geçiş (toggle) olarak yazılmaz; N hesap üzerinden döner. Bugün en fazla üç rol var, yarın dört olabilir.
+2. **Roller kodda sabitlenmez.** Düğme, kişinin hesaplarında hangi rol varsa onu gösterir; rol isimlerini kendisi bilmez. İleride `muhasebeci` gibi yeni bir rol eklendiğinde — ve o kişi aynı zamanda veli olduğunda — geçiş bileşenine **tek satır** dokunulmaz.
+
+İkinci kural, roller büyüdükçe her yeni rolde aynı bileşeni düzenlemek zorunda kalmamak içindir. Rol listesini bileşene gömmek, bugün üç satırlık bir kolaylık, altı ay sonra unutulacak bir bakım borcudur.
 
 **Bu düğme yeni bir yetki mantığı getirmez.** Her hesabın rolü ve yetkisi zaten kendindedir; veli hesabı tüm öğrencileri göremez çünkü yetkisi yoktur. Düğme yalnızca çıkış-giriş zahmetini kaldırır. Rollerin panelleri de zaten mevcuttur.
 
@@ -786,13 +794,17 @@ Birden fazla rolü olan kişi, rolü kadar hesaba sahiptir. Her giriş-çıkış
 
 **Bağlayıcı sonuç — sayaç tüm oturumları birden kapatır.** Şifresiz geçiş, iki oturumun aynı anda saklanması demektir. Hareketsizlik sayacı yalnızca aktif oturumu kapatırsa diğeri açık kalır ve sayacın var olma sebebi ortadan kalkar.
 
-**Hesaplar birbirine bağlı tutulur.** "Bu kişinin diğer hesabı hangisi" sorusunun cevabı bir yerde durmak zorunda — düğmenin çalışması için zaten gerekli. Aynı kayıt KVKK açısından da gerekli: aksi halde bir kişinin iki kaydı olur, aralarında hiçbir bağ bulunmaz ve "verilerimi sil" talebinde biri gözden kaçabilir.
+**Hesaplar bir kişi kaydına bağlanır — ikili bağ olarak DEĞİL.** "Bu kişinin diğer hesapları hangileri" sorusunun cevabı bir yerde durmak zorunda; düğmenin çalışması için zaten gerekli.
+
+Modelleme biçimi önemli: hesaptan hesaba işaret eden bir alan (`linked_account_id`) iki hesapta çalışır, **üçte kırılır** — üç hesabın hangi ikisinin bağlanacağı belirsizdir ve zincir kopabilir. Doğrusu **hesapların ait olduğu bir kişi kaydı**: N hesap aynı kişiye bağlanır, kaç tane olduğu fark etmez.
+
+Aynı kayıt KVKK açısından da gerekli: aksi halde bir insanın birden fazla kaydı olur, aralarında hiçbir bağ bulunmaz ve "verilerimi sil" talebinde biri gözden kaçabilir.
 
 **Uygulama sırası:**
 
 - **Bugün geçerli:** bir kişi, bir kurumda, bir üyelik, bir kod, bir numara (Issue #65 ile şemada zorlanıyor).
 - **v1.2:** `student_guardians` bağlantısı ve öğretmen-sınıf/ders atamaları. `parent` enum değeri **kalır**; kaldırılması gerekmiyor (yukarıdaki düzeltmeye bakın).
-- **v1.3:** Hesaplar arası geçiş düğmesi ve hesap bağ kaydı. Hareketsizlik sayacının tüm oturumları kapatacak biçimde genişletilmesi aynı işin parçasıdır.
+- **v1.3:** Hesaplar arası geçiş düğmesi ve kişi kaydı. Hareketsizlik sayacının tüm oturumları kapatacak biçimde genişletilmesi aynı işin parçasıdır.
 - **v2.0:** hesap silme/anonimleştirme akışında çoklu hesap ihtimali.
 
 **Alternatifler:**
