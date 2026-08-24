@@ -7,7 +7,10 @@ import {
   supabase,
   supabaseConfigured,
 } from "@/lib/supabaseClient";
+import { toast } from "sonner";
 import { AuthContext } from "./AuthContext";
+import { clearLastActivity } from "./idleTimeout";
+import { useIdleTimeout } from "./useIdleTimeout";
 import { loadAuthenticatedIdentity } from "./authService";
 import { isDemoMode } from "./runtime";
 import type { AuthIdentity, AuthProviderProps, LoginInput } from "./types";
@@ -165,8 +168,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     }
 
+    clearLastActivity();
     setIdentity(null);
   }, []);
+
+  // Hareketsizlik zaman aşımı. Supabase'in sunucu tarafı karşılığı Pro plan
+  // gerektirdiği için ücretsiz alternatif; bkz. `idleTimeout.ts`.
+  //
+  // Demo modunda kapalı: satış sunumu sırasında ekran açık kalırken oturumun
+  // kendiliğinden düşmesi işe yaramaz.
+  useIdleTimeout({
+    enabled: !isDemoMode && identity !== null,
+    onExpire: () => {
+      void supabase.auth
+        .signOut()
+        .catch(() => undefined)
+        .finally(() => {
+          setIdentity(null);
+          toast.info("Oturumunuz kapatıldı", {
+            description:
+              "Uzun süre işlem yapılmadığı için güvenlik amacıyla çıkış yapıldı. Tekrar giriş yapabilirsiniz.",
+          });
+        });
+    },
+  });
 
   const switchDemoRole = useCallback((role: EducationRole) => {
     if (!isDemoMode) return;

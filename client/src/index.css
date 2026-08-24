@@ -705,3 +705,41 @@ input[type="checkbox"] {
 .orbit-welcome-glow {
   animation: none !important;
 }
+
+/*
+ * Yazdırma: yalnızca işaretlenmiş alan basılır.
+ *
+ * `window.print()` tüm belgeyi basar. Kimlik bilgisi diyaloğunda "Yazdır"a
+ * basıldığında arkadaki kurum listesi sayfası çıkıyordu — Radix diyaloğu
+ * portal ile `body` altına, `position: fixed` olarak yerleşiyor ve yazdırma
+ * akışında beklendiği gibi görünmüyor.
+ *
+ * `display: none` yerine `visibility` kullanılıyor: `display: none` ata
+ * zincirini de kaldırdığı için işaretli alan kendisi de kaybolurdu.
+ * `visibility: hidden` alanı görünmez yapar ama düzen ağacında bırakır,
+ * böylece içindeki `visible` çocuk yeniden görünür olabilir.
+ */
+@media print {
+  body:has(.orbit-print-only) * {
+    visibility: hidden;
+  }
+
+  body:has(.orbit-print-only) .orbit-print-only,
+  body:has(.orbit-print-only) .orbit-print-only * {
+    visibility: visible;
+  }
+
+  body:has(.orbit-print-only) .orbit-print-only {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 0;
+    background: #fff;
+    color: #000;
+  }
+
+  /* Yazdırılan kâğıtta işe yaramayan denetimler. */
+  .orbit-print-hide {
+    display: none !important;
+  }
+}

@@ -43,8 +43,10 @@ export function CredentialsPanel({
   };
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-[12px] leading-5 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+    // `orbit-print-only`: yazdırıldığında sayfanın geri kalanı gizlenir ve
+    // yalnızca bu kart basılır. Öncesinde arkadaki kurum listesi çıkıyordu.
+    <div className="orbit-print-only space-y-5">
+      <div className="orbit-print-hide rounded-xl border border-amber-300 bg-amber-50 p-3 text-[12px] leading-5 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
         <p className="font-bold">Bu şifre bir daha gösterilmeyecek.</p>
         <p className="mt-1">
           Hiçbir yere kaydedilmiyor. Bu pencereyi kapatmadan önce bilgileri
@@ -84,7 +86,7 @@ export function CredentialsPanel({
         kurumun diğer kullanıcıları da aynı kodla başlayan numaralar alır.
       </p>
 
-      <label className="flex cursor-pointer items-start gap-2.5 text-[12px]">
+      <label className="orbit-print-hide flex cursor-pointer items-start gap-2.5 text-[12px]">
         <input
           type="checkbox"
           checked={acknowledged}
@@ -94,7 +96,7 @@ export function CredentialsPanel({
         <span>Giriş bilgilerini not aldım.</span>
       </label>
 
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="orbit-print-hide flex flex-wrap justify-end gap-2">
         <button
           type="button"
           onClick={() => void copy()}

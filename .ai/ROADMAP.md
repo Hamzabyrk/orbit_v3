@@ -345,7 +345,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 - [ ] `profiles.must_change_password` ve `profiles.password_expires_at` (7 gün).
 - [ ] Şifre değiştirilmeden hiçbir ekrana gidilemeyen kilit ekranı.
-- [ ] `loginIdentifier`'ın giriş ekranına bağlanması; giriş alanının e-posta ve 8 haneli numarayı birlikte kabul etmesi.
+- [x] `loginIdentifier`'ın giriş ekranına bağlanması; giriş alanının e-posta ve 8 haneli numarayı birlikte kabul etmesi (Issue #57). Alan `type="email"` olduğu için tarayıcı `10011000` girdisini "@ eksik" diye reddediyordu ve numarayla giriş hiç mümkün değildi.
 - [ ] Kilidin sunucu tarafında da anlam taşıması için yardımcı fonksiyon; v1.2'de iş tablolarının RLS politikalarına koşul olarak girer.
 
 **Not:** `must_change_password` kesinlikle `user_metadata`'ya konmaz; orayı kullanıcı kendisi yazabilir ve kilidi atlar.
@@ -381,7 +381,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] `mockData.ts`, `isMock: true` tipleri ve `orbit:demo:*` production bağımlılığının kaldırılması.
 - [ ] Repository/query/mutation katmanı - taşınabilirlik sınırının istemci tarafındaki dikişi.
 - [ ] Loading, error ve boş kurum durumları.
-- [ ] İstemci tarafı hareketsizlik sayacı.
+- [x] İstemci tarafı hareketsizlik sayacı (Issue #57). Panel denemesinde ortaya çıktığı için öne çekildi: siteye girildiğinde giriş ekranı hiç görünmeden eski oturuma düşülüyordu. 30 dakika, son bir dakikada uyarı. Zaman damgası `localStorage`'da tutuluyor — yalnızca bellekte olsaydı sayfa yenilemesi sayacı sıfırlar ve tarayıcı ertesi gün açıldığında oturum hâlâ açık olurdu.
 
 ### E6 - Kurum yöneticisinin kullanıcı ekleme ekranı (v1.4'ün ilk maddesi)
 
