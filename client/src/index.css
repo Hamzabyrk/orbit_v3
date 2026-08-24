@@ -707,39 +707,34 @@ input[type="checkbox"] {
 }
 
 /*
- * Yazdırma: yalnızca işaretlenmiş alan basılır.
+ * Yazdırma: basılacak içerik ayrı bir kökte yaşar.
  *
- * `window.print()` tüm belgeyi basar. Kimlik bilgisi diyaloğunda "Yazdır"a
- * basıldığında arkadaki kurum listesi sayfası çıkıyordu — Radix diyaloğu
- * portal ile `body` altına, `position: fixed` olarak yerleşiyor ve yazdırma
- * akışında beklendiği gibi görünmüyor.
+ * İlk deneme `visibility: hidden` ile sayfayı gizleyip işaretli alanı geri
+ * göstermeye çalışıyordu. Yanlış içeriği basmayı durdurdu ama doğru içeriği de
+ * basmadı — sayfa bomboş çıktı. Sebep: Radix diyaloğu portal ile `body` altına
+ * `position: fixed` ve `transform` ile yerleşiyor; transform'lu bir ata yeni
+ * bir kapsayıcı blok yarattığı için içerideki `position: absolute` kural
+ * beklenen yere değil diyaloğa göre konumlanıyor ve yazdırma akışının dışına
+ * düşüyor.
  *
- * `display: none` yerine `visibility` kullanılıyor: `display: none` ata
- * zincirini de kaldırdığı için işaretli alan kendisi de kaybolurdu.
- * `visibility: hidden` alanı görünmez yapar ama düzen ağacında bırakır,
- * böylece içindeki `visible` çocuk yeniden görünür olabilir.
+ * Bu yaklaşım o karmaşadan tamamen kaçınıyor: basılacak içerik `#root`'un
+ * KARDEŞİ olan ayrı bir düğüme render ediliyor. Yazdırırken `#root` tamamen
+ * gizleniyor, print kökü gösteriliyor. `visibility` numarasına, `:has()`
+ * desteğine veya diyaloğun konumlandırmasını ezmeye gerek kalmıyor.
  */
+#orbit-print-root {
+  display: none;
+}
+
 @media print {
-  body:has(.orbit-print-only) * {
-    visibility: hidden;
+  #root {
+    display: none !important;
   }
 
-  body:has(.orbit-print-only) .orbit-print-only,
-  body:has(.orbit-print-only) .orbit-print-only * {
-    visibility: visible;
-  }
-
-  body:has(.orbit-print-only) .orbit-print-only {
-    position: absolute;
-    inset: 0 auto auto 0;
-    width: 100%;
+  #orbit-print-root {
+    display: block;
     padding: 0;
     background: #fff;
     color: #000;
-  }
-
-  /* Yazdırılan kâğıtta işe yaramayan denetimler. */
-  .orbit-print-hide {
-    display: none !important;
   }
 }

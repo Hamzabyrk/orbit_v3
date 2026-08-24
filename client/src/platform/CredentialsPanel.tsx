@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import type { OrganizationCredentials } from "./platformService";
+import { PrintPortal } from "./PrintPortal";
 
 /**
  * Kurum kurulduktan sonra giriş bilgilerinin bir kez gösterildiği ekran.
@@ -43,10 +44,20 @@ export function CredentialsPanel({
   };
 
   return (
-    // `orbit-print-only`: yazdırıldığında sayfanın geri kalanı gizlenir ve
-    // yalnızca bu kart basılır. Öncesinde arkadaki kurum listesi çıkıyordu.
-    <div className="orbit-print-only space-y-5">
-      <div className="orbit-print-hide rounded-xl border border-amber-300 bg-amber-50 p-3 text-[12px] leading-5 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+    <div className="space-y-5">
+      {/*
+        Kâğıda basılacak sürüm ayrı bir kökte yaşıyor ve ekranda görünmüyor.
+        Ekran düzenini doğrudan bastırmayı denemek boş sayfa üretmişti; bkz.
+        `PrintPortal` ve `index.css`.
+      */}
+      <PrintPortal>
+        <PrintableSlip
+          organizationName={organizationName}
+          credentials={credentials}
+        />
+      </PrintPortal>
+
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-[12px] leading-5 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
         <p className="font-bold">Bu şifre bir daha gösterilmeyecek.</p>
         <p className="mt-1">
           Hiçbir yere kaydedilmiyor. Bu pencereyi kapatmadan önce bilgileri
@@ -86,7 +97,7 @@ export function CredentialsPanel({
         kurumun diğer kullanıcıları da aynı kodla başlayan numaralar alır.
       </p>
 
-      <label className="orbit-print-hide flex cursor-pointer items-start gap-2.5 text-[12px]">
+      <label className="flex cursor-pointer items-start gap-2.5 text-[12px]">
         <input
           type="checkbox"
           checked={acknowledged}
@@ -96,7 +107,7 @@ export function CredentialsPanel({
         <span>Giriş bilgilerini not aldım.</span>
       </label>
 
-      <div className="orbit-print-hide flex flex-wrap justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         <button
           type="button"
           onClick={() => void copy()}
@@ -123,6 +134,98 @@ export function CredentialsPanel({
           Kapat
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Kâğıda basılan sürüm.
+ *
+ * Ekran sürümünden ayrı: kâğıtta koyu tema, gölge, düğme ve onay kutusu işe
+ * yaramaz. Basılan şey elden teslim edilecek bir fiş olduğu için sade ve
+ * yüksek kontrastlı tutuluyor.
+ */
+function PrintableSlip({
+  organizationName,
+  credentials,
+}: {
+  organizationName: string;
+  credentials: OrganizationCredentials;
+}) {
+  return (
+    <div
+      style={{
+        fontFamily: "ui-sans-serif, system-ui, sans-serif",
+        color: "#000",
+        padding: "24px",
+        maxWidth: "480px",
+      }}
+    >
+      <p
+        style={{
+          fontSize: "11px",
+          letterSpacing: ".14em",
+          textTransform: "uppercase",
+          fontWeight: 700,
+          margin: 0,
+        }}
+      >
+        ORBIT — Giriş Bilgileri
+      </p>
+
+      <h1 style={{ fontSize: "20px", fontWeight: 800, margin: "12px 0 0" }}>
+        {organizationName}
+      </h1>
+
+      <table
+        style={{
+          marginTop: "20px",
+          borderCollapse: "collapse",
+          width: "100%",
+          fontSize: "13px",
+        }}
+      >
+        <tbody>
+          <tr>
+            <td style={{ padding: "8px 0", width: "40%" }}>Giriş numarası</td>
+            <td
+              style={{
+                padding: "8px 0",
+                fontFamily: "ui-monospace, monospace",
+                fontSize: "20px",
+                fontWeight: 800,
+                letterSpacing: ".08em",
+              }}
+            >
+              {credentials.loginNumber}
+            </td>
+          </tr>
+          <tr>
+            <td style={{ padding: "8px 0" }}>Geçici şifre</td>
+            <td
+              style={{
+                padding: "8px 0",
+                fontFamily: "ui-monospace, monospace",
+                fontSize: "20px",
+                fontWeight: 800,
+                letterSpacing: ".08em",
+              }}
+            >
+              {credentials.temporaryPassword}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style={{ marginTop: "20px", fontSize: "12px", lineHeight: 1.6 }}>
+        Giriş ekranında <strong>giriş numaranızı</strong> ve geçici şifrenizi
+        yazın. İlk girişte şifrenizi değiştirmeniz istenecektir.
+      </p>
+
+      <p style={{ marginTop: "16px", fontSize: "11px", color: "#444" }}>
+        Bu belgeyi başkasıyla paylaşmayın. Şifrenizi değiştirdikten sonra imha
+        edin.
+      </p>
     </div>
   );
 }
