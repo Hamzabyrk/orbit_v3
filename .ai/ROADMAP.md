@@ -4,6 +4,33 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 
 ---
 
+## 0. Durum Özeti
+
+> Son güncelleme: **2026-08-24**. İşaretler: ✅ tamam · 🟡 kısmen · ⬜ başlanmadı · ⚠️ tamam sanılıyordu, değil.
+>
+> Ayrıntı için ilgili bölüme bakın; bu tablo yalnızca tek bakışta durum içindir.
+
+| Sürüm / Dilim | Kapsam                                                                                                        | Durum |
+| ------------- | ------------------------------------------------------------------------------------------------------------- | ----- |
+| v1.0          | Arayüz demosu, 4 rol görünümü, mock veri katmanı, kalite kapısı, Vercel + Supabase bağlantısı                 | ✅    |
+| v1.1          | Tenant şeması, rol enum'u, gerçek Auth session, `audit_events`, kurum kurulum Edge Function'ı                 | ⚠️    |
+| v1.1.1        | Fonksiyon yetkileri, production Auth ayarları, `PLATFORM_SETTINGS.md`, CI sertleştirmesi, güvenlik başlıkları | ✅    |
+| v1.1.2 · D0   | Sentetik e-posta ile hesap açma ve giriş kanıtı (#35)                                                         | ✅    |
+| v1.1.2 · D1   | `organizations.code`, Edge Function operatör kontrolü (#37)                                                   | ✅    |
+| v1.1.2 · D2   | Kimliğin iki bağımsız eksene ayrılması, `/platform` rotası (#40)                                              | ✅    |
+| v1.1.2 · D3   | Panel: kurum listesi, kurum oluşturma, operatör listesi, denetim kaydı (#41)                                  | ✅    |
+| v1.1.2 · D4   | İlk platform operatörleri (#43) — biri eklendi, ikincisi Faz E1'e taşındı                                     | 🟡    |
+| —             | Panel bağlantısı, demo rol kartlarının gizlenmesi, kullanılabilir sol menü (#45)                              | ✅    |
+| **Faz E**     | **Kimlik zinciri — aşağıdaki bölüm 4.5**                                                                      | ⬜    |
+| v1.2          | İş tabloları + tenant/rol RLS matrisi                                                                         | ⬜    |
+| v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları                                                          | ⬜    |
+| v1.5          | 4 rol kabul testi, KVKK envanteri ve hukuki hazırlık, pilot geri bildirimi                                    | ⬜    |
+| v1.6 – v2.0   | Storage, toplu aktarım, raporlama, ticarileşme kapısı                                                         | ⬜    |
+
+**⚠️ v1.1 neden sarı:** madde listesi dolu ancak release gate'i _"davet edilen kullanıcı kendi şifresini kurup giriş yapabilir"_ diyor ve bu **doğru değil** — `type=invite` istemcide hiç ele alınmıyor, davetle gelen kullanıcı şifresini belirlemeden panele düşüyor ve o oturum kapandığında bir daha giremiyor. Aynı gate metni v1.1.2'de de tekrarlanmıştı. Faz E1, davet yolunu tamamen kaldırıp gate'i yeniden yazar (bkz. `DECISION_LOG.md` — "Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır").
+
+---
+
 ## 1. Onaylı Mimari Soru-Cevap Kaydı
 
 **Karar tarihi:** 2026-08-21
@@ -32,6 +59,8 @@ Bu bölüm, ileride bir karar değiştirildiğinde eski bağlamın kaybolmaması
 
 **Gerekçe:** İlk pilotta kötüye kullanım ve yarım kurum kayıtları oluşturmadan kontrollü kurulum yapmak.
 
+**Güncelleme (2026-08-24):** Cevabın "admin benzersiz e-posta adresine Supabase daveti alacak" kısmı **geçersizdir**. Davet akışı kaldırılmıştır; kurum yöneticisi de herkes gibi giriş numarası ve geçici şifreyle açılır, oluşturma anında e-posta sorulmaz. E-posta ilk girişte eklenir ve doğrulanır; kurtarma kanalı olarak orada gerekir. Gerekçe için bkz. `DECISION_LOG.md` — "Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır". Kararın asıl niyeti — kontrollü kurulum, self-service onboarding'in v1.5 sonrasına bırakılması — değişmemiştir.
+
 ### Soru 4 - Öğrenci giriş hesabı nasıl açılacak?
 
 **Onaylı cevap:** Öğrencinin akademik kaydı Auth hesabı olmadan oluşturulabilecek ve `auth_user_id` başlangıçta boş kalabilecek. Öğrenciye benzersiz bir e-posta sağlandığında davetle giriş hesabı etkinleştirilecek. Sahte e-posta, ortak hesap veya paylaşılan geçici şifre üretilmeyecek. Öğrencinin hesabı yoksa bağlı veli kendi hesabından yalnızca izin verilen öğrenci verisini görecek.
@@ -50,6 +79,17 @@ Kararın asıl niyeti korunmuştur: **ortak hesap ve paylaşılan geçici şifre
 | Ortak hesap veya paylaşılan şifre | Her durumda yasak                                                                    |
 
 Sentetik adres bir varsayılan değil, erişime ihtiyacı olup e-postası bulunmayan kullanıcılar için yedek yoldur. E-postası olmayan yetişkin bir kursiyer veya öğretmen de aynı yolu kullanır; bu nedenle şema öğrenciye özel değildir.
+
+**Güncelleme (2026-08-24):** Yukarıdaki tablonun ikinci satırı **geçersizdir** ve sentetik adres artık "yedek yol" değil **tek yoldur**. Giriş yapacak herkes — e-postası olsun olmasın — giriş numarası ve kişiye özel geçici şifreyle açılır; davet akışı kaldırılmıştır.
+
+| Durum                             | Güncel uygulama                                                                                      |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Giriş yapmayacak küçük öğrenci    | Değişmedi: Auth hesabı **açılmaz**, bağlı veli kendi hesabından görür                                |
+| Giriş yapacak, e-postası var      | Giriş numarası + geçici şifre. E-posta ilk girişte eklenir; **kurtarma kanalı** olarak orada gerekir |
+| Giriş yapacak, e-postası yok      | Değişmedi: giriş numarası + geçici şifre                                                             |
+| Ortak hesap veya paylaşılan şifre | Değişmedi: her durumda yasak                                                                         |
+
+Kurum yöneticisi için e-posta ekleme ve doğrulama **zorunludur**; kendi kurumundaki herkesin kurtarma kanalı olduğu için. Öğretmen, öğrenci ve veli için isteğe bağlıdır. Gerekçe: `DECISION_LOG.md` — "Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır".
 
 ### Soru 5 - Günlük Akış ile Gün Planı aynı özellik mi olacak?
 
@@ -126,7 +166,7 @@ Sentetik adres bir varsayılan değil, erişime ihtiyacı olup e-postası bulunm
 - [x] Rol enum'u ve aktif kurum/şube bağlamı.
 - [x] Gerçek Supabase Auth session provider; mevcut login tasarımının korunması.
 - [x] Preview demo modu ve production rol geçişi kilidi.
-- [x] İlk kurum/admin kurulum ve davet Edge Function'ı.
+- [x] İlk kurum/kurum yöneticisi kurulum Edge Function'ı. _(2026-08-24: madde başlangıçta "davet Edge Function'ı" idi; davet yolu Faz E1'de `admin.createUser` + geçici şifre ile değiştirilmektedir.)_
 - [x] `audit_events` temeli.
 - [x] RLS yardımcı fonksiyonları ve kurumlar arası negatif güvenlik testleri.
 
@@ -182,7 +222,9 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [~] İlk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi (Issue #43). **Yarısı yapıldı:** Hamza Bayrak 2026-08-24'te `owner` olarak eklendi ve RLS'in ona kurum/operatör/denetim listelerini gerçekten verdiği kimliğine bürünülerek doğrulandı. Arda Bülent'in **hesabı henüz yok**; hesap açıldığında ikinci operatör kaydı eklenecek.
 - [ ] Test kurumu `orbitdershane`'in silinip ilk kurumun panel üzerinden yeniden kurulması.
 
-**Release gate:** Kurum ve kurum yöneticisi yalnızca panel üzerinden oluşturulabilir; davet edilen kullanıcı kendi şifresini kurup giriş yapabilir; platform operatörü hiçbir kurumun öğrenci/not/yoklama/ödeme verisini okuyamaz; her platform işlemi denetim kaydı üretir.
+**Release gate:** Kurum ve kurum yöneticisi yalnızca panel üzerinden oluşturulabilir; oluşturulan kullanıcı kendisine verilen giriş numarası ve geçici şifreyle giriş yapıp şifresini değiştirebilir; platform operatörü hiçbir kurumun öğrenci/not/yoklama/ödeme verisini okuyamaz; her platform işlemi denetim kaydı üretir.
+
+> **Sonradan düzeltme (2026-08-24):** Bu gate'in ikinci maddesi önceden _"davet edilen kullanıcı kendi şifresini kurup giriş yapabilir"_ biçimindeydi ve **hiçbir zaman sağlanmamıştı** — `type=invite` istemcide ele alınmadığı için davetle gelen kullanıcı şifresini belirlemeden panele düşüyordu. Gate, davet yolunun kaldırılmasıyla birlikte yukarıdaki gibi yeniden yazıldı; gerçek karşılığı Faz E1'de teslim edilecektir.
 
 ### v1.2 - İlişkisel Veritabanı ve RLS
 
@@ -221,7 +263,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 **Hedef:** Görsellerde tanımlanan temel iş kurallarını çalışan formlara bağlamak.
 
-- [ ] Admin: öğretmen/öğrenci/veli daveti ve kayıt yönetimi.
+- [ ] Kurum yöneticisi: öğretmen/öğrenci/veli oluşturma ve kayıt yönetimi. **Faz E6'ya çekildi** — davetle değil, giriş numarası ve geçici şifreyle.
 - [ ] Admin: sınıf oluşturma, düzenleme ve arşivleme.
 - [ ] Admin: ders programı ve öğretmen ataması.
 - [ ] Admin/öğretmen: sorumlu kapsamda yoklama oluşturma ve düzeltme.
@@ -239,7 +281,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 **Hedef:** Bir pilot kurumun kontrollü gerçek kullanıcı/veri akışını uçtan uca test etmek.
 
 - [ ] Dört rol için kabul testi ve tenant izolasyon testi.
-- [ ] İlk admin/öğretmen/öğrenci/veli davet akışı.
+- [ ] Gerçek pilot kurumun kurum yöneticisi/öğretmen/öğrenci/veli hesaplarının açılması. Mekanizma Faz E7'de doğrulanmış olacağı için burada yalnızca pilot verisiyle tekrarlanır.
 - [ ] KVKK veri envanteri, log sanitization ve erişim matrisi denetimi.
 - [ ] KVKK hukuki hazırlık: kurumla veri işleme sözleşmesi (kurum veri sorumlusu, ORBIT veri işleyen), velilere aydınlatma metni ve açık rıza akışı, silme hakkı uygulaması (`PROJECT_ARCHITECT.md` §06 B12).
 - [ ] Kişisel verinin yurt dışında (Supabase `eu-central-1`, Frankfurt) tutulmasına ilişkin kararın netleştirilmesi ve belgelenmesi.
@@ -250,6 +292,93 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Pilot kurumdan ölçülebilir geri bildirim ve hata listesi.
 
 **Release gate:** Pilot onayı, kritik/yüksek güvenlik açığı olmaması ve tüm CI kontrollerinin yeşil olması.
+
+---
+
+## 4.5 Faz E - Kimlik Zinciri
+
+> **Sıra kararı (2026-08-24):** Bu faz v1.2'den **önce** yapılır. Gerekçe: kiracı RLS matrisi, her rolden gerçek bir hesap olmadan doğrulanamaz. Bugün sistemde yalnızca platform operatörü hesabı var; öğretmen, öğrenci ve veli hesabı yaratacak bir mekanizma hiç yok. v1.2'yi önce yazsaydık, yazdığımız politikaları ancak aylar sonra sınayabilirdik.
+>
+> Faz E mevcut sürümlerin yerine geçmez; belirli maddeleri öne çeker. E5 v1.3'ün tamamıdır, E6 v1.4'ün ilk maddesidir. Bu maddeler ilgili sürümlerde tekrar listelenmez.
+
+**Hedef:** Bir kurumun sıfırdan kurulup, kendi kullanıcılarını açıp, her rolün kendi hesabıyla giriş yapabildiği zincirin uçtan uca çalışması.
+
+**Çalışma biçimi:** Dikey dilimler. Her dilim şema + sunucu + arayüz + test olarak tek başına doğrulanabilir. "Önce tüm frontend, sonra tüm backend" bilinçli olarak reddedildi: arayüzün şekli sunucunun ne yapabildiğine bağlı, ve hata geç çıkarsa pahalı oluyor.
+
+**Kural:** Önce yerine geçecek olan, sonra kaldırılacak olan. Test kurumu, yerine kurum kurabilen makine çalıştığı kanıtlanmadan silinmez.
+
+### E0 - E-posta değişimi spike'ı
+
+- [ ] Sentetik adresten (`@orbit.invalid`) gerçek adrese geçişin Supabase'in `Secure email change` ayarıyla çakışıp çakışmadığının yerel Supabase'de sınanması.
+- [ ] Üç çıkış yolundan hangisinin çalıştığının belirlenmesi: ayarı kapatmak / doğrulamayı kendimiz yapıp `admin.updateUserById` ile yazmak / auth e-postasını hiç değiştirmemek.
+- [ ] Bulgunun `PLATFORM_SETTINGS.md` ve ilgili karara işlenmesi.
+
+**Neden ilk sırada:** Kurtarma zincirinin tamamı bu cevaba dayanıyor ve cevabı bilmiyoruz. Tahminle ilerlemek, bu projenin yedi kez tökezlediği kalıbın aynısı olur. Kod teslim edilmez, bulgu teslim edilir.
+
+### E1 - Kurum kurma makinesi
+
+- [ ] İkinci platform operatörü kaydının eklenmesi (D4'ün kalanı) ve `display_name` düzeltmesi.
+- [ ] Platform operatörünün girişte `/platform` paneline düşmesi.
+- [ ] `organization_memberships.person_code` + kurum başına benzersizlik ve 1000'den başlayan tahsis.
+- [ ] `bootstrap-organization`'ın `inviteUserByEmail` yerine `admin.createUser` + geçici şifre kullanması; davet yolunun kaldırılması.
+- [ ] Panelin giriş numarası ve geçici şifreyi bir kez göstermesi; yazdırılabilir çıktı.
+- [ ] pgTAP: `person_code` benzersizliği ve tahsis sırası.
+
+**Release gate:** Panelden kurulan bir kurumun yöneticisi, kendisine verilen numara ve geçici şifreyle giriş yapabilir. Hiçbir adımda e-posta gerekmez.
+
+### E2 - Test kurumunun kaldırılması
+
+- [ ] `orbitdershane` kurumunun, şubelerinin, üyeliklerinin ve denetim kayıtlarının silinmesi.
+- [ ] Kurucu ekip üyesinin kurum üyeliğinin sonlandırılması; yalnızca platform operatörü kalması.
+
+**Not:** Geri alınamaz bir işlemdir. Silinecek kayıtlar önce listelenip onaya sunulur. E1 tamamlanmadan yapılmaz.
+
+### E3 - İlk giriş kilidi ve numarayla giriş
+
+- [ ] `profiles.must_change_password` ve `profiles.password_expires_at` (7 gün).
+- [ ] Şifre değiştirilmeden hiçbir ekrana gidilemeyen kilit ekranı.
+- [ ] `loginIdentifier`'ın giriş ekranına bağlanması; giriş alanının e-posta ve 8 haneli numarayı birlikte kabul etmesi.
+- [ ] Kilidin sunucu tarafında da anlam taşıması için yardımcı fonksiyon; v1.2'de iş tablolarının RLS politikalarına koşul olarak girer.
+
+**Not:** `must_change_password` kesinlikle `user_metadata`'ya konmaz; orayı kullanıcı kendisi yazabilir ve kilidi atlar.
+
+**Release gate:** Geçici şifreyle giren kullanıcı, şifresini değiştirmeden başka hiçbir ekrana ulaşamaz. 8 haneli numarayla giriş çalışır.
+
+### E4 - İletişim bilgisi ve kurtarma zinciri
+
+- [ ] `profiles.phone`, `profiles.pending_email` ve doğrulama durumu alanları.
+- [ ] Kurum yöneticisi için ilk girişte **zorunlu** e-posta ekleme ve doğrulama; diğer roller için isteğe bağlı.
+- [ ] Ayarlar ekranının iletişim bölümünün gerçek veriye bağlanması (bugün mock).
+- [ ] Platform panelinde kurum yöneticisinin şifresini sıfırlama işlemi - kurtarma zincirinin son halkası.
+- [ ] Telefon alanı doldurulur ancak doğrulanmaz; doğrulama ileriye bırakıldı.
+
+**Release gate:** Kurum yöneticisi e-postasını doğrulamadan panele giremez. Doğrulanmamış adrese şifre sıfırlama gönderilmez.
+
+### E5 - Mock verinin kaldırılması (v1.3'ün tamamı)
+
+- [ ] `mockData.ts`, `isMock: true` tipleri ve `orbit:demo:*` production bağımlılığının kaldırılması.
+- [ ] Repository/query/mutation katmanı - taşınabilirlik sınırının istemci tarafındaki dikişi.
+- [ ] Loading, error ve boş kurum durumları.
+- [ ] İstemci tarafı hareketsizlik sayacı.
+
+### E6 - Kurum yöneticisinin kullanıcı ekleme ekranı (v1.4'ün ilk maddesi)
+
+- [ ] Ayarlar altında öğretmen/öğrenci/veli ekleme; ad-soyad, rol, **şube**, isteğe bağlı e-posta ve telefon.
+- [ ] `person_code`'un sıradaki değerinin tahsisi ve geçici şifrenin bir kez gösterimi; yazdırılabilir liste.
+- [ ] Kurum içi kullanıcı listesi ve kullanıcı başına şifre sıfırlama.
+- [ ] Öğrenci ve veli ekranları **mobil-öncelikli** tasarlanır (bkz. `DECISION_LOG.md`).
+
+**Not:** Şube seçimi atlanmamalıdır; `organization_memberships.branch_id` mevcut ancak akışta bugüne kadar hiç konuşulmadı.
+
+### E7 - Uçtan uca doğrulama
+
+- [ ] Platform operatörü gerçek bir kurum ve kurum yöneticisi oluşturur.
+- [ ] Kurum yöneticisi kendi hesabıyla girer, şifresini değiştirir, e-postasını doğrular.
+- [ ] Kurum yöneticisi bir öğretmen ve bir öğrenci ekler.
+- [ ] Öğretmen ve öğrenci kendi numaralarıyla girer.
+- [ ] Her rolün yalnızca kendi kapsamını gördüğü doğrulanır.
+
+**Release gate:** Zincirin hiçbir adımında elle veritabanı müdahalesi gerekmez.
 
 ---
 
@@ -294,3 +423,14 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - Prettier, ESLint, TypeScript, test ve build kontrolleri.
 - `.ai/PROJECT_STATE.md` ile `.ai/WORK_LOG.md` güncellemesi; mimari karar varsa `DECISION_LOG.md` güncellemesi.
 - Draft PR, diğer ekip üyesinin review onayı ve yeşil CI olmadan merge yapılmaması.
+
+**Taşınabilirlik kontrolü** (bkz. `DECISION_LOG.md` — "Taşınabilirlik sınırı"):
+
+- Yetkilendirme veritabanında mı? Kim neyi görebilir sorusunun cevabı RLS'te durmalı; Edge Function'a veya istemciye taşınmamalı.
+- Ekran bileşeninden doğrudan veri çağrısı yapıldı mı? ESLint bunu engeller; kural susturulmuşsa PR reddedilir, erişim servis modülüne taşınır.
+- Yeni bir Realtime aboneliği veya Storage yolu eklendiyse, sağlayıcı bağımlılığını büyüttüğü için PR açıklamasında belirtilir.
+
+**Mobil kontrolü** (bkz. `DECISION_LOG.md` — "Öğrenci ve veli ekranları mobil-öncelikli"):
+
+- Ekran dar ekranda gözden geçirildi mi? Gözden geçirilmemiş ekran teslim edilmiş sayılmaz.
+- Öğrenci veya veli akışıysa: yatay kaydırmalı tablo birincil gösterim olarak kullanılmamış olmalı.
