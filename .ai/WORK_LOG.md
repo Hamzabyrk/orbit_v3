@@ -6,6 +6,35 @@
 
 ---
 
+## 2026-08-24 — İlk Platform Operatörü ve Preview'ın Demo Modu Bulgusu (Issue #43)
+
+**Kim:** Claude (Arda Bülent talebiyle, `docs/43-first-platform-operator` branch'inde)
+
+Faz D4'ün yapılabilen yarısı ve bir düzeltme.
+
+**🔴 Kendi ifademin düzeltilmesi — preview'da RLS devrede değil.** #42'yi teslim ederken "önizlemede 'erişiminiz yok' göreceksiniz, bu RLS'in çalıştığının işareti" demiştim. **Yanlıştı.** Arda Bülent linke tıklayınca rol seçmeli bir giriş ekranıyla karşılaştı ve panele girebildi; haklıydı.
+
+Sebep: `VERCEL_ENV=preview` → `runtime.ts`'deki `isDemoMode = deploymentEnvironment !== "production"` → **preview derlemeleri demo modunda çalışıyor.** Orada Supabase'e hiç istek gitmiyor; kimlik sahte, şifre `demo123`. Üstelik verdiğim adres kök adresti, panel ise `/platform` altında — iki ayrı hata üst üste binmişti.
+
+Bunun kalıcı bedeli var ve kayda geçti: **auth, RLS ve platform paneli preview'da doğrulanamıyor.** CSP hatasını 2026-08-23'te preview'da yakalamıştık; auth tarafında o güvenlik ağı yok, tek doğrulama yeri production. `PLATFORM_SETTINGS.md` bölüm 3.5 ve 5'e işlendi.
+
+**İlk platform operatörü eklendi.** Production'da tek `auth.users` kaydı vardı: Hamza Bayrak, test kurumu `orbitdershane`'in admini. `platform_operators` tablosuna `owner` olarak eklendi. Panelde operatör ekleme yolu yok ve olmayacak — bir operatörün kendi yetkisini yükseltmesini engellemek için yazma yalnızca `service_role`'da. İlk kayıt için operatör ekleyecek operatör bulunmadığından bu bir defalık istisnadır.
+
+İşlemin kendi denetim kaydı da yazıldı (`platform.operator_added`). `actor_user_id` **NULL** bırakıldı: işlemi yapan bir oturum yoktu ve Hamza'yı aktör yazmak yalan olurdu — gerçeği `metadata.method = manual_service_role` taşıyor.
+
+**Panel açılmadan önce RLS doğrulandı.** Hamza'nın kimliğine bürünülerek (pgTAP'in yaptığı gibi, salt okunur bir işlemde) kontrol edildi: `current_user_is_platform_operator()` → true, kurum listesi 1, operatör listesi 1, denetim kaydı 1, profil 1. Yani panel açıldığında boş ekranla karşılaşmayacak. Aynı sorguda şube ve üyelik de 1 dönüyor ama **bu operatörlükten değil**, Hamza aynı zamanda kurumun admini olduğu için; saf operatörde 0 kaldığını pgTAP kanıtlıyor.
+
+**Ayrıca doğrulandı:** yeni RLS politikalarının ikisi de production'da (`pg_policies` sorgusu), Edge Function **v17** olarak `platform_audit_events` yazımıyla canlıda, `/platform` production'da HTTP 200 dönüyor ve güvenlik başlıkları yerinde.
+
+**Sırada ne var:**
+
+1. Arda Bülent'in hesabının açılması (Supabase panelinden davet). Hesap oluşturma benim yapmadığım bir işlem; davet gittikten sonra ikinci operatör kaydını ekleyebilirim.
+2. `Require current password` ayarının iki hesapla test edilmesi — Şart A'nın bekleyen yarısı.
+3. v1.3 — mock veri temizliği, boş durum ekranları, hareketsizlik zaman aşımı.
+4. Faz F — test kurumu `orbitdershane` silinip ilk kurum panel üzerinden kurulacak.
+
+---
+
 ## 2026-08-24 — Platform Paneli: Kurum Oluşturma, Operatör Listesi ve Denetim Kaydı (Issue #41)
 
 **Kim:** Claude (Arda Bülent talebiyle, `feat/41-platform-panel` branch'inde)
