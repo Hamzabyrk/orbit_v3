@@ -241,6 +241,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] `exams`, `exam_results` ve güvenli sıralama görünümü/RPC'si.
 - [ ] `payment_plans`, `installments`.
 - [ ] Her tabloda tenant ve rol kapsamlı RLS; gerekli foreign key/index/constraint'ler.
+- [ ] **Dolu kurumun silinmesi engellensin.** `internal_delete_organization`, kurumda öğrenci/sınıf/not/ödeme kaydı varsa reddetmelidir. Bugün engel yok çünkü iş tabloları yok; kurumlar boşken silme düğmesi "zararsız" hissettiriyor ve alışkanlık öyle oturuyor. Veri geldiğinde aynı düğme aynı yerde duruyor olacak. Silinecek kayıt sayıları onay ekranında zaten gösteriliyor (Issue #65), ancak sayı göstermek engel değildir.
 
 **Release gate:** RLS test matrisi admin/teacher/student/parent için olumlu ve olumsuz senaryolarda geçer; sahipsiz tenant kaydı oluşamaz.
 
@@ -387,7 +388,13 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 - [ ] Ayarlar altında öğretmen/öğrenci/veli ekleme; ad-soyad, rol, **şube**, isteğe bağlı e-posta ve telefon.
 - [ ] `person_code`'un sıradaki değerinin tahsisi ve geçici şifrenin bir kez gösterimi; yazdırılabilir liste.
-- [ ] Kurum içi kullanıcı listesi ve kullanıcı başına şifre sıfırlama.
+- [ ] **Kurum içi üye tablosu** — kurum yöneticisinin panelinde, tablo biçiminde: kişi adı, giriş numarası, rol, şube, bağlı veli/öğrenci, durum. Satır bazında işlemler: şifre sıfırlama, rol değiştirme, kurumdan çıkarma.
+
+  Tablo **yalnızca kurum yöneticisinin** panelinde bulunur. Platform paneline konulamaz: operatörün kurum kişi listesini görmesi "operatör kapları yönetir, içeriği görmez" taahhüdünü ihlal eder.
+
+  Gerekçe: yönetim işlemleri (silme, yetkilendirme) kişiyi tek tek aramadan, listeye bakarak yapılabilmeli. Dağınık ekranlarda kişi yönetmek, yanlış kişiye işlem uygulama riskini büyütür.
+
+- [ ] **Kurum yöneticisini değiştirme.** Yönetici ayrıldığında yerine başkasının atanabilmesi. Bugün böyle bir işlem yok ve panelde görünen tek "kaldırma" işlemi kurumu silmek — kişiyi kaldırmak isteyen birinin kurumu yok etmesine açık kapı bırakıyor.
 - [ ] Öğrenci ve veli ekranları **mobil-öncelikli** tasarlanır (bkz. `DECISION_LOG.md`).
 
 **Not:** Şube seçimi atlanmamalıdır; `organization_memberships.branch_id` mevcut ancak akışta bugüne kadar hiç konuşulmadı.

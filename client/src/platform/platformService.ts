@@ -378,3 +378,41 @@ export async function deleteOrganization(
     protectedIdentities: Number(payload.protected_identity_count ?? 0),
   };
 }
+
+/**
+ * Kurumun yapısal sayıları. Kişisel veri İÇERMEZ — yalnızca adet.
+ *
+ * Operatör `organization_memberships` tablosunu okuyamaz ve okumamalı. Silme
+ * onayında "kaç hesap silinecek" sorusunun cevabı ise bir sayıdır ve onu
+ * göstermemek, operatörü ne yaptığını bilmeden onaylamaya zorlar.
+ */
+export type OrganizationStats = {
+  memberCount: number;
+  adminCount: number;
+  branchCount: number;
+  auditEventCount: number;
+};
+
+export async function loadOrganizationStats(
+  organizationId: string
+): Promise<OrganizationStats | null> {
+  const { data, error } = await supabase.rpc("platform_organization_stats", {
+    target_organization_id: organizationId,
+  });
+
+  // Sayı okunamazsa `null` dönüyoruz ve çağıran taraf sayı yerine uyarı
+  // gösteriyor. Sıfır göstermek yanıltıcı olurdu: "silinecek hesap yok" diye
+  // okunup dolu bir kurum kolayca silinebilirdi.
+  if (error || !data) {
+    return null;
+  }
+
+  const payload = data as Record<string, unknown>;
+
+  return {
+    memberCount: Number(payload.member_count ?? 0),
+    adminCount: Number(payload.admin_count ?? 0),
+    branchCount: Number(payload.branch_count ?? 0),
+    auditEventCount: Number(payload.audit_event_count ?? 0),
+  };
+}
