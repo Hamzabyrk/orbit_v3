@@ -80,34 +80,69 @@ client/src/
 │   ├── educationAccess.test.ts # Vitest yetki testleri
 │   ├── OrbitMark.tsx       # Logo / Marka bileşeni
 │   └── ErrorBoundary.tsx   # React Hata Yakalayıcı
+│   └── auth/               # SetPasswordScreen, ForgotPasswordScreen
+├── auth/                   # Kimlik katmanı — servis modülleri, bileşen değil
+│   ├── AuthProvider.tsx    # Oturum, şifre kurtarma ayrıştırması, demo kimliği
+│   ├── authService.ts      # loadMembershipIdentity / loadPlatformOperatorIdentity
+│   ├── types.ts            # AuthIdentity — üyelik ve platform operatörlüğü iki bağımsız eksen
+│   ├── loginIdentifier.ts  # Giriş numarası ↔ sentetik adres (HENÜZ BAĞLANMADI — Faz E3)
+│   ├── passwordPolicy.ts   # Şifre kuralları, Türkçe harflerle uyumlu
+│   └── runtime.ts          # isDemoMode — preview derlemeleri demo modundadır
+├── platform/               # Platform operatörü paneli — dershane ağacından ayrı
+│   ├── PlatformShell.tsx   # Kabuk, sekmeler, boş durum
+│   ├── platformService.ts  # Panelin veri katmanı; service_role KULLANMAZ
+│   ├── organizationSlug.ts # Kurum adından slug (Türkçe harf çevirisi)
+│   ├── PlatformOrganizations.tsx / OrganizationCreateDialog.tsx
+│   └── PlatformOperators.tsx / PlatformAuditLog.tsx
 ├── contexts/               # ThemeProvider
 ├── hooks/                  # useMobile, useComposition
-├── lib/                    # supabaseClient, documents, utils, demoStorage (+ test)
+├── lib/                    # supabaseClient, utils, demoStorage (+ test), documents (ÖLÜ KOD)
 └── pages/
-    ├── Home.tsx            # Temiz ana sayfa / Login yönlendirici
+    ├── Home.tsx            # Giriş yönlendirici; üyelik yoksa /platform'a
+    ├── Platform.tsx        # Platform paneli rotası
+    ├── ForgotPassword.tsx  # /sifre-sifirla
+    ├── SetPassword.tsx     # /sifre-belirle — Supabase kurtarma bağlantısının hedefi
     └── NotFound.tsx        # 404 sayfası
 ```
+
+**Bağlayıcı kural — taşınabilirlik:** `components/` ve `pages/` altındaki dosyalar Supabase istemcisini **doğrudan import edemez**; veri erişimi yukarıdaki servis modüllerinden geçer. Kural ESLint ile zorlanır (`eslint.config.js`). Gerekçe: `DECISION_LOG.md` — "Taşınabilirlik sınırı".
+
+**`lib/documents.ts` ölü koddur** — hiçbir yerden çağrılmıyor ve dayandığı `workspace_documents` tablosunda hiç policy yok. "Belgeler" özelliği v1.6'da yeniden ele alınana kadar bu şekilde kalır; bkz. `PLATFORM_SETTINGS.md` kabul edilmiş açıklar.
 
 ---
 
 ## 6. Sıradaki Uygulama Adımları
 
-1. Sınıf oluşturma, düzenleme ve silme modal ve formlarının dinamik state'e bağlanması.
-2. Öğrenci kayıt formunun (Ad, No, Sınıf, Telefon, Veli Adı/Telefonu) tam interaktif CRUD'a dönüştürülmesi.
-3. Yoklama ve sınıf içi durum güncellemelerinin anlık arayüze yansıması.
-4. `isMock: true` alanının gerçek backend/Supabase entegrasyonunda kaldırılması (Aşama 3 kapsamında).
+> **Sonradan düzeltme (2026-08-24):** Bu bölüm v1.0 döneminden kalmıştı ve mock veriye bağlı arayüz işlerini sıralıyordu; o işlerin bir kısmı artık v1.4'e, bir kısmı Faz E5'e ait. Tek doğruluk kaynağı `ROADMAP.md` bölüm 0 (durum tablosu) ve bölüm 4.5 (Faz E) hâline gelmiştir. Aşağıdaki liste oraya işaret eder, kendi sırasını tutmaz.
+
+Güncel sıra **`ROADMAP.md` bölüm 4.5 — Faz E**'dedir:
+
+1. **E0** — Supabase e-posta değişimi spike'ı (kod değil, bulgu teslim edilir).
+2. **E1** — Kurum kurma makinesi: `person_code`, `admin.createUser` + geçici şifre, operatörün panele düşmesi.
+3. **E2** — Test kurumunun kaldırılması.
+4. **E3** — İlk giriş kilidi ve numarayla giriş.
+5. **E4** — İletişim bilgisi, e-posta doğrulama ve kurtarma zinciri.
+6. **E5** — Mock verinin kaldırılması (eski v1.3'ün tamamı).
+7. **E6** — Kurum yöneticisinin kullanıcı ekleme ekranı.
+8. **E7** — Uçtan uca doğrulama.
+
+Eski listedeki "sınıf/öğrenci CRUD" ve "yoklama güncellemeleri" maddeleri v1.4'te, `isMock` temizliği E5'te ele alınır.
 
 ---
 
 ## 7. v1.1 Auth ve Tenant Temeli (Issue #8)
 
-**Durum:** Kısmen tamamlandı — **release gate kapanmadı.** PR #9 merge edildi; migration ve `bootstrap-organization` Edge Function production Supabase'e deploy edildi. İlk tenant oluşturuldu ancak Edge Function akışıyla değil, kontrol düzleminden doğrudan RPC ile; onboarding mekanizması hiç doğrulanmadı. Production login akışı **doğrulanamadı**: kurucu yöneticinin e-posta/şifre girişi çalışmıyor ve UI'da şifre belirleme ekranı yok. Kalan işler v1.1.1 ve v1.1.2 ara sürümlerine alındı (bkz. `ROADMAP.md`).
+**Durum:** Kısmen tamamlandı — **release gate hâlâ kapanmadı.** PR #9 merge edildi; migration ve `bootstrap-organization` Edge Function production Supabase'e deploy edildi. İlk tenant oluşturuldu ancak Edge Function akışıyla değil, kontrol düzleminden doğrudan RPC ile; onboarding mekanizması hiç doğrulanmadı. Kalan işler v1.1.1, v1.1.2 ve Faz E'ye alındı (bkz. `ROADMAP.md`).
+
+> **Sonradan düzeltme (2026-08-24):** Bu paragraf önceden _"kurucu yöneticinin e-posta/şifre girişi çalışmıyor ve UI'da şifre belirleme ekranı yok"_ diyordu. **İkisi de çözüldü:** şifre belirleme/sıfırlama ekranları production'da (`/sifre-sifirla`, `/sifre-belirle`, Issue #25) ve kurucu yönetici kendi şifresiyle giriş yapıyor. Giriş çalışmamasının kök nedeni Auth panelinde e-posta sağlayıcısının kapalı olmasıydı; Issue #29'da bulunup açıldı.
+>
+> Gate'in bugün kapanmamış olmasının sebebi farklıdır: kurum yöneticisi hesabının **davetle** açılması öngörülüyordu ve `type=invite` istemcide hiç ele alınmıyor. Bu yol Faz E1'de tamamen kaldırılıyor; gate o zaman kapanacak.
 
 - Kimlik doğrulama production'da Supabase Auth e-posta/şifre oturumuyla çalışır. Rol istemciden alınmaz; aktif `organization_memberships` kaydından çözülür.
 - Local geliştirme ve Vercel Preview derlemeleri demo modundadır. Vercel Production derlemesinde rol geçişi gizlenir ve demo şifresi kabul edilmez.
 - Tenant çekirdeği `profiles`, `organizations`, `branches`, `organization_memberships` ve `audit_events` tablolarından oluşur.
 - Organizasyon yöneticisi org-wide üyelik taşır; aktif ekran bağlamı varsayılan şubeden başlar. Şube sınırlı üyelikler yalnızca kendi şubesini görür.
-- İlk kurum, varsayılan şube ve admin daveti `bootstrap-organization` Edge Function üzerinden hazırlanır. Bu fonksiyonun operatör kontrolü v1.1'de `platform_admin` app metadata'sına dayanıyordu; v1.1.2'de `platform_operators` tablosuna taşınacaktır (bkz. bölüm 9). Bugün hiçbir hesapta `platform_admin` bayrağı bulunmadığı için fonksiyon fiilen çağrılamaz durumdadır.
+- İlk kurum, varsayılan şube ve kurum yöneticisi `bootstrap-organization` Edge Function üzerinden hazırlanır. Operatör kontrolü **`platform_operators` tablosuna taşındı** (Issue #37, production'da v17 olarak canlı); `app_metadata.platform_admin` bayrağı artık kullanılmıyor. Aktif bir operatör kaydı bulunduğu için fonksiyon çağrılabilir durumdadır. Faz E1'de davet yerine `admin.createUser` + geçici şifre kullanacak biçimde değişecektir.
 - Tarayıcıya yalnızca anon key verilir. `service_role` yalnızca Supabase Edge Function sunucu ortamında kullanılır.
 - RLS istemci yazılarını deny-by-default bırakır; üyeler yalnızca kendi tenant kapsamlarını, adminler ise yetkili audit kapsamını okuyabilir.
 - İlk tenant için `orbitdershane` / `orbit123` kararı verildi. İlk denemede `yonetici@orbit.edu.tr` adresi `email_address_invalid` ile reddedildi ve yarım kayıt oluşmadı; ardından kurum kurucu ekip üyesinin hesabıyla kuruldu. Bu kayıt **test verisi** sayılır ve panel hazır olduğunda silinip mekanizma üzerinden yeniden kurulacaktır (bkz. `DECISION_LOG.md`).
@@ -170,17 +205,32 @@ Kararların gerekçeleri için bkz. `DECISION_LOG.md` — "Kimlik ve Giriş Bilg
 
 ### Adım adım
 
-1. **Platform operatörü kurumu oluşturur.** Panel; kurumu, varsayılan şubeyi, kurum kodunu (1000'den otomatik artan) ve kurum yöneticisi hesabını üretir. Yönetici gerçek e-posta adresine sahiptir.
-2. **Yönetici davet e-postasıyla kendi şifresini belirler.** Mevcut şifre belirleme akışı kullanılır.
+> **Sonradan düzeltme (2026-08-24):** Aşağıdaki 1., 2. ve 5. adımlar davet e-postası akışını anlatıyordu. **Davet akışı kaldırılmıştır.** Güncel hâl bu blokta; gerekçe için bkz. `DECISION_LOG.md` — "Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır".
+
+1. **Platform operatörü kurumu oluşturur.** Panel; kurumu, varsayılan şubeyi, kurum kodunu (1000'den otomatik artan) ve kurum yöneticisi hesabını üretir. **E-posta sorulmaz**; yönetici de herkes gibi giriş numarası ve geçici şifreyle açılır.
+2. **Yönetici ilk girişte şifresini değiştirir ve e-postasını doğrular.** Şifre değiştirilmeden hiçbir ekrana gidilemez. E-posta doğrulaması kurum yöneticisi için **zorunludur** — kendi kurumundaki herkesin kurtarma kanalı odur.
 3. **Yönetici sınıfları oluşturur.** Öğrenciler sınıfa atanacağı için bu adım öğrenci aktarımından önce gelmek zorundadır.
 4. **Yönetici öğretmen ve öğrencileri içe aktarır.** Panelden indirilen şablon doldurulur, yüklenir, önce doğrulama önizlemesi gösterilir, onaydan sonra kayıt yapılır.
-5. **Sistem giriş bilgilerini üretir.** E-postası olanlara davet gönderilir; olmayanlara 8 haneli kişi numarası ve geçici şifre üretilir.
+5. **Sistem giriş bilgilerini üretir.** Giriş hesabı açılan herkese 8 haneli kişi numarası ve kişiye özel geçici şifre üretilir. E-posta ve telefon toplanır ancak giriş için kullanılmaz; kurtarma içindir ve öğretmen/öğrenci/veli için isteğe bağlıdır.
 6. **Yönetici yazdırılabilir listeyi bir kez indirir** ve dağıtır.
 7. **Kullanıcılar ilk girişte şifrelerini değiştirir.**
 
 ### Bağlayıcı kurallar
 
-- **Platform operatörü kurum yöneticisinin şifresini bilmez.** Yönetici şifresini davet bağlantısıyla kendisi belirler. Aksi halde operatör o hesaba girip kurum içeriğini görebilir ve "operatör kapları yönetir, içeriği görmez" taahhüdü fiilen geçersiz kalırdı.
+- **Platform operatörü, ürün üzerinden kurum içeriğini okuyamaz — ancak kimlik bilgisi üreterek yetki yükseltebilir.**
+
+  > **Sonradan düzeltme (2026-08-24):** Bu madde önceden _"Platform operatörü kurum yöneticisinin şifresini bilmez"_ diyordu ve gerekçesi, yöneticinin şifresini davet bağlantısıyla kendisinin belirlemesiydi. Davet akışı kaldırıldığı için **operatör artık geçici şifreyi görüyor** ve eski ifade doğru değil.
+  >
+  > Daha önemlisi, eski ifade davet akışıyla bile tam doğru değildi: operatör kurum yöneticisinin şifresini her zaman **sıfırlayabilir** — kurtarma zincirinin son halkası budur ve tasarım gereği vardır. Yani yetki yükseltme imkânı geçici şifreden değil, operatörlüğün kendisinden geliyor.
+
+  Taahhüdün doğru ve savunulabilir hâli:
+  - **Ürün üzerinden erişim yoktur.** Operatör; öğrenci, not, yoklama, ödeme verisini hiçbir ekrandan, sorgudan veya API çağrısından okuyamaz. RLS bunu zorlar ve pgTAP ile sınanır (`platform_operator_reads.test.sql`).
+  - **Yetki yükseltme mümkündür ve gizlenmez.** Operatör kimlik bilgisi üretebilir veya sıfırlayabilir. Bu, her SaaS sağlayıcısı için geçerlidir; iddia edilmeyecek bir şeyi iddia etmiyoruz.
+  - **Her yükseltme denetim kaydı üretir.** Geçici şifre üretimi ve şifre sıfırlama işlemleri `platform_audit_events`'e yazılır; kayıt operatör tarafından silinemez veya değiştirilemez (istemciden yazma yolu yoktur).
+  - **Kurum yöneticisi haberdar edilir.** Kendi hesabında yapılan her kimlik bilgisi işlemi ona bildirilir. Bildirim kanalı, e-postası doğrulandıktan sonra çalışır.
+
+  Bu ayrım KVKK açısından da doğrudur: veri işleyenin teknik erişim imkânını inkâr etmek değil, **denetlenebilir ve hesap verebilir** kılmak beklenir.
+
 - **Geçici şifreler düz metin saklanmaz.** Oluşturma anında bir kez gösterilir. Kaybedilirse yeniden üretilir; bu nedenle hem tek kişi hem sınıf bazında "şifreyi yeniden üret" işlemi bulunmak zorundadır.
 - **İçe aktarma yarım kalmamalıdır.** Doğrulama kayıttan önce yapılır, işlem parçalara bölünür ve tekrar çalıştırıldığında aynı kişiyi iki kez oluşturmaz.
 - **Şablon biz veririz.** Rastgele Excel dosyalarından sütun eşleştirmeye çalışmak kapsam dışıdır.
@@ -212,9 +262,18 @@ Bu tercih için veritabanında ayrı bir bayrak **tutulmaz**: `students.auth_use
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
 | **Eklendi (Issue #37)** | `organizations.code` (4 hane, 1000'den artan, benzersiz)                                                           | Panel kurum üretmeye başladığı anda her kurumun kodu olmalı; sonradan geriye dönük atamak gerekirdi |
 | v1.2                    | `students`, `guardians`, `student_guardians`, `classes`, `class_enrollments` ve `students.auth_user_id` (nullable) | Panelin bu tablolara ihtiyacı yok; kurum, şube ve yönetici tabloları zaten mevcut                   |
-| İçe aktarma (v1.4)      | `profiles.login_number`, `profiles.must_change_password`, `profiles.phone`                                         | Numara ve geçici şifre ilk kez burada üretilir                                                      |
+| ~~İçe aktarma (v1.4)~~  | ~~`profiles.login_number`, `profiles.must_change_password`, `profiles.phone`~~                                     | **Geçersiz — aşağıdaki düzeltmeye bakın**                                                           |
+| Faz E1                  | `organization_memberships.person_code` + kurum başına benzersizlik                                                 | Panel kurum yöneticisi hesabı üretmeye başladığı anda numaranın ikinci yarısı gerekli               |
+| Faz E3                  | `profiles.must_change_password`, `profiles.password_expires_at`                                                    | Geçici şifre üretilen ilk anda kilit de gerekli; ikisi ayrı fazda olamaz                            |
+| Faz E4                  | `profiles.phone`, `profiles.pending_email` ve doğrulama alanları                                                   | Kurtarma zinciri burada kuruluyor                                                                   |
 
-Sonradan nullable kolon eklemek ucuz ve kırıcı değildir; bu nedenle şemanın tamamını erkenden kurmak gerekmez. `organizations.code` istisnadır çünkü veri üretimi onunla başlar.
+> **Sonradan düzeltme (2026-08-24):** Üstteki üstü çizili satır iki bakımdan yanlıştı.
+>
+> **Yer:** `profiles.login_number` kurum kodunu ikinci kez saklardı — giriş numarası `<kurum:4><kişi:4>` olduğu için kurum kodu hem `organizations.code`'da hem burada dururdu. Bu, projenin yedi kez tökezlediği drift kalıbının aynısıdır. Doğrusu `organization_memberships.person_code`: yalnızca kişi yarısı saklanır, kurum yarısı üyelik üzerinden zaten bellidir.
+>
+> **Zaman:** v1.4 çok geç. Panel kurum yöneticisi hesabını Faz E1'de üretmeye başlıyor; numara olmadan hesap açılamaz.
+
+Sonradan nullable kolon eklemek ucuz ve kırıcı değildir; bu nedenle şemanın tamamını erkenden kurmak gerekmez. `organizations.code` ve `person_code` istisnadır çünkü veri üretimi onlarla başlar.
 
 ### Henüz tasarlanmamış, pilot öncesi gereken adımlar
 
