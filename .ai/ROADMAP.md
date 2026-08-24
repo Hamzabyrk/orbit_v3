@@ -311,11 +311,16 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 ### E0 - E-posta değişimi spike'ı
 
-- [ ] Sentetik adresten (`@orbit.invalid`) gerçek adrese geçişin Supabase'in `Secure email change` ayarıyla çakışıp çakışmadığının yerel Supabase'de sınanması.
-- [ ] Üç çıkış yolundan hangisinin çalıştığının belirlenmesi: ayarı kapatmak / doğrulamayı kendimiz yapıp `admin.updateUserById` ile yazmak / auth e-postasını hiç değiştirmemek.
-- [ ] Bulgunun `PLATFORM_SETTINGS.md` ve ilgili karara işlenmesi.
+**Durum: ✅ tamamlandı (2026-08-24).** Betikler ve tam tablo: `supabase/tests/auth/email_change_spike/`.
 
-**Neden ilk sırada:** Kurtarma zincirinin tamamı bu cevaba dayanıyor ve cevabı bilmiyoruz. Tahminle ilerlemek, bu projenin yedi kez tökezlediği kalıbın aynısı olur. Kod teslim edilmez, bulgu teslim edilir.
+- [x] Sentetik adresten gerçek adrese geçişin `Secure email change` ile çakışıp çakışmadığı ölçüldü — **çakışıyor**, geçiş imkânsız.
+- [x] Üç çıkış yolu da denendi. Sonuç, üçünden hiçbiri değil: **ayarı kapatmak da yıkıcı çıktı** çünkü e-posta değişince giriş numarası ölüyor (`HTTP 400`).
+- [x] Bunun üzerine dördüncü yol ölçüldü: **auth e-postasını hiç değiştirmemek** ve kurtarma linkini `admin/generate_link` ile kendimiz üretip göndermek. **Çalışıyor** — 0 posta gönderiliyor, link ve 6 haneli kod bize dönüyor, jeton geçerli.
+- [x] Bulgular `DECISION_LOG.md`'ye işlendi; reddedilen öneri gerekçesiyle birlikte kayıtta bırakıldı.
+
+**Neden ilk sıradaydı:** Kurtarma zincirinin tamamı bu cevaba dayanıyordu ve cevabı bilmiyorduk. Karşılığını verdi — ilk iki planın ikisi de ölçümde çöktü ve doğru tasarım ancak üçüncü denemede çıktı. Kod yazılıp aylar sonra sahada öğrenilecek bir arızaydı.
+
+**Ortaya çıkan yeni ön koşul:** Kurtarma linkini artık biz gönderdiğimiz için **kendi e-posta gönderim sağlayıcımız** gerekiyor. E4'e ön koşul olarak eklendi.
 
 ### E1 - Kurum kurma makinesi
 
@@ -349,8 +354,10 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 ### E4 - İletişim bilgisi ve kurtarma zinciri
 
+- [ ] **Ön koşul: e-posta gönderim sağlayıcısı kurulması** (seçenekler `PLATFORM_SETTINGS.md` bölüm 7). Kurtarma linkini artık biz gönderiyoruz; sağlayıcı olmadan **kurtarma hiç çalışmaz**. Bkz. `DECISION_LOG.md` — "Auth e-postası hiç değişmez".
 - [ ] `profiles.phone`, `profiles.pending_email` ve doğrulama durumu alanları.
-- [ ] Kurum yöneticisi için ilk girişte **zorunlu** e-posta ekleme ve doğrulama; diğer roller için isteğe bağlı.
+- [ ] Kurum yöneticisi için ilk girişte **zorunlu** e-posta ekleme ve doğrulama; diğer roller için isteğe bağlı. Doğrulama, ürettiğimiz kodun adrese gönderilip geri girilmesiyle yapılır; GoTrue'nun e-posta değiştirme akışına **dokunulmaz**.
+- [ ] Kurtarma akışı: Edge Function `admin/generate_link` ile link ve 6 haneli kodu üretir, `profiles`'taki doğrulanmış adrese gönderir, denetim kaydı yazar.
 - [ ] Ayarlar ekranının iletişim bölümünün gerçek veriye bağlanması (bugün mock).
 - [ ] Platform panelinde kurum yöneticisinin şifresini sıfırlama işlemi - kurtarma zincirinin son halkası. Denetim kaydı üretir.
 - [ ] Kurum yöneticisinin hesabında yapılan her kimlik bilgisi işleminin (geçici şifre üretimi, sıfırlama) **ona bildirilmesi**. Operatörün yetki yükseltebildiği kabul edilmiş bir gerçektir; bildirim onu gizli olmaktan çıkarır.

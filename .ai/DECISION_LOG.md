@@ -526,9 +526,15 @@ Ayrı hesap ise izolasyonu güçlendirir: iki kurum arasında hiçbir teknik kö
 
 ### Karar: Sentetik adresten gerçek adrese geçiş
 
-**Durum:** ÖNERİ — onay bekliyor
+**Durum:** ⛔ **REDDEDİLDİ** — yerine "Auth e-postası hiç değişmez" kararı alındı (aşağıda)
 **Tarih:** 2026-08-24
 **Ölçüm:** Faz E0 spike, `supabase/tests/auth/email_change_spike/`
+
+> **Neden reddedildi:** Bu öneri `Secure email change` ayarının kapatılmasını savunuyordu. Arda Bülent, e-postanın hesabın kimliği olmak zorunda olmadığını sorunca ölçüm verisine yeniden bakıldı ve **raporlanmamış bir sonuç** fark edildi: e-posta değiştikten sonra sentetik adresle giriş **HTTP 400** dönüyor — yani **kişinin giriş numarası ölüyor.**
+>
+> Sonucu ağır: e-postasını ekleyen bir öğretmenin kâğıda yazılıp verilmiş numarası geçersizleşir. Öneri, kurum yöneticisini kurtarırken numara sisteminin tamamını bozuyordu.
+>
+> Kayıt silinmiyor çünkü değeri gerekçesinde: bu, ölçümü yapmış olmama rağmen **verinin bir satırını yeterince önemsememiş olduğumu** gösteriyor. Aşağıdaki karar bu yanlıştan çıktı.
 
 **Bağlam:** Kimlik kararı gereği herkes `<numara>@orbit.invalid` sentetik adresiyle açılıyor. Kurum yöneticisinin ilk girişte gerçek bir e-posta ekleyip doğrulaması **zorunlu**; kurtarma zincirinin tamamı buna dayanıyor.
 
@@ -564,3 +570,59 @@ Bu kaybın gerçek büyüklüğü sanıldığından küçüktür:
 - **`admin.updateUserById` ile yazmak:** Ölçüldü, çalışıyor, ama doğrulama üretmiyor. Reddedildi.
 - **Auth e-postasını hiç değiştirmemek, iletişim adresini yalnızca `profiles`'ta tutmak:** Supabase'in şifre sıfırlaması auth e-postasına gider; sentetik adres kalırsa sıfırlama hiç çalışmaz. Kendi sıfırlama akışımızı yazmak ise kendi SMTP'mizi gerektirir — bugün yok.
 - **Ayarı açık bırakıp e-posta doğrulamasını zorunlu olmaktan çıkarmak:** Kurum yöneticisini kurtarma kanalsız bırakır; kendini kilitlediğinde tüm kurumun sıfırlama zinciri kopar.
+
+---
+
+### Karar: Auth e-postası hiç değişmez; kurtarma linkini biz üretir, biz göndeririz
+
+**Durum:** Alındı
+**Tarih:** 2026-08-24
+**Kararı Onaylayan(lar):** Arda Bülent
+**Ölçüm:** Faz E0 spike, `supabase/tests/auth/email_change_spike/`
+
+**Bağlam:** Herkes `<numara>@orbit.invalid` sentetik adresiyle açılıyor. Kurum yöneticisinin gerçek bir e-posta ekleyip doğrulaması zorunlu, çünkü kurtarma zinciri buna dayanıyor. İlk plan, kullanıcının auth e-postasını sentetikten gerçeğe **değiştirmekti**.
+
+E0 ölçümü bu planın iki ayrı sebeple yanlış olduğunu gösterdi:
+
+1. **`Secure email change` açıkken geçiş imkânsız** — eski adres olan `@orbit.invalid` kutusuna da onay maili gidiyor ve tek onay yetmiyor.
+2. **Ayar kapatılsa bile geçiş yıkıcı** — e-posta değiştikten sonra sentetik adresle giriş `HTTP 400` dönüyor. Yani kişinin **giriş numarası ölüyor.** Kâğıda yazılıp dağıtılmış numara geçersizleşir.
+
+İkinci madde birinciden ağırdır ve ayarı kapatma seçeneğini tamamen geçersiz kılar.
+
+**Karar:** Auth e-postası **hiçbir zaman değişmez**. `<numara>@orbit.invalid` kişinin kalıcı kimliğidir.
+
+- **Giriş her zaman numarayladır.** Kullanıcı e-posta eklese de numarası çalışmaya devam eder.
+- **Gerçek e-posta `profiles` içinde iletişim bilgisidir**, kimlik değildir.
+- **`Secure email change` production'da AÇIK kalır.** Hiçbir güvenlik ayarı zayıflatılmıyor; e-posta değiştirmediğimiz için o ayar bizim yolumuza hiç girmiyor.
+- **Kurtarma linkini biz üretir, biz göndeririz.** Edge Function `service_role` ile `POST /auth/v1/admin/generate_link` çağırır ve linki `profiles`'taki doğrulanmış adrese gönderir.
+
+**Ölçüldü, varsayılmadı** (GoTrue v2.195.0, production ile aynı sürüm):
+
+| Ölçüm                                 | Sonuç                                                   |
+| ------------------------------------- | ------------------------------------------------------- |
+| `generate_link` posta gönderiyor mu   | **Hayır — 0 mesaj.** Link ve kod bize dönüyor           |
+| Dönen alanlar                         | `action_link`, `hashed_token`, **`email_otp`** (6 hane) |
+| Üretilen jeton gerçekten çalışıyor mu | Evet — kurtarma oturumu alındı, şifre güncellendi       |
+| Sonrasında yeni şifreyle giriş        | HTTP 200                                                |
+| Sonrasında eski şifreyle giriş        | HTTP 400                                                |
+| Tüm akış boyunca giden posta          | **0**                                                   |
+
+`email_otp` alanı beklenmedik bir kazanç: 6 haneli kod, kâğıttan okunabilir ve ileride SMS'e taşınabilir. Link tıklanamayan durumlarda (yazdırılmış liste, telefonla iletme) kullanılabilir.
+
+**Gerekçe:** Kimlik kararının ilkesi "numara opak, değişmez ve kalıcı bir belirteçtir" idi. E-posta eklendiğinde kimliğin değişmesi bu ilkeyle baştan çelişiyordu; ölçüm bunu somut bir arızaya çevirdi. Bu tasarımda kimlik hiç oynamıyor, e-posta yalnızca bir iletişim kanalı olarak ekleniyor — rolü neyse o.
+
+Yan fayda: kurtarma akışı **bizim** kontrolümüzde. Hangi adrese gittiğini, kaç kez denendiğini, ne zaman süresinin dolduğunu biz belirleriz ve denetim kaydına yazarız. Supabase'in hazır akışında bunların hiçbiri elimizde değildi.
+
+**Bedeli — açıkça kabul ediliyor:** Kendi e-posta gönderim sağlayıcımız gerekiyor. Supabase'in paylaşımlı SMTP'si yalnızca GoTrue'nun kendi akışlarını tetikliyor; biz link üretip gönderdiğimizde araya girmiyor.
+
+Bu bir ek yük değil, **zaten planlı olan işin öne çekilmesi**: `PLATFORM_SETTINGS.md` bölüm 5, paylaşımlı SMTP'yi "production için uygun değil, spam'e düşmesi olağan" diye kaydediyor ve pilot kuruma açılmadan önce değiştirilmesini şart koşuyor. Seçenekler bölüm 7'de listeli.
+
+**Bağlayıcı sonuç:** E-posta gönderim sağlayıcısı kurulmadan **kurtarma çalışmaz**. Bu nedenle Faz E4'ün ön koşuludur ve gerçek bir kuruma hesap açılmadan önce tamamlanmalıdır.
+
+**E-posta doğrulaması da aynı mekanizmayla:** Kullanıcı adresini girer, `profiles.pending_email` alanına yazılır, ürettiğimiz kodu o adrese göndeririz. Kod geri girilirse adres doğrulanmıştır. Ayrı bir sistem gerekmez ve GoTrue'nun e-posta değiştirme akışına hiç dokunulmaz.
+
+**Alternatifler:**
+
+- **`Secure email change`'i kapatıp auth e-postasını değiştirmek:** Ölçüldü ve reddedildi — numara ölüyor. Yukarıdaki reddedilmiş karara bakın.
+- **`admin.updateUserById` ile adresi doğrudan yazmak:** Ölçüldü; çalışıyor ama hiçbir doğrulama üretmiyor ve yine numarayı öldürüyor.
+- **Kurtarmayı tamamen kurum yöneticisine bırakmak:** Öğretmen/öğrenci/veli için zaten böyle. Ancak kurum yöneticisinin kendisi için bir üst basamak gerekiyor; aksi halde her unutulan yönetici şifresi geliştirme ekibine geliyor.

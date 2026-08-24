@@ -38,6 +38,33 @@ bash run.sh   # senaryolari kosar
 
 **Admin API doğrulama yolu değildir.** `email_confirm` değeri ne olursa olsun adres anında değişiyor ve **hiçbir doğrulama maili gitmiyor**. Yani "adresi admin API ile yazalım ama doğrulamayı GoTrue yapsın" mümkün değil; admin API kullanılırsa adres **doğrulanmadan** kabul edilmiş olur.
 
-**Tek çalışan doğrulamalı yol, ayarın kapatılmasıdır.** O zaman GoTrue yalnızca yeni adrese tek bir onay maili gönderiyor, kullanıcı tıklıyor, adres değişiyor ve eski sentetik adres artık giriş kabul etmiyor.
+**Ayarı kapatmak da çözüm değil.** Kapalıyken değişim tamamlanıyor, ancak C senaryosunun son satırına dikkat: değişimden sonra **sentetik adresle giriş HTTP 400 dönüyor.** Yani kişinin giriş numarası ölüyor. Kâğıda yazılıp dağıtılmış numara geçersizleşir.
 
-Kararın kendisi ve güvenlik bedeli: `.ai/DECISION_LOG.md` — "Sentetik adresten gerçek adrese geçiş".
+Bu satır ilk raporlamada yeterince önemsenmemişti; asıl sonucu odur. **E-postayı değiştirmek, kimliği değiştirmek demek.**
+
+---
+
+## İkinci ölçüm — kurtarma linkini kendimiz üretebilir miyiz?
+
+`bash run_recovery.sh`
+
+Yukarıdaki bulgudan sonra tasarım değişti: auth e-postası **hiç değişmiyor**, gerçek adres `profiles`'ta iletişim bilgisi olarak duruyor ve kurtarma linkini biz üretip biz gönderiyoruz. Bu, o tasarımın dayandığı son varsayımı ölçer.
+
+| Ölçüm                                     | Sonuç                                                     |
+| ----------------------------------------- | --------------------------------------------------------- |
+| `admin/generate_link` posta gönderiyor mu | **Hayır — 0 mesaj.** Link ve kod yanıtta dönüyor          |
+| Dönen alanlar                             | `action_link`, `hashed_token`, **`email_otp`** (6 haneli) |
+| Üretilen jeton çalışıyor mu               | Evet — kurtarma oturumu alındı, şifre güncellendi         |
+| Yeni şifreyle giriş                       | HTTP 200                                                  |
+| Eski şifreyle giriş                       | HTTP 400                                                  |
+| Akış boyunca giden posta                  | **0**                                                     |
+
+`email_otp` beklenmedik bir kazanç: 6 haneli kod kâğıttan okunabilir ve ileride SMS'e taşınabilir; link tıklanamayan durumlar için kullanılabilir.
+
+### Sonuç
+
+Auth e-postası sentetik kalırken kurtarma **çalışıyor**. Giriş numarası hiç ölmüyor, `Secure email change` ayarı açık kalıyor, hiçbir güvenlik ayarı zayıflatılmıyor.
+
+Bedeli: linki **biz** gönderdiğimiz için kendi e-posta gönderim sağlayıcımız gerekiyor. Supabase'in paylaşımlı SMTP'si yalnızca GoTrue'nun kendi akışlarını tetikliyor.
+
+Kararın tamamı: `.ai/DECISION_LOG.md` — "Auth e-postası hiç değişmez; kurtarma linkini biz üretir, biz göndeririz".

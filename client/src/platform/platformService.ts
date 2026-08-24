@@ -46,8 +46,20 @@ export type CreateOrganizationInput = {
   organizationName: string;
   organizationSlug: string;
   branchName: string;
-  adminEmail: string;
   adminFullName: string;
+};
+
+/**
+ * Kurum kurulduğunda bir kez dönen giriş bilgisi.
+ *
+ * Geçici şifre **hiçbir yere kaydedilmez** — ne veritabanına, ne denetim
+ * kaydına, ne tarayıcı deposuna. Yalnızca bu yanıtta gelir ve ekranda bir kez
+ * gösterilir. Kaybolursa yenisi üretilir.
+ */
+export type OrganizationCredentials = {
+  organizationCode: number;
+  loginNumber: string;
+  temporaryPassword: string;
 };
 
 /**
@@ -62,8 +74,8 @@ const CREATE_ERROR_MESSAGES: Record<string, string> = {
   forbidden: "Bu işlem için platform operatörü yetkisi gerekiyor.",
   invalid_request:
     "Gönderilen bilgiler geçersiz. Alanları kontrol edip tekrar deneyin.",
-  admin_invite_failed:
-    "Kurum yöneticisi davet edilemedi. E-posta adresi geçersiz olabilir veya bu adresle zaten bir hesap var.",
+  admin_create_failed:
+    "Kurum yöneticisi hesabı oluşturulamadı. Lütfen tekrar deneyin; sorun sürerse geliştirme ekibine bildirin.",
   organization_bootstrap_failed:
     "Kurum oluşturulamadı. Kısa ad (slug) başka bir kurumda kullanılıyor olabilir.",
   service_unavailable:
@@ -209,13 +221,33 @@ async function loadOrganizationNames(): Promise<Map<string, string>> {
 
 export async function createOrganization(
   input: CreateOrganizationInput
-): Promise<void> {
-  const { error } = await supabase.functions.invoke("bootstrap-organization", {
-    body: input,
-  });
+): Promise<OrganizationCredentials> {
+  const { data, error } = await supabase.functions.invoke(
+    "bootstrap-organization",
+    { body: input }
+  );
 
   if (!error) {
-    return;
+    const payload = (data as { data?: Record<string, unknown> } | null)?.data;
+    const loginNumber = payload?.login_number;
+    const temporaryPassword = payload?.temporary_password;
+    const organizationCode = payload?.organization_code;
+
+    // Kurum oluştu ama giriş bilgisi yanıttan okunamadıysa sessizce başarılı
+    // dönmek en kötü sonuç olurdu: operatör "kuruldu" görür, şifre hiçbir yerde
+    // yazılı olmadığı için bir daha ele geçirilemez ve kurum yöneticisi
+    // hesabına asla giremez. Sıfırlama gerektiğini açıkça söylüyoruz.
+    if (
+      typeof loginNumber !== "string" ||
+      typeof temporaryPassword !== "string" ||
+      typeof organizationCode !== "number"
+    ) {
+      throw new Error(
+        "Kurum oluşturuldu ancak giriş bilgisi okunamadı. Kurum listesinden kontrol edip yöneticiye yeni şifre üretin."
+      );
+    }
+
+    return { organizationCode, loginNumber, temporaryPassword };
   }
 
   // `FunctionsHttpError` gövdeyi taşır ama okumak için `context.json()`

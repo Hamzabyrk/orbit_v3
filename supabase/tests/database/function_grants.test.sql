@@ -49,8 +49,9 @@ set local role anon;
 
 select throws_ok(
   $$select public.internal_bootstrap_organization(
-      'Kurum', 'kurum', 'Sube',
+      'Kurum', 'kurum', 1042, 'Sube',
       '30000000-0000-0000-0000-000000000003'::uuid,
+      1000,
       '30000000-0000-0000-0000-000000000003'::uuid
     )$$,
   '42501',
@@ -88,8 +89,9 @@ select set_config('request.jwt.claim.role', 'authenticated', true);
 
 select throws_ok(
   $$select public.internal_bootstrap_organization(
-      'Kurum', 'kurum', 'Sube',
+      'Kurum', 'kurum', 1042, 'Sube',
       '30000000-0000-0000-0000-000000000003'::uuid,
+      1000,
       '30000000-0000-0000-0000-000000000003'::uuid
     )$$,
   '42501',
