@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { OrbitMark } from "@/components/OrbitMark";
-import { Bell, LogOut, Menu, X } from "lucide-react";
+import { Bell, LogOut, Menu, PanelLeft, ShieldCheck, X } from "lucide-react";
+import { Link } from "wouter";
 import { toast } from "sonner";
 import { clearDemoData, readDemoData, writeDemoData } from "@/lib/demoStorage";
 import { availableEducationSections } from "@/components/educationAccess";
@@ -48,6 +49,7 @@ export function EducationPlatform({
   branchName = "Çorlu Şube",
   canSwitchRole = true,
   onRoleChange,
+  canAccessPlatform = false,
 }: {
   onLogout: () => void | Promise<void>;
   initialRole?: Role;
@@ -56,10 +58,15 @@ export function EducationPlatform({
   branchName?: string | null;
   canSwitchRole?: boolean;
   onRoleChange?: (role: Role) => void;
+  /** Kullanıcı platform operatörü mü. Menüdeki platform bağlantısını yönetir. */
+  canAccessPlatform?: boolean;
 }) {
   const [role, setRole] = useState<Role>(initialRole);
   const [active, setActive] = useState<Section>("Genel Bakış");
   const [mobileNav, setMobileNav] = useState(false);
+  // Masaüstünde menüyü simge şeridine indirir. Mobilde anlamı yok; orada menü
+  // zaten çekmece olarak açılıp kapanıyor.
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [attendances, setAttendances] = useState<
@@ -241,14 +248,14 @@ export function EducationPlatform({
     <div className="min-h-screen bg-[#f6f8fc] text-slate-900">
       <div className="flex min-h-screen">
         <aside
-          className={`fixed inset-y-0 left-0 z-40 flex w-[258px] flex-col border-r border-slate-200 bg-white px-3 py-4 transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${mobileNav ? "translate-x-0" : "-translate-x-full"}`}
+          className={`fixed inset-y-0 left-0 z-40 flex w-[258px] flex-col border-r border-slate-200 bg-white px-3 py-4 transition-all lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${mobileNav ? "translate-x-0" : "-translate-x-full"} ${navCollapsed ? "lg:w-[74px] lg:px-2" : "lg:w-[258px]"}`}
         >
           <div className="mb-7 flex items-center justify-between px-2">
             <div className="flex items-center gap-2.5">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-slate-900 p-1.5 shadow-[0_6px_14px_rgba(15,23,42,.12)]">
                 <OrbitMark inverted className="h-full w-full object-contain" />
               </span>
-              <div>
+              <div className={navCollapsed ? "lg:hidden" : ""}>
                 <p className="font-orbit text-[18px] font-extrabold tracking-[-.055em] text-slate-900">
                   ORBIT
                 </p>
@@ -265,7 +272,9 @@ export function EducationPlatform({
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50/65 px-3 py-3">
+          <div
+            className={`mb-5 rounded-xl border border-blue-100 bg-blue-50/65 px-3 py-3 ${navCollapsed ? "lg:hidden" : ""}`}
+          >
             <div className="flex items-center gap-2">
               <span
                 className={`grid h-8 w-8 place-items-center rounded-lg ${meta.color}`}
@@ -282,13 +291,21 @@ export function EducationPlatform({
               </div>
             </div>
           </div>
-          <nav className="space-y-1">
+          {/*
+            `flex-1 overflow-y-auto` olmadan menü, ekran yüksekliğini aşınca
+            kesiliyordu ve kaydırılamıyordu: `lg:h-screen` yüksekliği sabitliyor
+            ama taşan içeriğe ne yapılacağını söylemiyor. Küçük dizüstü
+            ekranlarda alttaki maddelere hiç ulaşılamıyordu.
+          */}
+          <nav className="-mr-1 flex-1 space-y-1 overflow-y-auto pr-1">
             {(["Ana çalışma alanı", "Kurum yönetimi"] as const).map(group => (
               <div
                 key={group}
                 className={group === "Kurum yönetimi" ? "mt-6" : ""}
               >
-                <p className="mb-2 px-3 text-[9px] font-extrabold uppercase tracking-[.14em] text-slate-400">
+                <p
+                  className={`mb-2 px-3 text-[9px] font-extrabold uppercase tracking-[.14em] text-slate-400 ${navCollapsed ? "lg:hidden" : ""}`}
+                >
                   {group}
                 </p>
                 {navItems
@@ -300,17 +317,24 @@ export function EducationPlatform({
                       <button
                         key={item.label}
                         onClick={() => navigate(item.label)}
-                        className={`flex h-9 w-full items-center gap-3 rounded-lg px-3 text-left text-[12px] font-semibold transition ${selected ? "bg-slate-900 text-white shadow-[0_7px_14px_rgba(15,23,42,.10)]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+                        // Şerit hâlindeyken etiket gizlendiği için erişilebilir
+                        // ad ve fare üzerinde ipucu `title` ile korunuyor.
+                        title={navCollapsed ? item.label : undefined}
+                        className={`flex h-9 w-full items-center gap-3 rounded-lg text-left text-[12px] font-semibold transition ${navCollapsed ? "px-3 lg:justify-center lg:px-0" : "px-3"} ${selected ? "bg-slate-900 text-white shadow-[0_7px_14px_rgba(15,23,42,.10)]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
                       >
                         <Icon
-                          className={`h-4 w-4 ${selected ? "text-white" : "text-slate-400"}`}
+                          className={`h-4 w-4 shrink-0 ${selected ? "text-white" : "text-slate-400"}`}
                         />
-                        <span className="flex-1">{item.label}</span>
+                        <span
+                          className={`flex-1 ${navCollapsed ? "lg:hidden" : ""}`}
+                        >
+                          {item.label}
+                        </span>
                         {item.label === "Yoklama" &&
                         role !== "student" &&
                         role !== "parent" ? (
                           <span
-                            className={`rounded-full px-1.5 py-0.5 text-[9px] font-extrabold ${selected ? "bg-white/15" : "bg-rose-50 text-rose-600"}`}
+                            className={`rounded-full px-1.5 py-0.5 text-[9px] font-extrabold ${navCollapsed ? "lg:hidden" : ""} ${selected ? "bg-white/15" : "bg-rose-50 text-rose-600"}`}
                           >
                             1
                           </span>
@@ -321,13 +345,33 @@ export function EducationPlatform({
               </div>
             ))}
           </nav>
-          <div className="mt-auto border-t border-slate-100 pt-4">
+          <div className="mt-auto space-y-1 border-t border-slate-100 pt-4">
+            {/*
+              Platform paneline giden tek görünür yol. Bağlantı yokken operatör
+              panele ancak adresi elle yazarak ulaşabiliyordu; kurucu ekip
+              üyeleri hem kurum üyesi hem operatör olduğu için girişte doğrudan
+              dershane paneline düşüyor ve panelin var olduğunu göremiyordu.
+              Yalnızca gerçekten operatör olana gösterilir.
+            */}
+            {canAccessPlatform ? (
+              <Link
+                href="/platform"
+                title={navCollapsed ? "Platform yönetimi" : undefined}
+                className={`flex h-9 w-full items-center gap-3 rounded-lg text-[12px] font-semibold text-slate-600 transition hover:bg-slate-100 ${navCollapsed ? "px-3 lg:justify-center lg:px-0" : "px-3"}`}
+              >
+                <ShieldCheck className="h-4 w-4 shrink-0 text-slate-400" />
+                <span className={navCollapsed ? "lg:hidden" : ""}>
+                  Platform yönetimi
+                </span>
+              </Link>
+            ) : null}
             <button
               onClick={onLogout}
-              className="flex h-9 w-full items-center gap-3 rounded-lg px-3 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-100"
+              title={navCollapsed ? "Çıkış Yap" : undefined}
+              className={`flex h-9 w-full items-center gap-3 rounded-lg text-[12px] font-semibold text-slate-600 transition hover:bg-slate-100 ${navCollapsed ? "px-3 lg:justify-center lg:px-0" : "px-3"}`}
             >
-              <LogOut className="h-4 w-4 text-slate-400" />
-              Çıkış Yap
+              <LogOut className="h-4 w-4 shrink-0 text-slate-400" />
+              <span className={navCollapsed ? "lg:hidden" : ""}>Çıkış Yap</span>
             </button>
           </div>
         </aside>
@@ -343,9 +387,25 @@ export function EducationPlatform({
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileNav(true)}
+                aria-label="Menüyü aç"
                 className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 lg:hidden"
               >
                 <Menu className="h-4 w-4" />
+              </button>
+              {/*
+                Masaüstünde menü daraltma. Mobildeki düğmeden ayrı: orada menü
+                çekmece olarak açılıp kapanıyor, burada simge şeridine iniyor.
+                Tek düğmeyle iki davranışı yönetmek, ekran genişliğini JS'te
+                okumayı gerektirirdi.
+              */}
+              <button
+                onClick={() => setNavCollapsed(value => !value)}
+                aria-label={navCollapsed ? "Menüyü genişlet" : "Menüyü daralt"}
+                aria-pressed={navCollapsed}
+                title={navCollapsed ? "Menüyü genişlet" : "Menüyü daralt"}
+                className="hidden h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 lg:grid"
+              >
+                <PanelLeft className="h-4 w-4" />
               </button>
               <div>
                 <p className="text-[11px] font-semibold text-slate-500">
