@@ -626,3 +626,86 @@ Bu bir ek yük değil, **zaten planlı olan işin öne çekilmesi**: `PLATFORM_S
 - **`Secure email change`'i kapatıp auth e-postasını değiştirmek:** Ölçüldü ve reddedildi — numara ölüyor. Yukarıdaki reddedilmiş karara bakın.
 - **`admin.updateUserById` ile adresi doğrudan yazmak:** Ölçüldü; çalışıyor ama hiçbir doğrulama üretmiyor ve yine numarayı öldürüyor.
 - **Kurtarmayı tamamen kurum yöneticisine bırakmak:** Öğretmen/öğrenci/veli için zaten böyle. Ancak kurum yöneticisinin kendisi için bir üst basamak gerekiyor; aksi halde her unutulan yönetici şifresi geliştirme ekibine geliyor.
+
+---
+
+### Karar: Şifre değiştirme ile sıfırlama ayrı akışlardır; kurtarma kanalı isteğe bağlıdır ama görünürdür
+
+**Durum:** Alındı
+**Tarih:** 2026-08-24
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Toplu kurulumda bir dershaneye 200 öğrenci açılacak. "Herkese hem ilk şifresini hem şifre yenileme kodunu elden vermek süreci uzatır" endişesi doğdu.
+
+Endişe, iki farklı işlemin karıştırılmasından kaynaklanıyordu ve bu ayrım kayda geçmemişti:
+
+| İşlem          | Ne zaman                    | Ne gerektirir                                           |
+| -------------- | --------------------------- | ------------------------------------------------------- |
+| **Değiştirme** | Mevcut şifreyi biliyorum    | Hiçbir şey — eski şifrenin kendisi kanıt                |
+| **Sıfırlama**  | Unuttum, hesaba giremiyorum | Dışarıdan bir kanal: e-posta, SMS veya kurum yöneticisi |
+
+**Karar:**
+
+**1. İlk giriş bir "değiştirme"dir, "sıfırlama" değil.** Kullanıcı geçici şifresiyle girer, `must_change_password` kilidi devreye girer, yeni şifresini belirler. **İletişim bilgisi gerekmez ve ikinci bir kod dağıtılmaz.** Toplu kurulumda kişi başına tek bir fiş vardır.
+
+**2. İletişim bilgisi ilk girişte sorulur ama zorunlu değildir** — kurum yöneticisi hariç; onun için zorunludur (bkz. "Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır").
+
+Zorunlu yapılamaz: e-postası olmayan öğrenci sisteme hiç giremez hâle gelirdi. Ancak yalnızca "atla" seçeneği sunulursa çoğu kullanıcı atlar ve kurtarma sorunu geri gelir.
+
+**Çözüm: atlanabilir ama kalıcı olarak görünür.** Kurtarma yöntemi olmayan hesap, ayarlar ekranında ve profil alanında sürekli bir uyarı taşır: _"Kurtarma yöntemin yok — şifreni unutursan kurum yöneticine başvurman gerekir."_
+
+**3. Doğrulanmamış adres, kurtarma kanalı sayılmaz.** `ahmet@gmial.com` yazan bir kullanıcının sıfırlama postası bir yabancıya gider. Adres doğrulanana kadar hesap "kurtarma yöntemi yok" kabul edilir ve yukarıdaki uyarı görünmeye devam eder.
+
+**4. Sıfırlama akışı kanal varlığına göre dallanır:**
+
+- Doğrulanmış iletişim bilgisi **varsa** → linki ve 6 haneli kodu biz üretip o adrese göndeririz.
+- **Yoksa** → kullanıcı kurum yöneticisine yönlendirilir; yönetici panelden yeni geçici şifre üretir.
+
+**Gerekçe:** Toplu dağıtım tek seferliktir ve zaten kaçınılmazdır — ilk kimlik bilgisi kişiye bir şekilde ulaşmak zorunda. İkinci bir dağıtım turu hiç var olmadığı için asıl endişe ortadan kalkıyor. Sıfırlama ise bireysel ve seyrek bir olaydır; toplu bir yük oluşturmaz.
+
+Kurtarma kanalını zorunlu yapmamak, KVKK'daki veri minimizasyonu ilkesiyle de uyumludur: giriş yapacak her çocuk için e-posta toplamak, ihtiyaç duyulmayan kişisel veri işlemek olurdu.
+
+**Ertelenen fikir — veli üzerinden kurtarma:** Öğrencinin iletişim bilgisi yoksa, bağlı velisinin doğrulanmış adresine gönderilmesi önerildi. Fikir yöneticinin yükünü azaltır ancak iki koşul olmadan uygulanamaz:
+
+1. **Yaş sınırı.** Küçük bir öğrencinin kurtarmasını velisine göndermek doğrudur; veli yasal temsilcidir. **Yetişkin bir kursiyerinkini göndermek değildir.** Zincir ya yaşa bağlanmalı ya da öğrencinin açık onayına dayanmalıdır.
+2. **Bağlantının doğrulanmış olması.** Veri girişinde yanlış veli bağlanmışsa kimlik bilgisi yanlış kişiye gider.
+
+`student_guardians` tablosu v1.2'de geldiği için bu karar o sürüme ertelenmiştir.
+
+---
+
+### Karar: Operatör desteği üç katmanlıdır — teşhis, izinli oturum, acil erişim
+
+**Durum:** Alındı
+**Tarih:** 2026-08-24
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Platform operatörü kurum içeriğini göremiyor ve bu bilinçli. Ancak geliştirme ekibi biziz: kurumda bir sorun çıktığında bize gelecekler. Hiçbir görüş olmadan sorun çözmek imkânsız veya çok yavaş olur.
+
+**Gözlem — sorunların çoğu kişisel veri görmeyi gerektirmez.** "Öğrenci listesi yüklenmiyor" sorununu teşhis etmek için isimleri görmek gerekmez; kayıt sayıları, hata kayıtları ve ilişki bütünlüğü yeter.
+
+**Karar:** Destek erişimi tek bir anahtar değil, üç katmandır.
+
+**Katman 1 — Teşhis ekranı (kişisel veri yok).** Platform panelinde kurum başına yapısal görünüm: kayıt sayıları, son işlem zamanı, hata kayıtları, şema tutarsızlıkları. Hiçbir kişi adı, notu, yoklaması veya ödemesi görünmez. KVKK sınırına dokunmaz, izin gerektirmez, her zaman açıktır.
+
+**Katman 2 — Destek oturumu (kurumun izniyle).** Kurum yöneticisi kendi panelinden "geliştirme ekibine erişim ver" der. Oturum **süre sınırlıdır** ve kendiliğinden kapanır; her okuma denetim kaydına yazılır; yönetici ne yapıldığını görebilir.
+
+Erişim **salt okunurdur.** Sorunların neredeyse tamamı okumayla teşhis edilir; yazma yetkisi riski katlar ve "verimizi siz mi sildiniz" tartışmasına kapı açar. Düzeltme gerekiyorsa ya kurum yöneticisi uygular ya da ayrı bir migration ile yapılır.
+
+**Katman 3 — Acil erişim.** Kurum yöneticisi kilitlendiyse izin verecek kimse kalmaz. Operatör bu durumda erişimi kendisi açabilir, ancak:
+
+- **Gerekçe yazmak zorunludur** ve gerekçe denetim kaydına girer.
+- Süre kısadır ve uzatılamaz; uzatma yeni bir kayıt üretir.
+- Kurumdaki **tüm yöneticilere bildirim gider.**
+
+**Gerekçe:** KVKK çerçevesinde kurum veri sorumlusu, ORBIT veri işleyendir. Veri işleyenin, sorumlunun talimatıyla erişmesi beklenen ve meşru olandır — Katman 2 tam olarak budur. Katman 3 ise inkâr edilen bir yetki değil, **görünür kılınmış** bir yetkidir; gizli bir arka kapıdan çok daha güvenlidir.
+
+Bu karar, `PROJECT_STATE.md` bölüm 10'daki düzeltilmiş taahhüdün somut hâlidir: _"operatör ürün üzerinden içerik okuyamaz; yetki yükseltebilir, her yükseltme kayda geçer ve bildirilir."_
+
+**Sıra:** Katman 1 Faz E4'te yapılabilir; kişisel veriye dokunmadığı için iş tablolarını beklemez. Katman 2 ve 3, RLS koşulları iş tablolarına yazılacağı için **v1.2 sonrasına** aittir.
+
+**Alternatifler:**
+
+- **Operatöre kalıcı okuma yetkisi vermek:** En kolayı. Reddedildi; "operatör kapları yönetir, içeriği görmez" taahhüdünü tamamen ortadan kaldırır ve kuruma satış yaparken savunulamaz.
+- **Hiçbir erişim vermemek:** Bugünkü durum. İşlemez; her sorun için kurumdan ekran görüntüsü istemek zorunda kalırız.
+- **Destek oturumunda yazma yetkisi de vermek:** Reddedildi; teşhis için gereksiz, sorumluluk açısından risklidir.
