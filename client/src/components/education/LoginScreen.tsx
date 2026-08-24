@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { ChevronRight, LayoutDashboard, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import type { LoginInput } from "@/auth/types";
+import { resolveLoginIdentifier } from "@/auth/loginIdentifier";
 import { roleEmail, roleMeta } from "./mockData";
 import { Badge } from "./shared";
 import type { Role } from "./types";
@@ -17,20 +18,30 @@ export function EducationLoginScreen({
   demoMode: boolean;
 }) {
   const [selectedRole, setSelectedRole] = useState<Role>("admin");
-  const [email, setEmail] = useState(demoMode ? roleEmail.admin : "");
+  const [identifier, setIdentifier] = useState(demoMode ? roleEmail.admin : "");
   const [password, setPassword] = useState(demoMode ? "demo123" : "");
   const [loading, setLoading] = useState(false);
   const selectRole = (role: Role) => {
     if (!demoMode) return;
     setSelectedRole(role);
-    setEmail(roleEmail[role]);
+    setIdentifier(roleEmail[role]);
   };
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
 
     try {
-      await onLogin({ email, password, demoRole: selectedRole });
+      // Girdi burada çözümleniyor: 8 haneli numara sentetik adrese çevrilir,
+      // `@` içeren her şey e-posta kabul edilir. Çözümlenemezse Supabase'e
+      // olduğu gibi gönderiliyor — kendi hata mesajımızı üretmek, hangi
+      // numaraların var olduğunu sızdırırdı.
+      const resolved = resolveLoginIdentifier(identifier);
+
+      await onLogin({
+        email: resolved ? resolved.email : identifier.trim(),
+        password,
+        demoRole: selectedRole,
+      });
       toast.success(
         demoMode
           ? `Hoş geldiniz, ${roleMeta[selectedRole].name}`
@@ -117,14 +128,31 @@ export function EducationLoginScreen({
             <form onSubmit={submit} className="mt-7 space-y-3">
               <label className="block">
                 <span className="mb-1.5 block text-[11px] font-bold text-slate-600">
-                  E-posta adresi
+                  {demoMode ? "E-posta adresi" : "Giriş numarası veya e-posta"}
                 </span>
+                {/*
+                  `type="email"` DEĞİL. Tarayıcı doğrulaması `10011000` girdisini
+                  "@ eksik" diye reddediyordu ve numarayla giriş hiç mümkün
+                  olmuyordu. Tek alan iki biçimi birden kabul ediyor; ayrımı
+                  `resolveLoginIdentifier` yapıyor.
+                */}
                 <input
-                  value={email}
-                  onChange={event => setEmail(event.target.value)}
-                  type="email"
+                  value={identifier}
+                  onChange={event => setIdentifier(event.target.value)}
+                  type="text"
+                  inputMode={demoMode ? "email" : "text"}
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  placeholder={demoMode ? undefined : "10011000"}
                   className="h-12 w-full rounded-xl border border-slate-200 px-3 text-[13px] outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
                 />
+                {!demoMode ? (
+                  <span className="mt-1.5 block text-[10px] leading-4 text-slate-400">
+                    Size verilen 8 haneli numarayı yazın. E-posta adresi
+                    tanımlıysa onunla da giriş yapabilirsiniz.
+                  </span>
+                ) : null}
               </label>
               <label className="block">
                 <span className="mb-1.5 block text-[11px] font-bold text-slate-600">
