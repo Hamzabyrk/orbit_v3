@@ -256,6 +256,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Dashboard, öğrenci, sınıf, program, ödeme, sınav ve rapor değerlerinin canlı sorgulardan türetilmesi.
 - [ ] Tasarım değişmeden loading, error ve boş kurum durumlarının eklenmesi.
 - [ ] Sağ üst rol göstergesinin gerçek üyelikten gelmesi; demo geçişinin environment ile sınırlandırılması.
+- [ ] **Birden fazla perspektifi olan kişi için görünüm değiştirici.** Öğretmen-veli ve yönetici-veli durumlarında sağ üstte perspektif geçişi. **Yetki değiştirici DEĞİL:** yalnızca kişinin gerçekten sahip olduğu perspektifleri listeler, neyin gösterildiğini değiştirir, neye izin verildiğini değil. Sunucu hangi görünümde olunduğunu bilmez; yetkilendirme yalnızca RLS'tedir. Demo modundaki mevcut geçiş kimliği gerçekten değiştiriyor ve o davranış production'a taşınmamalıdır. Bkz. `DECISION_LOG.md` — "Rol, atama ve bağlantı üç ayrı kavramdır".
 - [ ] Kurum/sınıf kapsamlı Realtime invalidation ve abonelikleri.
 
 - [ ] İstemci tarafı hareketsizlik sayacı: belirli süre işlem yoksa oturum kapatılır. Supabase'in sunucu tarafı oturum zaman aşımı Pro plan gerektirdiği için ücretsiz karşılığıdır; dershanenin ortak bilgisayarında açık bırakılan tarayıcı senaryosuna karşı etkilidir.

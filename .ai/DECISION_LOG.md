@@ -766,6 +766,26 @@ Aynısı **kurum yöneticisi-veli** için de geçerlidir ve o durumda bağlantı
 
 Bu bedel, **yalnızca üçüncü durum için** kabul ediliyor. İlk iki durumda ikinci hesap açmak yanlış olur: öğretmen-veli iki hesapla günde birkaç kez çıkış-giriş yapmak zorunda kalır ve pratikte veli hesabını hiç kullanmaz.
 
+**Birden fazla perspektifi olan kişi için görünüm değiştirici.**
+
+Bir kişi tek hesapla iki perspektife sahip olabiliyor (öğretmen + velisi olduğu çocuk, yönetici + velisi olduğu çocuk). Bunları tek bir panele yığmak, rol sayısı arttıkça kötüleşen bir karmaşa üretir.
+
+Çözüm: sağ üstte **görünüm değiştirici**. Kişi "Öğretmen" ve "Veli" arasında geçiş yapar; çıkış yapıp yeniden girmesi gerekmez.
+
+> ⚠️ **Bu bir GÖRÜNÜM değiştiricidir, YETKİ değiştirici değildir.** Ayrım kritiktir ve karıştırılırsa güvenlik açığına dönüşür.
+>
+> Demo modundaki mevcut rol geçişi kimliği gerçekten değiştiriyor (`createDemoIdentity(role)`) ve o kişiye o rolün yetkilerini veriyor. Satış sunumu için doğru, production için felaket: öğrenci "Yönetici"ye basıp yönetici olurdu.
+>
+> Production'daki değiştirici şu kurallara tabidir:
+>
+> - Yalnızca kişinin **gerçekten sahip olduğu** perspektifleri listeler. Perspektifler üyelik rolünden ve bağlantılardan türetilir, istemcide seçilmez.
+> - Değiştirmek **neyin gösterildiğini** değiştirir, **neye izin verildiğini** değil.
+> - Sunucu hangi görünümde olunduğunu **bilmez ve umursamaz**. Yetkilendirme yalnızca RLS'tedir.
+>
+> Son madde belirleyicidir: istemci kurcalanıp olmayan bir perspektife geçilse bile o ekranlar boş döner, çünkü veriyi RLS engeller. Görünüm değiştirici bir güvenlik sınırı değildir ve öyle sayılmamalıdır.
+
+Tek perspektifi olan kişide değiştirici hiç gösterilmez. İkinci hesap yoluyla çözülen durumlarda (öğrenci-asistan) da gösterilmez; onlar ayrı kimliklerdir.
+
 **Uygulama sırası:**
 
 - **Bugün geçerli:** bir kişi, bir kurumda, bir üyelik, bir kod, bir numara (Issue #65 ile şemada zorlanıyor).
