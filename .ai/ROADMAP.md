@@ -350,6 +350,8 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 **Not:** `must_change_password` kesinlikle `user_metadata`'ya konmaz; orayı kullanıcı kendisi yazabilir ve kilidi atlar.
 
+**Not — ilk giriş bir "değiştirme"dir, "sıfırlama" değil.** Kullanıcı mevcut (geçici) şifresini bildiği için ikinci bir doğrulama kanalı gerekmez; iletişim bilgisi olmadan da çalışır. Bu nedenle toplu kurulumda kişi başına **tek bir fiş** dağıtılır, ikinci bir kod turu yoktur. Ayrım için bkz. `DECISION_LOG.md` — "Şifre değiştirme ile sıfırlama ayrı akışlardır".
+
 **Release gate:** Geçici şifreyle giren kullanıcı, şifresini değiştirmeden başka hiçbir ekrana ulaşamaz. 8 haneli numarayla giriş çalışır.
 
 ### E4 - İletişim bilgisi ve kurtarma zinciri
@@ -359,11 +361,20 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Kurum yöneticisi için ilk girişte **zorunlu** e-posta ekleme ve doğrulama; diğer roller için isteğe bağlı. Doğrulama, ürettiğimiz kodun adrese gönderilip geri girilmesiyle yapılır; GoTrue'nun e-posta değiştirme akışına **dokunulmaz**.
 - [ ] Kurtarma akışı: Edge Function `admin/generate_link` ile link ve 6 haneli kodu üretir, `profiles`'taki doğrulanmış adrese gönderir, denetim kaydı yazar.
 - [ ] Ayarlar ekranının iletişim bölümünün gerçek veriye bağlanması (bugün mock).
+- [ ] **Kurtarma yöntemi olmayan hesap için kalıcı uyarı.** İletişim bilgisi kurum yöneticisi dışındaki roller için isteğe bağlıdır; yalnızca "atla" sunulursa çoğu kullanıcı atlar ve sorun geri gelir. Uyarı ayarlar ve profil alanında sürekli görünür: _"Kurtarma yöntemin yok — şifreni unutursan kurum yöneticine başvurman gerekir."_
+- [ ] **Sıfırlama akışı kanal varlığına göre dallanır:** doğrulanmış adres varsa link + 6 haneli kod gönderilir; yoksa kullanıcı kurum yöneticisine yönlendirilir.
+- [ ] Kurum yöneticisi panelinde kullanıcı başına "yeni geçici şifre üret" işlemi — iletişim bilgisi olmayanların tek kurtarma yolu.
 - [ ] Platform panelinde kurum yöneticisinin şifresini sıfırlama işlemi - kurtarma zincirinin son halkası. Denetim kaydı üretir.
 - [ ] Kurum yöneticisinin hesabında yapılan her kimlik bilgisi işleminin (geçici şifre üretimi, sıfırlama) **ona bildirilmesi**. Operatörün yetki yükseltebildiği kabul edilmiş bir gerçektir; bildirim onu gizli olmaktan çıkarır.
+- [ ] **Operatör teşhis ekranı (destek Katman 1).** Kurum başına kayıt sayıları, son işlem zamanı, hata kayıtları, şema tutarsızlıkları. **Hiçbir kişisel veri yok** — kişi adı, not, yoklama, ödeme görünmez. Destek taleplerinin çoğu bununla teşhis edilir; KVKK sınırına dokunmadığı için izin gerektirmez ve iş tablolarını beklemez. Katman 2 (izinli destek oturumu) ve Katman 3 (acil erişim) v1.2 sonrasına aittir; bkz. `DECISION_LOG.md` — "Operatör desteği üç katmanlıdır".
 - [ ] Telefon alanı doldurulur ancak doğrulanmaz; doğrulama ileriye bırakıldı.
 
-**Release gate:** Kurum yöneticisi e-postasını doğrulamadan panele giremez. Doğrulanmamış adrese şifre sıfırlama gönderilmez.
+**Release gate:** Kurum yöneticisi e-postasını doğrulamadan panele giremez. Doğrulanmamış adrese şifre sıfırlama gönderilmez. Kurtarma yöntemi olmayan kullanıcı bunu ekranında görür.
+
+**Kapsam dışı — v1.2 sonrasına ertelendi:**
+
+- **Veli üzerinden kurtarma.** Öğrencinin iletişim bilgisi yokken bağlı velisinin doğrulanmış adresine gönderilmesi. İki koşul gerekiyor: yaş sınırı (yetişkin kursiyerin kurtarmasını velisine göndermek doğru değil) ve veli bağlantısının doğrulanmış olması. `student_guardians` tablosu v1.2'de geliyor.
+- **Destek Katman 2 ve 3.** RLS koşulları iş tablolarına yazılacağı için v1.2'yi bekliyor.
 
 ### E5 - Mock verinin kaldırılması (v1.3'ün tamamı)
 

@@ -180,10 +180,10 @@ Aşağıdaki ayarlar "eksik" görünür ama **kapalı olmaları kasıtlıdır.**
 
 | Bilgi                 | Değer                                                                                                                                                                                                 |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Aktif operatör sayısı | **1** — Hamza Bayrak (`owner`), 2026-08-24'te eklendi                                                                                                                                                 |
+| Aktif operatör sayısı | **2** — Hamza Bayrak (`owner`) ve Arda Bülent (`owner`), ikisi de 2026-08-24'te eklendi                                                                                                               |
 | Nasıl eklendi         | Supabase `service_role` ile elle `insert`. Panelde operatör ekleme yolu **yoktur** ve olmayacaktır; ilk kayıt için operatör ekleyecek operatör bulunmadığından bu bir defalık istisnadır (Issue #43). |
 | Denetim kaydı         | `platform_audit_events` id=1, `platform.operator_added`. `actor_user_id` **NULL** — işlemi yapan bir oturum yoktu; gerçeği `metadata.method = manual_service_role` alanı taşıyor.                     |
-| Bekleyen              | Arda Bülent'in hesabı açıldıktan sonra ikinci operatör kaydı                                                                                                                                          |
+| Bekleyen              | Yok. Kurucu ekibin ikisi de operatör; sonraki eklemeler yine `service_role` ile ve denetim kaydıyla yapılır                                                                                           |
 
 Şart sağlandığında bu bölüm güncellenir ve ayarlar bölüm 3'e taşınır.
 
