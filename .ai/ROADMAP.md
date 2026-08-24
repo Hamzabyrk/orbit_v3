@@ -275,7 +275,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Admin/öğretmen: hedefli Günlük Akış paylaşımı.
 - [ ] Kullanıcı: kendine özel Gün Planı görev ve takvim yönetimi.
 - [ ] Admin: ödeme planı/taksit kaydı; veli: yalnızca bağlı öğrencinin tutar/vade görünümü.
-- [ ] Zod doğrulama, kontrollü hata mesajları ve kritik mutasyon audit kayıtları.
+- [ ] Zod doğrulama, kontrollü hata mesajları ve kritik mutasyon audit kayıtları. **Not, yoklama ve ödeme değişiklikleri atlanamaz:** kurum yöneticisi aynı zamanda bir öğrencinin velisi olabilir ve kendi çocuğunun kaydını değiştirebilir. Erişimi kısıtlamak reddedildi (tek yöneticili kurumda sistem kullanılamaz hâle gelir); karşılığı izlenebilirliktir. Bkz. `DECISION_LOG.md` — "Rol, atama ve bağlantı üç ayrı kavramdır".
 
 **Release gate:** Yetkisiz CRUD, doğrudan API isteğiyle de RLS tarafından reddedilir; admin değişikliği ilgili öğretmen/öğrenci/veli ekranında Realtime ile görünür.
 
