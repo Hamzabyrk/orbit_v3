@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PlatformEmptyState, PlatformSection } from "./PlatformShell";
 import { OrganizationCreateDialog } from "./OrganizationCreateDialog";
+import { AdminPasswordResetDialog } from "./AdminPasswordResetDialog";
 import type { PlatformOrganization } from "./platformService";
 
 function formatDate(value: string): string {
@@ -19,6 +20,10 @@ export function PlatformOrganizations({
   onCreated: () => void;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  // Doluysa o kurumun yöneticisi için şifre üretme diyaloğu açılır.
+  const [resetTarget, setResetTarget] = useState<PlatformOrganization | null>(
+    null
+  );
 
   return (
     <PlatformSection
@@ -37,7 +42,7 @@ export function PlatformOrganizations({
       {organizations.length === 0 ? (
         <PlatformEmptyState
           title="Henüz kurum yok"
-          description="İlk kurumu oluşturduğunuzda kurum kodu otomatik atanır ve kurum yöneticisine şifre belirleme daveti gider."
+          description="İlk kurumu oluşturduğunuzda kurum kodu otomatik atanır ve yöneticinin giriş numarası ile geçici şifresi bir kez gösterilir."
         />
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-white/10">
@@ -49,6 +54,7 @@ export function PlatformOrganizations({
                 <th className="px-4 py-3 font-bold">Kısa ad</th>
                 <th className="px-4 py-3 font-bold">Kuruluş</th>
                 <th className="px-4 py-3 font-bold">Durum</th>
+                <th className="px-4 py-3 font-bold">Yönetici</th>
               </tr>
             </thead>
             <tbody>
@@ -78,6 +84,15 @@ export function PlatformOrganizations({
                       </span>
                     )}
                   </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => setResetTarget(organization)}
+                      className="rounded-lg border border-white/15 px-2.5 py-1.5 text-[11px] font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+                    >
+                      Yeni şifre üret
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -95,6 +110,11 @@ export function PlatformOrganizations({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onCreated={onCreated}
+      />
+
+      <AdminPasswordResetDialog
+        organization={resetTarget}
+        onClose={() => setResetTarget(null)}
       />
     </PlatformSection>
   );

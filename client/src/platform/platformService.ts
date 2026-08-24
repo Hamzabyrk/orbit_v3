@@ -82,6 +82,10 @@ const CREATE_ERROR_MESSAGES: Record<string, string> = {
     "Servis şu anda yanıt vermiyor. Birkaç dakika sonra tekrar deneyin.",
   origin_not_allowed:
     "Bu adres sunucu tarafında izinli değil. Geliştirme ekibine bildirin.",
+  admin_not_found:
+    "Bu kurumun aktif bir yöneticisi bulunamadı. Geliştirme ekibine bildirin.",
+  organization_not_found: "Kurum bulunamadı. Listeyi yenileyip tekrar deneyin.",
+  password_update_failed: "Yeni şifre kaydedilemedi. Lütfen tekrar deneyin.",
 };
 
 export function createOrganizationErrorMessage(code: unknown): string {
@@ -219,6 +223,70 @@ async function loadOrganizationNames(): Promise<Map<string, string>> {
   return new Map((data ?? []).map(row => [row.id, row.name]));
 }
 
+/**
+ * Kurum yöneticisine yeni geçici şifre üretir.
+ *
+ * Kurtarma zincirinin son halkası. Bu olmadan kaybolan bir geçici şifre kurumu
+ * kalıcı olarak erişilemez kılıyordu; tek çare yeni bir kurum açmaktı.
+ */
+export async function resetAdminPassword(
+  organizationId: string
+): Promise<OrganizationCredentials> {
+  const { data, error } = await supabase.functions.invoke(
+    "reset-admin-password",
+    { body: { organizationId } }
+  );
+
+  if (error) {
+    throw new Error(
+      createOrganizationErrorMessage(await readFunctionErrorCode(error))
+    );
+  }
+
+  const payload = (data as { data?: Record<string, unknown> } | null)?.data;
+  const loginNumber = payload?.login_number;
+  const temporaryPassword = payload?.temporary_password;
+  const organizationCode = payload?.organization_code;
+
+  // Şifre sunucuda zaten değişti. Yanıtı okuyamazsak sessizce başarılı dönmek,
+  // kimsenin bilmediği bir şifreyle hesabı büsbütün kilitlemek olurdu.
+  if (
+    typeof loginNumber !== "string" ||
+    typeof temporaryPassword !== "string" ||
+    typeof organizationCode !== "number"
+  ) {
+    throw new Error(
+      "Şifre sıfırlandı ancak yanıt okunamadı. İşlemi tekrarlayın; yeni şifre üretilecektir."
+    );
+  }
+
+  return { organizationCode, loginNumber, temporaryPassword };
+}
+
+/**
+ * `FunctionsHttpError` gövdedeki hata kodunu `context` üzerinden taşıyor;
+ * okunamazsa `undefined` dönüp genel mesaja düşüyoruz.
+ */
+async function readFunctionErrorCode(error: unknown): Promise<unknown> {
+  const context = (error as { context?: { json?: () => Promise<unknown> } })
+    .context;
+
+  if (!context?.json) {
+    console.error(
+      "[platform] edge function failed",
+      (error as Error | null)?.message
+    );
+    return undefined;
+  }
+
+  try {
+    const body = (await context.json()) as { error?: unknown };
+    return body?.error;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function createOrganization(
   input: CreateOrganizationInput
 ): Promise<OrganizationCredentials> {
@@ -250,24 +318,7 @@ export async function createOrganization(
     return { organizationCode, loginNumber, temporaryPassword };
   }
 
-  // `FunctionsHttpError` gövdeyi taşır ama okumak için `context.json()`
-  // gerekiyor; okunamazsa genel mesaja düşüyoruz.
-  let code: unknown;
-  const context = (error as { context?: { json?: () => Promise<unknown> } })
-    .context;
-
-  if (context?.json) {
-    try {
-      const body = (await context.json()) as { error?: unknown };
-      code = body?.error;
-    } catch {
-      code = undefined;
-    }
-  }
-
-  if (code === undefined) {
-    console.error("[platform] bootstrap-organization failed", error.message);
-  }
-
-  throw new Error(createOrganizationErrorMessage(code));
+  throw new Error(
+    createOrganizationErrorMessage(await readFunctionErrorCode(error))
+  );
 }

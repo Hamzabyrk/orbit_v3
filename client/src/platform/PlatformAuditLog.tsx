@@ -9,6 +9,7 @@ const ACTION_LABELS: Record<string, string> = {
   "platform.organization_created": "Kurum oluşturuldu",
   "platform.operator_added": "Operatör eklendi",
   "platform.operator_suspended": "Operatör askıya alındı",
+  "platform.admin_password_reset": "Kurum yöneticisine yeni şifre üretildi",
 };
 
 function formatDateTime(value: string): string {
