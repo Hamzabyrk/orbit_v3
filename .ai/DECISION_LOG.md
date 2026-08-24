@@ -740,11 +740,11 @@ Bu ayrımın üç somut sonucu var:
 
 **1. Ders vermek bir atama, rol değil.** Yönetici aynı zamanda ders verebilir; rolü `admin` kalır, hangi sınıfların onun olduğu atama kaydından gelir. `admin` yetkileri `teacher` yetkilerini zaten kapsar. İkinci bir üyelik gerekmez.
 
-**2. `parent` rol olmaktan ÇIKARILIR.** Veli olmak bir işlev değil, bir öğrenciye bağlı olmaktır. Veli erişimi `student_guardians` bağlantısından türetilir.
+**2. `parent` bir rol OLARAK KALIR, ama kapsamı bağlantıdan gelir.** Rol hangi panelin açılacağını belirler; hangi öğrencinin görüleceğini `student_guardians` bağlantısı belirler.
 
-Bugünkü hâliyle `parent` enum değeri olduğu için **öğretmen-veli durumu ifade edilemiyor**: kişi ya öğretmen ya veli olabiliyor. Oysa çocuğu aynı kurumda okuyan öğretmen yaygın bir durum ve günlük kullanım gerektiriyor. Kişi `teacher` rolünde kalır, çocuğuna bağlantısı olur, panelinde iki bölüm birden görünür.
-
-Aynısı **kurum yöneticisi-veli** için de geçerlidir ve o durumda bağlantının kattığı şey erişim değil **görünümdür**: yönetici zaten tüm öğrencilerin verisini görür, kendi çocuğu dahil. Bağlantı yalnızca dağınık listede aramak yerine doğrudan çocuğuna ulaşmasını sağlar.
+> **Sonradan düzeltme (2026-08-25):** Bu madde ilk yazımında _"`parent` rol olmaktan çıkarılır"_ diyordu. Gerekçe, öğretmen-veli durumunun tek hesapla ifade edilememesiydi.
+>
+> Arda Bülent daha basit bir çözüm gösterdi: **birden fazla rolü olan kişi için ikinci bir hesap.** O zaman `parent`'ın rol olarak kalmasında hiçbir sakınca yok ve v1.2'den bir şema değişikliği eksiliyor. Enum'dan çıkarma önerisi, ikinci hesabın daha basit çözdüğü bir soruna karşı fazladan karmaşıklıktı.
 
 > ⚠️ **Yönetici-veli durumunda çıkar çatışması vardır.** Yönetici hem notu/yoklamayı düzenleyebilen kişi hem de o öğrencinin velisidir; kendi çocuğunun kaydını değiştirebilir. Bu **teknik bir açık değildir** — yönetici zaten her öğrencinin kaydını değiştirebilir — ancak sonucu ağırdır ve fark edilmesi güçtür.
 >
@@ -752,7 +752,9 @@ Aynısı **kurum yöneticisi-veli** için de geçerlidir ve o durumda bağlantı
 >
 > Erişimi kısıtlamak — "yönetici kendi çocuğunun notunu düzenleyemesin" — bilinçli olarak reddedilmiştir: tek yöneticili küçük bir kurumda o öğrencinin notunu girecek başka kimse olmayabilir ve sistem kullanılamaz hâle gelir.
 
-**3. Gerçekten iki rol gerektiren durumda kurum ikinci hesap açar.** Öğrenci-asistan örneği gibi, kapsamları örtüşmeyen iki rol söz konusuysa çözüm modeli karmaşıklaştırmak değil, kurumun ikinci bir hesap açmasıdır.
+**3. Birden fazla rol gerektiren HER durumda kurum ikinci hesap açar.** Öğretmen-veli, yönetici-veli, öğrenci-asistan — hepsinde aynı yol.
+
+Her hesabın kendi rolü ve kendi yetkisi vardır. Veli hesabı gerçekten velidir; tüm öğrencileri göremez, çünkü yetkisi yoktur. Yönetici hesabı ayrıdır. Yeni bir yetki mantığı gerekmez — her rolün paneli zaten var.
 
 **Gerekçe:** İlk iki durum **rol sorunu değildi**; öyle görünmelerinin sebebi enum'un üç kavramı birleştirmesiydi. Doğru modellendiklerinde tek hesapla çözülüyorlar ve ikinci hesaba hiç gerek kalmıyor.
 
@@ -766,30 +768,31 @@ Aynısı **kurum yöneticisi-veli** için de geçerlidir ve o durumda bağlantı
 
 Bu bedel, **yalnızca üçüncü durum için** kabul ediliyor. İlk iki durumda ikinci hesap açmak yanlış olur: öğretmen-veli iki hesapla günde birkaç kez çıkış-giriş yapmak zorunda kalır ve pratikte veli hesabını hiç kullanmaz.
 
-**Birden fazla perspektifi olan kişi için görünüm değiştirici.**
+**Hesaplar arası geçiş düğmesi.**
 
-Bir kişi tek hesapla iki perspektife sahip olabiliyor (öğretmen + velisi olduğu çocuk, yönetici + velisi olduğu çocuk). Bunları tek bir panele yığmak, rol sayısı arttıkça kötüleşen bir karmaşa üretir.
+Birden fazla rolü olan kişi, rolü kadar hesaba sahiptir. Her giriş-çıkışta şifre yazmak günlük kullanımda katlanılabilir değil; bu yüzden sağ üstte hesaplar arası geçiş düğmeleri bulunur.
 
-Çözüm: sağ üstte **görünüm değiştirici**. Kişi "Öğretmen" ve "Veli" arasında geçiş yapar; çıkış yapıp yeniden girmesi gerekmez.
+**Hangi düğmelerin görüneceği kişinin gerçekten sahip olduğu hesaplardan türetilir.** Sabit bir liste yoktur:
 
-> ⚠️ **Bu bir GÖRÜNÜM değiştiricidir, YETKİ değiştirici değildir.** Ayrım kritiktir ve karıştırılırsa güvenlik açığına dönüşür.
->
-> Demo modundaki mevcut rol geçişi kimliği gerçekten değiştiriyor (`createDemoIdentity(role)`) ve o kişiye o rolün yetkilerini veriyor. Satış sunumu için doğru, production için felaket: öğrenci "Yönetici"ye basıp yönetici olurdu.
->
-> Production'daki değiştirici şu kurallara tabidir:
->
-> - Yalnızca kişinin **gerçekten sahip olduğu** perspektifleri listeler. Perspektifler üyelik rolünden ve bağlantılardan türetilir, istemcide seçilmez.
-> - Değiştirmek **neyin gösterildiğini** değiştirir, **neye izin verildiğini** değil.
-> - Sunucu hangi görünümde olunduğunu **bilmez ve umursamaz**. Yetkilendirme yalnızca RLS'tedir.
->
-> Son madde belirleyicidir: istemci kurcalanıp olmayan bir perspektife geçilse bile o ekranlar boş döner, çünkü veriyi RLS engeller. Görünüm değiştirici bir güvenlik sınırı değildir ve öyle sayılmamalıdır.
+| Kişi              | Görünen düğmeler                         |
+| ----------------- | ---------------------------------------- |
+| Yalnızca öğretmen | **Hiçbiri** — bileşen hiç render edilmez |
+| Yönetici + veli   | `Yönetici` · `Veli` — öğretmen görünmez  |
+| Öğretmen + veli   | `Öğretmen` · `Veli`                      |
 
-Tek perspektifi olan kişide değiştirici hiç gösterilmez. İkinci hesap yoluyla çözülen durumlarda (öğrenci-asistan) da gösterilmez; onlar ayrı kimliklerdir.
+**Bu düğme yeni bir yetki mantığı getirmez.** Her hesabın rolü ve yetkisi zaten kendindedir; veli hesabı tüm öğrencileri göremez çünkü yetkisi yoktur. Düğme yalnızca çıkış-giriş zahmetini kaldırır. Rollerin panelleri de zaten mevcuttur.
+
+**Geçiş şifre sormaz.** Sorması daha güvenli olurdu ancak günde birkaç kez şifre yazmak kimsenin katlanacağı şey değildir; pratikte düğme kullanılmaz ve kişi tek hesapta kalır. Ortak bilgisayar riskini hareketsizlik sayacı karşılıyor.
+
+**Bağlayıcı sonuç — sayaç tüm oturumları birden kapatır.** Şifresiz geçiş, iki oturumun aynı anda saklanması demektir. Hareketsizlik sayacı yalnızca aktif oturumu kapatırsa diğeri açık kalır ve sayacın var olma sebebi ortadan kalkar.
+
+**Hesaplar birbirine bağlı tutulur.** "Bu kişinin diğer hesabı hangisi" sorusunun cevabı bir yerde durmak zorunda — düğmenin çalışması için zaten gerekli. Aynı kayıt KVKK açısından da gerekli: aksi halde bir kişinin iki kaydı olur, aralarında hiçbir bağ bulunmaz ve "verilerimi sil" talebinde biri gözden kaçabilir.
 
 **Uygulama sırası:**
 
 - **Bugün geçerli:** bir kişi, bir kurumda, bir üyelik, bir kod, bir numara (Issue #65 ile şemada zorlanıyor).
-- **v1.2:** `parent` enum değerinin rolden çıkarılması, `student_guardians` bağlantısı ve öğretmen-sınıf/ders atamaları. Bu üçü **birlikte** yapılmalıdır; `parent` tek başına kaldırılırsa veli erişimi kalır.
+- **v1.2:** `student_guardians` bağlantısı ve öğretmen-sınıf/ders atamaları. `parent` enum değeri **kalır**; kaldırılması gerekmiyor (yukarıdaki düzeltmeye bakın).
+- **v1.3:** Hesaplar arası geçiş düğmesi ve hesap bağ kaydı. Hareketsizlik sayacının tüm oturumları kapatacak biçimde genişletilmesi aynı işin parçasıdır.
 - **v2.0:** hesap silme/anonimleştirme akışında çoklu hesap ihtimali.
 
 **Alternatifler:**

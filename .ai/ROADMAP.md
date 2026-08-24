@@ -256,7 +256,15 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Dashboard, öğrenci, sınıf, program, ödeme, sınav ve rapor değerlerinin canlı sorgulardan türetilmesi.
 - [ ] Tasarım değişmeden loading, error ve boş kurum durumlarının eklenmesi.
 - [ ] Sağ üst rol göstergesinin gerçek üyelikten gelmesi; demo geçişinin environment ile sınırlandırılması.
-- [ ] **Birden fazla perspektifi olan kişi için görünüm değiştirici.** Öğretmen-veli ve yönetici-veli durumlarında sağ üstte perspektif geçişi. **Yetki değiştirici DEĞİL:** yalnızca kişinin gerçekten sahip olduğu perspektifleri listeler, neyin gösterildiğini değiştirir, neye izin verildiğini değil. Sunucu hangi görünümde olunduğunu bilmez; yetkilendirme yalnızca RLS'tedir. Demo modundaki mevcut geçiş kimliği gerçekten değiştiriyor ve o davranış production'a taşınmamalıdır. Bkz. `DECISION_LOG.md` — "Rol, atama ve bağlantı üç ayrı kavramdır".
+- [ ] **Hesaplar arası geçiş düğmesi.** Birden fazla rolü olan kişi rolü kadar hesaba sahiptir; sağ üstte hesaplar arası geçiş bulunur. Düğmeler kişinin **gerçekten sahip olduğu hesaplardan** türetilir: tek hesabı olanda bileşen hiç render edilmez, yönetici-veli olan birinde öğretmen düğmesi görünmez.
+
+  **Şablon değil sistem:** hesap sayısı sınırsızdır (ikili toggle olarak yazılmaz) ve rol isimleri bileşene gömülmez. İleride `muhasebeci` gibi yeni bir rol eklendiğinde geçiş bileşenine tek satır dokunulmamalı.
+
+  Yeni bir yetki mantığı getirmez — her hesabın rolü ve yetkisi kendindedir. Geçiş **şifre sormaz**; günde birkaç kez şifre yazmak pratikte kullanılmaz hâle getirir.
+
+  **Bağlayıcı:** şifresiz geçiş iki oturumun birden saklanması demek. Hareketsizlik sayacı **tüm oturumları** kapatacak biçimde genişletilmeli; yalnızca aktif olanı kapatırsa diğeri açık kalır ve sayacın anlamı kalmaz.
+
+- [ ] **Kişi kaydı — hesapların ait olduğu grup.** "Bu kişinin diğer hesapları hangileri" bilgisi; geçiş düğmesi için zaten gerekli, KVKK "verilerimi sil" talebinde tüm kayıtların birlikte bulunabilmesi için de gerekli. **İkili bağ olarak modellenmez** (`linked_account_id` iki hesapta çalışır, üçte kırılır); N hesap aynı kişi kaydına bağlanır. Bkz. `DECISION_LOG.md` — "Rol, atama ve bağlantı üç ayrı kavramdır".
 - [ ] Kurum/sınıf kapsamlı Realtime invalidation ve abonelikleri.
 
 - [ ] İstemci tarafı hareketsizlik sayacı: belirli süre işlem yoksa oturum kapatılır. Supabase'in sunucu tarafı oturum zaman aşımı Pro plan gerektirdiği için ücretsiz karşılığıdır; dershanenin ortak bilgisayarında açık bırakılan tarayıcı senaryosuna karşı etkilidir.
