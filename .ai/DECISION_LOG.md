@@ -397,7 +397,13 @@ Zorunluluğun gerekçesi: kurum yöneticisi, kendi kurumundaki herkesin şifre k
 
 **Neyi kaybediyoruz:** Davet, adresin sahipliğini kanıtlıyordu. Doğrudan oluşturmada adres doğrulanmadan kabul edilir; yanlış yazılmış bir adres kurtarma postasını bir yabancıya gönderebilir. Telafisi yukarıdaki "doğrulanana kadar kurtarma çalışmaz" kuralıdır.
 
-**Açık bilinmez — kod yazmadan önce test edilecek:** Sentetik adresten gerçek adrese geçiş, Supabase'in **"Secure email change"** ayarıyla çakışabilir. O ayar açıkken e-posta değişimi eski adresten de onay ister; eski adres `@orbit.invalid` olduğu için oraya posta hiç ulaşmaz ve değişim kalıcı kilitlenebilir. Ayar production'da **açıktır**. Çıkış yolları (ayarı kapatmak / doğrulamayı kendimiz yapıp `admin.updateUserById` ile yazmak / auth e-postasını hiç değiştirmemek) yerel Supabase'de denenmeden seçilmeyecektir. Bu proje tam olarak bu tür varsayımlar yüzünden yedi kez tökezledi.
+**Açık bilinmez ÖLÇÜLDÜ (2026-08-24, Faz E0).** Şüphe doğru çıktı: **"Secure email change" açıkken sentetik adresten gerçek adrese geçiş imkânsız.** Ölçüm, production ile birebir aynı GoTrue sürümüyle (v2.195.0) yapıldı; betikler ve tam tablo `supabase/tests/auth/email_change_spike/`.
+
+- Ayar **açıkken** GoTrue iki onay maili gönderiyor: yeni adrese **ve** `@orbit.invalid` adresine. **Tek onay yetmiyor** — yeni adresin bağlantısı tıklandığında `verify` başarılı dönüyor ama adres değişmiyor. Production'da `.invalid` kutusuna posta ulaşamayacağı için değişim kalıcı olarak kilitli kalır.
+- Ayar **kapalıyken** yalnızca yeni adrese tek bir onay maili gidiyor; tıklanınca adres değişiyor ve eski sentetik adres artık giriş kabul etmiyor.
+- **`admin.updateUserById` bir doğrulama yolu değildir.** `email_confirm` ister `true` ister `false` olsun adres anında değişiyor ve **hiçbir doğrulama maili gitmiyor**. "Adresi admin API ile yazalım, doğrulamayı GoTrue yapsın" seçeneği yoktur; bu yol kullanılırsa adres doğrulanmadan kabul edilmiş olur — kararın "doğrulanana kadar kurtarma çalışmaz" ilkesiyle çelişir.
+
+Sonuç: doğrulamalı tek yol ayarın kapatılmasıdır. Bunun güvenlik bedeli ve telafisi ayrı bir kararda ele alınmıştır: **"Sentetik adresten gerçek adrese geçiş"**.
 
 **Alternatifler:**
 
@@ -515,3 +521,46 @@ Ayrı hesap ise izolasyonu güçlendirir: iki kurum arasında hiçbir teknik kö
 
 - **Tek hesap, girişte kurum seçimi:** Soru 2'ye sadık kalırdı. Reddedildi; yetkilendirmeye istemci kaynaklı bağlam girdisi ekliyor.
 - **Numaradan kurum kodunu çıkarmak (yalnızca kişi numarası):** Numarayı kurumdan bağımsız kılardı ama global benzersizliği kaybederdi; o zaman girişte kurum kodu ayrıca sorulurdu ve tek alanlı giriş kararı çökerdi.
+
+---
+
+### Karar: Sentetik adresten gerçek adrese geçiş
+
+**Durum:** ÖNERİ — onay bekliyor
+**Tarih:** 2026-08-24
+**Ölçüm:** Faz E0 spike, `supabase/tests/auth/email_change_spike/`
+
+**Bağlam:** Kimlik kararı gereği herkes `<numara>@orbit.invalid` sentetik adresiyle açılıyor. Kurum yöneticisinin ilk girişte gerçek bir e-posta ekleyip doğrulaması **zorunlu**; kurtarma zincirinin tamamı buna dayanıyor.
+
+E0 ölçümü, bunun bugünkü production ayarlarıyla **mümkün olmadığını** gösterdi. Ölçümün tamamı README'de; özeti:
+
+| Yol                        | `Secure email change` | Sonuç                                                              |
+| -------------------------- | --------------------- | ------------------------------------------------------------------ |
+| Kullanıcı kendi oturumuyla | **AÇIK** (bugünkü)    | İki onay maili; biri `@orbit.invalid`'e. **Değişim tamamlanmıyor** |
+| Kullanıcı kendi oturumuyla | **KAPALI**            | Tek onay maili, yalnızca yeni adrese. **Çalışıyor**                |
+| `admin.updateUserById`     | fark etmiyor          | Anında değişiyor, **hiç doğrulama yok**                            |
+
+**Öneri:** Production'da **`Secure email change` kapatılsın** ve e-posta değişimi kullanıcının kendi oturumu üzerinden yapılsın.
+
+`admin.updateUserById` yolu reddediliyor: adresi doğrulamadan kabul etmek, "doğrulanana kadar kurtarma çalışmaz" ilkesini fiilen ortadan kaldırır — kullanıcı yanlış yazdığı adresi doğrulanmış sanır ve şifresini unuttuğunda kurtarma bir yabancıya gider.
+
+**Neyi kaybediyoruz — dürüst hâli:** Ayar açıkken, oturumu ele geçirilmiş bir kullanıcının e-postasını değiştirmek için saldırganın **eski posta kutusuna da** erişmesi gerekiyordu. Kapatınca yalnızca yeni adresteki onay yeterli hâle gelir; saldırgan hesabı kalıcı olarak devralabilir.
+
+Bu kaybın gerçek büyüklüğü sanıldığından küçüktür:
+
+- **Sentetik adresli kullanıcılar için ayar zaten sıfır koruma sağlıyordu.** Eski kutu `@orbit.invalid`; kimse oraya erişemez. Ayar onları korumuyor, yalnızca engelliyordu.
+- Koruma yalnızca **gerçek e-postasını çoktan doğrulamış** kullanıcılar için anlamlıydı; onlar da bugün sistemde yok.
+
+**Telafiler — bizim elimizde olanlar:**
+
+1. **E-posta değişiminden önce şifre yeniden istenir.** Açık bırakılmış bir tarayıcı başına oturan kişiye karşı etkilidir. Sınırı dürüstçe: jetonu çalmış bir saldırgan istemci kodunu yok sayabilir; bu bir yavaşlatmadır, sınır değil.
+2. **Her e-posta değişimi denetim kaydı üretir** ve kurum yöneticisi hesaplarında ilgili kişiye bildirilir.
+3. **Eski adrese bildirim gider** — gerçek bir adresten gerçek bir adrese geçişte kullanıcı durumdan haberdar olur.
+
+**Yeniden değerlendirme tetikleyicisi:** Kendi alan adımız ve işlemsel e-posta sağlayıcımız olduğunda. O noktada sentetik adresler `@orbit.invalid` yerine gerçek bir alt alan adı alabilir (`users.orbit.app`); adresler teslim edilebilir hâle gelir ve `Secure email change` yeniden açılabilir. Bu ihtimal kimlik kararında zaten öngörülmüştü.
+
+**Alternatifler:**
+
+- **`admin.updateUserById` ile yazmak:** Ölçüldü, çalışıyor, ama doğrulama üretmiyor. Reddedildi.
+- **Auth e-postasını hiç değiştirmemek, iletişim adresini yalnızca `profiles`'ta tutmak:** Supabase'in şifre sıfırlaması auth e-postasına gider; sentetik adres kalırsa sıfırlama hiç çalışmaz. Kendi sıfırlama akışımızı yazmak ise kendi SMTP'mizi gerektirir — bugün yok.
+- **Ayarı açık bırakıp e-posta doğrulamasını zorunlu olmaktan çıkarmak:** Kurum yöneticisini kurtarma kanalsız bırakır; kendini kilitlediğinde tüm kurumun sıfırlama zinciri kopar.
