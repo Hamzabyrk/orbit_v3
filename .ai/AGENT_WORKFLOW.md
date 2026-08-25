@@ -22,7 +22,7 @@ Her devredilen iş aynı yedi adımdan geçer. Adım atlanmaz.
 0. TAZELE     Denetleyen: main'i çek, ÜZERİNDEN yeni dal aç
 1. BRİFİNG    Denetleyen yazar → .ai/tasks/<sıra>-<kısa-ad>.md
 2. UYGULAMA   Yazan uygular, kalite kapısını çalıştırır, DURUR
-3. TESLİM     Yazan beş çıktıyı verir (aşağıda)
+3. TESLİM     Yazan altı çıktıyı verir (aşağıda)
 4. KAPSAM     Denetleyen: brifing dışı dosyaya dokunulmuş mu?
                 └─ dokunulmuşsa → REDDET, içeriğe hiç bakma
 5. İNCELEME   Denetleyen diff'i okur, kapıyı KENDİ çalıştırır
