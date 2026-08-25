@@ -1,3 +1,5 @@
+import { isDemoMode } from "@/auth/runtime";
+
 const STORAGE_PREFIX = "orbit:demo:";
 
 // Falls back to an in-memory store when `window.localStorage` isn't available
@@ -18,6 +20,8 @@ function getStorage(): Pick<Storage, "getItem" | "setItem" | "removeItem"> {
 }
 
 export function readDemoData<T>(key: string, fallback: T): T {
+  if (!isDemoMode) return fallback;
+
   const raw = getStorage().getItem(STORAGE_PREFIX + key);
   if (raw === null) return fallback;
   try {
@@ -32,10 +36,14 @@ export function readDemoData<T>(key: string, fallback: T): T {
 }
 
 export function writeDemoData<T>(key: string, value: T): void {
+  if (!isDemoMode) return;
+
   getStorage().setItem(STORAGE_PREFIX + key, JSON.stringify(value));
 }
 
 export function clearDemoData(key: string): void {
+  if (!isDemoMode) return;
+
   getStorage().removeItem(STORAGE_PREFIX + key);
 }
 

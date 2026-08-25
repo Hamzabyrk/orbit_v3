@@ -27,7 +27,7 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 | Faz E · E2    | Test kurumu `orbitdershane`'in kaldırılması                                                                   | ✅    |
 | Faz E · E3    | İlk giriş kilidi ve 8 haneli numarayla giriş (#69 · #73)                                                      | ✅    |
 | Faz E · E4    | İletişim bilgisi ve kurtarma zinciri — **e-posta sağlayıcısı ön koşulu bekliyor**                             | ⬜    |
-| Faz E · E5    | Mock verinin kaldırılması (eski v1.3'ün tamamı)                                                               | ⬜    |
+| Faz E · E5    | Mock verinin kaldırılması (#88 · #90 · #93) — üç madde v1.2'ye taşındı                                        | ✅    |
 | Faz E · E6    | Kurum yöneticisinin kullanıcı ekleme ekranı                                                                   | ⬜    |
 | Faz E · E7    | Uçtan uca doğrulama                                                                                           | ⬜    |
 | v1.2          | İş tabloları + tenant/rol RLS matrisi                                                                         | ⬜    |
@@ -240,6 +240,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 **Hedef:** Kurumun insan, sınıf ve akademik organizasyonunu foreign key ilişkileriyle kurmak.
 
+- [ ] **Ön koşul: `isMock: true` tiplerden kaldırılsın.** `types.ts`'te sekiz tipte **zorunlu** alan; gerçek veri bu alanı sağlayamaz. Tablolar yazılmadan önce temizlenmeli, sonra değil — bkz. Faz E5.
 - [ ] `students`, `guardians`, `student_guardians`.
 - [ ] Öğretmen üyelik detayları ve öğretmen-sınıf/ders atamaları.
 - [ ] `classes`, `class_enrollments`, `subjects`, `schedule_entries`.
@@ -249,6 +250,9 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] `exams`, `exam_results` ve güvenli sıralama görünümü/RPC'si.
 - [ ] `payment_plans`, `installments`.
 - [ ] Her tabloda tenant ve rol kapsamlı RLS; gerekli foreign key/index/constraint'ler.
+- [ ] **Repository/query/mutation katmanı** — taşınabilirlik sınırının istemci tarafındaki dikişi. `educationData.ts` bugün bir dikiş ama sorgu katmanı değil; Faz E5'ten taşındı.
+- [ ] **Loading ve error durumları.** Boş durumlar E5'te eklendi; bekleme ve hata durumları ancak eşzamansız veri gelince anlam kazanır.
+- [ ] **Kilit sunucuda da devreye girsin.** İş tablolarının politikalarına `and not public.current_user_must_change_password()` koşulu eklenir. Fonksiyon E3'te yazıldı, süreyi de okuyor, ama **bugün hiçbir politikada kullanılmıyor**; kilit yalnızca istemcide.
 - [ ] **Dolu kurumun silinmesi engellensin.** `internal_delete_organization`, kurumda öğrenci/sınıf/not/ödeme kaydı varsa reddetmelidir. Bugün engel yok çünkü iş tabloları yok; kurumlar boşken silme düğmesi "zararsız" hissettiriyor ve alışkanlık öyle oturuyor. Veri geldiğinde aynı düğme aynı yerde duruyor olacak. Silinecek kayıt sayıları onay ekranında zaten gösteriliyor (Issue #65), ancak sayı göstermek engel değildir.
 
 **Release gate:** RLS test matrisi admin/teacher/student/parent için olumlu ve olumsuz senaryolarda geçer; sahipsiz tenant kaydı oluşamaz.
@@ -309,6 +313,12 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Realtime kopması, ağ hatası ve boş veri fallback senaryoları.
 - [ ] Supabase/Vercel ücretsiz katman kullanım ve bütçe alarmı kontrolü.
 - [ ] **Yedekleme ve kurtarma planı.** Günlük otomatik snapshot'ın açık olduğu, saklama süresi ve bir geri yükleme provasının yapıldığı doğrulanır. Gerçek kurum verisi girdikten sonra ilk kez sınanacak bir yedek, yedek sayılmaz.
+- [ ] **Demo verisi production paketinden çıkarılsın.** E5'ten sonra demo verisi hiçbir ekranda **gösterilmiyor**, ancak JS paketinin içinde duruyor — ölçüldü, `Zeynep Kaya` gibi isimler production derlemesinde bulunabiliyor.
+
+  Sebep: `isDemoMode`, `runtime.ts` içinde bir fonksiyon çağrısıyla ve fail-closed bir yedekle hesaplanıyor; derleme zamanı sabiti olmadığı için Rollup her iki dalı da tutuyor. Ayrıca `LoginScreen` demo giriş kartları için `roleEmail`'i doğrudan `demoData`'dan alıyor ve modülü ağaçta canlı tutuyor.
+
+  İşlevsel bir açık değil ve gerçek kişi verisi içermiyor. Yine de pilot öncesi kapatılmalı: paketi inceleyen bir kurum, uydurma isimleri **sızmış müşteri verisi** sanabilir. Çözerken `runtime.ts`'in bilinmeyende production'ı seçen davranışı **zayıflatılmamalıdır**; ağaç budama uğruna fail-closed'dan vazgeçilmez.
+
 - [ ] Prettier, ESLint, TypeScript, Vitest, SQL/RLS testleri ve production build.
 - [ ] Pilot kurumdan ölçülebilir geri bildirim ve hata listesi.
 
@@ -400,11 +410,19 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 ### E5 - Mock verinin kaldırılması (v1.3'ün tamamı)
 
-- [ ] `mockData.ts`, `isMock: true` tipleri ve `orbit:demo:*` production bağımlılığının kaldırılması.
-- [ ] Repository/query/mutation katmanı - taşınabilirlik sınırının istemci tarafındaki dikişi.
-- [ ] Loading, error ve boş kurum durumları.
-- [ ] **Şifre alanlarına görünürlük (göz) düğmesi** — giriş ekranı, kilit ekranı ve şifre belirleme ekranı. Karakterler nokta olarak gizli kalır, düğme isteğe bağlı olarak açar. Gerekçe: geçici şifreler kâğıt fişten elle yazılıyor ve yanlış yazıldığında kullanıcı nedenini göremiyor. Düğme klavyeyle erişilebilir olmalı ve durumu `aria-label` ile bildirmelidir. _(Arda Bülent'in isteği, 2026-08-25. E3 brifinginde bilinçli olarak yasaklanmıştı; gereksinim sonradan değişti.)_
-- [ ] **`tsconfig.node.json` kaldırılması.** Hiçbir yerden referans alınmıyor: `tsconfig.json`'da `references` anahtarı yok, `package.json` script'leri ve `vite`/`vitest` yapılandırmaları onu okumuyor. Kaldırıldıktan sonra `check`, `test` ve `build` çalıştırılarak doğrulanmalı. _(Issue #77 sırasında bulundu; o PR yalnızca belge kapsamında olduğu için ayrıldı.)_
+**Durum: hedefi tamamlandı (2026-08-25).** Production artık sahte veri göstermiyor. Üç dilimde yapıldı: C2 veriyi uygulama yapılandırmasından ayırdı (#88), C3 her listeye boş durum verdi (#90), C4 anahtarı çevirdi (#93).
+
+- [x] `mockData.ts` üçe ayrıldı — `demoData.ts`, `roleMeta.ts`, `navigation.ts`. Kimlik katmanının "mock" adlı dosyaya bağımlılığı da böyle kalktı.
+- [x] `orbit:demo:*` production bağımlılığı kaldırıldı. `demoStorage` hiç kontrol edilmiyordu; production'da yoklama işaretleyen kullanıcı **kaydedildiğini sanıyordu**, veri yalnızca kendi tarayıcısındaydı.
+- [x] Boş kurum durumları — sekiz ekran, ortak `EmptyState` bileşeni.
+
+**v1.2'ye taşınan üç madde.** Üçü de gerçek veri katmanı olmadan yapılamaz veya anlamsız kalır:
+
+- **`isMock: true` tiplerden kaldırılsın.** `types.ts`'te sekiz tipte zorunlu alan olarak duruyor. Gerçek veri geldiğinde bu alan sağlanamaz, dolayısıyla **v1.2'nin ön koşuludur** — tabloları yazmadan önce kaldırılmalı.
+- **Repository/query/mutation katmanı.** `educationData.ts` bugün bir dikiş ama sorgu katmanı değil; sorgulanacak tablo yok.
+- **Loading ve error durumları.** Bugün hiçbir ekranda yok ve olamaz: veri eşzamanlı bir modül sabiti, beklenecek bir istek bulunmuyor.
+- [x] **Şifre alanlarına görünürlük (göz) düğmesi** — giriş ekranı, kilit ekranı ve şifre belirleme ekranı. Karakterler nokta olarak gizli kalır, düğme isteğe bağlı olarak açar. Gerekçe: geçici şifreler kâğıt fişten elle yazılıyor ve yanlış yazıldığında kullanıcı nedenini göremiyor. Düğme klavyeyle erişilebilir olmalı ve durumu `aria-label` ile bildirmelidir. _(Arda Bülent'in isteği, 2026-08-25. E3 brifinginde bilinçli olarak yasaklanmıştı; gereksinim sonradan değişti.)_
+- [x] **`tsconfig.node.json` kaldırılması.** Hiçbir yerden referans alınmıyor: `tsconfig.json`'da `references` anahtarı yok, `package.json` script'leri ve `vite`/`vitest` yapılandırmaları onu okumuyor. Kaldırıldıktan sonra `check`, `test` ve `build` çalıştırılarak doğrulanmalı. _(Issue #77 sırasında bulundu; o PR yalnızca belge kapsamında olduğu için ayrıldı.)_
 - [x] İstemci tarafı hareketsizlik sayacı (Issue #57). Panel denemesinde ortaya çıktığı için öne çekildi: siteye girildiğinde giriş ekranı hiç görünmeden eski oturuma düşülüyordu. 30 dakika, son bir dakikada uyarı. Zaman damgası `localStorage`'da tutuluyor — yalnızca bellekte olsaydı sayfa yenilemesi sayacı sıfırlar ve tarayıcı ertesi gün açıldığında oturum hâlâ açık olurdu.
 
 ### E6 - Kurum yöneticisinin kullanıcı ekleme ekranı (v1.4'ün ilk maddesi)

@@ -1,15 +1,34 @@
+import { isDemoMode } from "@/auth/runtime";
+import {
+  classes as demoClasses,
+  dayPlanEventsByRole as demoDayPlanEventsByRole,
+  dayPlanTasksByRole as demoDayPlanTasksByRole,
+  initialAttendances as demoInitialAttendances,
+  initialAutomations as demoInitialAutomations,
+  initialHomework as demoInitialHomework,
+  paymentRows as demoPaymentRows,
+  schedule as demoSchedule,
+  students as demoStudents,
+} from "./demoData";
+
 /**
  * Eğitim ekranlarının veri kaynağı.
  *
- * Bugün demo verisini olduğu gibi geçiriyor. Faz E5'in son diliminde burası
- * ortama göre dallanacak: demo modunda demo verisi, production'da gerçek
- * (bugün boş) veri. Ekranların tek bir yerden beslenmesinin sebebi o anahtarın
- * tek bir dosyada çevrilebilmesi.
+ * Production'da gerçek veri katmanı henüz bağlanmadığı için güvenli varsayılan
+ * boştur. Demo ve preview ortamları ise ekranların çalıştırılabilmesi için
+ * yalnızca demo verisini kullanır.
  */
-export {
-  classes,
-  dayPlanEventsByRole,
-  paymentRows,
-  schedule,
-  students,
-} from "./demoData";
+export const classes = isDemoMode ? demoClasses : [];
+export const dayPlanEventsByRole = isDemoMode
+  ? demoDayPlanEventsByRole
+  : { admin: [], teacher: [] };
+export const paymentRows = isDemoMode ? demoPaymentRows : [];
+export const schedule = isDemoMode ? demoSchedule : [];
+export const students = isDemoMode ? demoStudents : [];
+
+export const initialAttendances = isDemoMode ? demoInitialAttendances : {};
+export const initialAutomations = isDemoMode ? demoInitialAutomations : [];
+export const initialHomework = isDemoMode ? demoInitialHomework : [];
+export const dayPlanTasksByRole = isDemoMode
+  ? demoDayPlanTasksByRole
+  : { admin: [], teacher: [] };
