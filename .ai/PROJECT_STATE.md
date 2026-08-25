@@ -1,6 +1,6 @@
 # PROJECT_STATE.md — ORBIT
 
-> Bu dosya, `PROJECT_ARCHITECT.md` §01'de tanımlanan çoklu-YZ ortak hafızasının parçasıdır. Her ajan (Claude, Codex, Antigravity vb.) kod yazmaya başlamadan önce bu dosyayı okumalıdır.
+> Ürün tanımı, roller, teknoloji yığını ve klasör yapısı burada yaşar. Giriş noktası ve hangi soru için hangi dosyanın okunacağı: kökteki `AGENTS.md`.
 >
 > **Durum:** ONAYLI MVP MİMARİSİ (Keşif Mülakatı Tamamlandı).
 
@@ -32,7 +32,7 @@
 - **Kullanılan YZ Araçları:** Claude Code, Codex, Antigravity.
 - **Hedef Takvim:** Birkaç gün içinde Vercel üzerinde yayına çıkacak MVP.
 - **Bütçe:** 0₺ (Tamamen ücretsiz katmanlar).
-- **Çalışma Prensibi:** `PROJECT_ARCHITECT.md` kuralları — Tek doğruluk kaynağı (`.ai/`), atomik commit'ler, branch bazlı PR ve karşılıklı onay süreci.
+- **Çalışma Prensibi:** Tek doğruluk kaynağı (`.ai/`), atomik commit'ler, branch bazlı PR ve karşılıklı onay süreci. Kurallar: `CONTRIBUTING.md` ve `AGENTS.md`.
 - **Karar Alma İlkesi (Graph-First):** Herhangi bir kod yazılmadan önce problem 6 Boyutlu Graf Haritası (Teknik Tipler/State/DB, Ticari Bütçe, Hata/Fallback, KVKK/Gizlilik, Pik Yük/Darboğaz, Güvenlik) olarak analiz edilir; risk varsa proaktif itiraz (pushback) yapılır.
 
 ---
@@ -67,7 +67,7 @@
 client/src/
 ├── components/
 │   ├── ui/                 # 53 adet Radix/shadcn UI bileşeni
-│   ├── education/           # ORBIT Eğitim Çekirdek Ekranları (rol/sayfa bazlı bölünmüş)
+│   ├── education/          # ORBIT Eğitim Çekirdek Ekranları (rol/sayfa bazlı bölünmüş)
 │   │   ├── types.ts          # Student/ClassGroup/ScheduleItem/Automation/PaymentRow (isMock: true)
 │   │   ├── mockData.ts       # Tüm mock veri + roleMeta/roleEmail/allNav
 │   │   ├── shared.tsx        # Badge, StatCard, PageHeader vb. paylaşılan UI parçaları
@@ -76,29 +76,35 @@ client/src/
 │   │   ├── EducationPlatform.tsx # Kompozisyon kökü (state + localStorage demo kalıcılığı)
 │   │   ├── dashboards/       # AdminDashboard, TeacherDashboard, StudentDashboard, ParentDashboard
 │   │   └── pages/            # StudentsPage, ClassesPage, AttendancePage, ... SettingsPage vb.
+│   ├── auth/               # AuthShell + SetPasswordScreen, ForgotPasswordScreen,
+│   │                       #   ForcePasswordChangeScreen (ilk giriş kilidi)
 │   ├── educationAccess.ts  # Rol bazlı yetki matrisi (RBAC)
 │   ├── educationAccess.test.ts # Vitest yetki testleri
 │   ├── OrbitMark.tsx       # Logo / Marka bileşeni
 │   └── ErrorBoundary.tsx   # React Hata Yakalayıcı
-│   └── auth/               # SetPasswordScreen, ForgotPasswordScreen
 ├── auth/                   # Kimlik katmanı — servis modülleri, bileşen değil
 │   ├── AuthProvider.tsx    # Oturum, şifre kurtarma ayrıştırması, demo kimliği
+│   ├── AuthContext.ts / useAuth.ts  # Context tanımı ve tüketici hook'u
 │   ├── authService.ts      # loadMembershipIdentity / loadPlatformOperatorIdentity
 │   ├── types.ts            # AuthIdentity — üyelik ve platform operatörlüğü iki bağımsız eksen
-│   ├── loginIdentifier.ts  # Giriş numarası ↔ sentetik adres (HENÜZ BAĞLANMADI — Faz E3)
+│   ├── loginIdentifier.ts  # Giriş numarası ↔ sentetik adres; giriş ekranına bağlı (E3)
 │   ├── passwordPolicy.ts   # Şifre kuralları, Türkçe harflerle uyumlu
+│   ├── idleTimeout.ts / useIdleTimeout.ts  # 30 dk hareketsizlik sayacı
 │   └── runtime.ts          # isDemoMode — preview derlemeleri demo modundadır
 ├── platform/               # Platform operatörü paneli — dershane ağacından ayrı
 │   ├── PlatformShell.tsx   # Kabuk, sekmeler, boş durum
+│   ├── tabs.ts             # Sekme tanımları
 │   ├── platformService.ts  # Panelin veri katmanı; service_role KULLANMAZ
 │   ├── organizationSlug.ts # Kurum adından slug (Türkçe harf çevirisi)
 │   ├── PlatformOrganizations.tsx / OrganizationCreateDialog.tsx
+│   ├── OrganizationProfileDialog.tsx # Kurum profili ve şifre sıfırlama
+│   ├── CredentialsPanel.tsx / PrintPortal.tsx # Giriş fişi: bir kez göster, yazdır
 │   └── PlatformOperators.tsx / PlatformAuditLog.tsx
 ├── contexts/               # ThemeProvider
 ├── hooks/                  # useMobile, useComposition
 ├── lib/                    # supabaseClient, utils, demoStorage (+ test), documents (ÖLÜ KOD)
 └── pages/
-    ├── Home.tsx            # Giriş yönlendirici; üyelik yoksa /platform'a
+    ├── Home.tsx            # Giriş yönlendirici; önce kilit, sonra operatör → /platform
     ├── Platform.tsx        # Platform paneli rotası
     ├── ForgotPassword.tsx  # /sifre-sifirla
     ├── SetPassword.tsx     # /sifre-belirle — Supabase kurtarma bağlantısının hedefi
@@ -188,7 +194,7 @@ auth.users
 
 - **`app_role` enum'u (`admin`, `teacher`, `student`, `parent`) genişletilmez.** Bu roller her zaman bir kuruma bağlıdır; platform operatörü hiçbir kuruma ait değildir.
 - Operatör kaydının tek doğruluk kaynağı `platform_operators` tablosudur. `auth.users.app_metadata` üzerinde bayrak tutulmaz. Yetki kontrolü, `current_user_has_membership()` ile aynı desende yazılacak `current_user_is_platform_operator()` security-definer fonksiyonu ile yapılır.
-- Panel `client/src/platform/` altında kendi bileşen ağacıyla yaşar. `client/src/components/education/` ağacına dokunulmaz (`PROJECT_ARCHITECT.md` §00 kural 7).
+- Panel `client/src/platform/` altında kendi bileşen ağacıyla yaşar. `client/src/components/education/` ağacına dokunulmaz (dosya başına tek sorumluluk kuralı; bkz. `AGENTS.md`).
 - Yetkilendirme her zaman sunucudadır. Rota koruması yalnızca kullanıcı deneyimi içindir; her platform işlemi operatör kontrolünü sunucuda yapan bir Edge Function üzerinden yürür.
 - **Kapsam kabı ile sınırlıdır:** kurum, şube, kurum yöneticisi hesabı ve operatör listesi yönetilir. Öğrenci, not, yoklama, ödev ve ödeme verisine erişim yoktur — bu, mevcut RLS politikalarının doğal sonucudur ve "platform operatörü her şeyi okur" türünde bir policy eklenmeyecektir.
 - Kuruma bağlı olmayan platform işlemleri `platform_audit_events` tablosuna yazılır; `audit_events.organization_id` NOT NULL olduğu için o tablo kullanılamaz.
@@ -279,5 +285,5 @@ Sonradan nullable kolon eklemek ucuz ve kırıcı değildir; bu nedenle şemanı
 
 - Öğrenci veya öğretmenin kurumdan ayrılması (`membership_status = suspended` mevcut, akış yok)
 - Kurumun ikinci ve sonraki şubelerinin eklenmesi
-- KVKK silme hakkı (`PROJECT_ARCHITECT.md` §06 B12)
+- KVKK silme hakkı (pilot öncesi güvenlik listesi; bkz. `ROADMAP.md` v1.5)
 - Veri işleme sözleşmesi, aydınlatma metni ve açık rıza akışı

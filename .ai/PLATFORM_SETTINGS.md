@@ -1,7 +1,6 @@
 # PLATFORM_SETTINGS.md — ORBIT
 
-> Kod dışında, sağlayıcı panellerinden yönetilen ayarların kaydı.
-> Bu dosya `PROJECT_ARCHITECT.md` §01 ortak hafıza sisteminin parçasıdır.
+> Kod dışında, sağlayıcı panellerinden elle yönetilen ayarların kaydı. `supabase/config.toml` production'ı **yönetmez** — bkz. bölüm 1.
 
 ---
 
@@ -180,11 +179,15 @@ Aşağıdaki ayarlar "eksik" görünür ama **kapalı olmaları kasıtlıdır.**
 
 **Şart A:** v1.1.2 kapsamındaki şifre belirleme/sıfırlama akışı production'da çalışır durumda olmalı **ve** her iki ekip üyesinin de e-posta/şifre ile giriş yapabildiği doğrulanmış olmalıdır.
 
-**Şart A durumu (2026-08-24):** Hâlâ yarısı. Şifre sıfırlama akışı production'da uçtan uca çalıştı ve kurucu yönetici kendi şifresiyle giriş yaptı. **İkinci ekip üyesinin (Arda Bülent) hâlâ hesabı yoktur** — `auth.users` tablosunda 2026-08-24 itibarıyla tek kayıt vardır. `Require current password` testi iki hesap gerektirdiği için beklemeye devam ediyor.
+**Şart A durumu (2026-08-25): sağlandı.** Şifre sıfırlama akışı production'da uçtan uca çalıştı, kurucu yönetici kendi şifresiyle giriş yaptı ve ikinci ekip üyesinin (Arda Bülent) hesabı da açıldı — aşağıdaki operatör tablosuna bakın, iki operatör de aktif. İki hesap gerektirdiği için bekleyen `Require current password` testinin önündeki engel kalktı.
+
+> **Sonradan düzeltme (2026-08-25):** Bu satır 2026-08-24'te _"İkinci ekip üyesinin hâlâ hesabı yoktur"_ diyordu ve aynı gün hesap açıldığında güncellenmedi; altı satır aşağıdaki operatör tablosuyla açıkça çelişir hâle geldi. Issue #77 belge denetiminde yakalandı.
+>
+> **Bu nedenle bölüm 4'teki beş ertelenmiş ayar artık şarta değil, karara bağlıdır.** Açılmadan önce her biri tek tek gözden geçirilmelidir; özellikle JWT secret ve `service_role` rotasyonu açık oturumları düşürür.
 
 > Yukarıdaki tablonun "Ortak gerekçe" paragrafı, kurucu yöneticinin girişinin çalışmadığı döneme aittir. **Sonradan düzeltme (2026-08-24):** o sorun çözüldü; şifre belirleme ve sıfırlama ekranları production'da mevcut ve çalışıyor. Ayarların kapalı kalma sebebi artık "giriş kırık" değil, **ikinci hesabın bulunmaması**.
 
-### 3.7'ye ek — platform operatörleri (2026-08-24)
+### Ek envanter — platform operatörleri (2026-08-24)
 
 | Bilgi                 | Değer                                                                                                                                                                                                 |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
