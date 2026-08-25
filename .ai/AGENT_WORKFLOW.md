@@ -29,6 +29,7 @@ Her devredilen iş aynı yedi adımdan geçer. Adım atlanmaz.
                 ├─ kabul  → 6. adım
                 └─ revizyon → 2. adıma dön
 6. KAPANIŞ    Denetleyen commit, PR, belgeyi günceller, brifingi siler
+                (brifing izlenmiyor — silmek commit gerektirmez)
                 └─ merge sonrası: commit'ler main'e GERÇEKTEN girdi mi?
 ```
 
@@ -298,12 +299,13 @@ _Kaynak: Issue #80, sunucu ve istemci yarılarının paralel yürütülmesi._
 
 ## Görev dosyalarının ömrü
 
-| Dosya          | Nerede                  | Ne zaman silinir       |
-| -------------- | ----------------------- | ---------------------- |
-| Bu belge       | `.ai/AGENT_WORKFLOW.md` | Silinmez               |
-| Görev brifingi | `.ai/tasks/`            | İlgili PR merge olunca |
+`.ai/tasks/` **git'e girmez** (`.gitignore`). Brifingler çalışma dosyasıdır: yazılır, kullanılır, iş bitince silinir.
 
-Biten brifingler silinir. Sebebi klasörün şişmesi değil yalnızca: **duran eski brifing, bir sonraki oturumda yanlışlıkla güncel sanılabilir.** Kayıt git geçmişinde durur.
+**Neden izlenmiyor:** Yazan ajan brifingi çalışma kopyasından okur, GitHub'dan değil — yani commit edilmesine hiç gerek yok. İzlendiğinde her görev **iki merge/pull turu** gerektiriyordu: biri brifing için, biri iş için. Birincisi tamamen ek yüktü.
+
+**Kayıt nerede kalıyor:** PR açıklamasında. Neyin neden yapıldığı, hangi alternatifin reddedildiği ve neye dokunulmadığı zaten oraya yazılıyor — brifingin talimat kısmı geçicidir, gerekçe kısmı PR'da kalıcıdır.
+
+**Biten brifing silinir.** Sebebi klasörün şişmesi değil: **duran eski brifing, bir sonraki oturumda yanlışlıkla güncel sanılabilir.** Silme artık commit gerektirmiyor, dosyayı kaldırmak yeterli.
 
 ---
 
