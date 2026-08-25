@@ -92,6 +92,17 @@ export default function Platform() {
     return <Redirect to="/" />;
   }
 
+  // Kilitli kullanıcı burada da duraklatılır. Kilit ekranı `/` altında
+  // yaşadığı için oraya yönlendiriliyor; iki yerde iki kopya ekran tutmak,
+  // birinin sessizce eskimesi demek olurdu.
+  //
+  // Operatörler bugün elle açıldığı için kilitli olmuyorlar. Yine de kontrol
+  // var: bu rota kilidi es geçerse, kilitli bir operatör adres çubuğuna
+  // `/platform` yazarak kilidi tamamen atlar.
+  if (identity.mustChangePassword) {
+    return <Redirect to="/" />;
+  }
+
   // Yetki kontrolü sunucudadır: `platform_operators` üzerindeki RLS, operatör
   // olmayan kullanıcıya hiçbir satır göstermez ve kurum oluşturma Edge
   // Function'ı operatörlüğü yeniden doğrular. Buradaki kontrol yalnızca
