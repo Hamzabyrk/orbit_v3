@@ -35,6 +35,9 @@ const PASSWORD_DIGIT = "23456789";
 const PASSWORD_ALPHABET = PASSWORD_LOWER + PASSWORD_UPPER + PASSWORD_DIGIT;
 const PASSWORD_LENGTH = 12;
 
+/** Geçici şifrenin ömrü; kurum kurulumundaki değerle aynı olmak zorunda. */
+const TEMPORARY_PASSWORD_TTL_DAYS = 7;
+
 function generateTemporaryPassword(): string {
   const pick = (alphabet: string): string => {
     const limit = 256 - (256 % alphabet.length);
@@ -213,6 +216,27 @@ Deno.serve(async request => {
     return jsonResponse({ error: "password_update_failed" }, 409, origin);
   }
 
+  // Kilit bayrağı şifre değişiminden SONRA set ediliyor: `updateUserById`
+  // şifreyi yazdığı için `on_auth_password_changed` tetikleyicisi çalışıyor ve
+  // bayrağı düşürüyor. Önce set etseydik tetikleyici onu hemen silerdi.
+  const passwordExpiresAt = new Date(
+    Date.now() + TEMPORARY_PASSWORD_TTL_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const { error: lockError } = await adminClient
+    .from("profiles")
+    .update({
+      must_change_password: true,
+      password_expires_at: passwordExpiresAt,
+    })
+    .eq("id", membership.user_id);
+
+  if (lockError) {
+    // Şifre zaten değişti. Bayrak yazılamadıysa kullanıcı yeni geçici şifresiyle
+    // süresiz dolaşabilir; loglanıyor ve yanıtta bildiriliyor.
+    console.error("[reset-admin-password] password lock flag write failed");
+  }
+
   // Operatörün kimlik bilgisi ürettiği kayda geçmek ZORUNDA. Bu, "operatör
   // yetki yükseltebilir ama gizlice yapamaz" taahhüdünün çalıştırılabilir
   // karşılığıdır; bkz. `.ai/PROJECT_STATE.md` bölüm 10.
@@ -245,6 +269,8 @@ Deno.serve(async request => {
         organization_code: organization.code,
         login_number: `${organization.code}${membership.person_code}`,
         temporary_password: temporaryPassword,
+        password_expires_at: passwordExpiresAt,
+        password_lock_set: !lockError,
       },
     },
     200,
