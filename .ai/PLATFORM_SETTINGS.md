@@ -111,10 +111,16 @@ Son doğrulama: **2026-08-23**, Issue #20.
 
 ### 3.3 Supabase — Edge Functions
 
-| Öğe                      | Değer                               | Doğrulama                                  |
-| ------------------------ | ----------------------------------- | ------------------------------------------ |
-| `bootstrap-organization` | ACTIVE, `verify_jwt = true`         | API                                        |
-| `ALLOWED_ORIGINS` secret | `https://orbit-v3-topaz.vercel.app` | Origin sondası: yalnızca bu origin geçiyor |
+| Öğe                      | Değer                               | Doğrulama                                                    |
+| ------------------------ | ----------------------------------- | ------------------------------------------------------------ |
+| `bootstrap-organization` | ACTIVE, `verify_jwt = true`         | API (2026-08-23)                                             |
+| `reset-admin-password`   | ACTIVE, `verify_jwt = true`         | Issue #61 — `config.toml`'a kaydedildikten sonra deploy oldu |
+| `delete-organization`    | ACTIVE, `verify_jwt = true`         | Issue #63                                                    |
+| `ALLOWED_ORIGINS` secret | `https://orbit-v3-topaz.vercel.app` | Origin sondası: yalnızca bu origin geçiyor                   |
+
+> **Sonradan düzeltme (2026-08-25):** Bu tablo uzun süre yalnızca `bootstrap-organization`'ı listeledi; diğer iki fonksiyon 2026-08-24'te canlıya çıktı ve tabloya işlenmedi. Yani bu dosya, tam olarak önlemek için var olduğu hatayı kendisi yaptı — bkz. bölüm 1. Issue #77 belge denetiminde yakalandı.
+>
+> **Bekleyen:** Bölüm 3'ün tamamı en son 2026-08-23'te canlı sistemden doğrulandı. O tarihten sonra Faz E1–E3 girdi, kurum oluşturuldu ve silindi, üç fonksiyon güncellendi. **Yeni bir uçtan uca doğrulama turu gerekiyor**; bölüm 6'daki komutlar bunun içindir.
 
 > `ALLOWED_ORIGINS` bir güvenlik sınırı **değildir**, yalnızca CORS hijyenidir. Fonksiyon kodundaki kontrol `if (origin && ...)` biçiminde olduğu için `Origin` başlığı göndermeyen istemcilerde (curl, sunucu tarafı script) tamamen atlanır. Gerçek kapı operatör kontrolü ve `verify_jwt`'dir.
 >

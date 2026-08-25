@@ -403,6 +403,8 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] `mockData.ts`, `isMock: true` tipleri ve `orbit:demo:*` production bağımlılığının kaldırılması.
 - [ ] Repository/query/mutation katmanı - taşınabilirlik sınırının istemci tarafındaki dikişi.
 - [ ] Loading, error ve boş kurum durumları.
+- [ ] **Şifre alanlarına görünürlük (göz) düğmesi** — giriş ekranı, kilit ekranı ve şifre belirleme ekranı. Karakterler nokta olarak gizli kalır, düğme isteğe bağlı olarak açar. Gerekçe: geçici şifreler kâğıt fişten elle yazılıyor ve yanlış yazıldığında kullanıcı nedenini göremiyor. Düğme klavyeyle erişilebilir olmalı ve durumu `aria-label` ile bildirmelidir. _(Arda Bülent'in isteği, 2026-08-25. E3 brifinginde bilinçli olarak yasaklanmıştı; gereksinim sonradan değişti.)_
+- [ ] **`tsconfig.node.json` kaldırılması.** Hiçbir yerden referans alınmıyor: `tsconfig.json`'da `references` anahtarı yok, `package.json` script'leri ve `vite`/`vitest` yapılandırmaları onu okumuyor. Kaldırıldıktan sonra `check`, `test` ve `build` çalıştırılarak doğrulanmalı. _(Issue #77 sırasında bulundu; o PR yalnızca belge kapsamında olduğu için ayrıldı.)_
 - [x] İstemci tarafı hareketsizlik sayacı (Issue #57). Panel denemesinde ortaya çıktığı için öne çekildi: siteye girildiğinde giriş ekranı hiç görünmeden eski oturuma düşülüyordu. 30 dakika, son bir dakikada uyarı. Zaman damgası `localStorage`'da tutuluyor — yalnızca bellekte olsaydı sayfa yenilemesi sayacı sıfırlar ve tarayıcı ertesi gün açıldığında oturum hâlâ açık olurdu.
 
 ### E6 - Kurum yöneticisinin kullanıcı ekleme ekranı (v1.4'ün ilk maddesi)

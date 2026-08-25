@@ -26,6 +26,21 @@ Her dosyanın tek bir sorusu var. Hepsini birden okuma; sorunun hangisi olduğun
 
 **Geçmişi arıyorsan git'e bak.** Kim ne zaman ne yaptı sorusunun cevabı `git log`'dadır. Ayrı bir çalışma günlüğü tutulmuyor — 28 commit boyunca güncellenmediği için emekliye ayrıldı (bkz. `DECISION_LOG.md` — "Belge sayısı değil bakım borcu").
 
+### Sıfırdan bir oturuma başlıyorsan
+
+Yukarıdaki dosyalar **kararları** taşır, **uçuştaki işi** değil. Yarım kalmış bir iş olup olmadığını dosyalardan değil, kendini güncelleyen kaynaklardan öğren:
+
+```bash
+git log --oneline -15        # son ne yapıldı
+git status --short           # commit edilmemiş iş var mı
+gh pr list                   # açık PR — inceleme bekleyen iş
+ls .ai/tasks/                # devredilmiş, henüz bitmemiş görev
+```
+
+Sonra `ROADMAP.md` §0'ı oku: 🟡 işaretli satır, yarıda kalmış dilimdir.
+
+> **Neden ayrı bir "şu an ne yapılıyor" dosyası yok:** Denendi ve öldü. Elle güncellenen bir durum dosyası, güncellenmediği anda yanlış bilgi kaynağına dönüşür — ve boş bir dosyadan daha zararlıdır, çünkü okuyan ona güvenir. Yukarıdaki dört komut kimsenin bakımına muhtaç değildir.
+
 ---
 
 ## Değişmeyen kısıtlar
