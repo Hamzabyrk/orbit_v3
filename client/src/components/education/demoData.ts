@@ -32,7 +32,6 @@ export const students: Student[] = [
     homework: 8,
     payment: "Güncel",
     risk: "Dengeli",
-    isMock: true,
   },
   {
     id: "stu-002",
@@ -46,7 +45,6 @@ export const students: Student[] = [
     homework: 5,
     payment: "Güncel",
     risk: "Takip gerekli",
-    isMock: true,
   },
   {
     id: "stu-003",
@@ -60,7 +58,6 @@ export const students: Student[] = [
     homework: 7,
     payment: "Takip gerekli",
     risk: "Dengeli",
-    isMock: true,
   },
   {
     id: "stu-004",
@@ -74,7 +71,6 @@ export const students: Student[] = [
     homework: 3,
     payment: "Güncel",
     risk: "Takip gerekli",
-    isMock: true,
   },
   {
     id: "stu-005",
@@ -88,7 +84,6 @@ export const students: Student[] = [
     homework: 9,
     payment: "Güncel",
     risk: "Dengeli",
-    isMock: true,
   },
 ];
 
@@ -101,7 +96,6 @@ export const classes: ClassGroup[] = [
     studentCount: 18,
     attendance: 94,
     nextLesson: "Bugün · 10:00 Matematik",
-    isMock: true,
   },
   {
     id: "cls-2",
@@ -111,7 +105,6 @@ export const classes: ClassGroup[] = [
     studentCount: 16,
     attendance: 89,
     nextLesson: "Bugün · 11:30 Türkçe",
-    isMock: true,
   },
   {
     id: "cls-3",
@@ -121,7 +114,6 @@ export const classes: ClassGroup[] = [
     studentCount: 20,
     attendance: 97,
     nextLesson: "Yarın · 09:00 Fizik",
-    isMock: true,
   },
 ];
 
@@ -133,7 +125,6 @@ export const schedule: ScheduleItem[] = [
     teacher: "Merve Karaca",
     room: "Derslik 204",
     tone: "bg-sky-50 text-sky-700 ring-sky-100",
-    isMock: true,
   },
   {
     time: "10:30",
@@ -142,7 +133,6 @@ export const schedule: ScheduleItem[] = [
     teacher: "Bora Ekin",
     room: "Derslik 105",
     tone: "bg-violet-50 text-violet-700 ring-violet-100",
-    isMock: true,
   },
   {
     time: "13:00",
@@ -151,7 +141,6 @@ export const schedule: ScheduleItem[] = [
     teacher: "Merve Karaca",
     room: "Görüşme Odası",
     tone: "bg-amber-50 text-amber-700 ring-amber-100",
-    isMock: true,
   },
   {
     time: "14:30",
@@ -160,7 +149,6 @@ export const schedule: ScheduleItem[] = [
     teacher: "Seda Kılıç",
     room: "Etüt Salonu",
     tone: "bg-emerald-50 text-emerald-700 ring-emerald-100",
-    isMock: true,
   },
 ];
 
@@ -174,7 +162,6 @@ export const initialAutomations: Automation[] = [
     impact: "4 aday takipte",
     active: true,
     category: "Kayıt",
-    isMock: true,
   },
   {
     id: "auto-2",
@@ -185,7 +172,6 @@ export const initialAutomations: Automation[] = [
     impact: "Bugün 3 öğrenci işlendi",
     active: true,
     category: "Devam",
-    isMock: true,
   },
   {
     id: "auto-3",
@@ -196,7 +182,6 @@ export const initialAutomations: Automation[] = [
     impact: "Son 7 gün · 42 özet",
     active: true,
     category: "Akademik",
-    isMock: true,
   },
   {
     id: "auto-4",
@@ -207,7 +192,6 @@ export const initialAutomations: Automation[] = [
     impact: "2 görüşme önerisi bekliyor",
     active: false,
     category: "İletişim",
-    isMock: true,
   },
 ];
 
@@ -218,7 +202,6 @@ export const paymentRows: PaymentRow[] = [
     due: "05 Eylül 2026",
     amount: "₺7.200",
     status: "Güncel",
-    isMock: true,
   },
   {
     student: "Derin Yıldız",
@@ -226,7 +209,6 @@ export const paymentRows: PaymentRow[] = [
     due: "28 Ağustos 2026",
     amount: "₺6.800",
     status: "Hatırlatma gerekli",
-    isMock: true,
   },
   {
     student: "Aras Öztürk",
@@ -234,7 +216,6 @@ export const paymentRows: PaymentRow[] = [
     due: "18 Ağustos 2026",
     amount: "₺6.800",
     status: "Gecikme riski",
-    isMock: true,
   },
 ];
 
@@ -250,7 +231,6 @@ export const initialHomework: Homework[] = [
     assignedDate: "18 Ağustos 2026",
     dueDate: "22 Ağustos 2026",
     status: "Süresi Doldu",
-    isMock: true,
   },
   {
     id: "hw-2",
@@ -263,7 +243,6 @@ export const initialHomework: Homework[] = [
     assignedDate: "20 Ağustos 2026",
     dueDate: "27 Ağustos 2026",
     status: "Aktif",
-    isMock: true,
   },
   {
     id: "hw-3",
@@ -276,7 +255,6 @@ export const initialHomework: Homework[] = [
     assignedDate: "12 Ağustos 2026",
     dueDate: "19 Ağustos 2026",
     status: "Tamamlandı",
-    isMock: true,
   },
   {
     id: "hw-4",
@@ -289,7 +267,6 @@ export const initialHomework: Homework[] = [
     assignedDate: "19 Ağustos 2026",
     dueDate: "26 Ağustos 2026",
     status: "Aktif",
-    isMock: true,
   },
   {
     id: "hw-5",
@@ -302,7 +279,6 @@ export const initialHomework: Homework[] = [
     assignedDate: "14 Ağustos 2026",
     dueDate: "20 Ağustos 2026",
     status: "Süresi Doldu",
-    isMock: true,
   },
   {
     id: "hw-6",
@@ -315,7 +291,6 @@ export const initialHomework: Homework[] = [
     assignedDate: "17 Ağustos 2026",
     dueDate: "24 Ağustos 2026",
     status: "Aktif",
-    isMock: true,
   },
   {
     id: "hw-7",
@@ -328,7 +303,6 @@ export const initialHomework: Homework[] = [
     assignedDate: "10 Ağustos 2026",
     dueDate: "17 Ağustos 2026",
     status: "Süresi Doldu",
-    isMock: true,
   },
 ];
 
@@ -351,7 +325,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Rapor",
       duration: "40 dk",
       dueLabel: "Yarın 09:00",
-      isMock: true,
     },
     {
       id: "dpt-a2",
@@ -362,7 +335,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Kayıt",
       duration: "20 dk",
       dueLabel: "25 Ağustos",
-      isMock: true,
     },
     {
       id: "dpt-a3",
@@ -373,7 +345,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Rapor",
       duration: "45 dk",
       dueLabel: "Bugün 15:00",
-      isMock: true,
     },
     {
       id: "dpt-a4",
@@ -384,7 +355,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Veli İletişimi",
       duration: "15 dk",
       dueLabel: "Bugün 11:30",
-      isMock: true,
     },
     {
       id: "dpt-a5",
@@ -395,7 +365,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Sınav",
       duration: "60 dk",
       dueLabel: "Bugün 13:00",
-      isMock: true,
     },
     {
       id: "dpt-a6",
@@ -406,7 +375,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Yoklama",
       duration: "10 dk",
       dueLabel: "Dün tamamlandı",
-      isMock: true,
     },
   ],
   teacher: [
@@ -419,7 +387,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Ders Programı",
       duration: "35 dk",
       dueLabel: "26 Ağustos",
-      isMock: true,
     },
     {
       id: "dpt-t2",
@@ -430,7 +397,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Sınav",
       duration: "50 dk",
       dueLabel: "27 Ağustos",
-      isMock: true,
     },
     {
       id: "dpt-t3",
@@ -441,7 +407,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Yoklama",
       duration: "10 dk",
       dueLabel: "Bugün 09:00",
-      isMock: true,
     },
     {
       id: "dpt-t4",
@@ -452,7 +417,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Veli İletişimi",
       duration: "20 dk",
       dueLabel: "Bugün 16:00",
-      isMock: true,
     },
     {
       id: "dpt-t5",
@@ -463,7 +427,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Rapor",
       duration: "45 dk",
       dueLabel: "Bugün 14:30",
-      isMock: true,
     },
     {
       id: "dpt-t6",
@@ -474,7 +437,6 @@ export const dayPlanTasksByRole: Record<DayPlanRole, DayPlanTask[]> = {
       category: "Ders Programı",
       duration: "15 dk",
       dueLabel: "Dün tamamlandı",
-      isMock: true,
     },
   ],
 };
@@ -490,7 +452,6 @@ export const dayPlanEventsByRole: Record<DayPlanRole, DayPlanEvent[]> = {
       type: "Veli Görüşmesi",
       title: "Kaya ailesi ile görüşme",
       subtitle: "Zeynep Kaya velisi",
-      isMock: true,
     },
     {
       id: "dpe-a2",
@@ -501,7 +462,6 @@ export const dayPlanEventsByRole: Record<DayPlanRole, DayPlanEvent[]> = {
       type: "Şube Toplantısı",
       title: "Çorlu şube haftalık toplantı",
       subtitle: "Yönetim ekibi",
-      isMock: true,
     },
     {
       id: "dpe-a3",
@@ -512,7 +472,6 @@ export const dayPlanEventsByRole: Record<DayPlanRole, DayPlanEvent[]> = {
       type: "Öğretmen Değerlendirmesi",
       title: "Bora Ekin performans görüşmesi",
       subtitle: "Dönem ortası değerlendirme",
-      isMock: true,
     },
     {
       id: "dpe-a4",
@@ -523,7 +482,6 @@ export const dayPlanEventsByRole: Record<DayPlanRole, DayPlanEvent[]> = {
       type: "Aday Kayıt Görüşmesi",
       title: "Yeni aday velisi görüşmesi",
       subtitle: "YKS 11. sınıf kaydı",
-      isMock: true,
     },
   ],
   teacher: [
@@ -536,7 +494,6 @@ export const dayPlanEventsByRole: Record<DayPlanRole, DayPlanEvent[]> = {
       type: "Rehberlik Görüşmesi",
       title: "Zeynep Kaya ile rehberlik görüşmesi",
       subtitle: "Görüşme Odası",
-      isMock: true,
     },
     {
       id: "dpe-t2",
@@ -547,7 +504,6 @@ export const dayPlanEventsByRole: Record<DayPlanRole, DayPlanEvent[]> = {
       type: "Veli Görüşmesi",
       title: "Efe Demir velisiyle görüşme",
       subtitle: "Devam durumu değerlendirmesi",
-      isMock: true,
     },
     {
       id: "dpe-t3",
@@ -558,7 +514,6 @@ export const dayPlanEventsByRole: Record<DayPlanRole, DayPlanEvent[]> = {
       type: "Şube Toplantısı",
       title: "Öğretmenler kurulu toplantısı",
       subtitle: "Çorlu şube",
-      isMock: true,
     },
     {
       id: "dpe-t4",
@@ -569,7 +524,6 @@ export const dayPlanEventsByRole: Record<DayPlanRole, DayPlanEvent[]> = {
       type: "Öğretmen Değerlendirmesi",
       title: "Dönem ortası öz değerlendirme",
       subtitle: "Akademik koordinatör ile",
-      isMock: true,
     },
   ],
 };

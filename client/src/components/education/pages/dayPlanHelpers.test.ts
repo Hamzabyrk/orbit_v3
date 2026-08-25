@@ -16,7 +16,6 @@ const task = (status: DayPlanTask["status"], id: string): DayPlanTask => ({
   category: "Rapor",
   duration: "10 dk",
   dueLabel: "Bugün",
-  isMock: true,
 });
 
 const event = (date: string, id: string): DayPlanEvent => ({
@@ -28,7 +27,6 @@ const event = (date: string, id: string): DayPlanEvent => ({
   type: "Veli Görüşmesi",
   title: "Test görüşmesi",
   subtitle: "Test",
-  isMock: true,
 });
 
 describe("getMonthGridDays", () => {

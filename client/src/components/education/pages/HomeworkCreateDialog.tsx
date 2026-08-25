@@ -79,7 +79,6 @@ export function HomeworkCreateDialog({
       assignedDate: formatDate(new Date()),
       dueDate: formatDate(new Date(dueDate)),
       status: "Aktif",
-      isMock: true,
     };
     onCreate(item);
     toast.success("Ödev oluşturuldu", {

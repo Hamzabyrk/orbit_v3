@@ -104,7 +104,7 @@ export function SetPasswordScreen({
   return (
     <AuthShell
       title="Yeni şifrenizi belirleyin"
-      description="Hesabınız için kalıcı bir şifre oluşturun. Bundan sonra e-posta ve şifrenizle giriş yapacaksınız."
+      description="Hesabınız için kalıcı bir şifre oluşturun. Bundan sonra giriş numaranız veya e-posta adresinizle giriş yapabilirsiniz."
       footer={
         <button
           type="button"

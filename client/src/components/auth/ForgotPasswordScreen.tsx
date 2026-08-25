@@ -87,7 +87,7 @@ export function ForgotPasswordScreen({
   return (
     <AuthShell
       title="Şifrenizi mi unuttunuz?"
-      description="Kurum hesabınızın e-posta adresini girin. Şifrenizi belirleyebilmeniz için bir bağlantı gönderelim."
+      description="Kurum hesabınızın e-posta adresini girin. Şifrenizi belirleyebilmeniz için bir bağlantı gönderelim. Hesabınıza kayıtlı bir e-posta adresi yoksa şifrenizi buradan sıfırlayamazsınız; kurum yöneticinize başvurun."
       footer={
         <Link href="/" className="font-bold text-blue-600">
           Giriş ekranına dön

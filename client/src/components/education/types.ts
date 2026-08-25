@@ -19,7 +19,6 @@ export type Student = {
   homework: number;
   payment: "Güncel" | "Takip gerekli";
   risk: "Dengeli" | "Takip gerekli";
-  isMock: true;
 };
 
 export type ClassGroup = {
@@ -30,7 +29,6 @@ export type ClassGroup = {
   studentCount: number;
   attendance: number;
   nextLesson: string;
-  isMock: true;
 };
 
 export type ScheduleItem = {
@@ -40,7 +38,6 @@ export type ScheduleItem = {
   teacher: string;
   room: string;
   tone: string;
-  isMock: true;
 };
 
 export type Automation = {
@@ -51,7 +48,6 @@ export type Automation = {
   impact: string;
   active: boolean;
   category: string;
-  isMock: true;
 };
 
 export type PaymentRow = {
@@ -60,7 +56,6 @@ export type PaymentRow = {
   due: string;
   amount: string;
   status: "Güncel" | "Hatırlatma gerekli" | "Gecikme riski";
-  isMock: true;
 };
 
 export type DayPlanRole = Extract<Role, "admin" | "teacher">;
@@ -86,7 +81,6 @@ export type DayPlanTask = {
   category: DayPlanTaskCategory;
   duration: string;
   dueLabel: string;
-  isMock: true;
 };
 
 export type DayPlanAppointmentMode = "Google Meet" | "Yüz yüze" | "Telefon";
@@ -107,7 +101,6 @@ export type DayPlanEvent = {
   type: DayPlanAppointmentType;
   title: string;
   subtitle: string;
-  isMock: true;
 };
 
 export type HomeworkStatus = "Aktif" | "Süresi Doldu" | "Tamamlandı";
@@ -130,5 +123,4 @@ export type Homework = {
   assignedDate: string;
   dueDate: string;
   status: HomeworkStatus;
-  isMock: true;
 };
