@@ -1,6 +1,7 @@
 import { OrbitMark } from "@/components/OrbitMark";
 import { EducationLoginScreen } from "@/components/education/LoginScreen";
 import { EducationPlatform } from "@/components/education/EducationPlatform";
+import { ForcePasswordChangeScreen } from "@/components/auth/ForcePasswordChangeScreen";
 import { useAuth } from "@/auth/useAuth";
 import { Redirect } from "wouter";
 import { toast } from "sonner";
@@ -14,6 +15,7 @@ export default function Home() {
     signIn,
     signOut,
     switchDemoRole,
+    completeRequiredPasswordChange,
   } = useAuth();
 
   const handleLogout = async () => {
@@ -52,6 +54,27 @@ export default function Home() {
 
   if (!identity) {
     return <EducationLoginScreen demoMode={demoMode} onLogin={signIn} />;
+  }
+
+  // Kilit her şeyden ÖNCE gelir — panel yönlendirmesinden de önce.
+  //
+  // Sırayı bozup önce yönlendirseydik, hem operatör hem kilitli olan biri
+  // panele düşer ve kilidi hiç görmezdi. Geçici şifreyle sınırsız dolaşmak
+  // tam olarak kapatmaya çalıştığımız şey.
+  //
+  // Bu kontrol bir güvenlik sınırı DEĞİLDİR: istemci kodunu yok sayan biri
+  // doğrudan API çağırabilir. Sunucu tarafındaki karşılığı
+  // `current_user_must_change_password()` ve v1.2'de iş tablolarının RLS
+  // politikalarına koşul olarak girecek.
+  if (identity.mustChangePassword) {
+    return (
+      <ForcePasswordChangeScreen
+        displayName={identity.displayName}
+        expiresAt={identity.passwordExpiresAt}
+        onSubmit={completeRequiredPasswordChange}
+        onSignOut={() => void handleLogout()}
+      />
+    );
   }
 
   // Platform operatörü panele aittir, dershane paneline değil.

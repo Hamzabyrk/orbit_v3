@@ -35,6 +35,17 @@ export type AuthIdentity = {
   userId: string;
   displayName: string;
   demo: boolean;
+  /**
+   * Kullanıcı geçici şifreyle açıldı ve henüz kendi şifresini belirlemedi.
+   *
+   * Bayrağın tek doğruluk kaynağı `profiles` tablosudur; istemci onu yalnızca
+   * OKUR. Kullanıcı kendi eliyle düşüremez — sütun düzeyi GRANT engelliyor —
+   * ve şifre gerçekten değiştiğinde veritabanı tetikleyicisi kendiliğinden
+   * düşürüyor. Bkz. `20260825140000_force_password_change.sql`.
+   */
+  mustChangePassword: boolean;
+  /** Geçici şifrenin son geçerlilik anı (ISO). Kilit yoksa `null`. */
+  passwordExpiresAt: string | null;
   /** Aktif kurum üyeliği yoksa `null`. */
   membership: MembershipIdentity | null;
   /** Aktif platform operatörlüğü yoksa `null`. */
@@ -66,6 +77,11 @@ export type AuthContextValue = {
   completePasswordReset: (newPassword: string) => Promise<void>;
   /** Şifre belirlemeden vazgeçildiğinde kurtarma oturumunu kapatır. */
   cancelPasswordRecovery: () => Promise<void>;
+  /**
+   * Zorunlu ilk şifre değişimini tamamlar ve kimliği yeniler.
+   * Kurtarma akışından farkı: oturum kapatılmaz, kullanıcı içeride kalır.
+   */
+  completeRequiredPasswordChange: (newPassword: string) => Promise<void>;
 };
 
 export type AuthProviderProps = {

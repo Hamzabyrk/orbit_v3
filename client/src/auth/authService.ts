@@ -149,15 +149,25 @@ export async function loadAuthenticatedIdentity(
 
   const profileResult = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("display_name, must_change_password, password_expires_at")
     .eq("id", user.id)
-    .maybeSingle<{ display_name: string }>();
+    .maybeSingle<{
+      display_name: string;
+      must_change_password: boolean;
+      password_expires_at: string | null;
+    }>();
 
   return {
     userId: user.id,
     displayName:
       profileResult.data?.display_name?.trim() || displayNameFromUser(user),
     demo: false,
+    // Profil okunamazsa kilit VARSAYILIR. Fail-open olmak — bilinmeyende
+    // kilidi kapalı saymak — kilidi tek bir ağ hatasıyla atlanabilir kılardı.
+    mustChangePassword: profileResult.data
+      ? profileResult.data.must_change_password
+      : true,
+    passwordExpiresAt: profileResult.data?.password_expires_at ?? null,
     membership,
     platformOperator,
   };

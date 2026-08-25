@@ -20,6 +20,9 @@ function createDemoIdentity(role: EducationRole): AuthIdentity {
     userId: `demo-${role}`,
     displayName: roleMeta[role].name,
     demo: true,
+    // Demo modunda kilit yok; satış sunumunda şifre değiştirme ekranı çıkmaz.
+    mustChangePassword: false,
+    passwordExpiresAt: null,
     membership: {
       membershipId: `demo-membership-${role}`,
       role,
@@ -193,6 +196,53 @@ export function AuthProvider({ children }: AuthProviderProps) {
     },
   });
 
+  /**
+   * Zorunlu ilk şifre değişimini tamamlar.
+   *
+   * Şifre doğrudan Supabase'e gidiyor; araya bizim sunucu kodumuz girmiyor.
+   * Bayrağı da biz temizlemiyoruz — veritabanı tetikleyicisi şifre gerçekten
+   * değiştiğinde kendiliğinden düşürüyor. Burada yaptığımız tek şey, düşmüş
+   * bayrağı görebilmek için kimliği yeniden okumak.
+   *
+   * `signOut` YAPILMIYOR. Kurtarma akışından farkı bu: orada kullanıcının
+   * şifresini gerçekten bilip bilmediği belirsizdi ve yeniden giriş bir
+   * doğrulamaydı. Burada kullanıcı zaten geçerli şifresiyle girmiş durumda;
+   * onu dışarı atmak gereksiz bir sürtünme olurdu.
+   */
+  const completeRequiredPasswordChange = useCallback(
+    async (newPassword: string) => {
+      if (!supabaseConfigured) {
+        throw new Error(
+          "Giriş servisi yapılandırılmamış. Sistem yöneticisine başvurun."
+        );
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        throw new Error(
+          "Şifre güncellenemedi. Lütfen tekrar deneyin; sorun sürerse kurum yöneticinize başvurun."
+        );
+      }
+
+      const { data, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !data.session) {
+        // Şifre değişti ama oturum okunamadı. Kullanıcıyı belirsiz bir
+        // durumda bırakmak yerine dışarı alıyoruz; yeni şifresiyle girer.
+        await supabase.auth.signOut();
+        clearLastActivity();
+        setIdentity(null);
+        return;
+      }
+
+      setIdentity(await loadAuthenticatedIdentity(data.session.user));
+    },
+    []
+  );
+
   const switchDemoRole = useCallback((role: EducationRole) => {
     if (!isDemoMode) return;
     setIdentity(createDemoIdentity(role));
@@ -274,6 +324,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       requestPasswordReset,
       completePasswordReset,
       cancelPasswordRecovery,
+      completeRequiredPasswordChange,
     }),
     [
       identity,
@@ -285,6 +336,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       requestPasswordReset,
       completePasswordReset,
       cancelPasswordRecovery,
+      completeRequiredPasswordChange,
     ]
   );
 
