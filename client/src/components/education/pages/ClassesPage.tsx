@@ -1,6 +1,6 @@
 import { ChevronRight, School } from "lucide-react";
 import { toast } from "sonner";
-import { classes } from "../mockData";
+import { classes } from "../demoData";
 import { Badge, PageHeader } from "../shared";
 import type { Role, Section } from "../types";
 

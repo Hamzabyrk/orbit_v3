@@ -1,5 +1,5 @@
 import { BookOpen } from "lucide-react";
-import { schedule } from "../mockData";
+import { schedule } from "../demoData";
 import { Badge, PageHeader } from "../shared";
 import type { Role } from "../types";
 

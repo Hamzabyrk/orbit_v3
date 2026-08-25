@@ -1,5 +1,5 @@
 import { BarChart3, BookOpen, CalendarDays, CircleAlert } from "lucide-react";
-import { schedule } from "../mockData";
+import { schedule } from "../demoData";
 import { PageHeader, StatCard } from "../shared";
 import type { Section } from "../types";
 

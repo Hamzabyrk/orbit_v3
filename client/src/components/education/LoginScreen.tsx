@@ -6,7 +6,8 @@ import { ChevronRight, LayoutDashboard, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import type { LoginInput } from "@/auth/types";
 import { resolveLoginIdentifier } from "@/auth/loginIdentifier";
-import { roleEmail, roleMeta } from "./mockData";
+import { roleMeta } from "./roleMeta";
+import { roleEmail } from "./demoData";
 import { Badge } from "./shared";
 import type { Role } from "./types";
 

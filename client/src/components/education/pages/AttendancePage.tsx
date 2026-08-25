@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { students } from "../mockData";
+import { students } from "../demoData";
 import { Badge, PageHeader } from "../shared";
 import type { AttendanceState, Role } from "../types";
 

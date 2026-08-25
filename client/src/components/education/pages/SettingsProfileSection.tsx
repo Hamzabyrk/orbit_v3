@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { roleEmail, roleMeta } from "../mockData";
+import { roleMeta } from "../roleMeta";
+import { roleEmail } from "../demoData";
 import type { Role } from "../types";
 import { SettingsFormField } from "./SettingsFormField";
 

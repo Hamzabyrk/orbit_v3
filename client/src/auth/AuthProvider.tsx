@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { EducationRole } from "@/components/educationAccess";
-import { roleMeta } from "@/components/education/mockData";
+import { roleMeta } from "@/components/education/roleMeta";
 import {
   arrivedWithRecoveryLink,
   supabase,

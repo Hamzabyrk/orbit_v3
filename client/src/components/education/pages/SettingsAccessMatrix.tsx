@@ -4,7 +4,7 @@ import {
   canAccessEducationSection,
   type EducationRole,
 } from "@/components/educationAccess";
-import { roleMeta } from "../mockData";
+import { roleMeta } from "../roleMeta";
 
 const ROLE_ORDER: EducationRole[] = ["admin", "teacher", "student", "parent"];
 

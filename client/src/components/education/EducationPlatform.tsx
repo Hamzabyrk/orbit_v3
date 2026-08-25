@@ -10,14 +10,14 @@ import { ParentDashboard } from "./dashboards/ParentDashboard";
 import { StudentDashboard } from "./dashboards/StudentDashboard";
 import { TeacherDashboard } from "./dashboards/TeacherDashboard";
 import {
-  allNav,
   dayPlanTasksByRole,
   initialAttendances,
   initialAutomations,
   initialHomework,
-  roleMeta,
   students,
-} from "./mockData";
+} from "./demoData";
+import { allNav } from "./navigation";
+import { roleMeta } from "./roleMeta";
 import { AssessmentsPage } from "./pages/AssessmentsPage";
 import { AttendancePage } from "./pages/AttendancePage";
 import { AutomationsPage } from "./pages/AutomationsPage";

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { dayPlanEventsByRole } from "../mockData";
+import { dayPlanEventsByRole } from "../demoData";
 import { PageHeader } from "../shared";
 import type { DayPlanRole, DayPlanTask } from "../types";
 import { DayPlanCalendar } from "./DayPlanCalendar";

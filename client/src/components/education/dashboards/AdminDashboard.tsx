@@ -10,7 +10,7 @@ import {
   Users,
   WalletCards,
 } from "lucide-react";
-import { classes, schedule } from "../mockData";
+import { classes, schedule } from "../demoData";
 import { AutomationMini, Badge, StatCard } from "../shared";
 import type { Section } from "../types";
 

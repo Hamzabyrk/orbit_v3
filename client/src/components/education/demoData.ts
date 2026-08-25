@@ -1,22 +1,10 @@
-import {
-  BarChart3,
-  BookOpen,
-  CalendarDays,
-  ClipboardCheck,
-  FileText,
-  GraduationCap,
-  LayoutDashboard,
-  ListTodo,
-  MessageSquare,
-  NotebookPen,
-  School,
-  Settings,
-  ShieldCheck,
-  Sparkles,
-  UserRoundCheck,
-  Users,
-  WalletCards,
-} from "lucide-react";
+/**
+ * Yalnızca demo sunumu içindir. Bu dosyadaki hiçbir şey gerçek bir kuruma ait
+ * değildir ve production'da gösterilmemelidir.
+ *
+ * Bugün hâlâ production'da da okunuyor; demo moduna hapsedilmesi Faz E5'in
+ * sıradaki dilimidir. Buraya yeni veri eklerken bunu aklında tut.
+ */
 import type {
   Automation,
   AttendanceState,
@@ -28,7 +16,6 @@ import type {
   PaymentRow,
   Role,
   ScheduleItem,
-  Section,
   Student,
 } from "./types";
 
@@ -587,140 +574,9 @@ export const dayPlanEventsByRole: Record<DayPlanRole, DayPlanEvent[]> = {
   ],
 };
 
-export const roleMeta: Record<
-  Role,
-  {
-    label: string;
-    short: string;
-    name: string;
-    description: string;
-    icon: typeof ShieldCheck;
-    color: string;
-  }
-> = {
-  admin: {
-    label: "Kurum Yöneticisi",
-    short: "Yönetici",
-    name: "Ayşe Yalçın",
-    description: "Kurum genelini yönetin",
-    icon: ShieldCheck,
-    color: "bg-slate-900 text-white",
-  },
-  teacher: {
-    label: "Öğretmen",
-    short: "Öğretmen",
-    name: "Merve Karaca",
-    description: "Sınıflarınız ve öğrencileriniz",
-    icon: GraduationCap,
-    color: "bg-blue-600 text-white",
-  },
-  student: {
-    label: "Öğrenci",
-    short: "Öğrenci",
-    name: "Zeynep Kaya",
-    description: "Kendi programınız ve gelişiminiz",
-    icon: BookOpen,
-    color: "bg-emerald-600 text-white",
-  },
-  parent: {
-    label: "Veli",
-    short: "Veli",
-    name: "Murat Kaya",
-    description: "Zeynep Kaya için takip alanı",
-    icon: UserRoundCheck,
-    color: "bg-violet-600 text-white",
-  },
-};
-
 export const roleEmail: Record<Role, string> = {
   admin: "yonetici@orbit.edu.tr",
   teacher: "ogretmen@orbit.edu.tr",
   student: "ogrenci@orbit.edu.tr",
   parent: "veli@orbit.edu.tr",
 };
-
-export const allNav: {
-  label: Section;
-  icon: typeof LayoutDashboard;
-  roles: Role[];
-  group: "Ana çalışma alanı" | "Kurum yönetimi";
-}[] = [
-  {
-    label: "Genel Bakış",
-    icon: LayoutDashboard,
-    roles: ["admin", "teacher", "student", "parent"],
-    group: "Ana çalışma alanı",
-  },
-  {
-    label: "Gün Planı",
-    icon: ListTodo,
-    roles: ["admin", "teacher"],
-    group: "Ana çalışma alanı",
-  },
-  {
-    label: "Öğrenciler",
-    icon: Users,
-    roles: ["admin", "teacher"],
-    group: "Ana çalışma alanı",
-  },
-  {
-    label: "Sınıflar",
-    icon: School,
-    roles: ["admin", "teacher"],
-    group: "Ana çalışma alanı",
-  },
-  {
-    label: "Ders Programı",
-    icon: CalendarDays,
-    roles: ["admin", "teacher", "student", "parent"],
-    group: "Ana çalışma alanı",
-  },
-  {
-    label: "Yoklama",
-    icon: ClipboardCheck,
-    roles: ["admin", "teacher"],
-    group: "Ana çalışma alanı",
-  },
-  {
-    label: "Sınavlar",
-    icon: BarChart3,
-    roles: ["admin", "teacher", "student", "parent"],
-    group: "Ana çalışma alanı",
-  },
-  {
-    label: "Ödevler",
-    icon: NotebookPen,
-    roles: ["admin", "teacher", "student", "parent"],
-    group: "Ana çalışma alanı",
-  },
-  {
-    label: "İletişim",
-    icon: MessageSquare,
-    roles: ["admin", "teacher", "student", "parent"],
-    group: "Ana çalışma alanı",
-  },
-  {
-    label: "Kayıt ve Ödemeler",
-    icon: WalletCards,
-    roles: ["admin", "parent"],
-    group: "Kurum yönetimi",
-  },
-  {
-    label: "Otomasyonlar",
-    icon: Sparkles,
-    roles: ["admin"],
-    group: "Kurum yönetimi",
-  },
-  {
-    label: "Raporlar",
-    icon: FileText,
-    roles: ["admin", "teacher"],
-    group: "Kurum yönetimi",
-  },
-  {
-    label: "Ayarlar",
-    icon: Settings,
-    roles: ["admin"],
-    group: "Kurum yönetimi",
-  },
-];
