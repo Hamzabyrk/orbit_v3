@@ -68,15 +68,15 @@ Giriş ekranında **Kurum Yöneticisi, Öğretmen, Öğrenci veya Veli** rolleri
 
 ## 📋 Kullanılabilir Komutlar
 
-| Komut          | Açıklama                                                 |
-| :------------- | :------------------------------------------------------- |
-| `pnpm dev`     | Vite geliştirme sunucusunu başlatır                      |
-| `pnpm build`   | Production derlemesi oluşturur (`tsc` + Vite)            |
-| `pnpm preview` | Üretilen derlemeyi yerelde önizler                       |
-| `pnpm check`   | TypeScript tip kontrollerini çalıştırır (`tsc --noEmit`) |
-| `pnpm lint`    | ESLint ile kod kalitesi kontrollerini çalıştırır         |
-| `pnpm test`    | Vitest ile birim testlerini çalıştırır                   |
-| `pnpm format`  | Prettier ile tüm kodları formatlar                       |
+| Komut          | Açıklama                                                                                          |
+| :------------- | :------------------------------------------------------------------------------------------------ |
+| `pnpm dev`     | Vite geliştirme sunucusunu başlatır                                                               |
+| `pnpm build`   | Production derlemesi oluşturur (yalnızca Vite — tip kontrolü için ayrıca `pnpm check` çalıştırın) |
+| `pnpm preview` | Üretilen derlemeyi yerelde önizler                                                                |
+| `pnpm check`   | TypeScript tip kontrollerini çalıştırır (`tsc --noEmit`)                                          |
+| `pnpm lint`    | ESLint ile kod kalitesi kontrollerini çalıştırır                                                  |
+| `pnpm test`    | Vitest ile birim testlerini çalıştırır                                                            |
+| `pnpm format`  | Prettier ile tüm kodları formatlar                                                                |
 
 ---
 
