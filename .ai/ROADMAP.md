@@ -371,6 +371,9 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Kurum yöneticisi için ilk girişte **zorunlu** e-posta ekleme ve doğrulama; diğer roller için isteğe bağlı. Doğrulama, ürettiğimiz kodun adrese gönderilip geri girilmesiyle yapılır; GoTrue'nun e-posta değiştirme akışına **dokunulmaz**.
 - [ ] Kurtarma akışı: Edge Function `admin/generate_link` ile link ve 6 haneli kodu üretir, `profiles`'taki doğrulanmış adrese gönderir, denetim kaydı yazar.
 - [ ] Ayarlar ekranının iletişim bölümünün gerçek veriye bağlanması (bugün mock).
+- [ ] **Mevcut iki auth ekranındaki metin kayması düzeltilsin.** Davet akışı döneminden kalma; Codex tanıma turunda buldu (Issue #71):
+  - `SetPasswordScreen.tsx` — _"Bundan sonra e-posta ve şifrenizle giriş yapacaksınız"_ diyor. Kullanıcıların çoğu **numarayla** girecek; e-postası olmayanlar için bu cümle yanlış.
+  - `ForgotPasswordScreen.tsx` — _"Kurum hesabınızın e-posta adresini girin"_ diyor ve Supabase'in kendi sıfırlama e-postasını varsayıyor. Güncel tasarımda akış kanal varlığına göre dallanıyor: doğrulanmış adres varsa link + kod gönderilir, yoksa kullanıcı kurum yöneticisine yönlendirilir.
 - [ ] **Kurtarma yöntemi olmayan hesap için kalıcı uyarı.** İletişim bilgisi kurum yöneticisi dışındaki roller için isteğe bağlıdır; yalnızca "atla" sunulursa çoğu kullanıcı atlar ve sorun geri gelir. Uyarı ayarlar ve profil alanında sürekli görünür: _"Kurtarma yöntemin yok — şifreni unutursan kurum yöneticine başvurman gerekir."_
 - [ ] **Sıfırlama akışı kanal varlığına göre dallanır:** doğrulanmış adres varsa link + 6 haneli kod gönderilir; yoksa kullanıcı kurum yöneticisine yönlendirilir.
 - [ ] Kurum yöneticisi panelinde kullanıcı başına "yeni geçici şifre üret" işlemi — iletişim bilgisi olmayanların tek kurtarma yolu.
