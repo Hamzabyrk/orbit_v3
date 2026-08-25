@@ -18,11 +18,20 @@ Projeye yeni başlıyorsan önce kökteki **`AGENTS.md`**'yi oku: hangi soru iç
 
 ```bash
 git checkout main
-git pull origin main
+git pull --ff-only            # her iş güncel main'den başlar
 git checkout -b feat/<issue-no>-<kisa-ad>
 # ... geliştirme, atomik commit'ler ...
 git push -u origin feat/<issue-no>-<kisa-ad>
 # GitHub üzerinden PR aç, diğer ekip üyesini review'a ata
+```
+
+**Merge edilen dal ölüdür.** Üzerine yeni commit atma; `main`'i çekip yeni bir dal aç. Merge sonrası commit dalda kalır, `main`'e girmez ve CI koşmaz — üstelik `git push` başarılı döner, hiçbir hata görünmez. Bu projede iki kez oldu (PR #52, PR #78).
+
+Merge'den sonra bir satırla doğrula:
+
+```bash
+git fetch origin && git merge-base --is-ancestor <commit-sha> origin/main \
+  && echo "indi" || echo "SIKISTI"
 ```
 
 ## Kod İnceleme Beklentileri

@@ -31,11 +31,14 @@ Her dosyanın tek bir sorusu var. Hepsini birden okuma; sorunun hangisi olduğun
 Yukarıdaki dosyalar **kararları** taşır, **uçuştaki işi** değil. Yarım kalmış bir iş olup olmadığını dosyalardan değil, kendini güncelleyen kaynaklardan öğren:
 
 ```bash
+git fetch origin             # ÖNCE bu — yerel kopya kendiliğinden güncellenmez
+git status -sb               # hangi daldayım, main'e göre kaç commit gerideyim
 git log --oneline -15        # son ne yapıldı
-git status --short           # commit edilmemiş iş var mı
 gh pr list                   # açık PR — inceleme bekleyen iş
 ls .ai/tasks/                # devredilmiş, henüz bitmemiş görev
 ```
+
+**Çalışma kopyası bayat olabilir ve bunu sana kimse söylemez.** `git` kendiliğinden senkronize olmaz; biri PR merge ettiğinde yerel dosyalar eski kalır. Bir dosyayı okuyup "kod böyle" demeden önce geride olup olmadığına bak. İşe başlıyorsan `AGENT_WORKFLOW.md`'deki **0. adım** geçerlidir: güncel `main` üzerinden yeni dal.
 
 Sonra `ROADMAP.md` §0'ı oku: 🟡 işaretli satır, yarıda kalmış dilimdir.
 
