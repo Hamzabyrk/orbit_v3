@@ -242,6 +242,16 @@ _Kaynak: E3 bağlama. Fail-open olmak, kilidi tek bir ağ hatasıyla atlanabilir
 
 _Kaynak: E3-01 brifingi. İlk yazımda belirtilmemişti; belirtilmeseydi çift sarmalama olacaktı._
 
+### K-06 · Aynı olgu iki yerde tutulursa biri mutlaka eskir
+
+Bir durum, sayı veya liste iki ayrı dosyada tutuluyorsa güncellemelerden biri er ya da geç atlanır — ve iki kaynak çelişince okuyan hangisinin doğru olduğunu bilemez. Çözüm hatırlamaya çalışmak değil, **ikinci kopyayı kaldırıp yerine tek kaynağa işaret koymaktır.**
+
+Bu kural üç kez ısırdı: `WORK_LOG` ile `ROADMAP` durumu ayrı tutuyordu; README ile `PROJECT_STATE` klasör ağacını ayrı tutuyordu; `PROJECT_STATE` §7 ve §9, `ROADMAP` §0 ile aynı gün çelişti — biri güncellendi, ikizi bırakıldı.
+
+Bir metin yazarken şunu sor: **bu olgu başka bir dosyada da yazıyor mu?** Yazıyorsa yazma, işaret et.
+
+_Kaynak: Issue #77 belge denetimi ve Issue #80 (Codex A1 analizi, B10–B11)._
+
 ---
 
 ## Görev dosyalarının ömrü

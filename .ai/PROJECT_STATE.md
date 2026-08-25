@@ -138,17 +138,19 @@ Eski listedeki "sınıf/öğrenci CRUD" ve "yoklama güncellemeleri" maddeleri v
 
 ## 7. v1.1 Auth ve Tenant Temeli (Issue #8)
 
-**Durum:** Kısmen tamamlandı — **release gate hâlâ kapanmadı.** PR #9 merge edildi; migration ve `bootstrap-organization` Edge Function production Supabase'e deploy edildi. İlk tenant oluşturuldu ancak Edge Function akışıyla değil, kontrol düzleminden doğrudan RPC ile; onboarding mekanizması hiç doğrulanmadı. Kalan işler v1.1.1, v1.1.2 ve Faz E'ye alındı (bkz. `ROADMAP.md`).
+**Durum: tamamlandı (2026-08-25).** PR #9 merge edildi; migration ve `bootstrap-organization` Edge Function production Supabase'e deploy edildi. İlk tenant Edge Function akışıyla değil, kontrol düzleminden doğrudan RPC ile oluşturulmuştu; onboarding mekanizması uzun süre doğrulanmadan kaldı. Faz E1 mekanizmayı yeniden yazdı ve panel üzerinden kurum kurma production'da çalıştı; E2'de o ilk tenant silindi. Kalan işler v1.1.1, v1.1.2 ve Faz E'ye dağıtıldı (bkz. `ROADMAP.md` §0).
+
+> **Sonradan düzeltme (2026-08-25):** Bu bölüm aynı gün `ROADMAP.md` §0'da v1.1 ✅ yapılırken güncellenmedi ve iki dosya birbiriyle çelişir hâlde kaldı. Codex'in A1 analizinde bulundu (Issue #80, B10). Ders kayda geçti: **durum iki yerde tutuluyorsa biri mutlaka eskir** — bu yüzden tek durum kaynağı `ROADMAP.md` §0'dır ve bu bölüm yalnızca oraya bakar.
 
 > **Sonradan düzeltme (2026-08-24):** Bu paragraf önceden _"kurucu yöneticinin e-posta/şifre girişi çalışmıyor ve UI'da şifre belirleme ekranı yok"_ diyordu. **İkisi de çözüldü:** şifre belirleme/sıfırlama ekranları production'da (`/sifre-sifirla`, `/sifre-belirle`, Issue #25) ve kurucu yönetici kendi şifresiyle giriş yapıyor. Giriş çalışmamasının kök nedeni Auth panelinde e-posta sağlayıcısının kapalı olmasıydı; Issue #29'da bulunup açıldı.
 >
-> Gate'in bugün kapanmamış olmasının sebebi farklıdır: kurum yöneticisi hesabının **davetle** açılması öngörülüyordu ve `type=invite` istemcide hiç ele alınmıyor. Bu yol Faz E1'de tamamen kaldırılıyor; gate o zaman kapanacak.
+> Gate'in o gün kapanmamış olmasının sebebi farklıydı: kurum yöneticisi hesabının **davetle** açılması öngörülüyordu ve `type=invite` istemcide hiç ele alınmıyordu. **Faz E1 bu yolu tamamen kaldırdı ve gate kapandı** — hesaplar artık giriş numarası ve geçici şifreyle açılıyor.
 
 - Kimlik doğrulama production'da Supabase Auth e-posta/şifre oturumuyla çalışır. Rol istemciden alınmaz; aktif `organization_memberships` kaydından çözülür.
 - Local geliştirme ve Vercel Preview derlemeleri demo modundadır. Vercel Production derlemesinde rol geçişi gizlenir ve demo şifresi kabul edilmez.
 - Tenant çekirdeği `profiles`, `organizations`, `branches`, `organization_memberships` ve `audit_events` tablolarından oluşur.
 - Organizasyon yöneticisi org-wide üyelik taşır; aktif ekran bağlamı varsayılan şubeden başlar. Şube sınırlı üyelikler yalnızca kendi şubesini görür.
-- İlk kurum, varsayılan şube ve kurum yöneticisi `bootstrap-organization` Edge Function üzerinden hazırlanır. Operatör kontrolü **`platform_operators` tablosuna taşındı** (Issue #37, production'da v17 olarak canlı); `app_metadata.platform_admin` bayrağı artık kullanılmıyor. Aktif bir operatör kaydı bulunduğu için fonksiyon çağrılabilir durumdadır. Faz E1'de davet yerine `admin.createUser` + geçici şifre kullanacak biçimde değişecektir.
+- İlk kurum, varsayılan şube ve kurum yöneticisi `bootstrap-organization` Edge Function üzerinden hazırlanır. Operatör kontrolü **`platform_operators` tablosuna taşındı** (Issue #37, production'da v17 olarak canlı); `app_metadata.platform_admin` bayrağı artık kullanılmıyor. Aktif bir operatör kaydı bulunduğu için fonksiyon çağrılabilir durumdadır. **Faz E1'de davet yerine `admin.createUser` + geçici şifre kullanacak biçimde değiştirildi**; `inviteUserByEmail` yolu kaldırıldı.
 - Tarayıcıya yalnızca anon key verilir. `service_role` yalnızca Supabase Edge Function sunucu ortamında kullanılır.
 - RLS istemci yazılarını deny-by-default bırakır; üyeler yalnızca kendi tenant kapsamlarını, adminler ise yetkili audit kapsamını okuyabilir.
 - İlk tenant için `orbitdershane` / `orbit123` kararı verildi. İlk denemede `yonetici@orbit.edu.tr` adresi `email_address_invalid` ile reddedildi ve yarım kayıt oluşmadı; ardından kurum kurucu ekip üyesinin hesabıyla kuruldu. Bu kayıt **test verisi** sayılıyordu. **Sonradan düzeltme (2026-08-25):** Faz E2'de silindi; kurum, şubesi, üyeliği ve denetim kayıtları artık yok. Silme sırasında bir tasarım hatası da ortaya çıktı — kurum silmek, o kurumun tek üyesi olan kişinin platform operatörlüğünü de düşürüyordu. Düzeltildi (Issue #63): bir kimlik, başka bir yer onu sahiplenmiyorsa silinir. Bkz. `DECISION_LOG.md`.
@@ -182,7 +184,9 @@ Eski listedeki "sınıf/öğrenci CRUD" ve "yoklama güncellemeleri" maddeleri v
 
 ## 9. Platform Operatörü Ekseni ve `/platform` Paneli (Issue #16, hedef v1.1.2)
 
-**Durum:** Veritabanı şeması eklendi (Issue #27); panel ve Edge Function güncellemesi bekliyor. Ayrıntılı gerekçe için bkz. `DECISION_LOG.md` — "Platform operatörü ayrı bir eksendir".
+**Durum: tamamlandı.** Veritabanı şeması (Issue #27), Edge Function operatör kontrolü (#37), kimliğin iki eksene ayrılması (#40) ve panelin kendisi — kurum listesi, kurum oluşturma, operatör listesi, denetim kaydı (#41) — hepsi production'da. Ayrıntılı gerekçe için bkz. `DECISION_LOG.md` — "Platform operatörü ayrı bir eksendir".
+
+> **Sonradan düzeltme (2026-08-25):** Bu satır uzun süre _"panel ve Edge Function güncellemesi bekliyor"_ diyordu; ikisi de 2026-08-24'te bitmişti. Codex'in A1 analizinde bulundu (Issue #80, B11).
 
 Sistemde iki bağımsız kimlik ekseni bulunur. Bir kullanıcı ikisinden birine, hiçbirine veya (teoride) her ikisine de ait olabilir:
 

@@ -42,7 +42,7 @@ ls .ai/tasks/                # devredilmiş, henüz bitmemiş görev
 
 Sonra `ROADMAP.md` §0'ı oku: 🟡 işaretli satır, yarıda kalmış dilimdir.
 
-> **Neden ayrı bir "şu an ne yapılıyor" dosyası yok:** Denendi ve öldü. Elle güncellenen bir durum dosyası, güncellenmediği anda yanlış bilgi kaynağına dönüşür — ve boş bir dosyadan daha zararlıdır, çünkü okuyan ona güvenir. Yukarıdaki dört komut kimsenin bakımına muhtaç değildir.
+> **Neden ayrı bir "şu an ne yapılıyor" dosyası yok:** Denendi ve öldü. Elle güncellenen bir durum dosyası, güncellenmediği anda yanlış bilgi kaynağına dönüşür — ve boş bir dosyadan daha zararlıdır, çünkü okuyan ona güvenir. Yukarıdaki beş komut kimsenin bakımına muhtaç değildir.
 
 ---
 
