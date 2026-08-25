@@ -316,7 +316,7 @@ Biten brifingler silinir. Sebebi klasörün şişmesi değil yalnızca: **duran 
 3. **Neyin yeniden kullanılacağı** — mevcut yardımcılar, desen alınacak dosya
 4. **Dokunulmayacak yerler** ve **yapılmayacak işlemler**
 5. **Kabul kriterleri** — işaretlenebilir maddeler
-6. **Teslim biçimi** — beş çıktı
+6. **Teslim biçimi** — altı çıktı
 
 Brifingi yazarken yukarıdaki **birikimli kurallara** bak; ilgili olanları göreve özgü biçimde tekrarla. Yazan ajanın bu belgeyi okuduğunu varsayma — brifing kendi başına yeterli olmalı.
 
