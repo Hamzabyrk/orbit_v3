@@ -2,7 +2,13 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { OrbitMark } from "@/components/OrbitMark";
 import { Link } from "wouter";
-import { ChevronRight, LayoutDashboard, Sparkles } from "lucide-react";
+import {
+  ChevronRight,
+  Eye,
+  EyeOff,
+  LayoutDashboard,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { LoginInput } from "@/auth/types";
 import { resolveLoginIdentifier } from "@/auth/loginIdentifier";
@@ -21,6 +27,7 @@ export function EducationLoginScreen({
   const [selectedRole, setSelectedRole] = useState<Role>("admin");
   const [identifier, setIdentifier] = useState(demoMode ? roleEmail.admin : "");
   const [password, setPassword] = useState(demoMode ? "demo123" : "");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const selectRole = (role: Role) => {
     if (!demoMode) return;
@@ -159,12 +166,28 @@ export function EducationLoginScreen({
                 <span className="mb-1.5 block text-[11px] font-bold text-slate-600">
                   Şifre
                 </span>
-                <input
-                  value={password}
-                  onChange={event => setPassword(event.target.value)}
-                  type="password"
-                  className="h-12 w-full rounded-xl border border-slate-200 px-3 text-[13px] outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
-                />
+                <div className="relative">
+                  <input
+                    value={password}
+                    onChange={event => setPassword(event.target.value)}
+                    type={passwordVisible ? "text" : "password"}
+                    className="h-12 w-full rounded-xl border border-slate-200 px-3 pr-12 text-[13px] outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-50"
+                  />
+                  <button
+                    type="button"
+                    aria-label={
+                      passwordVisible ? "Şifreyi gizle" : "Şifreyi göster"
+                    }
+                    onClick={() => setPasswordVisible(value => !value)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {passwordVisible ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </label>
               <button
                 disabled={loading}

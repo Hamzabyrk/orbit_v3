@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "wouter";
-import { Check, ChevronRight, X } from "lucide-react";
+import { Check, ChevronRight, Eye, EyeOff, X } from "lucide-react";
 import { evaluatePassword, findPasswordProblem } from "@/auth/passwordPolicy";
 import {
   AuthField,
@@ -25,6 +25,8 @@ export function SetPasswordScreen({
 }) {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmationVisible, setConfirmationVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,25 +117,55 @@ export function SetPasswordScreen({
     >
       <form onSubmit={submit} className="space-y-3">
         <AuthField label="Yeni şifre">
-          <input
-            value={password}
-            onChange={event => setPassword(event.target.value)}
-            type="password"
-            required
-            autoComplete="new-password"
-            className={authInputClassName}
-          />
+          <div className="relative">
+            <input
+              value={password}
+              onChange={event => setPassword(event.target.value)}
+              type={passwordVisible ? "text" : "password"}
+              required
+              autoComplete="new-password"
+              className={`${authInputClassName} pr-12`}
+            />
+            <button
+              type="button"
+              aria-label={passwordVisible ? "Şifreyi gizle" : "Şifreyi göster"}
+              onClick={() => setPasswordVisible(value => !value)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              {passwordVisible ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </AuthField>
 
         <AuthField label="Yeni şifre (tekrar)">
-          <input
-            value={confirmation}
-            onChange={event => setConfirmation(event.target.value)}
-            type="password"
-            required
-            autoComplete="new-password"
-            className={authInputClassName}
-          />
+          <div className="relative">
+            <input
+              value={confirmation}
+              onChange={event => setConfirmation(event.target.value)}
+              type={confirmationVisible ? "text" : "password"}
+              required
+              autoComplete="new-password"
+              className={`${authInputClassName} pr-12`}
+            />
+            <button
+              type="button"
+              aria-label={
+                confirmationVisible ? "Şifreyi gizle" : "Şifreyi göster"
+              }
+              onClick={() => setConfirmationVisible(value => !value)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              {confirmationVisible ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </AuthField>
 
         <ul className="space-y-1.5 rounded-xl bg-slate-50 p-3">

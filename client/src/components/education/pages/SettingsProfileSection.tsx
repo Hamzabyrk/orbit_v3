@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { isDemoMode } from "@/auth/runtime";
 import { roleMeta } from "../roleMeta";
 import { roleEmail } from "../demoData";
 import type { Role } from "../types";
@@ -7,7 +8,7 @@ import { SettingsFormField } from "./SettingsFormField";
 
 export function SettingsProfileSection({ role }: { role: Role }) {
   const [name, setName] = useState(roleMeta[role].name);
-  const [email, setEmail] = useState(roleEmail[role]);
+  const [email, setEmail] = useState(isDemoMode ? roleEmail[role] : "");
   const [phone, setPhone] = useState("+90 555 123 45 67");
 
   const save = () =>

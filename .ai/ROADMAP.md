@@ -309,6 +309,12 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Realtime kopması, ağ hatası ve boş veri fallback senaryoları.
 - [ ] Supabase/Vercel ücretsiz katman kullanım ve bütçe alarmı kontrolü.
 - [ ] **Yedekleme ve kurtarma planı.** Günlük otomatik snapshot'ın açık olduğu, saklama süresi ve bir geri yükleme provasının yapıldığı doğrulanır. Gerçek kurum verisi girdikten sonra ilk kez sınanacak bir yedek, yedek sayılmaz.
+- [ ] **Demo verisi production paketinden çıkarılsın.** E5'ten sonra demo verisi hiçbir ekranda **gösterilmiyor**, ancak JS paketinin içinde duruyor — ölçüldü, `Zeynep Kaya` gibi isimler production derlemesinde bulunabiliyor.
+
+  Sebep: `isDemoMode`, `runtime.ts` içinde bir fonksiyon çağrısıyla ve fail-closed bir yedekle hesaplanıyor; derleme zamanı sabiti olmadığı için Rollup her iki dalı da tutuyor. Ayrıca `LoginScreen` demo giriş kartları için `roleEmail`'i doğrudan `demoData`'dan alıyor ve modülü ağaçta canlı tutuyor.
+
+  İşlevsel bir açık değil ve gerçek kişi verisi içermiyor. Yine de pilot öncesi kapatılmalı: paketi inceleyen bir kurum, uydurma isimleri **sızmış müşteri verisi** sanabilir. Çözerken `runtime.ts`'in bilinmeyende production'ı seçen davranışı **zayıflatılmamalıdır**; ağaç budama uğruna fail-closed'dan vazgeçilmez.
+
 - [ ] Prettier, ESLint, TypeScript, Vitest, SQL/RLS testleri ve production build.
 - [ ] Pilot kurumdan ölçülebilir geri bildirim ve hata listesi.
 
