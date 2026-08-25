@@ -24,6 +24,13 @@ const SYNTHETIC_EMAIL_DOMAIN = "orbit.invalid";
 const FIRST_PERSON_CODE = 1000;
 
 /**
+ * Geçici şifrenin ömrü. Dağıtılıp hiç kullanılmayan kâğıtlardaki şifreler
+ * süresiz geçerli kalmamalı; bkz. `.ai/DECISION_LOG.md` — "Kimlik ve Giriş
+ * Bilgisi Mimarisi".
+ */
+const TEMPORARY_PASSWORD_TTL_DAYS = 7;
+
+/**
  * Geçici şifre alfabesi.
  *
  * Karışan karakterler bilinçli olarak yok: `0`/`O`, `1`/`l`/`I`. Şifre kâğıda
@@ -273,6 +280,32 @@ Deno.serve(async request => {
     );
   }
 
+  // Kilit bayrağı kullanıcı oluşturulduktan SONRA set ediliyor.
+  //
+  // `admin.createUser` şifreyi yazdığı için `on_auth_password_changed`
+  // tetikleyicisi çalışır ve bayrağı düşürür. Bayrağı önce set etseydik
+  // tetikleyici onu hemen silerdi ve kilit hiç devreye girmezdi.
+  const passwordExpiresAt = new Date(
+    Date.now() + TEMPORARY_PASSWORD_TTL_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const { error: lockError } = await adminClient
+    .from("profiles")
+    .update({
+      must_change_password: true,
+      password_expires_at: passwordExpiresAt,
+    })
+    .eq("id", created.user.id);
+
+  if (lockError) {
+    // Kurum ve kullanıcı bu noktada oluştu. Bayrak yazılamadıysa kilit devreye
+    // girmez — kullanıcı geçici şifresiyle süresiz dolaşabilir. Sessiz
+    // geçilemez, ama isteği başarısız saymak da doğru değil: kurum var ve
+    // giriş bilgisi operatörün ekranında bir kez görünecek. Loglanıyor ve
+    // yanıtta bildiriliyor.
+    console.error("[bootstrap-organization] password lock flag write failed");
+  }
+
   // `internal_bootstrap_organization` denetim kaydını `audit_events`'e yazar,
   // yani KURUMUN kaydına. Operatör o tabloyu okuyamaz (policy kurum admini
   // istiyor) ve okuyabilmesi de doğru olmaz. Platform ekseninin kaydı ayrıdır;
@@ -319,6 +352,8 @@ Deno.serve(async request => {
       data: {
         ...(bootstrap as Record<string, unknown>),
         temporary_password: temporaryPassword,
+        password_expires_at: passwordExpiresAt,
+        password_lock_set: !lockError,
       },
     },
     201,
