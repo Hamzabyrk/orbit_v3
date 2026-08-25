@@ -6,28 +6,36 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 
 ## 0. Durum Özeti
 
-> Son güncelleme: **2026-08-24**. İşaretler: ✅ tamam · 🟡 kısmen · ⬜ başlanmadı · ⚠️ tamam sanılıyordu, değil.
+> Son güncelleme: **2026-08-25**. İşaretler: ✅ tamam · 🟡 kısmen · ⬜ başlanmadı · ⚠️ tamam sanılıyordu, değil.
 >
 > Ayrıntı için ilgili bölüme bakın; bu tablo yalnızca tek bakışta durum içindir.
 
 | Sürüm / Dilim | Kapsam                                                                                                        | Durum |
 | ------------- | ------------------------------------------------------------------------------------------------------------- | ----- |
 | v1.0          | Arayüz demosu, 4 rol görünümü, mock veri katmanı, kalite kapısı, Vercel + Supabase bağlantısı                 | ✅    |
-| v1.1          | Tenant şeması, rol enum'u, gerçek Auth session, `audit_events`, kurum kurulum Edge Function'ı                 | ⚠️    |
+| v1.1          | Tenant şeması, rol enum'u, gerçek Auth session, `audit_events`, kurum kurulum Edge Function'ı                 | ✅    |
 | v1.1.1        | Fonksiyon yetkileri, production Auth ayarları, `PLATFORM_SETTINGS.md`, CI sertleştirmesi, güvenlik başlıkları | ✅    |
 | v1.1.2 · D0   | Sentetik e-posta ile hesap açma ve giriş kanıtı (#35)                                                         | ✅    |
 | v1.1.2 · D1   | `organizations.code`, Edge Function operatör kontrolü (#37)                                                   | ✅    |
 | v1.1.2 · D2   | Kimliğin iki bağımsız eksene ayrılması, `/platform` rotası (#40)                                              | ✅    |
 | v1.1.2 · D3   | Panel: kurum listesi, kurum oluşturma, operatör listesi, denetim kaydı (#41)                                  | ✅    |
-| v1.1.2 · D4   | İlk platform operatörleri (#43) — biri eklendi, ikincisi Faz E1'e taşındı                                     | 🟡    |
+| v1.1.2 · D4   | İlk platform operatörleri (#43) — ikisi de eklendi                                                            | ✅    |
 | —             | Panel bağlantısı, demo rol kartlarının gizlenmesi, kullanılabilir sol menü (#45)                              | ✅    |
-| **Faz E**     | **Kimlik zinciri — aşağıdaki bölüm 4.5**                                                                      | ⬜    |
+| **Faz E**     | **Kimlik zinciri — ayrıntı bölüm 4.5**                                                                        | 🟡    |
+| Faz E · E0    | E-posta değişimi spike'ı (#51)                                                                                | ✅    |
+| Faz E · E1    | Kurum kurma makinesi: `person_code`, geçici şifre, yazdırılabilir fiş (#53 · #57 · #59 · #61 · #63 · #65)     | ✅    |
+| Faz E · E2    | Test kurumu `orbitdershane`'in kaldırılması                                                                   | ✅    |
+| Faz E · E3    | İlk giriş kilidi ve 8 haneli numarayla giriş (#69 · #73)                                                      | ✅    |
+| Faz E · E4    | İletişim bilgisi ve kurtarma zinciri — **e-posta sağlayıcısı ön koşulu bekliyor**                             | ⬜    |
+| Faz E · E5    | Mock verinin kaldırılması (eski v1.3'ün tamamı)                                                               | ⬜    |
+| Faz E · E6    | Kurum yöneticisinin kullanıcı ekleme ekranı                                                                   | ⬜    |
+| Faz E · E7    | Uçtan uca doğrulama                                                                                           | ⬜    |
 | v1.2          | İş tabloları + tenant/rol RLS matrisi                                                                         | ⬜    |
 | v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları                                                          | ⬜    |
 | v1.5          | 4 rol kabul testi, KVKK envanteri ve hukuki hazırlık, pilot geri bildirimi                                    | ⬜    |
 | v1.6 – v2.0   | Storage, toplu aktarım, raporlama, ticarileşme kapısı                                                         | ⬜    |
 
-**⚠️ v1.1 neden sarı:** madde listesi dolu ancak release gate'i _"davet edilen kullanıcı kendi şifresini kurup giriş yapabilir"_ diyor ve bu **doğru değil** — `type=invite` istemcide hiç ele alınmıyor, davetle gelen kullanıcı şifresini belirlemeden panele düşüyor ve o oturum kapandığında bir daha giremiyor. Aynı gate metni v1.1.2'de de tekrarlanmıştı. Faz E1, davet yolunu tamamen kaldırıp gate'i yeniden yazar (bkz. `DECISION_LOG.md` — "Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır").
+**v1.1 neden artık yeşil (2026-08-25):** Uzun süre ⚠️ idi, çünkü release gate'i _"davet edilen kullanıcı kendi şifresini kurup giriş yapabilir"_ diyordu ve bu doğru değildi — `type=invite` istemcide hiç ele alınmıyordu. **Faz E1 davet yolunu tamamen kaldırdı**, E3 de yerine geçen akışı kapattı. Gate bugünkü karşılığıyla yeniden yazıldı: _"panelden açılan hesap, numara ve geçici şifreyle girip şifresini değiştirebilir"_ — ve bu production'da doğrulandı. Bkz. `DECISION_LOG.md` — "Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır".
 
 ---
 
@@ -182,7 +190,7 @@ Kurum yöneticisi için e-posta ekleme ve doğrulama **zorunludur**; kendi kurum
 - Ancak `internal_bootstrap_organization`, `handle_new_auth_user` ve `current_user_has_membership` fonksiyonları `anon` ve `authenticated` rollerine açık; production'da yeni kayıt (signup) da açık. Bu ikisi birlikte, yetkisiz bir kullanıcının kendisine kurum ve admin üyeliği açmasına imkân veriyor.
 - Production login akışı doğrulanamadı: kurucu yöneticinin e-posta/şifre girişi çalışmıyor, UI'da şifre belirleme/sıfırlama ekranı yok.
 
-Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sürüm kapanmadan geçilmez** (`PROJECT_ARCHITECT.md` §00 kural 6).
+Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sürüm kapanmadan geçilmez** (sürüm kapısı kuralı; bkz. `AGENTS.md`).
 
 ### v1.1.1 - Güvenlik Kapanışı ve Ortam Ayarlarının Hizalanması
 
@@ -197,7 +205,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [x] `.ai/PLATFORM_SETTINGS.md` eklendi; `config.toml`'un production'ı yönetmediği, elle yönetilen ayarların envanteri ve kabul edilmiş açıklar kayda geçti (Issue #20).
 - [x] CI: bağımlılık taraması engelleyici hale getirildi ve yıkıcı migration guard'ı eklendi (Issue #22, PR #23). Kapı production bağımlılıklarına uygulanır; geliştirme bağımlılıkları görünür ama engellemez, aksi halde kapı kalıcı olarak kırmızı kalırdı. Production'daki iki high seviyeli lodash açığı `pnpm.overrides` ile kapatıldı.
 - [x] `.gitattributes` ile satır sonları normalize edildi (Issue #22, PR #23).
-- [x] Production güvenlik başlıkları `vercel.json` üzerinden eklendi: CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy (Issue #29). `PROJECT_ARCHITECT.md` §06 B3 gereği.
+- [x] Production güvenlik başlıkları `vercel.json` üzerinden eklendi: CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy (Issue #29). Pilot öncesi güvenlik listesinin gereği; bkz. bölüm 4 · v1.5.
 - [x] CI tetikleyicileri düzeltildi: `pull_request` artık hedef dal filtresi olmadan çalışır (Issue #27). Öncesinde base'i `main` olmayan PR'lar hiçbir kontrol almıyordu.
 
 **Kapsam dışına alınanlar (gerekçeleriyle `PLATFORM_SETTINGS.md` bölüm 4 ve 5'te kayıtlı):**
@@ -295,11 +303,12 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Dört rol için kabul testi ve tenant izolasyon testi.
 - [ ] Gerçek pilot kurumun kurum yöneticisi/öğretmen/öğrenci/veli hesaplarının açılması. Mekanizma Faz E7'de doğrulanmış olacağı için burada yalnızca pilot verisiyle tekrarlanır.
 - [ ] KVKK veri envanteri, log sanitization ve erişim matrisi denetimi.
-- [ ] KVKK hukuki hazırlık: kurumla veri işleme sözleşmesi (kurum veri sorumlusu, ORBIT veri işleyen), velilere aydınlatma metni ve açık rıza akışı, silme hakkı uygulaması (`PROJECT_ARCHITECT.md` §06 B12).
+- [ ] KVKK hukuki hazırlık: kurumla veri işleme sözleşmesi (kurum veri sorumlusu, ORBIT veri işleyen), velilere aydınlatma metni ve açık rıza akışı, silme hakkı uygulaması (pilot öncesi güvenlik listesi, madde 12).
 - [ ] Kişisel verinin yurt dışında (Supabase `eu-central-1`, Frankfurt) tutulmasına ilişkin kararın netleştirilmesi ve belgelenmesi.
 - [ ] Rate limit, CORS, security headers ve production hata mesajları denetimi.
 - [ ] Realtime kopması, ağ hatası ve boş veri fallback senaryoları.
 - [ ] Supabase/Vercel ücretsiz katman kullanım ve bütçe alarmı kontrolü.
+- [ ] **Yedekleme ve kurtarma planı.** Günlük otomatik snapshot'ın açık olduğu, saklama süresi ve bir geri yükleme provasının yapıldığı doğrulanır. Gerçek kurum verisi girdikten sonra ilk kez sınanacak bir yedek, yedek sayılmaz.
 - [ ] Prettier, ESLint, TypeScript, Vitest, SQL/RLS testleri ve production build.
 - [ ] Pilot kurumdan ölçülebilir geri bildirim ve hata listesi.
 
@@ -334,29 +343,29 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 ### E1 - Kurum kurma makinesi
 
-- [ ] İkinci platform operatörü kaydının eklenmesi (D4'ün kalanı) ve `display_name` düzeltmesi.
-- [ ] Platform operatörünün girişte `/platform` paneline düşmesi.
-- [ ] `organization_memberships.person_code` + kurum başına benzersizlik ve 1000'den başlayan tahsis.
-- [ ] `bootstrap-organization`'ın `inviteUserByEmail` yerine `admin.createUser` + geçici şifre kullanması; davet yolunun kaldırılması.
-- [ ] Panelin giriş numarası ve geçici şifreyi bir kez göstermesi; yazdırılabilir çıktı.
-- [ ] Her geçici şifre üretiminin `platform_audit_events`'e yazılması. Operatör kimlik bilgisi ürettiğinde bunu görebilen bir kayıt kalmak zorundadır; bkz. `PROJECT_STATE.md` bölüm 10 bağlayıcı kuralı.
-- [ ] pgTAP: `person_code` benzersizliği, kurum başına 1000'den başlaması ve **aynı kişinin iki kurumda ayrı hesap alması** (bkz. `DECISION_LOG.md` — "Bir giriş hesabı tek kuruma aittir").
+- [x] İkinci platform operatörü kaydının eklenmesi (D4'ün kalanı) ve `display_name` düzeltmesi.
+- [x] Platform operatörünün girişte `/platform` paneline düşmesi.
+- [x] `organization_memberships.person_code` + kurum başına benzersizlik ve 1000'den başlayan tahsis.
+- [x] `bootstrap-organization`'ın `inviteUserByEmail` yerine `admin.createUser` + geçici şifre kullanması; davet yolunun kaldırılması.
+- [x] Panelin giriş numarası ve geçici şifreyi bir kez göstermesi; yazdırılabilir çıktı.
+- [x] Her geçici şifre üretiminin `platform_audit_events`'e yazılması. Operatör kimlik bilgisi ürettiğinde bunu görebilen bir kayıt kalmak zorundadır; bkz. `PROJECT_STATE.md` bölüm 10 bağlayıcı kuralı.
+- [x] pgTAP: `person_code` benzersizliği, kurum başına 1000'den başlaması ve **aynı kişinin iki kurumda ayrı hesap alması** (bkz. `DECISION_LOG.md` — "Bir giriş hesabı tek kuruma aittir").
 
 **Release gate:** Panelden kurulan bir kurumun yöneticisi, kendisine verilen numara ve geçici şifreyle giriş yapabilir. Hiçbir adımda e-posta gerekmez.
 
 ### E2 - Test kurumunun kaldırılması
 
-- [ ] `orbitdershane` kurumunun, şubelerinin, üyeliklerinin ve denetim kayıtlarının silinmesi.
-- [ ] Kurucu ekip üyesinin kurum üyeliğinin sonlandırılması; yalnızca platform operatörü kalması.
+- [x] `orbitdershane` kurumunun, şubelerinin, üyeliklerinin ve denetim kayıtlarının silinmesi.
+- [x] Kurucu ekip üyesinin kurum üyeliğinin sonlandırılması; yalnızca platform operatörü kalması.
 
 **Not:** Geri alınamaz bir işlemdir. Silinecek kayıtlar önce listelenip onaya sunulur. E1 tamamlanmadan yapılmaz.
 
 ### E3 - İlk giriş kilidi ve numarayla giriş
 
-- [ ] `profiles.must_change_password` ve `profiles.password_expires_at` (7 gün).
-- [ ] Şifre değiştirilmeden hiçbir ekrana gidilemeyen kilit ekranı.
+- [x] `profiles.must_change_password` ve `profiles.password_expires_at` (7 gün).
+- [x] Şifre değiştirilmeden hiçbir ekrana gidilemeyen kilit ekranı.
 - [x] `loginIdentifier`'ın giriş ekranına bağlanması; giriş alanının e-posta ve 8 haneli numarayı birlikte kabul etmesi (Issue #57). Alan `type="email"` olduğu için tarayıcı `10011000` girdisini "@ eksik" diye reddediyordu ve numarayla giriş hiç mümkün değildi.
-- [ ] Kilidin sunucu tarafında da anlam taşıması için yardımcı fonksiyon; v1.2'de iş tablolarının RLS politikalarına koşul olarak girer.
+- [x] Kilidin sunucu tarafında da anlam taşıması için yardımcı fonksiyon; v1.2'de iş tablolarının RLS politikalarına koşul olarak girer.
 
 **Not:** `must_change_password` kesinlikle `user_metadata`'ya konmaz; orayı kullanıcı kendisi yazabilir ve kilidi atlar.
 
@@ -462,7 +471,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - Atomik Conventional Commits.
 - İlgili Vitest ve SQL/RLS güvenlik testleri.
 - Prettier, ESLint, TypeScript, test ve build kontrolleri.
-- `.ai/PROJECT_STATE.md` ile `.ai/WORK_LOG.md` güncellemesi; mimari karar varsa `DECISION_LOG.md` güncellemesi.
+- Değişen kararlar `DECISION_LOG.md`'a, durum değişikliği `ROADMAP.md` §0'a, panel ayarı `PLATFORM_SETTINGS.md`'ye **aynı PR içinde** işlenir.
 - Draft PR, diğer ekip üyesinin review onayı ve yeşil CI olmadan merge yapılmaması.
 
 **Taşınabilirlik kontrolü** (bkz. `DECISION_LOG.md` — "Taşınabilirlik sınırı"):

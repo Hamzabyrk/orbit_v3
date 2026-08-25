@@ -35,48 +35,14 @@ ORBIT; devamsızlık takibi, ders programı, deneme sınavı analizleri, veli il
 ## 📁 Klasör Yapısı
 
 ```
-dashboard-dershane/
-├── .ai/                            # Çoklu-YZ Ortak Hafıza Sistemi
-│   ├── PROJECT_STATE.md            # Canlı mimari durum ve veri modelleri
-│   ├── DECISION_LOG.md             # Alınan mimari kararlar (ADR)
-│   └── WORK_LOG.md                 # Yapılan işler ve geliştirme günlüğü
-├── .github/                        # CI/CD ve GitHub Şablonları
-│   ├── workflows/ci.yml            # PR ve push kalite kapısı
-│   ├── ISSUE_TEMPLATE/             # Özellik ve görev şablonları
-│   └── PULL_REQUEST_TEMPLATE.md    # PR kontrol listesi
-├── client/
-│   ├── public/                     # Logo, marka ikonları ve statik varlıklar
-│   └── src/
-│       ├── components/
-│       │   ├── ui/                 # 53 adet Radix/shadcn UI primitifi
-│       │   ├── education/           # ORBIT Eğitim Çekirdek Ekranları (rol/sayfa bazlı bölünmüş)
-│       │   │   ├── types.ts          # Student/ClassGroup/ScheduleItem/Automation/PaymentRow
-│       │   │   ├── mockData.ts       # Tüm mock veri + roleMeta/roleEmail/allNav
-│       │   │   ├── shared.tsx        # Badge, StatCard, PageHeader vb. paylaşılan UI
-│       │   │   ├── LoginScreen.tsx   # EducationLoginScreen
-│       │   │   ├── EducationPlatform.tsx # Kompozisyon kökü
-│       │   │   ├── dashboards/       # Rol bazlı dashboard'lar
-│       │   │   └── pages/            # Öğrenciler, Sınıflar, Yoklama, Ayarlar vb.
-│       │   ├── educationAccess.ts  # Rol bazlı yetki matrisi (RBAC)
-│       │   ├── educationAccess.test.ts # Yetki testleri
-│       │   ├── OrbitMark.tsx       # Logo / Marka bileşeni
-│       │   └── ErrorBoundary.tsx   # React Hata Yakalayıcı
-│       ├── contexts/               # ThemeProvider vb. React Context'leri
-│       ├── hooks/                  # useMobile, useComposition vb. özel hook'lar
-│       ├── lib/                    # supabaseClient, documents, utils, demoStorage
-│       ├── pages/
-│       │   ├── Home.tsx            # Temiz ana sayfa / Login yönlendirici
-│       │   └── NotFound.tsx        # 404 Sayfası
-│       ├── App.tsx                 # Uygulama kabuğu ve rota tanımları
-│       ├── index.css               # Tailwind CSS v4 ve ORBIT renk/tipografi tokenları
-│       └── main.tsx                # React DOM Mount
-├── supabase/
-│   └── migrations/                 # Veritabanı migration dosyaları
-├── PROJECT_ARCHITECT.md            # Çoklu-YZ ve 2 Kişilik Ekip Anayasası
-├── CONTRIBUTING.md                 # Git kuralları ve PR süreçleri
-├── package.json
-└── tsconfig.json
+client/src/      # React uygulaması — auth, platform paneli, dershane ekranları
+supabase/        # Migration'lar, Edge Function'lar ve pgTAP testleri
+.ai/             # Mimari kararlar, yol haritası ve platform ayarları
+.github/         # CI iş akışları ve şablonlar
 ```
+
+Dosya dosya ayrıntı — hangi modül ne yapar, hangi servis nerede yaşar — tek yerde tutulur:
+**[`.ai/PROJECT_STATE.md`](.ai/PROJECT_STATE.md) bölüm 5.** Burada ikinci bir kopya tutulmuyor; iki ağaç bir süre sonra birbirini tutmuyor.
 
 ---
 
@@ -114,15 +80,8 @@ Giriş ekranında **Kurum Yöneticisi, Öğretmen, Öğrenci veya Veli** rolleri
 
 ---
 
-## 🤝 Geliştirme ve Git Kuralları (Ekip Anayasası)
+## 🤝 Geliştirme ve Git Kuralları
 
-Bu repoda iki kişilik ekip ve YZ ajanları (`PROJECT_ARCHITECT.md` ve `CONTRIBUTING.md`) kurallarına göre çalışır:
+Kurallar tek yerde yaşar: **[`CONTRIBUTING.md`](CONTRIBUTING.md)**. Özet — `main`'e doğrudan commit yok, her iş `feat/<issue-no>-<kisa-ad>` branch'i ve PR üzerinden ilerler, karşılıklı review zorunludur.
 
-1. **`main` Dalına Doğrudan Commit Yasaktır:**
-   Her özellik veya düzeltme için `feat/ozellik-adi` veya `fix/hata-adi` formatında branch açılır.
-2. **Atomik Commitler:**
-   Commit mesajları `feat:`, `fix:`, `refactor:`, `test:` standartlarında yazılır.
-3. **Çoklu-YZ Ortak Hafızası:**
-   Her YZ oturumu öncesinde `.ai/PROJECT_STATE.md` okunur, iş tamamlandığında `.ai/WORK_LOG.md` güncellenir.
-4. **Code Review:**
-   PR açıldığında diğer ekip üyesinin review onayı olmadan `main` ile birleştirilemez.
+YZ ajanlarıyla çalışma düzeni için `.ai/AGENT_WORKFLOW.md`, projeye giriş için kökteki **[`AGENTS.md`](AGENTS.md)**.

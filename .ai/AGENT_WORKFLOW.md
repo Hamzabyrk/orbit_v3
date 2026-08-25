@@ -16,7 +16,7 @@ Bu yüzden iş ikiye ayrıldı: **yazan** ve **denetleyen**. Bu belge o ayrımı
 
 ## Döngü
 
-Her devredilen iş aynı beş adımdan geçer. Adım atlanmaz.
+Her devredilen iş aynı altı adımdan geçer. Adım atlanmaz.
 
 ```
 1. BRİFİNG    Denetleyen yazar → .ai/tasks/<sıra>-<kısa-ad>.md
@@ -27,7 +27,8 @@ Her devredilen iş aynı beş adımdan geçer. Adım atlanmaz.
 5. İNCELEME   Denetleyen diff'i okur, kapıyı KENDİ çalıştırır
                 ├─ kabul  → 6. adım
                 └─ revizyon → 2. adıma dön
-6. KAPANIŞ    Denetleyen commit, PR, production; brifing dosyasını SİLER
+6. KAPANIŞ    Denetleyen commit, PR, production; belgeyi günceller,
+                brifing dosyasını SİLER
 ```
 
 Döngü tamamlanmadan sıradaki iş başlamaz.
@@ -153,8 +154,15 @@ Değişiklik gerçekten gerekliyse doğru yol brifingi genişletip yeniden istem
 
 - Commit, PR ve production **yalnızca denetleyene** aittir.
 - PR açıklaması **neyin neden yapıldığını** anlatır; değişiklik listesi yetmez.
+- **Belgeyi aynı PR'da güncelle.** Bu adım isteğe bağlı değildir:
+  - bir dilim bittiyse → `ROADMAP.md` §0 tablosu **ve** §4.5'teki kutucuk
+  - bir mimari karar alındı veya değişti → `DECISION_LOG.md` (**indekse de satır ekle**)
+  - panelden bir ayar değiştiyse → `PLATFORM_SETTINGS.md`
+  - klasör veya servis katmanı değiştiyse → `PROJECT_STATE.md` §5
 - **Biten brifingi sil.** Git geçmişi kaydı tutar; çalışma kopyası temiz kalır.
 - Yeni bir hata çıktıysa **aşağıdaki kural listesine ekle.**
+
+> **Neden kapanışta:** Belge güncellemesi uzun süre kimsenin adımı değildi ve sonuç ölçüldü — 28 commit boyunca çalışma günlüğü hiç yazılmadı, `ROADMAP.md` §0 bir gün geride kaldı ve bitmiş üç dilimi "başlanmadı" gösterdi. O tablo, bu belgenin denetleyene gösterdiği tek bağlam çıpasıydı. Ayrı bir "belgeleri güncelleme" işi açmak çözüm değil: açılır, sıraya girer, yapılmaz. Bkz. `DECISION_LOG.md` — "Belge sayısı değil bakım borcu".
 
 ### Bağlamı koru
 
