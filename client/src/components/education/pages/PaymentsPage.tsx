@@ -1,6 +1,6 @@
 import { CircleAlert, Clock3, WalletCards } from "lucide-react";
 import { toast } from "sonner";
-import { paymentRows } from "../mockData";
+import { paymentRows } from "../demoData";
 import { Badge, PageHeader, StatCard } from "../shared";
 import type { Role } from "../types";
 

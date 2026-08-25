@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { classes } from "../mockData";
+import { classes } from "../demoData";
 import type { Homework, HomeworkSubject } from "../types";
 
 const TEACHER_NAME = "Merve Karaca";
