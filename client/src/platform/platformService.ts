@@ -60,6 +60,10 @@ export type OrganizationCredentials = {
   organizationCode: number;
   loginNumber: string;
   temporaryPassword: string;
+  /** Sunucu alanı yoksa eski yanıtlarla uyumluluk için undefined kalır. */
+  passwordLockSet?: boolean;
+  /** Denetim servisi alanı eklenene kadar undefined kalabilir. */
+  auditWritten?: boolean;
 };
 
 /**
@@ -251,6 +255,14 @@ export async function resetAdminPassword(
   const loginNumber = payload?.login_number;
   const temporaryPassword = payload?.temporary_password;
   const organizationCode = payload?.organization_code;
+  const passwordLockSet =
+    typeof payload?.password_lock_set === "boolean"
+      ? payload.password_lock_set
+      : undefined;
+  const auditWritten =
+    typeof payload?.audit_written === "boolean"
+      ? payload.audit_written
+      : undefined;
 
   // Şifre sunucuda zaten değişti. Yanıtı okuyamazsak sessizce başarılı dönmek,
   // kimsenin bilmediği bir şifreyle hesabı büsbütün kilitlemek olurdu.
@@ -264,7 +276,13 @@ export async function resetAdminPassword(
     );
   }
 
-  return { organizationCode, loginNumber, temporaryPassword };
+  return {
+    organizationCode,
+    loginNumber,
+    temporaryPassword,
+    passwordLockSet,
+    auditWritten,
+  };
 }
 
 /**
@@ -304,6 +322,14 @@ export async function createOrganization(
     const loginNumber = payload?.login_number;
     const temporaryPassword = payload?.temporary_password;
     const organizationCode = payload?.organization_code;
+    const passwordLockSet =
+      typeof payload?.password_lock_set === "boolean"
+        ? payload.password_lock_set
+        : undefined;
+    const auditWritten =
+      typeof payload?.audit_written === "boolean"
+        ? payload.audit_written
+        : undefined;
 
     // Kurum oluştu ama giriş bilgisi yanıttan okunamadıysa sessizce başarılı
     // dönmek en kötü sonuç olurdu: operatör "kuruldu" görür, şifre hiçbir yerde
@@ -319,7 +345,13 @@ export async function createOrganization(
       );
     }
 
-    return { organizationCode, loginNumber, temporaryPassword };
+    return {
+      organizationCode,
+      loginNumber,
+      temporaryPassword,
+      passwordLockSet,
+      auditWritten,
+    };
   }
 
   throw new Error(
@@ -393,6 +425,19 @@ export type OrganizationStats = {
   auditEventCount: number;
 };
 
+function toFiniteInteger(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && Number.isInteger(value) ? value : null;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && Number.isInteger(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
 export async function loadOrganizationStats(
   organizationId: string
 ): Promise<OrganizationStats | null> {
@@ -408,11 +453,24 @@ export async function loadOrganizationStats(
   }
 
   const payload = data as Record<string, unknown>;
+  const memberCount = toFiniteInteger(payload.member_count);
+  const adminCount = toFiniteInteger(payload.admin_count);
+  const branchCount = toFiniteInteger(payload.branch_count);
+  const auditEventCount = toFiniteInteger(payload.audit_event_count);
+
+  if (
+    memberCount === null ||
+    adminCount === null ||
+    branchCount === null ||
+    auditEventCount === null
+  ) {
+    return null;
+  }
 
   return {
-    memberCount: Number(payload.member_count ?? 0),
-    adminCount: Number(payload.admin_count ?? 0),
-    branchCount: Number(payload.branch_count ?? 0),
-    auditEventCount: Number(payload.audit_event_count ?? 0),
+    memberCount,
+    adminCount,
+    branchCount,
+    auditEventCount,
   };
 }
