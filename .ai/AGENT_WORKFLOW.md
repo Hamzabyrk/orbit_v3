@@ -22,13 +22,17 @@ Her devredilen iş aynı beş adımdan geçer. Adım atlanmaz.
 1. BRİFİNG    Denetleyen yazar → .ai/tasks/<sıra>-<kısa-ad>.md
 2. UYGULAMA   Yazan uygular, kalite kapısını çalıştırır, DURUR
 3. TESLİM     Yazan beş çıktıyı verir (aşağıda)
-4. İNCELEME   Denetleyen diff'i okur, kapıyı KENDİ çalıştırır
-                ├─ kabul  → 5. adım
+4. KAPSAM     Denetleyen: brifing dışı dosyaya dokunulmuş mu?
+                └─ dokunulmuşsa → REDDET, içeriğe hiç bakma
+5. İNCELEME   Denetleyen diff'i okur, kapıyı KENDİ çalıştırır
+                ├─ kabul  → 6. adım
                 └─ revizyon → 2. adıma dön
-5. KAPANIŞ    Denetleyen commit, PR, production; brifing dosyasını SİLER
+6. KAPANIŞ    Denetleyen commit, PR, production; brifing dosyasını SİLER
 ```
 
 Döngü tamamlanmadan sıradaki iş başlamaz.
+
+**4. adım 5. adımdan önce gelir ve atlanmaz.** Kapsam ihlali varken koda bakmak, kötü bir alışkanlığı ödüllendirir: kod iyiyse ihlal görmezden gelinir ve sınır aşınır. Önce sınır, sonra içerik.
 
 ---
 
@@ -61,6 +65,7 @@ Sınır şu soruyla çizilir: **yanlış yapılırsa sessizce mi geçer, yoksa h
 - ESLint kuralını `eslint-disable` ile **susturma**. Kural doğrudur; kod yanlıştır.
 - Brifingde **listelenmeyen özellik ekleme**. "Faydalı olur" diye eklenen şey kapsam dışıdır.
 - Var olan dosyaları "iyileştirme".
+- Görevi tamamlamak için **başka bir dosyayı değiştirmen gerektiğini düşünüyorsan yapma** — dur ve sor. Kapsam dışı bir dosyaya dokunmak, teslimin içeriğine bakılmadan reddedilmesine yol açar.
 
 ### Belirsizlik kuralı
 
@@ -84,7 +89,7 @@ Varsayım yapmak zorunda kaldıysan teslimde **açıkça yaz**. Nerede tahmin et
 4. **Varsayımların** — yoksa "varsayım yok" yaz
 5. **Emin olamadıkların**
 
-6. ve 5. maddeler atlanamaz.
+Son iki madde atlanamaz.
 
 ### Kalite kapısı
 
@@ -115,14 +120,34 @@ Bu bölüm en az diğeri kadar bağlayıcıdır. Denetleyenin kayması, yazanın
 - İddia edilen davranışı **ölç**. Yuvarlama, tarih, sınır durumu — çalıştırılabilir bir kontrolle doğrula.
 - İçe aktarılan her API'nin **gerçekten var olduğunu** kontrol et. Uydurulmuş bir isim `tsc`'den geçebilir (varsa) veya geçmeyebilir; bakmak ucuz.
 
-### Kapsam kontrolü — her teslimde
+### Kapsam kontrolü — her teslimde, koda bakmadan ÖNCE
+
+Bu adım atlanmaz ve içerik incelemesinden **önce** gelir.
 
 ```bash
-git status --short      # brifing dışı dosya var mı
-git log --oneline -3    # izinsiz commit var mı
+git status --short                    # brifing dışı dosya var mı
+git log --oneline -3                  # izinsiz commit var mı
+git diff --stat                       # kaç dosya, kaç satır
+git diff --name-only                  # tam liste
 ```
 
-`supabase/migrations/` altında beklenmeyen dosya, `.env`/anahtar dokunuşu veya `eslint-disable` görürsen **kabul etme**.
+Sonra listeyi brifingdeki dosya adlarıyla **tek tek karşılaştır.** Beklenen dosya sayısını brifingi yazarken zaten biliyorsun; sayı tutmuyorsa dur.
+
+Şunlardan biri varsa **içeriğe bakmadan reddet:**
+
+| Bulgu                                | Neden reddedilir                                                                  |
+| ------------------------------------ | --------------------------------------------------------------------------------- |
+| Brifingde adı geçmeyen dosya         | Kapsam ihlali; "faydalı olur" diye yapılan değişiklik denetlenmemiş değişikliktir |
+| `supabase/` altında herhangi bir şey | Şema ve yetkilendirme devredilmez                                                 |
+| `.ai/` altında brifing dışı dosya    | Proje hafızası                                                                    |
+| `package.json` veya kilit dosyası    | Bağımlılık yüzeyi                                                                 |
+| `.env*`, anahtar, token              | Hiçbir koşulda                                                                    |
+| İzinsiz commit veya push             | Kapanış yalnızca denetleyene ait                                                  |
+| `eslint-disable`                     | Kural doğrudur; kod yanlıştır                                                     |
+
+Reddetmek kaba değil, **sınırı koruyan şey.** Kod iyi diye ihlali görmezden gelmek sınırı bir kez aşındırır ve bir daha geri gelmez.
+
+Değişiklik gerçekten gerekliyse doğru yol brifingi genişletip yeniden istemektir — sessizce kabul etmek değil.
 
 ### Kapanış
 

@@ -99,4 +99,6 @@ Sonda kısa bir özet: kaç bulgu, hangi mercekten kaç tane.
 
 ## Bitince
 
-Rapordan başka bir şey verme. `git status --short` çıktısını da ekle — **boş olmalı**.
+Rapordan başka bir şey verme.
+
+Sona `git status --short` çıktısını ekle. **Boş olmalı.** Bu bir inceleme görevi; tek bir dosya bile değişmişse görev kuralı çiğnenmiş demektir ve rapor incelenmeden reddedilir.
