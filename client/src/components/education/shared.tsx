@@ -233,3 +233,22 @@ export function ReportCard({
     </section>
   );
 }
+
+export function EmptyState({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-8 text-center">
+      <p className="text-[12px] font-extrabold text-slate-700">{title}</p>
+      {description ? (
+        <p className="mt-1.5 max-w-sm text-[11px] leading-5 text-slate-500">
+          {description}
+        </p>
+      ) : null}
+    </div>
+  );
+}

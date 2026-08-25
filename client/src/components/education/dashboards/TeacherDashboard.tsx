@@ -1,6 +1,6 @@
 import { BarChart3, BookOpen, CalendarDays, CircleAlert } from "lucide-react";
-import { schedule } from "../demoData";
-import { PageHeader, StatCard } from "../shared";
+import { schedule } from "../educationData";
+import { EmptyState, PageHeader, StatCard } from "../shared";
 import type { Section } from "../types";
 
 export function TeacherDashboard({
@@ -8,6 +8,10 @@ export function TeacherDashboard({
 }: {
   onNavigate: (section: Section) => void;
 }) {
+  const visibleSchedule = schedule.filter(
+    item => item.teacher === "Merve Karaca" || item.teacher === "Seda Kılıç"
+  );
+
   return (
     <>
       <PageHeader
@@ -52,30 +56,27 @@ export function TeacherDashboard({
             Bugünün dersleri
           </h2>
           <div className="mt-4 space-y-3">
-            {schedule
-              .filter(
-                item =>
-                  item.teacher === "Merve Karaca" ||
-                  item.teacher === "Seda Kılıç"
-              )
-              .map(item => (
-                <div
-                  key={item.time}
-                  className="flex gap-3 rounded-xl border border-slate-100 p-3.5"
-                >
-                  <span className="text-[12px] font-extrabold text-slate-600">
-                    {item.time}
-                  </span>
-                  <div>
-                    <p className="text-[12px] font-bold text-slate-800">
-                      {item.title} · {item.group}
-                    </p>
-                    <p className="mt-1 text-[10px] text-slate-500">
-                      {item.room} · Yoklama ders başlangıcında açılacak
-                    </p>
-                  </div>
+            {visibleSchedule.length === 0 ? (
+              <EmptyState title="Bugün ders programınız görünmüyor" />
+            ) : null}
+            {visibleSchedule.map(item => (
+              <div
+                key={item.time}
+                className="flex gap-3 rounded-xl border border-slate-100 p-3.5"
+              >
+                <span className="text-[12px] font-extrabold text-slate-600">
+                  {item.time}
+                </span>
+                <div>
+                  <p className="text-[12px] font-bold text-slate-800">
+                    {item.title} · {item.group}
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-500">
+                    {item.room} · Yoklama ders başlangıcında açılacak
+                  </p>
                 </div>
-              ))}
+              </div>
+            ))}
           </div>
         </section>
         <section className="rounded-2xl border border-amber-100 bg-amber-50/55 p-5">

@@ -10,8 +10,8 @@ import {
   Users,
   WalletCards,
 } from "lucide-react";
-import { classes, schedule } from "../demoData";
-import { AutomationMini, Badge, StatCard } from "../shared";
+import { classes, schedule } from "../educationData";
+import { AutomationMini, Badge, EmptyState, StatCard } from "../shared";
 import type { Section } from "../types";
 
 export function AdminDashboard({
@@ -19,6 +19,8 @@ export function AdminDashboard({
 }: {
   onNavigate: (section: Section) => void;
 }) {
+  const visibleSchedule = schedule.slice(0, 3);
+
   return (
     <>
       <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-5 py-6 shadow-[0_10px_30px_rgba(15,23,42,.04)] sm:px-7">
@@ -97,7 +99,10 @@ export function AdminDashboard({
             </button>
           </div>
           <div className="mt-4 space-y-3">
-            {schedule.slice(0, 3).map(item => (
+            {visibleSchedule.length === 0 ? (
+              <EmptyState title="Gösterilecek kayıt yok" />
+            ) : null}
+            {visibleSchedule.map(item => (
               <div
                 key={item.time}
                 className="flex items-center gap-3 rounded-xl border border-slate-100 px-3.5 py-3"
@@ -168,6 +173,9 @@ export function AdminDashboard({
             </button>
           </div>
           <div className="mt-4 space-y-3">
+            {classes.length === 0 ? (
+              <EmptyState title="Gösterilecek kayıt yok" />
+            ) : null}
             {classes.map(group => (
               <div
                 key={group.id}

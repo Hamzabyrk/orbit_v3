@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { students } from "../demoData";
-import { Badge, PageHeader } from "../shared";
+import { students } from "../educationData";
+import { Badge, EmptyState, PageHeader } from "../shared";
 import type { AttendanceState, Role } from "../types";
 
 export function AttendancePage({
@@ -67,6 +67,12 @@ export function AttendancePage({
           </Badge>
         </div>
         <div className="divide-y divide-slate-100">
+          {selected.length === 0 ? (
+            <EmptyState
+              title="Henüz öğrenci kaydı yok"
+              description="Yoklama alabilmek için önce öğrenci eklenmesi gerekir."
+            />
+          ) : null}
           {selected.map(student => (
             <div
               key={student.id}

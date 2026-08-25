@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { dayPlanEventsByRole } from "../demoData";
-import { PageHeader } from "../shared";
+import { dayPlanEventsByRole } from "../educationData";
+import { EmptyState, PageHeader } from "../shared";
 import type { DayPlanRole, DayPlanTask } from "../types";
 import { DayPlanCalendar } from "./DayPlanCalendar";
 import { DayPlanToDoBoard } from "./DayPlanToDoBoard";
@@ -79,6 +79,8 @@ export function DayPlanPage({
       <div className="mt-5">
         {tab === "todo" ? (
           <DayPlanToDoBoard tasks={tasks} setTasks={setTasks} />
+        ) : events.length === 0 ? (
+          <EmptyState title="Bugün için planlanmış bir şey yok" />
         ) : (
           <DayPlanCalendar events={events} />
         )}
