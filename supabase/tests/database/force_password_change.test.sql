@@ -10,7 +10,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(16);
+select plan(17);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -193,10 +193,32 @@ select is(
 
 -- Yardımcı fonksiyon süreyi okumalı. Okumasaydı v1.2'de iş tablolarının
 -- politikalarına girdiğinde süresi dolmuş kullanıcı serbest kalırdı.
-select is(
+--
+-- Bayrak bilinçli olarak `false`, yalnızca son tarih geçmiş durumda: testin
+-- ölçtüğü tek şey `or` dalının gerçekten okunduğu. Bayrak `true` bırakılsaydı
+-- test, süre hiç okunmasa bile geçerdi.
+update public.profiles
+set must_change_password = false,
+    password_expires_at = now() - interval '1 hour'
+where id = 'a9000000-0000-0000-0000-000000000001';
+
+select ok(
   public.current_user_must_change_password(),
-  true,
-  'the helper reports an unknown profile as locked (fail-closed)'
+  'a past deadline alone reports locked, even with the flag cleared'
+);
+
+-- Profil bulunamadığında KİLİTLİ dönmeli. Önceki hâli `false` dönüyordu;
+-- istemci ise aynı durumda kilidi varsayıyordu — aynı soruya iki zıt cevap.
+--
+-- Not: `request.jwt.claim.sub` işlem boyunca geçerlidir; bilinmeyen profili
+-- sınamak için açıkça var olmayan bir kimliğe çevrilmesi gerekir.
+select set_config(
+  'request.jwt.claim.sub', 'a9000000-0000-0000-0000-0000000000ff', true
+);
+
+select ok(
+  public.current_user_must_change_password(),
+  'an unknown profile is reported as locked (fail-closed)'
 );
 
 select * from finish();

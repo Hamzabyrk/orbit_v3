@@ -26,8 +26,9 @@ export function CredentialsPanel({
     `Kurum      : ${organizationName}`,
     `Giriş no   : ${credentials.loginNumber}`,
     `Geçici şifre: ${credentials.temporaryPassword}`,
-    "",
-    "İlk girişte şifrenizi değiştirmeniz istenecektir.",
+    ...(credentials.passwordLockSet === false
+      ? []
+      : ["", "İlk girişte şifrenizi değiştirmeniz istenecektir."]),
   ].join("\n");
 
   const copy = async () => {
@@ -90,10 +91,37 @@ export function CredentialsPanel({
         </div>
       </dl>
 
+      <div className="space-y-2" aria-live="polite">
+        {credentials.passwordLockSet === false ? (
+          <div
+            role="alert"
+            className="rounded-xl border-2 border-rose-400 bg-rose-50 p-3 text-[12px] leading-5 text-rose-900 dark:border-rose-500 dark:bg-rose-500/10 dark:text-rose-100"
+          >
+            İlk giriş kilidi kurulamadı. Bu hesap geçici şifresini değiştirmeden
+            sisteme girebilir. Kurum yöneticisine şifresini ilk girişte
+            kendisinin değiştirmesi gerektiğini bildirin ve panelden şifre
+            sıfırlamayı tekrar deneyin.
+          </div>
+        ) : null}
+
+        {credentials.auditWritten === false ? (
+          <div
+            role="alert"
+            className="rounded-xl border-2 border-rose-400 bg-rose-50 p-3 text-[12px] leading-5 text-rose-900 dark:border-rose-500 dark:bg-rose-500/10 dark:text-rose-100"
+          >
+            Bu işlemin denetim kaydı yazılamadı. İşlem gerçekleşti ancak
+            platform denetim listesinde görünmeyecek.
+          </div>
+        ) : null}
+      </div>
+
       <p className="text-[11px] leading-5 text-muted-foreground">
-        Kurum yöneticisi bu numarayla giriş yapar ve ilk girişte şifresini
-        değiştirmek zorundadır. Giriş numarasının ilk dört hanesi kurum kodudur
-        (<span className="font-mono">{credentials.organizationCode}</span>); bu
+        Kurum yöneticisi bu numarayla giriş yapar
+        {credentials.passwordLockSet === false
+          ? "."
+          : " ve ilk girişte şifresini değiştirmek zorundadır."} Giriş
+        numarasının ilk dört hanesi kurum kodudur (
+        <span className="font-mono">{credentials.organizationCode}</span>); bu
         kurumun diğer kullanıcıları da aynı kodla başlayan numaralar alır.
       </p>
 
@@ -219,7 +247,10 @@ function PrintableSlip({
 
       <p style={{ marginTop: "20px", fontSize: "12px", lineHeight: 1.6 }}>
         Giriş ekranında <strong>giriş numaranızı</strong> ve geçici şifrenizi
-        yazın. İlk girişte şifrenizi değiştirmeniz istenecektir.
+        yazın.
+        {credentials.passwordLockSet === false
+          ? null
+          : " İlk girişte şifrenizi değiştirmeniz istenecektir."}
       </p>
 
       <p style={{ marginTop: "16px", fontSize: "11px", color: "#444" }}>
