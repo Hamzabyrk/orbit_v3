@@ -16,9 +16,10 @@ Bu yüzden iş ikiye ayrıldı: **yazan** ve **denetleyen**. Bu belge o ayrımı
 
 ## Döngü
 
-Her devredilen iş aynı altı adımdan geçer. Adım atlanmaz.
+Her devredilen iş aynı yedi adımdan geçer. Adım atlanmaz.
 
 ```
+0. TAZELE     Denetleyen: main'i çek, ÜZERİNDEN yeni dal aç
 1. BRİFİNG    Denetleyen yazar → .ai/tasks/<sıra>-<kısa-ad>.md
 2. UYGULAMA   Yazan uygular, kalite kapısını çalıştırır, DURUR
 3. TESLİM     Yazan beş çıktıyı verir (aşağıda)
@@ -27,13 +28,43 @@ Her devredilen iş aynı altı adımdan geçer. Adım atlanmaz.
 5. İNCELEME   Denetleyen diff'i okur, kapıyı KENDİ çalıştırır
                 ├─ kabul  → 6. adım
                 └─ revizyon → 2. adıma dön
-6. KAPANIŞ    Denetleyen commit, PR, production; belgeyi günceller,
-                brifing dosyasını SİLER
+6. KAPANIŞ    Denetleyen commit, PR, belgeyi günceller, brifingi siler
+                └─ merge sonrası: commit'ler main'e GERÇEKTEN girdi mi?
 ```
 
 Döngü tamamlanmadan sıradaki iş başlamaz.
 
 **4. adım 5. adımdan önce gelir ve atlanmaz.** Kapsam ihlali varken koda bakmak, kötü bir alışkanlığı ödüllendirir: kod iyiyse ihlal görmezden gelinir ve sınır aşınır. Önce sınır, sonra içerik.
+
+### 0. adım — tazeleme
+
+Her iş, güncellenmiş `main` üzerinden açılan **yeni bir dalla** başlar. Mevcut bir dala devam edilmez.
+
+```bash
+git fetch origin
+git checkout main && git pull --ff-only
+git checkout -b <tip>/<issue-no>-<kisa-ad>
+```
+
+Bu tek adım iki ayrı hatayı birden kapatır:
+
+- **Bayat çalışma kopyası.** Git kendiliğinden senkronize olmaz. Yazan ajan çalışma kopyasındaki dosyaları okur; kopya geride ise ajan artık geçerli olmayan bir kod tabanına göre iş yapar ve bunu kimse fark etmez.
+- **Merge edilmiş dala commit.** Bir PR merge edildikten sonra o dal ölüdür. Üzerine atılan commit dalda durur, `main`'e hiç girmez ve CI bile koşmaz — çünkü PR kapanmıştır.
+
+> **"Düzenli olarak `git pull` yap" kuralı bilinçli olarak yazılmadı.** Tetikleyicisi olmayan kural uygulanmaz; bu projede `WORK_LOG` tam olarak böyle öldü. Tazeleme bir alışkanlık değil, döngünün **ilk adımıdır** — ve dalı `main` üzerinden açmak, bayatlığı yasaklamak yerine **imkânsız** kılar.
+
+### 6. adımın son yarısı — commit'ler gerçekten indi mi?
+
+PR merge edildikten sonra, o PR'daki her commit'in `main`'e girdiği doğrulanır:
+
+```bash
+git fetch origin
+git merge-base --is-ancestor <commit-sha> origin/main && echo "indi" || echo "SIKISTI"
+```
+
+**Neden gerekli:** Bu projede iki kez, merge edilmiş bir dala sonradan commit atıldı ve commit'ler sessizce kayboldu (PR #52 → `dc70d6e`; PR #78 → iki commit). İkisinde de yerel `git push` başarılı döndü, uzak dal güncellendi ve **hiçbir hata görünmedi** — çünkü teknik olarak bir hata yoktu; commit doğru dala gitti, o dal artık hiçbir yere bağlı değildi.
+
+Sıkışmış commit varsa çözüm: güncel `main` üzerinden yeni dal açıp `git cherry-pick` ile taşımak ve yeni PR açmak.
 
 ---
 

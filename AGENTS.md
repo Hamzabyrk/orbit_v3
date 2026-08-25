@@ -26,6 +26,24 @@ Her dosyanın tek bir sorusu var. Hepsini birden okuma; sorunun hangisi olduğun
 
 **Geçmişi arıyorsan git'e bak.** Kim ne zaman ne yaptı sorusunun cevabı `git log`'dadır. Ayrı bir çalışma günlüğü tutulmuyor — 28 commit boyunca güncellenmediği için emekliye ayrıldı (bkz. `DECISION_LOG.md` — "Belge sayısı değil bakım borcu").
 
+### Sıfırdan bir oturuma başlıyorsan
+
+Yukarıdaki dosyalar **kararları** taşır, **uçuştaki işi** değil. Yarım kalmış bir iş olup olmadığını dosyalardan değil, kendini güncelleyen kaynaklardan öğren:
+
+```bash
+git fetch origin             # ÖNCE bu — yerel kopya kendiliğinden güncellenmez
+git status -sb               # hangi daldayım, main'e göre kaç commit gerideyim
+git log --oneline -15        # son ne yapıldı
+gh pr list                   # açık PR — inceleme bekleyen iş
+ls .ai/tasks/                # devredilmiş, henüz bitmemiş görev
+```
+
+**Çalışma kopyası bayat olabilir ve bunu sana kimse söylemez.** `git` kendiliğinden senkronize olmaz; biri PR merge ettiğinde yerel dosyalar eski kalır. Bir dosyayı okuyup "kod böyle" demeden önce geride olup olmadığına bak. İşe başlıyorsan `AGENT_WORKFLOW.md`'deki **0. adım** geçerlidir: güncel `main` üzerinden yeni dal.
+
+Sonra `ROADMAP.md` §0'ı oku: 🟡 işaretli satır, yarıda kalmış dilimdir.
+
+> **Neden ayrı bir "şu an ne yapılıyor" dosyası yok:** Denendi ve öldü. Elle güncellenen bir durum dosyası, güncellenmediği anda yanlış bilgi kaynağına dönüşür — ve boş bir dosyadan daha zararlıdır, çünkü okuyan ona güvenir. Yukarıdaki dört komut kimsenin bakımına muhtaç değildir.
+
 ---
 
 ## Değişmeyen kısıtlar
