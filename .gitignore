@@ -104,3 +104,7 @@ temp/
 
 # Vercel
 .vercel
+
+# Görev brifingleri — çalışma dosyasıdır, geçmişe girmez.
+# Gerekçe: .ai/AGENT_WORKFLOW.md — "Görev dosyalarının ömrü".
+.ai/tasks/

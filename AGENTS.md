@@ -22,7 +22,7 @@ Her dosyanın tek bir sorusu var. Hepsini birden okuma; sorunun hangisi olduğun
 | **Branch, commit, PR kuralları?**                 | `CONTRIBUTING.md`                               |
 | **Projeyi nasıl çalıştırırım?**                   | `README.md`                                     |
 
-`.ai/tasks/` altındaki dosyalar **tek seferlik görev brifingleridir.** Sana verilmediyse seni ilgilendirmez; işi biten silinir.
+`.ai/tasks/` altındaki dosyalar **tek seferlik görev brifingleridir** ve git'e girmez (`.gitignore`). Sana verilmediyse seni ilgilendirmez; işi biten silinir. Kalıcı kayıt PR açıklamasındadır.
 
 **Geçmişi arıyorsan git'e bak.** Kim ne zaman ne yaptı sorusunun cevabı `git log`'dadır. Ayrı bir çalışma günlüğü tutulmuyor — 28 commit boyunca güncellenmediği için emekliye ayrıldı (bkz. `DECISION_LOG.md` — "Belge sayısı değil bakım borcu").
 
