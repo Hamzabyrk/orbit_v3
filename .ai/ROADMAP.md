@@ -386,7 +386,14 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 ### E4 - İletişim bilgisi ve kurtarma zinciri
 
 - [ ] **Ön koşul: e-posta gönderim sağlayıcısı kurulması** (seçenekler `PLATFORM_SETTINGS.md` bölüm 7). Kurtarma linkini artık biz gönderiyoruz; sağlayıcı olmadan **kurtarma hiç çalışmaz**. Bkz. `DECISION_LOG.md` — "Auth e-postası hiç değişmez".
-- [ ] `profiles.phone`, `profiles.pending_email` ve doğrulama durumu alanları.
+- [x] `profiles.phone` ve `profiles.recovery_email` sütunları, sütun düzeyi yetkiler ve `current_user_has_recovery_channel()` yardımcısı (#95).
+
+  **`pending_email` bilinçli olarak eklenmedi.** Şekli doğrulama akışının nasıl kurulacağına bağlı — jeton saklanacak mı, süre nerede tutulacak, kaç deneme hakkı olacak — ve o tasarım E4'ün ikinci yarısında yapılacak. Bugün kullanılmayacak bir sütun eklemek, şemaya tahmin yazmaktır.
+
+  **`recovery_email` kullanıcıya kapalıdır** ve bu kararın tamamı şu: doğrulama, adresin gerçekten o kişiye ait olduğunu kanıtlamak içindir. Kullanıcı sütunu doğrudan yazabilseydi doğrulama anlamsız kalırdı — ve hesaba kısa süreliğine erişen biri (açık bırakılmış oturum, ödünç cihaz) kendi adresini yazıp **şifre değişse bile duran kalıcı bir arka kapı** bırakabilirdi. pgTAP bunu sabitliyor.
+
+  **Telefon kurtarma kanalı sayılmaz.** Doğrulanmıyor ve üzerinden kod gönderilmiyor; telefonu dolu olan birine "kurtarma yolun var" demek yanlış olurdu.
+
 - [ ] Kurum yöneticisi için ilk girişte **zorunlu** e-posta ekleme ve doğrulama; diğer roller için isteğe bağlı. Doğrulama, ürettiğimiz kodun adrese gönderilip geri girilmesiyle yapılır; GoTrue'nun e-posta değiştirme akışına **dokunulmaz**.
 - [ ] Kurtarma akışı: Edge Function `admin/generate_link` ile link ve 6 haneli kodu üretir, `profiles`'taki doğrulanmış adrese gönderir, denetim kaydı yazar.
 - [ ] Ayarlar ekranının iletişim bölümünün gerçek veriye bağlanması (bugün mock).
