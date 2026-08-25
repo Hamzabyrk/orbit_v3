@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { classes } from "../demoData";
+import { classes } from "../educationData";
 import type { Homework, HomeworkSubject } from "../types";
 
 const TEACHER_NAME = "Merve Karaca";
@@ -110,7 +110,11 @@ export function HomeworkCreateDialog({
               <Label className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
                 Sınıf
               </Label>
-              <Select value={classGroup} onValueChange={setClassGroup}>
+              <Select
+                value={classGroup}
+                onValueChange={setClassGroup}
+                disabled={TEACHER_CLASSES.length === 0}
+              >
                 <SelectTrigger className="mt-1.5 h-9 w-full text-[13px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -122,6 +126,11 @@ export function HomeworkCreateDialog({
                   ))}
                 </SelectContent>
               </Select>
+              {TEACHER_CLASSES.length === 0 ? (
+                <p className="mt-1.5 text-[11px] leading-5 text-slate-500">
+                  Ödev verilebilecek bir sınıf yok.
+                </p>
+              ) : null}
             </div>
             <div>
               <Label className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">

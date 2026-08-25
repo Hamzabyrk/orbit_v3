@@ -1,6 +1,6 @@
 import { BookOpen } from "lucide-react";
-import { schedule } from "../demoData";
-import { Badge, PageHeader } from "../shared";
+import { schedule } from "../educationData";
+import { Badge, EmptyState, PageHeader } from "../shared";
 import type { Role } from "../types";
 
 export function SchedulePage({ role }: { role: Role }) {
@@ -43,6 +43,9 @@ export function SchedulePage({ role }: { role: Role }) {
           )}
         </div>
         <div className="mt-5 space-y-3">
+          {show.length === 0 ? (
+            <EmptyState title="Ders programı henüz oluşturulmadı" />
+          ) : null}
           {show.map(item => (
             <div
               key={`${item.time}-${item.title}`}

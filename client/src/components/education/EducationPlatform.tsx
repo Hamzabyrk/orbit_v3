@@ -14,8 +14,8 @@ import {
   initialAttendances,
   initialAutomations,
   initialHomework,
-  students,
 } from "./demoData";
+import { students } from "./educationData";
 import { allNav } from "./navigation";
 import { roleMeta } from "./roleMeta";
 import { AssessmentsPage } from "./pages/AssessmentsPage";

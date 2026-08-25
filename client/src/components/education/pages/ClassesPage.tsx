@@ -1,7 +1,7 @@
 import { ChevronRight, School } from "lucide-react";
 import { toast } from "sonner";
-import { classes } from "../demoData";
-import { Badge, PageHeader } from "../shared";
+import { classes } from "../educationData";
+import { Badge, EmptyState, PageHeader } from "../shared";
 import type { Role, Section } from "../types";
 
 export function ClassesPage({
@@ -33,6 +33,9 @@ export function ClassesPage({
         }
       />
       <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {shown.length === 0 ? (
+          <EmptyState title="Henüz sınıf kaydı yok" />
+        ) : null}
         {shown.map(group => (
           <article
             key={group.id}

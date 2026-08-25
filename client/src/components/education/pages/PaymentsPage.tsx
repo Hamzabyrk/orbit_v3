@@ -1,7 +1,7 @@
 import { CircleAlert, Clock3, WalletCards } from "lucide-react";
 import { toast } from "sonner";
-import { paymentRows } from "../demoData";
-import { Badge, PageHeader, StatCard } from "../shared";
+import { paymentRows } from "../educationData";
+import { Badge, EmptyState, PageHeader, StatCard } from "../shared";
 import type { Role } from "../types";
 
 export function PaymentsPage({ role }: { role: Role }) {
@@ -67,6 +67,13 @@ export function PaymentsPage({ role }: { role: Role }) {
               </tr>
             </thead>
             <tbody>
+              {visible.length === 0 ? (
+                <tr key="empty-payments">
+                  <td colSpan={6} className="p-4">
+                    <EmptyState title="Henüz ödeme kaydı yok" />
+                  </td>
+                </tr>
+              ) : null}
               {visible.map(item => (
                 <tr
                   key={item.student}
