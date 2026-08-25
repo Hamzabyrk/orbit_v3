@@ -403,6 +403,12 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] **Kurtarma yöntemi olmayan hesap için kalıcı uyarı.** İletişim bilgisi kurum yöneticisi dışındaki roller için isteğe bağlıdır; yalnızca "atla" sunulursa çoğu kullanıcı atlar ve sorun geri gelir. Uyarı ayarlar ve profil alanında sürekli görünür: _"Kurtarma yöntemin yok — şifreni unutursan kurum yöneticine başvurman gerekir."_
 - [ ] **Sıfırlama akışı kanal varlığına göre dallanır:** doğrulanmış adres varsa link + 6 haneli kod gönderilir; yoksa kullanıcı kurum yöneticisine yönlendirilir.
 - [ ] Kurum yöneticisi panelinde kullanıcı başına "yeni geçici şifre üret" işlemi — iletişim bilgisi olmayanların tek kurtarma yolu.
+  - [x] **Sunucu yarısı (#97).** `reset-member-password` Edge Function'ı ve yetki kararını veren `internal_resolve_member_for_reset`.
+
+    Yetki kararı bilinçli olarak **SQL'e** kondu, fonksiyonun içine değil: işlem `service_role` ile çalışıyor ve `service_role` RLS'i baypas ediyor, yani bu sınır hiçbir politikadan geçmiyor. Deno kodunda kalsaydı **hiçbir testin ulaşamadığı bir güvenlik sınırı** olurdu. Sekiz pgTAP iddiası sabitliyor; en kritiği bir kurumun yöneticisinin başka kurumun üyesine ulaşamaması.
+
+  - [ ] Arayüz yarısı — kurum yöneticisinin panelinde üye listesi ve satır bazında işlem. E6 ile birlikte gelir.
+
 - [x] Platform panelinde kurum yöneticisinin şifresini sıfırlama işlemi - kurtarma zincirinin son halkası. Denetim kaydı üretir. **Öne çekildi (Issue #59):** panel denemesinde geçici şifre kaybolunca kurum kalıcı olarak erişilemez hâle geldi ve tek çare yeni bir kurum açmak oldu.
 - [ ] Kurum yöneticisinin hesabında yapılan her kimlik bilgisi işleminin (geçici şifre üretimi, sıfırlama) **ona bildirilmesi**. Operatörün yetki yükseltebildiği kabul edilmiş bir gerçektir; bildirim onu gizli olmaktan çıkarır.
 - [ ] **Operatör teşhis ekranı (destek Katman 1).** Kurum başına kayıt sayıları, son işlem zamanı, hata kayıtları, şema tutarsızlıkları. **Hiçbir kişisel veri yok** — kişi adı, not, yoklama, ödeme görünmez. Destek taleplerinin çoğu bununla teşhis edilir; KVKK sınırına dokunmadığı için izin gerektirmez ve iş tablolarını beklemez. Katman 2 (izinli destek oturumu) ve Katman 3 (acil erişim) v1.2 sonrasına aittir; bkz. `DECISION_LOG.md` — "Operatör desteği üç katmanlıdır".
