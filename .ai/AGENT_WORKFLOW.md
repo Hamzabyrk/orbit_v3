@@ -135,6 +135,14 @@ npx vite build
 
 Hepsi yeşil olmadan teslim etme.
 
+**Bu komutlar için ayrıca izin istenmez.** Beşi de salt okumadır: dosya değiştirmez, ağa çıkmaz, git'e dokunmaz. Yazan ajanın kum havuzu bunları engelliyorsa, kum havuzu dışında çalıştırılmaları **baştan onaylıdır** — her görevde yeniden sorulması gereksiz sürtünmedir.
+
+Onay hâlâ gereken şeyler değişmedi: `pnpm install` veya herhangi bir bağımlılık kurulumu, ağ isteği, `git` komutları, ve brifingde izin verilmeyen bir dosyayı yazan her şey.
+
+`npx prettier --write` yalnızca **brifingin izin verdiği dosyalar üzerinde** serbesttir; kendi çıktını biçimlendirmek kapının parçasıdır.
+
+> **Kapının yeşil olduğunu bildirmek yetmez.** Denetleyen dördünü de kendisi çalıştırır ve bu boşuna değil: C1 teslimi `prettier --check` için yeşil bildirdi, denetleyende kırmızıydı. Rapor iyi niyetle yanlış olabilir; kapı yanılmaz.
+
 ---
 
 ## Denetleyen ajan için kurallar
@@ -251,6 +259,22 @@ Bu kural üç kez ısırdı: `WORK_LOG` ile `ROADMAP` durumu ayrı tutuyordu; RE
 Bir metin yazarken şunu sor: **bu olgu başka bir dosyada da yazıyor mu?** Yazıyorsa yazma, işaret et.
 
 _Kaynak: Issue #77 belge denetimi ve Issue #80 (Codex A1 analizi, B10–B11)._
+
+### K-07 · Paralel çalışırken git ağacı ortaktır, dosya kümeleri değil
+
+İki ajan aynı anda çalışabilir ve dosya kümeleri kesişmese bile **git çalışma kopyası tektir.** Dal değiştirmek, hazırlama alanına toplu ekleme yapmak ve dosya geri almak, diğer tarafın commit edilmemiş işine dokunur.
+
+Üç kural, üçü de bir kez ihlal edildiği için yazıldı:
+
+- **`git add -A` / `git add .` kullanma.** Yalnızca açık dosya yolu: `git add path/to/file`. Toplu ekleme, diğer ajanın o an yazdığı dosyaları da commit'ine alır.
+- **Dal değiştirmeden önce `git status` boş olmalı.** Boş değilse commit et veya `git stash push -- <yol>` ile yalnızca kendi dosyalarını ayır. Git, commit edilmemiş değişiklikleri çakışma yoksa sessizce yeni dala taşır — ve bunu haber vermez.
+- **Diğerinin dosyasını `git checkout -- <yol>` ile geri alma.** O komut, o an üretilmekte olan işi geri döndürülemez biçimde siler. Ayırman gerekiyorsa önce çalışma kopyasının dışına kopyala.
+
+**Ne olduğu:** Denetleyen sunucu tarafını yazarken Codex istemci tarafını aynı ağaçta yazıyordu. Denetleyen bir test dosyasını okumak için dal değiştirdi; Codex'in commit edilmemiş iki dosyası onunla taşındı ve `git add -A` onları sunucu commit'ine süpürdü. Ayrıca daha öncesinde aynı dosyalar `git checkout --` ile geri alınmış, Codex'in o anki üretimi silinmişti — yalnızca önceden kopya alındığı için kurtarıldı.
+
+**Bedeli:** Kapsam kontrolü anlamsızlaşır. İki ajanın işi tek diff'te birleşince, hangi satırın kimden geldiği ve hangisinin incelendiği belirsizleşir — kontrolün var olma sebebi tam olarak budur.
+
+_Kaynak: Issue #80, sunucu ve istemci yarılarının paralel yürütülmesi._
 
 ---
 
