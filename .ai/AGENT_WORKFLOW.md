@@ -22,7 +22,7 @@ Her devredilen iş aynı yedi adımdan geçer. Adım atlanmaz.
 0. TAZELE     Denetleyen: main'i çek, ÜZERİNDEN yeni dal aç
 1. BRİFİNG    Denetleyen yazar → .ai/tasks/<sıra>-<kısa-ad>.md
 2. UYGULAMA   Yazan uygular, kalite kapısını çalıştırır, DURUR
-3. TESLİM     Yazan beş çıktıyı verir (aşağıda)
+3. TESLİM     Yazan altı çıktıyı verir (aşağıda)
 4. KAPSAM     Denetleyen: brifing dışı dosyaya dokunulmuş mu?
                 └─ dokunulmuşsa → REDDET, içeriğe hiç bakma
 5. İNCELEME   Denetleyen diff'i okur, kapıyı KENDİ çalıştırır
@@ -70,18 +70,25 @@ Sıkışmış commit varsa çözüm: güncel `main` üzerinden yeni dal açıp `
 
 ## Rol dağılımı
 
-| İş                            | Kim            | Neden                                  |
-| ----------------------------- | -------------- | -------------------------------------- |
-| Tasarım kararları, tartışma   | **Denetleyen** | Bağlamın tamamı ve karar geçmişi orada |
-| Migration, RLS, yetkilendirme | **Denetleyen** | Hatası sessiz ve geri dönüşü pahalı    |
-| Edge Function                 | **Denetleyen** | `service_role` taşıyor                 |
-| Production'a dokunan her şey  | **Denetleyen** | Geri alınamaz                          |
-| Arayüz bileşenleri            | **Yazan**      | Sınırlı ve geri alınabilir             |
-| Mekanik dönüşümler            | **Yazan**      | Hacimli ama düşük riskli               |
-| Saf mantık ve testleri        | **Yazan**      | Şartname brifingde net verilebiliyor   |
-| `git diff` incelemesi         | **Denetleyen** | Devrin var olma sebebi                 |
+| İş                             | Kim            | Neden                                   |
+| ------------------------------ | -------------- | --------------------------------------- |
+| Tasarım kararları, tartışma    | **Denetleyen** | Bağlamın tamamı ve karar geçmişi orada  |
+| Migration, RLS, yetkilendirme  | **Denetleyen** | Hatası sessiz ve geri dönüşü pahalı     |
+| Edge Function                  | **Denetleyen** | `service_role` taşıyor                  |
+| Production'a dokunan her şey   | **Denetleyen** | Geri alınamaz                           |
+| Arayüz bileşenleri             | **Yazan**      | Sınırlı ve geri alınabilir              |
+| Mekanik dönüşümler             | **Yazan**      | Hacimli ama düşük riskli                |
+| Saf mantık ve testleri         | **Yazan**      | Şartname brifingde net verilebiliyor    |
+| `client/src/lib/` yardımcıları | **Yazan**      | Sağlayıcıya dokunmuyor, testi kolay     |
+| Vitest testleri                | **Yazan**      | Beklenen davranış brifingde yazılabilir |
+| PR açıklaması taslağı          | **Yazan**      | Gerekçeyi zaten biliyor                 |
+| `git diff` incelemesi          | **Denetleyen** | Devrin var olma sebebi                  |
 
 Sınır şu soruyla çizilir: **yanlış yapılırsa sessizce mi geçer, yoksa hemen görünür mü?** Sessiz olanlar devredilmez.
+
+**Devredilebilir alan zamanla genişler.** Bir tür iş iki kez sorunsuz teslim edildiyse, üçüncüsünde sınırı daraltmak için sebep yoktur. Daralttıkça devrin anlamı azalır ve denetleyen tıkanma noktasına döner.
+
+**Bir dilim, tek başına anlamlı olduğu sürece bölünmez.** Etkileşmeyen iki iş aynı brifingde verilebilir; her tur bir brifing, bir teslim ve bir inceleme maliyeti getirir ve gereksiz tur en pahalı israftır. Bölmenin tek geçerli sebebi **bağımlılık**: biri diğerinin çıktısına dayanıyorsa ayrılır.
 
 ---
 
@@ -113,15 +120,26 @@ Varsayım yapmak zorunda kaldıysan teslimde **açıkça yaz**. Nerede tahmin et
 - `any` kullanma.
 - Var olan ortak bileşenleri ve yardımcıları **yeniden kullan**, benzerini yazma.
 
-### Teslim — beş çıktı, eksiksiz
+### Teslim — altı çıktı, eksiksiz
 
 1. `git status --short`
 2. `git diff` (yeni dosyada `git add -N . && git diff`)
-3. Kalite kapısının beş komutunun sonuçları
+3. Kalite kapısının beş komutunun **gerçek çıktısı** — "geçti" yazmak yetmez
 4. **Varsayımların** — yoksa "varsayım yok" yaz
 5. **Emin olamadıkların**
+6. **PR açıklaması taslağı**
 
-Son iki madde atlanamaz.
+Son üç madde atlanamaz.
+
+**6. madde neden var:** Denetleyenin en pahalı işi kod okumak değil, PR açıklamasını sıfırdan yazmaktır — çünkü o metin projenin kalıcı hafızası ve "ne yapıldı"dan çok **"neden böyle yapıldı"** anlatmak zorunda. Yazan ajan o gerekçeyi zaten biliyor; denetleyen onu yeniden üretmek yerine düzeltirse iş ucuzlar.
+
+Taslak üç başlık taşır, hepsi kısa:
+
+- **Ne değişti** — madde madde, dosya listesi değil
+- **Neden böyle** — reddedilen alternatif varsa gerekçesiyle
+- **Neye dokunulmadı** — bilinçli olarak kapsam dışı bırakılanlar
+
+Taslak olduğu gibi kullanılmaz; denetleyen doğruladığı şeyleri ekler ve doğrulayamadığını çıkarır.
 
 ### Kalite kapısı
 
@@ -298,6 +316,39 @@ Biten brifingler silinir. Sebebi klasörün şişmesi değil yalnızca: **duran 
 3. **Neyin yeniden kullanılacağı** — mevcut yardımcılar, desen alınacak dosya
 4. **Dokunulmayacak yerler** ve **yapılmayacak işlemler**
 5. **Kabul kriterleri** — işaretlenebilir maddeler
-6. **Teslim biçimi** — beş çıktı
+6. **Teslim biçimi** — altı çıktı
 
 Brifingi yazarken yukarıdaki **birikimli kurallara** bak; ilgili olanları göreve özgü biçimde tekrarla. Yazan ajanın bu belgeyi okuduğunu varsayma — brifing kendi başına yeterli olmalı.
+
+### Değişmeyen bölümler — brifingde tekrar yazılmaz
+
+Aşağıdaki üç blok her görevde aynıdır. Brifingde **tek satırla anılır**, kopyalanmaz:
+
+> Kalite kapısı, teslim biçimi ve genel yasaklar için `.ai/AGENT_WORKFLOW.md`. Bu göreve özgü ek kısıtlar aşağıda.
+
+**Her görevde geçerli yasaklar** (brifingde tekrarlanmaz):
+
+- `git commit`, `git push`, branch açma, dal değiştirme
+- `supabase/` ve `.ai/` altına dokunma
+- Yeni bağımlılık ekleme
+- `eslint-disable`, `@ts-ignore`
+- Brifingde yazmayan ek özellik
+- Brifingde listelenmeyen dosyaya dokunma — gerekiyorsa **dur ve sor**
+
+**Kalite kapısı** — beş komut, salt okuma, ayrıca izin gerekmez. Kum havuzu engelliyorsa dışında çalıştırmak baştan onaylıdır.
+
+**Teslim** — yukarıdaki altı çıktı.
+
+Brifingde yalnızca **göreve özgü** olan yazılır: bağlam, yapılacak iş, dokunulabilecek dosyalar, o göreve özel kısıtlar ve ilgili birikimli kurallar. Değişmeyeni her seferinde yeniden yazmak brifingi uzatır, uzun brifing okunmaz ve okunmayan kısıt uygulanmaz.
+
+---
+
+## Denetleyen için yazım ekonomisi
+
+Commit mesajı ve PR açıklaması projenin kalıcı hafızasıdır; **"ne" değil "neden"** taşırlar ve bu yüzden kısaltılamazlar. Kısaltılabilecek olan hacimdir.
+
+- Diff'in anlattığını tekrar anlatma. Dosya listesi, satır sayısı ve "şu fonksiyon eklendi" zaten görünüyor.
+- Bir kararın **gerekçesi ve reddedilen alternatifi** kalır; nasıl bulunduğunun hikâyesi kalmaz.
+- Doğrulama sonucu **rakamla** yazılır: "0 satır kayboldu, 7 satır eklendi" — anlatıyla değil.
+- Aynı gerekçe hem commit'te hem PR'da varsa biri yeter. Commit'te kısa hâli, PR'da tam hâli.
+- Yazan ajanın taslağı varsa (teslim 6. madde) sıfırdan yazma; düzelt.
