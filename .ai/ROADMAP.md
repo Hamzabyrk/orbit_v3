@@ -411,6 +411,10 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 - [ ] Ayarlar altında öğretmen/öğrenci/veli ekleme; ad-soyad, rol, **şube**, isteğe bağlı e-posta ve telefon.
 - [ ] `person_code`'un sıradaki değerinin tahsisi ve geçici şifrenin bir kez gösterimi; yazdırılabilir liste.
+- [ ] **Bağlayıcı ön koşul — kullanıcı başına "yeni geçici şifre üret".** Bu iş, hesap açma ile **aynı sürümde** gelmek zorundadır, sonraya bırakılamaz.
+
+  Gerekçe: 2026-08-25'ten bu yana süresi dolmuş bir geçici şifre, değiştirilerek kurtarılamıyor (Issue #80 · B06, `20260825190000_enforce_password_expiry.sql`). Kilit ancak yeni bir geçici şifre üretilerek açılır. Bugün bu güvenli, çünkü hesabı olan tek rol kurum yöneticisidir ve `reset-admin-password` ona bu yolu sunar. E6 öğretmen/öğrenci/veli hesaplarını açtığında aynı yol onlar için de bulunmazsa, **7 gün içinde giriş yapmayan bir öğrenci kalıcı olarak kilitlenir ve kurtarılamaz.**
+
 - [ ] **Kurum içi üye tablosu** — kurum yöneticisinin panelinde, tablo biçiminde: kişi adı, giriş numarası, rol, şube, bağlı veli/öğrenci, durum. Satır bazında işlemler: şifre sıfırlama, rol değiştirme, kurumdan çıkarma.
 
   Tablo **yalnızca kurum yöneticisinin** panelinde bulunur. Platform paneline konulamaz: operatörün kurum kişi listesini görmesi "operatör kapları yönetir, içeriği görmez" taahhüdünü ihlal eder.

@@ -237,6 +237,13 @@ Kararların gerekçeleri için bkz. `DECISION_LOG.md` — "Kimlik ve Giriş Bilg
   - **Ürün üzerinden erişim yoktur.** Operatör; öğrenci, not, yoklama, ödeme verisini hiçbir ekrandan, sorgudan veya API çağrısından okuyamaz. RLS bunu zorlar ve pgTAP ile sınanır (`platform_operator_reads.test.sql`).
   - **Yetki yükseltme mümkündür ve gizlenmez.** Operatör kimlik bilgisi üretebilir veya sıfırlayabilir. Bu, her SaaS sağlayıcısı için geçerlidir; iddia edilmeyecek bir şeyi iddia etmiyoruz.
   - **Her yükseltme denetim kaydı üretir.** Geçici şifre üretimi ve şifre sıfırlama işlemleri `platform_audit_events`'e yazılır; kayıt operatör tarafından silinemez veya değiştirilemez (istemciden yazma yolu yoktur).
+
+    > **"Zorunlu" ne demek — 2026-08-25'te netleştirildi.** Bu madde uzun süre denetim kaydını zorunlu ilan ediyordu, kod ise yazımı en-iyi-çaba yapıyordu; ikisi açıkça çelişiyordu (Issue #80 · B05).
+    >
+    > Çelişki kod lehine değil, **tanım netleştirilerek** kapatıldı: zorunluluk _"denetim yazılamazsa işlem geri alınır"_ değil, **"denetim yazılamadığı operatörden gizlenemez"** anlamındadır. İşlemi geri almak daha kötü olurdu — oluşmuş bir kurumu "oluşmadı" göstermek, tekrar denendiğinde slug çakışması üretir; değişmiş bir şifreyi "değişmedi" göstermek ise hem eski hem yeni şifreyi kullanılamaz kılar.
+    >
+    > Karşılığı: Edge Function yanıtları `audit_written` alanını taşır ve panel `false` olduğunda operatöre işlemin ize geçmediğini söyler. Aynı desen kilit bayrağı için `password_lock_set` ile de geçerlidir.
+
   - **Kurum yöneticisi haberdar edilir.** Kendi hesabında yapılan her kimlik bilgisi işlemi ona bildirilir. Bildirim kanalı, e-postası doğrulandıktan sonra çalışır.
 
   Bu ayrım KVKK açısından da doğrudur: veri işleyenin teknik erişim imkânını inkâr etmek değil, **denetlenebilir ve hesap verebilir** kılmak beklenir.

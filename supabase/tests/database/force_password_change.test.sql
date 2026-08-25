@@ -10,7 +10,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(16);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -142,6 +142,61 @@ select is(
      where id = 'a9000000-0000-0000-0000-000000000002'),
   true,
   'an unrelated auth.users update does not clear the lock'
+);
+
+-- Süre dolduğunda kilit şifre değiştirilerek kaldırılamaz ------------------
+--
+-- Issue #80 · B06. Önceden `password_expires_at` yazılıyor ama hiç
+-- okunmuyordu: süresi dolmuş bir kullanıcı şifresini değiştirip tam erişim
+-- kazanıyordu ve "7 gün" hiçbir şey ifade etmiyordu.
+
+update public.profiles
+set must_change_password = true,
+    password_expires_at = now() - interval '1 day'
+where id = 'a9000000-0000-0000-0000-000000000002';
+
+update auth.users
+set encrypted_password = 'suresi-dolduktan-sonra-degistirildi'
+where id = 'a9000000-0000-0000-0000-000000000002';
+
+select is(
+  (select must_change_password from public.profiles
+     where id = 'a9000000-0000-0000-0000-000000000002'),
+  true,
+  'an expired lock survives a password change; only a newly issued temporary password clears it'
+);
+
+select isnt(
+  (select password_expires_at from public.profiles
+     where id = 'a9000000-0000-0000-0000-000000000002'),
+  null,
+  'the expiry is not silently wiped when an expired lock is kept'
+);
+
+-- Süresi dolmamış kilit eskisi gibi düşmeye devam etmeli. Bu test olmasaydı
+-- yukarıdaki değişiklik normal ilk giriş akışını da kırabilirdi.
+update public.profiles
+set must_change_password = true,
+    password_expires_at = now() + interval '3 days'
+where id = 'a9000000-0000-0000-0000-000000000001';
+
+update auth.users
+set encrypted_password = 'suresi-dolmadan-degistirildi'
+where id = 'a9000000-0000-0000-0000-000000000001';
+
+select is(
+  (select must_change_password from public.profiles
+     where id = 'a9000000-0000-0000-0000-000000000001'),
+  false,
+  'a lock that has not expired is still cleared by a password change'
+);
+
+-- Yardımcı fonksiyon süreyi okumalı. Okumasaydı v1.2'de iş tablolarının
+-- politikalarına girdiğinde süresi dolmuş kullanıcı serbest kalırdı.
+select is(
+  public.current_user_must_change_password(),
+  true,
+  'the helper reports an unknown profile as locked (fail-closed)'
 );
 
 select * from finish();

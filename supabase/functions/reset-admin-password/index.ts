@@ -260,6 +260,9 @@ Deno.serve(async request => {
     // Şifre bu noktada zaten değişti. Denetim yazılamadı diye hata dönmek,
     // operatöre "başarısız" gösterip aslında değişmiş bir şifre bırakırdı;
     // tekrar denerse eski şifre de yenisi de geçersiz olurdu.
+    //
+    // Sessiz de geçilmiyor: yanıttaki `audit_written` alanı operatöre işlemin
+    // ize geçmediğini bildirir. Bkz. `PROJECT_STATE.md` bölüm 10.
     console.error("[reset-admin-password] audit write failed");
   }
 
@@ -271,6 +274,7 @@ Deno.serve(async request => {
         temporary_password: temporaryPassword,
         password_expires_at: passwordExpiresAt,
         password_lock_set: !lockError,
+        audit_written: !auditError,
       },
     },
     200,
