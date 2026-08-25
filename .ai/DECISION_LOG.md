@@ -1,6 +1,55 @@
 # DECISION_LOG.md — ORBIT
 
-> Mini-ADR formatında karar kaydı. Format: `PROJECT_ARCHITECT.md` §04.
+> Mini-ADR formatında karar kaydı. Her kayıt: **Durum · Tarih · Onaylayan · Bağlam · Karar · Gerekçe · Alternatifler.**
+>
+> Geçmiş kayıtlar silinmez. Bir karar değiştiğinde eskisi yerinde kalır, üzerine tarihli düzeltme notu eklenir — bkz. "Hafıza kayıtları ileriye doğru düzeltilir, geri alınmaz".
+>
+> **Not:** 2026-08-25 öncesi kayıtlarda geçen `PROJECT_ARCHITECT.md` ve `WORK_LOG.md` atıfları **tarihseldir**; iki dosya da o tarihte emekliye ayrıldı ve git geçmişinde durur. Bu kayıtlar geriye dönük düzeltilmez — bkz. son kayıt, "Belge sayısı değil bakım borcu".
+
+## İçindekiler
+
+Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kronolojik sırada.
+
+**Kimlik, giriş ve hesap modeli**
+
+- Kimlik ve Giriş Bilgisi Mimarisi
+- Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır
+- Bir giriş hesabı tek kuruma aittir
+- Sentetik adresten gerçek adrese geçiş
+- Auth e-postası hiç değişmez; kurtarma linkini biz üretir, biz göndeririz
+- Şifre değiştirme ile sıfırlama ayrı akışlardır; kurtarma kanalı isteğe bağlıdır ama görünürdür
+- Rol, atama ve bağlantı üç ayrı kavramdır
+
+**Platform operatörlüğü ve destek**
+
+- Platform operatörü ayrı bir eksendir; panel `/platform` altında yaşar ve kurum içeriğine erişmez
+- Platform operatörü girişte panele düşer, dershane paneline değil
+- Operatör desteği üç katmanlıdır — teşhis, izinli oturum, acil erişim
+- İlk production tenant'ı bir defalık istisnadır; panel hazır olunca silinip mekanizma üzerinden yeniden kurulacaktır
+
+**Mimari ve kod düzeni**
+
+- MoneyFlow kalıntılarının temizlenmesi ve ORBIT Eğitim Çekirdeğinin kurulması
+- EducationPlatform Bileşen Bölünmesi, Mock Veri İzolasyonu ve ESLint Kalite Kapısı
+- Taşınabilirlik sınırı — yetkilendirme veritabanında, veri erişimi servis katmanında
+- Öğrenci ve veli ekranları mobil-öncelikli tasarlanır
+- Sistemik Graph-First Düşünme, Blast Radius ve 6 Boyutlu Risk Protokolü
+
+**Kapsam ve sürüm**
+
+- MVP Faz 1 Kapsamı — Saha Doğrulaması & Müşteri Görüşmesi Odaklı Mimari
+- v1.1 Membership Tabanlı Auth, Tenant RLS ve Ortam Ayrımı
+- Stabilizasyon sırası — hafıza, güvenlik, şifre akışı, panel
+
+**Altyapı, repo ve süreç**
+
+- Repo görünürlüğü — Private
+- Repo görünürlüğü Public'e alındı (2026-08-17 kararını değiştirir)
+- ORBİT Vercel Ekibi + Mevcut Supabase Projesiyle Güvenli Platform Bağlantısı
+- Supabase auto-deploy açık kalır; branch protection açığı tetikleyiciyle kayda geçer
+- Stabilizasyon fazında tek kişilik merge'e sınırlı izin
+- Hafıza kayıtları ileriye doğru düzeltilir, geri alınmaz
+- Belge sayısı değil bakım borcu — tek giriş noktası kuruldu, iki dosya emekliye ayrıldı
 
 ---
 
@@ -812,3 +861,32 @@ Aynı kayıt KVKK açısından da gerekli: aksi halde bir insanın birden fazla 
 - **Rol kümesi (`role[]`) veya rol hiyerarşisi:** Her RLS politikası "bu kişinin rollerinden herhangi biri" sorusunu sormak zorunda kalırdı. Politikaların tamamını karmaşıklaştırır ve bugün gerçek karşılığı olmayan bir esneklik için ödenir.
 - **Kişi başına çoklu üyelik:** Denendi ve geri alındı (Issue #65). `person_code` üyelikte durduğu için iki üyelik iki giriş numarası üretiyor, ancak auth hesabı tek olduğundan numaralardan biri hiçbir hesaba karşılık gelmiyordu.
 - **Her durumda ikinci hesap:** Kullanıcının önerisinin genel hâli. Reddedildi: öğretmen-veli günlük bir durum ve iki hesapla kullanılamaz hâle gelir.
+
+---
+
+### Karar: Belge sayısı değil bakım borcu — tek giriş noktası kuruldu, iki dosya emekliye ayrıldı
+
+**Durum:** Alındı
+**Tarih:** 2026-08-25
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Belge denetimi (Issue #77) beş sorun buldu. `PROJECT_ARCHITECT.md` §00'da "Zorunlu Davranış" başlıklı bir aktivasyon protokolü taşıyordu ve dosyayı okuyan her YZ ajanına keşif mülakatı başlatmasını söylüyordu — proje v1.1.2'deyken. Aynı dosya §01 ve §05'te `AGENT_WORKFLOW.md` ile doğrudan çelişen bir akış tarif ediyordu (ajan branch açar, commit atar, `.ai/` yazar). `WORK_LOG.md` 28 commit boyunca hiç güncellenmemişti. `ROADMAP.md` §0 — çalışma düzeninin tek bağlam çıpası olarak gösterdiği tablo — Faz E'yi "başlanmadı" gösteriyordu, oysa E0–E3 production'daydı. Klasör ağacı iki dosyada ayrı ayrı yaşıyor ve README'deki kopya `auth/` ile `platform/` dizinlerini hiç bilmiyordu. Git kuralları üç yerde yazılıydı ve ikisi çelişiyordu.
+
+**Karar:**
+
+1. `PROJECT_ARCHITECT.md` ve `.ai/WORK_LOG.md` repodan kaldırıldı. Yaşayan kuralları hedef dosyalara taşındı; geçmişleri git'te duruyor.
+2. Kökte tek giriş noktası olarak `AGENTS.md` kuruldu. İçeriği **yönlendirmedir**: hangi soru için hangi dosya okunur.
+3. Yinelenen içerik tek kaynağa indirildi. Klasör ağacı yalnızca `PROJECT_STATE.md` §5'te, git kuralları yalnızca `CONTRIBUTING.md`'de yaşar.
+4. Belge güncellemesi `AGENT_WORKFLOW.md`'deki döngünün kapanış adımına bağlandı.
+
+**Gerekçe:** Sorun belge sayısı değildi. Beş `.ai/` dosyasının her birinin ayrı bir sorusu var ve hepsini tek dosyada birleştirmek 2100 satırlık bir belge üretirdi — o zaman her ajan her soru için hepsini yüklemek zorunda kalırdı. Eksik olan şey daha az dosya değil, **tek bir kapıydı**; repoda `AGENTS.md` da `CLAUDE.md` de yoktu, dolayısıyla hiçbir ajan nereden başlayacağını bilmiyordu ve kökteki en büyük harfli dosya onları yanlış yere çağırıyordu.
+
+Asıl kök neden bakım borcuydu: **hiçbir dosyayı güncellemek iş akışının bir adımı değildi.** Döngü commit, PR ve production ile bitiyordu; belge güncellemesi kimsenin adımı olmadığı için herkesin iyi niyetine kalıyor ve ilk düşen, en çok yazı isteyip en az karar taşıyan dosya oluyordu. Bu yüzden düzeltmenin kalıcı olan kısmı silinen dosyalar değil, kapanış adımına eklenen güncelleme yükümlülüğüdür.
+
+**Neden `AGENTS.md`:** Codex bu adı kendiliğinden okur ve aktivasyon tuzağına düşme riski en yüksek ajan odur. `CLAUDE.md` ikinci bir kopya olurdu; ikinci kopya, bu kararın kapatmaya çalıştığı kaymanın ta kendisidir.
+
+**Alternatifler:**
+
+- **Her şeyi tek bir büyük dosyada birleştirmek:** Reddedildi. Seçmeli okumayı yok eder; en ucuz sorunun bedelini en pahalı hâle getirir.
+- **`PROJECT_ARCHITECT.md`'yi yerinde bırakıp başına "uygulanmaz" notu koymak:** Reddedildi. §04'teki eskimiş `ci.yml` kopyası ve çelişen akış tarifi dosyada kalmaya devam ederdi; bir ajanın notu okuyup gerisini yok sayacağına güvenmek, bu projede zaten bir kez başarısız olmuş bir bahistir.
+- **`WORK_LOG.md`'yi kısaltıp canlandırmak:** Reddedildi. Taşıdığı bilgi zaten `git log`, `DECISION_LOG.md` ve `PLATFORM_SETTINGS.md`'de yaşıyor; kaldırmadan önce tek tek doğrulandı (`ALLOW-DESTRUCTIVE` kaçış yolu workflow'un içinde, KVKK "kap/içerik" sınırı bu dosyada, lodash override'ı `package.json`'da). Uyulmayan bir kuralı üçüncü kez yazmak onu kural yapmaz.
