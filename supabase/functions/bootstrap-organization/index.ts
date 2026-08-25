@@ -338,8 +338,11 @@ Deno.serve(async request => {
 
   // Kurum bu noktada zaten oluştu. Denetim kaydı yazılamadı diye isteği
   // başarısız saymak, var olan bir kurumu "oluşmadı" göstermek olurdu; çağıran
-  // taraf tekrar denerse slug çakışmasıyla karşılaşır. Hata loglanır, istek
-  // başarılı döner.
+  // taraf tekrar denerse slug çakışmasıyla karşılaşır.
+  //
+  // Ama sessiz de geçilemez: `PROJECT_STATE.md` bölüm 10 denetim kaydını
+  // ZORUNLU kılıyor. "Zorunlu" burada "işlemi durdurur" değil, "yazılamadığı
+  // operatörden gizlenemez" demektir — yanıttaki `audit_written` bunu taşır.
   if (auditError) {
     console.error("[bootstrap-organization] platform audit write failed");
   }
@@ -354,6 +357,7 @@ Deno.serve(async request => {
         temporary_password: temporaryPassword,
         password_expires_at: passwordExpiresAt,
         password_lock_set: !lockError,
+        audit_written: !auditError,
       },
     },
     201,
