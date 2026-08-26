@@ -54,6 +54,16 @@ Bu tek adım iki ayrı hatayı birden kapatır:
 
 > **"Düzenli olarak `git pull` yap" kuralı bilinçli olarak yazılmadı.** Tetikleyicisi olmayan kural uygulanmaz; bu projede `WORK_LOG` tam olarak böyle öldü. Tazeleme bir alışkanlık değil, döngünün **ilk adımıdır** — ve dalı `main` üzerinden açmak, bayatlığı yasaklamak yerine **imkânsız** kılar.
 
+**Aynı adımda yol haritası mutabakatı yapılır.** Çekilen commit'ler ile `ROADMAP.md`'nin söylediği birbirini tutuyor mu:
+
+```bash
+git log --oneline -15
+```
+
+Listede, yol haritasında hâlâ `[ ]` görünen bir işi bitiren PR var mı? Varsa **brifingi yazmadan önce** kutucuk işaretlenir.
+
+Bu kontrol kapanışa değil **açılışa** kondu ve sebebi şu: kapanışta belge güncellemek kuralı zaten var ve **üç kez atlandı** (#77 · B08, B10 · E4). Önleme çalışmadı; kalan şey tespit. Ve tespit için doğru an burasıdır — yol haritasını **okuyan** taraf bir sonraki görevdir, yanlış bilgiden zarar gören de o.
+
 ### 6. adımın son yarısı — commit'ler gerçekten indi mi?
 
 PR merge edildikten sonra, o PR'daki her commit'in `main`'e girdiği doğrulanır:
@@ -294,6 +304,23 @@ _Kaynak: Issue #77 belge denetimi ve Issue #80 (Codex A1 analizi, B10–B11)._
 **Bedeli:** Kapsam kontrolü anlamsızlaşır. İki ajanın işi tek diff'te birleşince, hangi satırın kimden geldiği ve hangisinin incelendiği belirsizleşir — kontrolün var olma sebebi tam olarak budur.
 
 _Kaynak: Issue #80, sunucu ve istemci yarılarının paralel yürütülmesi._
+
+### K-08 · Biten iş kutucuğunu kendiliğinden işaretlemez
+
+Bir iş merge edildiğinde yol haritası **kendiliğinden güncellenmez.** Kapanış adımı bunu söylüyor ve yine de atlanabiliyor — çünkü kapanış anında dikkat commit'te, PR'da ve bir sonraki işte olur.
+
+Bu üç kez oldu: `AGENTS.md` beş komut listelerken "dört" dedi, `PROJECT_STATE` §7 v1.1'i kapanmamış gösterdi, E4'ün dört maddesi bitmişken `[ ]` kaldı.
+
+**Kural iki parçalı:**
+
+1. **Kapanışta işaretle.** Döngünün 6. adımı, değişmedi.
+2. **Açılışta doğrula.** 0. adımda `git log` ile yol haritası karşılaştırılır; işaretlenmemiş biten iş varsa brifing yazılmadan önce düzeltilir.
+
+İkinci parça önlemenin yerine değil, **başarısız olduğu için** var. Üç denemede tutmayan bir disiplini dördüncü kez yazmak yerine, yanlış bilginin **zarar verdiği ana** bir kontrol kondu: yol haritasını okuyan taraf bir sonraki görevdir.
+
+**Yarım biten iş tam işaretlenmez.** E4'te sıfırlama akışının dallanması için ekran metni yazıldı ama mekanizma yok; kutucuk açık bırakıldı. Doğru bir cümlenin arkasına eksik bir mekanizma saklamak, hiç yazmamaktan kötüdür.
+
+_Kaynak: Issue #77 (B08, B10) ve E4 durum denetimi._
 
 ---
 
