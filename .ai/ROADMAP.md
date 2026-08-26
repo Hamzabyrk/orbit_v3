@@ -462,7 +462,13 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 - [ ] Ayarlar altında öğretmen/öğrenci/veli ekleme; ad-soyad, rol, **şube**, isteğe bağlı e-posta ve telefon.
 
-  **Sunucu yarısı bitti (#106):** `create-member` Edge Function'ı + `internal_allocate_member_slot` ve `internal_create_membership` RPC'leri; yetki sınırı SQL'de ve 16 pgTAP iddiasıyla kapsanıyor. **Yazıldı ama deploy edilmedi, migration uygulanmadı.** Eksik olan arayüz yarısı — form ve geçici şifrenin bir kez gösterimi.
+  **Sunucu yarısı yazıldı (#106):** `create-member` Edge Function'ı + `internal_allocate_member_slot` ve `internal_create_membership` RPC'leri; yetki sınırı SQL'de ve 15 pgTAP iddiasıyla kapsanıyor. Migration production'a **uygulandı** (Supabase→GitHub tümleşmesi `main`'e merge ile uyguluyor), ancak Edge Function **deploy edilmedi.**
+
+  **Arayüz yarısı yazıldı (#113):** `MemberCreateDialog` — ad-soyad, rol, şube; başarıda `CredentialsPanel` ile geçici şifrenin bir kez gösterimi; liste yenilenmesi.
+
+  **Kutucuk hâlâ boş, çünkü akış canlıda çalışmıyor (K-08).** Tek eksik `create-member`'ın deploy'u; insan onayı gerekiyor. Deploy edilene kadar form gerçek ortamda `service_unavailable` ile döner.
+
+  E-posta ve telefon alanları **bu dilimde yok**: `create-member`'ın sözleşmesi bunları almıyor. Sözleşmeyi genişletmek ayrı iştir.
 
 - [ ] `person_code`'un sıradaki değerinin tahsisi ve geçici şifrenin bir kez gösterimi; yazdırılabilir liste.
 - [x] **Bağlayıcı ön koşul — kullanıcı başına "yeni geçici şifre üret" (#97 sunucu · #107 arayüz).** Bu iş, hesap açma ile **aynı sürümde** gelmek zorundadır, sonraya bırakılamaz.

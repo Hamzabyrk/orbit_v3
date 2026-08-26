@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/auth/useAuth";
 import {
   Dialog,
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { CredentialsPanel } from "@/components/credentials/CredentialsPanel";
 import type { IssuedCredentials } from "@/components/credentials/IssuedCredentials";
+import { MemberCreateDialog } from "./MemberCreateDialog";
 import {
   loadOrganizationMembers,
   resetMemberPassword,
@@ -68,8 +69,13 @@ export function SettingsMembersSection() {
   const [credentials, setCredentials] = useState<IssuedCredentials | null>(
     null
   );
+  const [createOpen, setCreateOpen] = useState(false);
+  // Liste birden fazla kez yenilenebiliyor: açılışta ve üye eklendikten sonra.
+  // Geç dönen eski bir istek yeni listenin üzerine yazarsa, yöneticiye az önce
+  // oluşturduğu üyeyi eksik gösterir ve aynı kişiyi ikinci kez açtırabilir.
+  const reloadIdRef = useRef(0);
 
-  useEffect(() => {
+  const reloadMembers = useCallback(() => {
     if (demoMode) {
       setMembers(demoMembers);
       setLoading(false);
@@ -84,17 +90,17 @@ export function SettingsMembersSection() {
       return;
     }
 
-    let active = true;
+    const reloadId = ++reloadIdRef.current;
     setLoading(true);
     setLoadError(null);
 
     void loadOrganizationMembers(organizationId, organizationCode)
       .then(data => {
-        if (!active) return;
+        if (reloadId !== reloadIdRef.current) return;
         setMembers(data);
       })
       .catch(error => {
-        if (!active) return;
+        if (reloadId !== reloadIdRef.current) return;
         setLoadError(
           error instanceof Error
             ? error.message
@@ -103,17 +109,17 @@ export function SettingsMembersSection() {
         setMembers([]);
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (reloadId === reloadIdRef.current) setLoading(false);
       });
-
-    return () => {
-      active = false;
-    };
   }, [
     demoMode,
-    identity?.membership?.organizationId,
     identity?.membership?.organizationCode,
+    identity?.membership?.organizationId,
   ]);
+
+  useEffect(() => {
+    reloadMembers();
+  }, [reloadMembers]);
 
   const handleOpenReset = (member: OrganizationMember) => {
     setResetTarget(member);
@@ -123,7 +129,9 @@ export function SettingsMembersSection() {
   };
 
   const handleCloseReset = () => {
-    if (resetSubmitting) return;
+    if (resetSubmitting) {
+      return;
+    }
     setResetTarget(null);
     setResetView("confirm");
     setResetError(null);
@@ -131,7 +139,9 @@ export function SettingsMembersSection() {
   };
 
   const handleConfirmReset = async () => {
-    if (!resetTarget || resetSubmitting) return;
+    if (!resetTarget || resetSubmitting) {
+      return;
+    }
 
     if (demoMode) {
       if (!resetTarget.loginNumber) {
@@ -176,6 +186,13 @@ export function SettingsMembersSection() {
             Kurumunuza kayıtlı yöneticiler, öğretmenler, öğrenciler ve veliler.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="rounded-xl bg-slate-900 px-3.5 py-2 text-[12px] font-extrabold text-white transition hover:bg-slate-800 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300"
+        >
+          Üye ekle
+        </button>
       </div>
 
       {loading ? (
@@ -346,6 +363,16 @@ export function SettingsMembersSection() {
           </DialogContent>
         </Dialog>
       ) : null}
+
+      <MemberCreateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        organizationId={identity?.membership?.organizationId ?? ""}
+        onDone={() => {
+          setCreateOpen(false);
+          reloadMembers();
+        }}
+      />
     </>
   );
 }

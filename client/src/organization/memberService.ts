@@ -3,6 +3,7 @@ import type { EducationRole } from "@/components/educationAccess";
 import { supabase } from "@/lib/supabaseClient";
 
 export type MemberStatus = "invited" | "active" | "suspended";
+export type MemberRole = Exclude<EducationRole, "admin">;
 
 export type OrganizationMember = {
   membershipId: string;
@@ -195,7 +196,7 @@ export async function loadOrganizationMembers(
   return sortMembers(members);
 }
 
-const RESET_MEMBER_ERROR_MESSAGES: Record<string, string> = {
+const MEMBER_ERROR_MESSAGES: Record<string, string> = {
   unauthorized: "Oturumunuz düşmüş görünüyor. Tekrar giriş yapın.",
   forbidden:
     "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya üye bulunamadı.",
@@ -205,6 +206,8 @@ const RESET_MEMBER_ERROR_MESSAGES: Record<string, string> = {
   service_unavailable:
     "Servis şu anda yanıt vermiyor. Birkaç dakika sonra tekrar deneyin.",
   origin_not_allowed: "Bu adres sunucu tarafında izinli değil.",
+  member_create_failed:
+    "Üye oluşturulamadı. Bilgileri kontrol edip tekrar deneyin.",
 };
 
 async function readFunctionErrorCode(error: unknown): Promise<unknown> {
@@ -227,11 +230,79 @@ async function readFunctionErrorCode(error: unknown): Promise<unknown> {
   }
 }
 
-export function resetMemberErrorMessage(code: unknown): string {
-  if (typeof code === "string" && code in RESET_MEMBER_ERROR_MESSAGES) {
-    return RESET_MEMBER_ERROR_MESSAGES[code];
+export function memberErrorMessage(code: unknown, fallback: string): string {
+  if (typeof code === "string" && code in MEMBER_ERROR_MESSAGES) {
+    return MEMBER_ERROR_MESSAGES[code];
   }
-  return "Yeni şifre üretilemedi. Lütfen tekrar deneyin.";
+  return fallback;
+}
+
+export async function createMember(input: {
+  fullName: string;
+  role: Exclude<EducationRole, "admin">;
+  branchId: string | null;
+}): Promise<IssuedCredentials> {
+  const { data, error } = await supabase.functions.invoke("create-member", {
+    body: {
+      fullName: input.fullName.trim(),
+      role: input.role,
+      branchId: input.branchId,
+    },
+  });
+
+  if (error) {
+    throw new Error(
+      memberErrorMessage(
+        await readFunctionErrorCode(error),
+        "Üye oluşturulamadı. Bilgileri kontrol edip tekrar deneyin."
+      )
+    );
+  }
+
+  const payload = (data as { data?: Record<string, unknown> } | null)?.data;
+  const loginNumber = payload?.login_number;
+  const temporaryPassword = payload?.temporary_password;
+  const passwordLockSet =
+    typeof payload?.password_lock_set === "boolean"
+      ? payload.password_lock_set
+      : undefined;
+  const auditWritten =
+    typeof payload?.audit_written === "boolean"
+      ? payload.audit_written
+      : undefined;
+
+  if (
+    typeof loginNumber !== "string" ||
+    typeof temporaryPassword !== "string"
+  ) {
+    throw new Error(
+      "Üye oluşturuldu ancak yanıt okunamadı. İşlemi tekrarlamayın; önce üyeler listesini kontrol edin."
+    );
+  }
+
+  return {
+    loginNumber,
+    temporaryPassword,
+    passwordLockSet,
+    auditWritten,
+  };
+}
+
+export async function loadOrganizationBranches(
+  organizationId: string
+): Promise<{ id: string; name: string }[]> {
+  const { data, error } = await supabase
+    .from("branches")
+    .select("id, name")
+    .eq("organization_id", organizationId)
+    .is("archived_at", null)
+    .order("name", { ascending: true });
+
+  if (error) {
+    throw new Error("Şubeler yüklenemedi. Lütfen tekrar deneyin.");
+  }
+
+  return data ?? [];
 }
 
 /**
@@ -251,7 +322,10 @@ export async function resetMemberPassword(
 
   if (error) {
     throw new Error(
-      resetMemberErrorMessage(await readFunctionErrorCode(error))
+      memberErrorMessage(
+        await readFunctionErrorCode(error),
+        "Yeni şifre üretilemedi. Lütfen tekrar deneyin."
+      )
     );
   }
 

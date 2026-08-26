@@ -76,6 +76,7 @@ client/src/
 │   │   ├── EducationPlatform.tsx # Kompozisyon kökü (state + localStorage demo kalıcılığı)
 │   │   ├── dashboards/       # AdminDashboard, TeacherDashboard, StudentDashboard, ParentDashboard
 │   │   └── pages/            # StudentsPage, ClassesPage, AttendancePage, ... SettingsPage vb.
+│   │                         #   SettingsMembersSection + MemberCreateDialog: üye tablosu ve ekleme
 │   ├── credentials/        # Giriş fişi: bir kez göster, yazdır. Operatör ve kurum
 │   │                       #   yöneticisi aynı bileşeni kullanır; ikinci kopya yok
 │   ├── auth/               # AuthShell + SetPasswordScreen, ForgotPasswordScreen,
@@ -94,7 +95,8 @@ client/src/
 │   ├── idleTimeout.ts / useIdleTimeout.ts  # 30 dk hareketsizlik sayacı
 │   └── runtime.ts          # isDemoMode — preview derlemeleri demo modundadır
 ├── organization/           # Dershane tarafının veri katmanı — kurum yöneticisinin gördüğü
-│   └── memberService.ts    # Kurum üyeleri; giriş numarası kurulumu ve sıralama saf fonksiyonlarda
+│   └── memberService.ts    # Kurum üyeleri: listeleme, şifre sıfırlama, üye oluşturma, şubeler.
+│                           #   Giriş numarası kurulumu ve sıralama saf fonksiyonlarda
 ├── platform/               # Platform operatörü paneli — dershane ağacından ayrı
 │   ├── PlatformShell.tsx   # Kabuk, sekmeler, boş durum
 │   ├── tabs.ts             # Sekme tanımları
