@@ -1,5 +1,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { z } from "npm:zod@4.1.12";
+import {
+  isAllowedOrigin,
+  jsonResponse,
+  preflightResponse,
+} from "../_shared/http.ts";
+import {
+  generateTemporaryPassword,
+  temporaryPasswordExpiresAt,
+} from "../_shared/temporaryPassword.ts";
 
 /**
  * Kurum yöneticisine yeni geçici şifre üretir.
@@ -18,102 +27,15 @@ const requestSchema = z.object({
   organizationId: z.string().uuid(),
 });
 
-const allowedOrigins = new Set(
-  (
-    Deno.env.get("ALLOWED_ORIGINS") ??
-    "http://localhost:5173,http://127.0.0.1:5173,https://orbit-v3-topaz.vercel.app"
-  )
-    .split(",")
-    .map(origin => origin.trim())
-    .filter(Boolean)
-);
-
-// Karışan karakterler yok: 0/O, 1/l/I. Şifre kâğıda yazılıp elden veriliyor.
-const PASSWORD_LOWER = "abcdefghijkmnopqrstuvwxyz";
-const PASSWORD_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-const PASSWORD_DIGIT = "23456789";
-const PASSWORD_ALPHABET = PASSWORD_LOWER + PASSWORD_UPPER + PASSWORD_DIGIT;
-const PASSWORD_LENGTH = 12;
-
-/** Geçici şifrenin ömrü; kurum kurulumundaki değerle aynı olmak zorunda. */
-const TEMPORARY_PASSWORD_TTL_DAYS = 7;
-
-function generateTemporaryPassword(): string {
-  const pick = (alphabet: string): string => {
-    const limit = 256 - (256 % alphabet.length);
-    const buffer = new Uint8Array(1);
-
-    for (;;) {
-      crypto.getRandomValues(buffer);
-      if (buffer[0] < limit) {
-        return alphabet[buffer[0] % alphabet.length];
-      }
-    }
-  };
-
-  const characters = [
-    pick(PASSWORD_LOWER),
-    pick(PASSWORD_UPPER),
-    pick(PASSWORD_DIGIT),
-  ];
-
-  while (characters.length < PASSWORD_LENGTH) {
-    characters.push(pick(PASSWORD_ALPHABET));
-  }
-
-  const randomIndices = new Uint32Array(characters.length);
-  crypto.getRandomValues(randomIndices);
-
-  for (let index = characters.length - 1; index > 0; index -= 1) {
-    const swapWith = randomIndices[index] % (index + 1);
-    [characters[index], characters[swapWith]] = [
-      characters[swapWith],
-      characters[index],
-    ];
-  }
-
-  return characters.join("");
-}
-
-function responseHeaders(origin: string | null): HeadersInit {
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    Vary: "Origin",
-  };
-
-  if (origin && allowedOrigins.has(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin;
-    headers["Access-Control-Allow-Headers"] =
-      "authorization, content-type, x-client-info, apikey";
-    headers["Access-Control-Allow-Methods"] = "POST, OPTIONS";
-  }
-
-  return headers;
-}
-
-function jsonResponse(
-  body: Record<string, unknown>,
-  status: number,
-  origin: string | null
-) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: responseHeaders(origin),
-  });
-}
-
 Deno.serve(async request => {
   const origin = request.headers.get("origin");
 
-  if (origin && !allowedOrigins.has(origin)) {
+  if (!isAllowedOrigin(origin)) {
     return jsonResponse({ error: "origin_not_allowed" }, 403, null);
   }
 
   if (request.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: responseHeaders(origin),
-    });
+    return preflightResponse(origin);
   }
 
   if (request.method !== "POST") {
@@ -219,9 +141,7 @@ Deno.serve(async request => {
   // Kilit bayrağı şifre değişiminden SONRA set ediliyor: `updateUserById`
   // şifreyi yazdığı için `on_auth_password_changed` tetikleyicisi çalışıyor ve
   // bayrağı düşürüyor. Önce set etseydik tetikleyici onu hemen silerdi.
-  const passwordExpiresAt = new Date(
-    Date.now() + TEMPORARY_PASSWORD_TTL_DAYS * 24 * 60 * 60 * 1000
-  ).toISOString();
+  const passwordExpiresAt = temporaryPasswordExpiresAt();
 
   const { error: lockError } = await adminClient
     .from("profiles")

@@ -1,5 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { z } from "npm:zod@4.1.12";
+import {
+  isAllowedOrigin,
+  jsonResponse,
+  preflightResponse,
+} from "../_shared/http.ts";
 
 /**
  * Kurumu ve ona bağlı her şeyi siler. **Geri alınamaz.**
@@ -17,55 +22,15 @@ const requestSchema = z.object({
   confirmName: z.string().trim().min(1).max(120),
 });
 
-const allowedOrigins = new Set(
-  (
-    Deno.env.get("ALLOWED_ORIGINS") ??
-    "http://localhost:5173,http://127.0.0.1:5173,https://orbit-v3-topaz.vercel.app"
-  )
-    .split(",")
-    .map(origin => origin.trim())
-    .filter(Boolean)
-);
-
-function responseHeaders(origin: string | null): HeadersInit {
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    Vary: "Origin",
-  };
-
-  if (origin && allowedOrigins.has(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin;
-    headers["Access-Control-Allow-Headers"] =
-      "authorization, content-type, x-client-info, apikey";
-    headers["Access-Control-Allow-Methods"] = "POST, OPTIONS";
-  }
-
-  return headers;
-}
-
-function jsonResponse(
-  body: Record<string, unknown>,
-  status: number,
-  origin: string | null
-) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: responseHeaders(origin),
-  });
-}
-
 Deno.serve(async request => {
   const origin = request.headers.get("origin");
 
-  if (origin && !allowedOrigins.has(origin)) {
+  if (!isAllowedOrigin(origin)) {
     return jsonResponse({ error: "origin_not_allowed" }, 403, null);
   }
 
   if (request.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: responseHeaders(origin),
-    });
+    return preflightResponse(origin);
   }
 
   if (request.method !== "POST") {
