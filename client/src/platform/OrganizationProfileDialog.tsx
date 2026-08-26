@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CredentialsPanel } from "./CredentialsPanel";
+import { CredentialsPanel } from "@/components/credentials/CredentialsPanel";
 import {
   deleteOrganization,
   loadOrganizationStats,
@@ -168,7 +168,9 @@ export function OrganizationProfileDialog({
           </DialogHeader>
 
           <CredentialsPanel
-            organizationName={organization.name}
+            subjectLabel="Kurum"
+            subjectName={organization.name}
+            organizationCode={credentials.organizationCode}
             credentials={credentials}
             onDone={() => {
               setCredentials(null);

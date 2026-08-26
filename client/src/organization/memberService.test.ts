@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatLoginNumber,
   isMemberStatus,
+  resetMemberErrorMessage,
   sortMembers,
   type OrganizationMember,
 } from "./memberService";
@@ -206,6 +207,32 @@ describe("memberService", () => {
         "mem-a",
         "mem-c",
       ]);
+    });
+  });
+
+  describe("resetMemberErrorMessage", () => {
+    it("bilinen hata kodları için anlamlı Türkçe mesaj döner", () => {
+      expect(resetMemberErrorMessage("unauthorized")).toBe(
+        "Oturumunuz düşmüş görünüyor. Tekrar giriş yapın."
+      );
+      expect(resetMemberErrorMessage("forbidden")).toBe(
+        "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya üye bulunamadı."
+      );
+      expect(resetMemberErrorMessage("password_update_failed")).toBe(
+        "Yeni şifre kaydedilemedi. Lütfen tekrar deneyin."
+      );
+    });
+
+    it("bilinmeyen veya geçersiz hata kodlarında genel mesaj döner", () => {
+      expect(resetMemberErrorMessage("unknown_code")).toBe(
+        "Yeni şifre üretilemedi. Lütfen tekrar deneyin."
+      );
+      expect(resetMemberErrorMessage(null)).toBe(
+        "Yeni şifre üretilemedi. Lütfen tekrar deneyin."
+      );
+      expect(resetMemberErrorMessage(undefined)).toBe(
+        "Yeni şifre üretilemedi. Lütfen tekrar deneyin."
+      );
     });
   });
 });

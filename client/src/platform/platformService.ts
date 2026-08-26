@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import type { IssuedCredentials } from "@/components/credentials/IssuedCredentials";
 
 /**
  * Platform panelinin veri katmanı.
@@ -56,14 +57,8 @@ export type CreateOrganizationInput = {
  * kaydına, ne tarayıcı deposuna. Yalnızca bu yanıtta gelir ve ekranda bir kez
  * gösterilir. Kaybolursa yenisi üretilir.
  */
-export type OrganizationCredentials = {
+export type OrganizationCredentials = IssuedCredentials & {
   organizationCode: number;
-  loginNumber: string;
-  temporaryPassword: string;
-  /** Sunucu alanı yoksa eski yanıtlarla uyumluluk için undefined kalır. */
-  passwordLockSet?: boolean;
-  /** Denetim servisi alanı eklenene kadar undefined kalabilir. */
-  auditWritten?: boolean;
 };
 
 /**

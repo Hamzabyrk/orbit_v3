@@ -76,6 +76,8 @@ client/src/
 │   │   ├── EducationPlatform.tsx # Kompozisyon kökü (state + localStorage demo kalıcılığı)
 │   │   ├── dashboards/       # AdminDashboard, TeacherDashboard, StudentDashboard, ParentDashboard
 │   │   └── pages/            # StudentsPage, ClassesPage, AttendancePage, ... SettingsPage vb.
+│   ├── credentials/        # Giriş fişi: bir kez göster, yazdır. Operatör ve kurum
+│   │                       #   yöneticisi aynı bileşeni kullanır; ikinci kopya yok
 │   ├── auth/               # AuthShell + SetPasswordScreen, ForgotPasswordScreen,
 │   │                       #   ForcePasswordChangeScreen (ilk giriş kilidi)
 │   ├── educationAccess.ts  # Rol bazlı yetki matrisi (RBAC)
@@ -100,7 +102,6 @@ client/src/
 │   ├── organizationSlug.ts # Kurum adından slug (Türkçe harf çevirisi)
 │   ├── PlatformOrganizations.tsx / OrganizationCreateDialog.tsx
 │   ├── OrganizationProfileDialog.tsx # Kurum profili ve şifre sıfırlama
-│   ├── CredentialsPanel.tsx / PrintPortal.tsx # Giriş fişi: bir kez göster, yazdır
 │   └── PlatformOperators.tsx / PlatformAuditLog.tsx
 ├── contexts/               # ThemeProvider
 ├── hooks/                  # useMobile, useComposition

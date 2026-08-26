@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import type { OrganizationCredentials } from "./platformService";
+import type { IssuedCredentials } from "./IssuedCredentials";
 import { PrintPortal } from "./PrintPortal";
 
 /**
- * Kurum kurulduktan sonra giriş bilgilerinin bir kez gösterildiği ekran.
+ * Kurum kurulduktan veya üye şifresi sıfırlandıktan sonra giriş bilgilerinin
+ * bir kez gösterildiği ekran.
  *
  * Geçici şifre hiçbir yere kaydedilmiyor — ne veritabanına, ne denetim
  * kaydına, ne tarayıcı deposuna. Bu ekran kapandığında şifre geri getirilemez;
@@ -12,20 +13,25 @@ import { PrintPortal } from "./PrintPortal";
  * e-postasıyla değil, doğrudan geçici şifreyle açılır".
  */
 export function CredentialsPanel({
-  organizationName,
+  subjectLabel,
+  subjectName,
+  organizationCode,
   credentials,
   onDone,
 }: {
-  organizationName: string;
-  credentials: OrganizationCredentials;
+  subjectLabel: string;
+  subjectName: string;
+  organizationCode?: number;
+  credentials: IssuedCredentials;
   onDone: () => void;
 }) {
   const [acknowledged, setAcknowledged] = useState(false);
 
+  const labelPadded = subjectLabel.padEnd(12, " ");
   const plainText = [
-    `Kurum      : ${organizationName}`,
-    `Giriş no   : ${credentials.loginNumber}`,
-    `Geçici şifre: ${credentials.temporaryPassword}`,
+    `${labelPadded}: ${subjectName}`,
+    `${"Giriş no".padEnd(12, " ")}: ${credentials.loginNumber}`,
+    `${"Geçici şifre".padEnd(12, " ")}: ${credentials.temporaryPassword}`,
     ...(credentials.passwordLockSet === false
       ? []
       : ["", "İlk girişte şifrenizi değiştirmeniz istenecektir."]),
@@ -37,7 +43,7 @@ export function CredentialsPanel({
       toast.success("Giriş bilgileri kopyalandı");
     } catch {
       // Pano izni yoksa veya güvenli bağlam değilse sessizce başarısız olmak
-      // yanıltıcı olurdu; operatör kopyaladığını sanıp ekranı kapatabilir.
+      // yanıltıcı olurdu; kullanıcı kopyaladığını sanıp ekranı kapatabilir.
       toast.error("Kopyalanamadı", {
         description: "Bilgileri ekrandan elle not alın.",
       });
@@ -53,7 +59,8 @@ export function CredentialsPanel({
       */}
       <PrintPortal>
         <PrintableSlip
-          organizationName={organizationName}
+          subjectLabel={subjectLabel}
+          subjectName={subjectName}
           credentials={credentials}
         />
       </PrintPortal>
@@ -69,9 +76,9 @@ export function CredentialsPanel({
       <dl className="space-y-3 rounded-xl bg-muted/60 p-4">
         <div>
           <dt className="text-[10px] font-bold uppercase tracking-[.12em] text-muted-foreground">
-            Kurum
+            {subjectLabel}
           </dt>
-          <dd className="mt-0.5 text-[14px] font-bold">{organizationName}</dd>
+          <dd className="mt-0.5 text-[14px] font-bold">{subjectName}</dd>
         </div>
         <div>
           <dt className="text-[10px] font-bold uppercase tracking-[.12em] text-muted-foreground">
@@ -98,9 +105,9 @@ export function CredentialsPanel({
             className="rounded-xl border-2 border-rose-400 bg-rose-50 p-3 text-[12px] leading-5 text-rose-900 dark:border-rose-500 dark:bg-rose-500/10 dark:text-rose-100"
           >
             İlk giriş kilidi kurulamadı. Bu hesap geçici şifresini değiştirmeden
-            sisteme girebilir. Kurum yöneticisine şifresini ilk girişte
-            kendisinin değiştirmesi gerektiğini bildirin ve panelden şifre
-            sıfırlamayı tekrar deneyin.
+            sisteme girebilir. Kullanıcıya şifresini ilk girişte kendisinin
+            değiştirmesi gerektiğini bildirin ve şifre sıfırlamayı tekrar
+            deneyin.
           </div>
         ) : null}
 
@@ -109,20 +116,25 @@ export function CredentialsPanel({
             role="alert"
             className="rounded-xl border-2 border-rose-400 bg-rose-50 p-3 text-[12px] leading-5 text-rose-900 dark:border-rose-500 dark:bg-rose-500/10 dark:text-rose-100"
           >
-            Bu işlemin denetim kaydı yazılamadı. İşlem gerçekleşti ancak
-            platform denetim listesinde görünmeyecek.
+            Bu işlemin denetim kaydı yazılamadı. İşlem gerçekleşti ancak denetim
+            listesinde görünmeyecek.
           </div>
         ) : null}
       </div>
 
       <p className="text-[11px] leading-5 text-muted-foreground">
-        Kurum yöneticisi bu numarayla giriş yapar
+        Kullanıcı bu numarayla giriş yapar
         {credentials.passwordLockSet === false
           ? "."
-          : " ve ilk girişte şifresini değiştirmek zorundadır."}{" "}
-        Giriş numarasının ilk dört hanesi kurum kodudur (
-        <span className="font-mono">{credentials.organizationCode}</span>); bu
-        kurumun diğer kullanıcıları da aynı kodla başlayan numaralar alır.
+          : " ve ilk girişte şifresini değiştirmek zorundadır."}
+        {organizationCode !== undefined ? (
+          <>
+            {" "}
+            Giriş numarasının ilk dört hanesi kurum kodudur (
+            <span className="font-mono">{organizationCode}</span>); bu kurumun
+            diğer kullanıcıları da aynı kodla başlayan numaralar alır.
+          </>
+        ) : null}
       </p>
 
       <label className="flex cursor-pointer items-start gap-2.5 text-[12px]">
@@ -174,11 +186,13 @@ export function CredentialsPanel({
  * yüksek kontrastlı tutuluyor.
  */
 function PrintableSlip({
-  organizationName,
+  subjectLabel,
+  subjectName,
   credentials,
 }: {
-  organizationName: string;
-  credentials: OrganizationCredentials;
+  subjectLabel: string;
+  subjectName: string;
+  credentials: IssuedCredentials;
 }) {
   return (
     <div
@@ -198,11 +212,11 @@ function PrintableSlip({
           margin: 0,
         }}
       >
-        ORBIT — Giriş Bilgileri
+        ORBIT — {subjectLabel} Giriş Bilgileri
       </p>
 
       <h1 style={{ fontSize: "20px", fontWeight: 800, margin: "12px 0 0" }}>
-        {organizationName}
+        {subjectName}
       </h1>
 
       <table
