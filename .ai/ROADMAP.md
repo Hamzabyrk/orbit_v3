@@ -459,6 +459,9 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 > **Satır bazında işlemler ayrı dilimdir** ve tablodan sonra gelir. Sebebi bağımlılık değil, karar eksikliği: "yeni geçici şifre üret" sonucu geçici şifreyi **bir kez** göstermek zorunda ve o ekran (`CredentialsPanel`) bugün `platform/` altında, operatör paneline ait. Dershane ağacında yeniden kullanılması modül sınırını aşar; nereye taşınacağına karar verilmeden arayüz yazılmamalıdır.
 
 - [ ] Ayarlar altında öğretmen/öğrenci/veli ekleme; ad-soyad, rol, **şube**, isteğe bağlı e-posta ve telefon.
+
+  **Sunucu yarısı bitti (#106):** `create-member` Edge Function'ı + `internal_allocate_member_slot` ve `internal_create_membership` RPC'leri; yetki sınırı SQL'de ve 16 pgTAP iddiasıyla kapsanıyor. **Yazıldı ama deploy edilmedi, migration uygulanmadı.** Eksik olan arayüz yarısı — form ve geçici şifrenin bir kez gösterimi.
+
 - [ ] `person_code`'un sıradaki değerinin tahsisi ve geçici şifrenin bir kez gösterimi; yazdırılabilir liste.
 - [ ] **Bağlayıcı ön koşul — kullanıcı başına "yeni geçici şifre üret".** Bu iş, hesap açma ile **aynı sürümde** gelmek zorundadır, sonraya bırakılamaz.
 
