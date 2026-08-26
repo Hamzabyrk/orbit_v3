@@ -6,6 +6,7 @@ import { SettingsCategoryList } from "./SettingsCategoryList";
 import { SettingsDataImportSection } from "./SettingsDataImportSection";
 import { SettingsDataManagementSection } from "./SettingsDataManagementSection";
 import { SettingsInstitutionSection } from "./SettingsInstitutionSection";
+import { SettingsMembersSection } from "./SettingsMembersSection";
 import { SettingsNotificationsSection } from "./SettingsNotificationsSection";
 import { SettingsProfileSection } from "./SettingsProfileSection";
 import { SettingsSecuritySection } from "./SettingsSecuritySection";
@@ -23,7 +24,18 @@ export function SettingsPage({
   onResetDemoData: () => void;
 }) {
   const [selected, setSelected] = useState<SettingsCategoryId>("profil");
-  const category = SETTINGS_CATEGORIES.find(item => item.id === selected)!;
+
+  // Üyeler kategorisi yalnızca kurum yöneticilerine gösterilir.
+  //
+  // Bu kontrol bir güvenlik sınırı DEĞİLDİR: istemci kodunu yok sayan biri
+  // API veya servisi doğrudan çağırabilir. Gerçek yetki sınırı veritabanındaki
+  // `profiles_select_organization_admin` ve `memberships_select_self_or_admin`
+  // RLS politikalarıdır; buradaki kontrol yalnızca kullanıcı deneyimi içindir.
+  const categories = SETTINGS_CATEGORIES.filter(
+    item => item.id !== "uyeler" || role === "admin"
+  );
+  const category =
+    categories.find(item => item.id === selected) ?? categories[0];
 
   const renderSection = () => {
     switch (selected) {
@@ -31,6 +43,8 @@ export function SettingsPage({
         return <SettingsProfileSection role={role} />;
       case "kurum":
         return <SettingsInstitutionSection />;
+      case "uyeler":
+        return <SettingsMembersSection />;
       case "bildirimler":
         return <SettingsNotificationsSection />;
       case "roller":
@@ -57,7 +71,7 @@ export function SettingsPage({
       />
       <div className="mt-6 grid gap-5 lg:grid-cols-[280px_1fr]">
         <SettingsCategoryList
-          categories={SETTINGS_CATEGORIES}
+          categories={categories}
           selectedId={selected}
           onSelect={setSelected}
         />
