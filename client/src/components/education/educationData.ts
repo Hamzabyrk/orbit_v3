@@ -6,6 +6,7 @@ import {
   initialAttendances as demoInitialAttendances,
   initialAutomations as demoInitialAutomations,
   initialHomework as demoInitialHomework,
+  organizationMembers as demoOrganizationMembers,
   paymentRows as demoPaymentRows,
   schedule as demoSchedule,
   students as demoStudents,
@@ -25,6 +26,7 @@ export const dayPlanEventsByRole = isDemoMode
 export const paymentRows = isDemoMode ? demoPaymentRows : [];
 export const schedule = isDemoMode ? demoSchedule : [];
 export const students = isDemoMode ? demoStudents : [];
+export const organizationMembers = isDemoMode ? demoOrganizationMembers : [];
 
 export const initialAttendances = isDemoMode ? demoInitialAttendances : {};
 export const initialAutomations = isDemoMode ? demoInitialAutomations : [];
