@@ -22,6 +22,14 @@ export type PlatformOperatorIdentity = {
 };
 
 /**
+ * Kullanıcının ilk şifre değişim kilit durumu:
+ * - "required": Profil başarıyla okundu ve geçici şifreyle açılan hesap henüz şifresini değiştirmedi.
+ * - "clear": Profil başarıyla okundu ve hesap kilitli değil (kendi şifresini belirlemiş).
+ * - "unresolved": Profil okunamadı (ağ hatası veya profil satırı yok). Fail-closed prensibi gereği panele alınmaz.
+ */
+export type PasswordLockState = "required" | "clear" | "unresolved";
+
+/**
  * Kimlik iki bağımsız eksen taşır ve bir kullanıcı ikisinden birine, hiçbirine
  * veya her ikisine birden sahip olabilir.
  *
@@ -36,15 +44,15 @@ export type AuthIdentity = {
   displayName: string;
   demo: boolean;
   /**
-   * Kullanıcı geçici şifreyle açıldı ve henüz kendi şifresini belirlemedi.
+   * Kullanıcının ilk şifre değişim kilit durumu.
    *
    * Bayrağın tek doğruluk kaynağı `profiles` tablosudur; istemci onu yalnızca
    * OKUR. Kullanıcı kendi eliyle düşüremez — sütun düzeyi GRANT engelliyor —
    * ve şifre gerçekten değiştiğinde veritabanı tetikleyicisi kendiliğinden
-   * düşürüyor. Bkz. `20260825140000_force_password_change.sql`.
+   * düşürüyor. Profil okunamadığında "unresolved" durumuna geçer.
    */
-  mustChangePassword: boolean;
-  /** Geçici şifrenin son geçerlilik anı (ISO). Kilit yoksa `null`. */
+  passwordLock: PasswordLockState;
+  /** Geçici şifrenin son geçerlilik anı (ISO). Kilit yoksa veya okunamadıysa `null`. */
   passwordExpiresAt: string | null;
   /** Aktif kurum üyeliği yoksa `null`. */
   membership: MembershipIdentity | null;
@@ -82,6 +90,11 @@ export type AuthContextValue = {
    * Kurtarma akışından farkı: oturum kapatılmaz, kullanıcı içeride kalır.
    */
   completeRequiredPasswordChange: (newPassword: string) => Promise<void>;
+  /**
+   * Oturumu ve kimlik bilgilerini yeniden okur. Bilgi okuma hatası alan kilit
+   * ekranında kullanıcının işlemi tekrar denemesini sağlar.
+   */
+  refreshIdentity: () => Promise<void>;
 };
 
 export type AuthProviderProps = {

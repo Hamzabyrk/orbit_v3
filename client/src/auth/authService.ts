@@ -126,6 +126,47 @@ async function loadPlatformOperatorIdentity(
   return data ? { role: data.role } : null;
 }
 
+type ProfileRow = {
+  display_name: string | null;
+  must_change_password: boolean;
+  password_expires_at: string | null;
+};
+
+/**
+ * İki deneme arasındaki bekleme. Gecikmesiz bir tekrar, aynı milisaniyede aynı
+ * hataya çarpar ve hiçbir şey kazandırmaz; bu kadarlık bir pay bağlantının
+ * toparlanmasına yeter ve yalnızca hata yolunda ödenir.
+ */
+const PROFILE_RETRY_DELAY_MS = 300;
+
+function readProfileRow(userId: string) {
+  return supabase
+    .from("profiles")
+    .select("display_name, must_change_password, password_expires_at")
+    .eq("id", userId)
+    .maybeSingle<ProfileRow>();
+}
+
+/**
+ * Profil satırını okur. Geçici ağ hatalarına ve soğuk başlangıç dalgalanmalarına
+ * karşı bir kez sessizce yeniden dener. Yeniden deneme yalnızca hata (`error`)
+ * durumunda çalışır; satırın bulunamaması (boş dönmesi) geçici bir arıza olmadığı
+ * için tekrar denenmez.
+ */
+async function fetchProfileWithRetry(userId: string) {
+  const result = await readProfileRow(userId);
+
+  if (!result.error) {
+    return result;
+  }
+
+  await new Promise(resolve =>
+    globalThis.setTimeout(resolve, PROFILE_RETRY_DELAY_MS)
+  );
+
+  return readProfileRow(userId);
+}
+
 /**
  * Oturumu açık kullanıcının kimliğini çözer.
  *
@@ -147,26 +188,24 @@ export async function loadAuthenticatedIdentity(
     );
   }
 
-  const profileResult = await supabase
-    .from("profiles")
-    .select("display_name, must_change_password, password_expires_at")
-    .eq("id", user.id)
-    .maybeSingle<{
-      display_name: string;
-      must_change_password: boolean;
-      password_expires_at: string | null;
-    }>();
+  const profileResult = await fetchProfileWithRetry(user.id);
+
+  // Profil okunamazsa (ağ hatası veya eksik satır) fail-closed kalınarak
+  // "unresolved" durumuna geçilir. Bu durum panele girişi engeller (K-04),
+  // ancak kullanıcının şifresini değiştirmeye zorlanması yerine bilgilendirme
+  // ve tekrar deneme ekranına düşmesini sağlar.
+  const passwordLock = profileResult.data
+    ? profileResult.data.must_change_password
+      ? "required"
+      : "clear"
+    : "unresolved";
 
   return {
     userId: user.id,
     displayName:
       profileResult.data?.display_name?.trim() || displayNameFromUser(user),
     demo: false,
-    // Profil okunamazsa kilit VARSAYILIR. Fail-open olmak — bilinmeyende
-    // kilidi kapalı saymak — kilidi tek bir ağ hatasıyla atlanabilir kılardı.
-    mustChangePassword: profileResult.data
-      ? profileResult.data.must_change_password
-      : true,
+    passwordLock,
     passwordExpiresAt: profileResult.data?.password_expires_at ?? null,
     membership,
     platformOperator,

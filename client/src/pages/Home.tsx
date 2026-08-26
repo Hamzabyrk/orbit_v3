@@ -2,6 +2,7 @@ import { OrbitMark } from "@/components/OrbitMark";
 import { EducationLoginScreen } from "@/components/education/LoginScreen";
 import { EducationPlatform } from "@/components/education/EducationPlatform";
 import { ForcePasswordChangeScreen } from "@/components/auth/ForcePasswordChangeScreen";
+import { ProfileUnavailableScreen } from "@/components/auth/ProfileUnavailableScreen";
 import { useAuth } from "@/auth/useAuth";
 import { Redirect } from "wouter";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ export default function Home() {
     signOut,
     switchDemoRole,
     completeRequiredPasswordChange,
+    refreshIdentity,
   } = useAuth();
 
   const handleLogout = async () => {
@@ -56,6 +58,18 @@ export default function Home() {
     return <EducationLoginScreen demoMode={demoMode} onLogin={signIn} />;
   }
 
+  // Profil okunamadığında fail-closed davranışı: kullanıcı panele alınmaz,
+  // ancak şifre değiştirmeye zorlanmak yerine bilgilendirme ve tekrar deneme
+  // ekranına yönlendirilir.
+  if (identity.passwordLock === "unresolved") {
+    return (
+      <ProfileUnavailableScreen
+        onRetry={refreshIdentity}
+        onSignOut={() => void handleLogout()}
+      />
+    );
+  }
+
   // Kilit her şeyden ÖNCE gelir — panel yönlendirmesinden de önce.
   //
   // Sırayı bozup önce yönlendirseydik, hem operatör hem kilitli olan biri
@@ -66,7 +80,7 @@ export default function Home() {
   // doğrudan API çağırabilir. Sunucu tarafındaki karşılığı
   // `current_user_must_change_password()` ve v1.2'de iş tablolarının RLS
   // politikalarına koşul olarak girecek.
-  if (identity.mustChangePassword) {
+  if (identity.passwordLock === "required") {
     return (
       <ForcePasswordChangeScreen
         displayName={identity.displayName}

@@ -92,14 +92,14 @@ export default function Platform() {
     return <Redirect to="/" />;
   }
 
-  // Kilitli kullanıcı burada da duraklatılır. Kilit ekranı `/` altında
-  // yaşadığı için oraya yönlendiriliyor; iki yerde iki kopya ekran tutmak,
-  // birinin sessizce eskimesi demek olurdu.
+  // Kilitli veya profili okunamayan kullanıcı burada da duraklatılır.
+  // İlgili ekranlar `/` altında yaşadığı için oraya yönlendiriliyor; iki yerde
+  // kopya ekranlar tutmak birinin sessizce eskimesi demek olurdu.
   //
   // Operatörler bugün elle açıldığı için kilitli olmuyorlar. Yine de kontrol
-  // var: bu rota kilidi es geçerse, kilitli bir operatör adres çubuğuna
-  // `/platform` yazarak kilidi tamamen atlar.
-  if (identity.mustChangePassword) {
+  // var: bu rota kilidi veya okunamayan durumu es geçerse, kilitli bir operatör
+  // adres çubuğuna `/platform` yazarak durumu tamamen atlar.
+  if (identity.passwordLock !== "clear") {
     return <Redirect to="/" />;
   }
 

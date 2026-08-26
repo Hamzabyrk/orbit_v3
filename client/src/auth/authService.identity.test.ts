@@ -157,4 +157,107 @@ describe("loadAuthenticatedIdentity", () => {
       /rol tanınmadı/i
     );
   });
+
+  describe("passwordLock (şifre kilidi durumu)", () => {
+    it("profilde must_change_password true ise required döner", async () => {
+      mockTables({
+        organization_memberships: membershipRow,
+        organizations: organizationRow,
+        branches: branchRow,
+        platform_operators: empty,
+        profiles: ok({
+          display_name: "Test Kişi",
+          must_change_password: true,
+          password_expires_at: "2026-08-27T12:00:00Z",
+        }),
+      });
+
+      const identity = await loadAuthenticatedIdentity(user);
+
+      expect(identity.passwordLock).toBe("required");
+      expect(identity.passwordExpiresAt).toBe("2026-08-27T12:00:00Z");
+    });
+
+    it("profilde must_change_password false ise clear döner", async () => {
+      mockTables({
+        organization_memberships: membershipRow,
+        organizations: organizationRow,
+        branches: branchRow,
+        platform_operators: empty,
+        profiles: ok({
+          display_name: "Test Kişi",
+          must_change_password: false,
+          password_expires_at: null,
+        }),
+      });
+
+      const identity = await loadAuthenticatedIdentity(user);
+
+      expect(identity.passwordLock).toBe("clear");
+      expect(identity.passwordExpiresAt).toBeNull();
+    });
+
+    it("profil sorgusu iki denemede de hata verirse unresolved döner", async () => {
+      mockTables({
+        organization_memberships: membershipRow,
+        organizations: organizationRow,
+        branches: branchRow,
+        platform_operators: empty,
+        profiles: failed,
+      });
+
+      const identity = await loadAuthenticatedIdentity(user);
+
+      expect(identity.passwordLock).toBe("unresolved");
+      expect(identity.passwordExpiresAt).toBeNull();
+    });
+
+    it("ilk profil denemesi hata verir ama ikinci deneme başarılı olursa gerçek değeri çözer", async () => {
+      let profileCallCount = 0;
+      fromMock.mockImplementation((table: string) => {
+        if (table === "profiles") {
+          profileCallCount++;
+          if (profileCallCount === 1) {
+            return chainReturning(failed);
+          }
+          return chainReturning(
+            ok({
+              display_name: "Test Kişi",
+              must_change_password: false,
+              password_expires_at: null,
+            })
+          );
+        }
+
+        const defaultTables: Record<string, QueryResult> = {
+          organization_memberships: membershipRow,
+          organizations: organizationRow,
+          branches: branchRow,
+          platform_operators: empty,
+        };
+        return chainReturning(defaultTables[table] ?? empty);
+      });
+
+      const identity = await loadAuthenticatedIdentity(user);
+
+      expect(profileCallCount).toBe(2);
+      expect(identity.passwordLock).toBe("clear");
+      expect(identity.displayName).toBe("Test Kişi");
+    });
+
+    it("profil satırı bulunamazsa (boş dönerse) unresolved döner", async () => {
+      mockTables({
+        organization_memberships: membershipRow,
+        organizations: organizationRow,
+        branches: branchRow,
+        platform_operators: empty,
+        profiles: empty,
+      });
+
+      const identity = await loadAuthenticatedIdentity(user);
+
+      expect(identity.passwordLock).toBe("unresolved");
+      expect(identity.passwordExpiresAt).toBeNull();
+    });
+  });
 });
