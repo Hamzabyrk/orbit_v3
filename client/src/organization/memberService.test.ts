@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatLoginNumber,
   isMemberStatus,
-  resetMemberErrorMessage,
+  memberErrorMessage,
   sortMembers,
   type OrganizationMember,
 } from "./memberService";
@@ -210,29 +210,41 @@ describe("memberService", () => {
     });
   });
 
-  describe("resetMemberErrorMessage", () => {
+  describe("memberErrorMessage", () => {
     it("bilinen hata kodları için anlamlı Türkçe mesaj döner", () => {
-      expect(resetMemberErrorMessage("unauthorized")).toBe(
+      expect(memberErrorMessage("unauthorized", "yedek")).toBe(
         "Oturumunuz düşmüş görünüyor. Tekrar giriş yapın."
       );
-      expect(resetMemberErrorMessage("forbidden")).toBe(
+      expect(memberErrorMessage("forbidden", "yedek")).toBe(
         "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya üye bulunamadı."
       );
-      expect(resetMemberErrorMessage("password_update_failed")).toBe(
+      expect(memberErrorMessage("password_update_failed", "yedek")).toBe(
         "Yeni şifre kaydedilemedi. Lütfen tekrar deneyin."
+      );
+      expect(memberErrorMessage("member_create_failed", "yedek")).toBe(
+        "Üye oluşturulamadı. Bilgileri kontrol edip tekrar deneyin."
       );
     });
 
     it("bilinmeyen veya geçersiz hata kodlarında genel mesaj döner", () => {
-      expect(resetMemberErrorMessage("unknown_code")).toBe(
-        "Yeni şifre üretilemedi. Lütfen tekrar deneyin."
-      );
-      expect(resetMemberErrorMessage(null)).toBe(
-        "Yeni şifre üretilemedi. Lütfen tekrar deneyin."
-      );
-      expect(resetMemberErrorMessage(undefined)).toBe(
-        "Yeni şifre üretilemedi. Lütfen tekrar deneyin."
-      );
+      expect(
+        memberErrorMessage(
+          "unknown_code",
+          "Yeni şifre üretilemedi. Lütfen tekrar deneyin."
+        )
+      ).toBe("Yeni şifre üretilemedi. Lütfen tekrar deneyin.");
+      expect(
+        memberErrorMessage(
+          null,
+          "Yeni şifre üretilemedi. Lütfen tekrar deneyin."
+        )
+      ).toBe("Yeni şifre üretilemedi. Lütfen tekrar deneyin.");
+      expect(
+        memberErrorMessage(
+          undefined,
+          "Üye oluşturulamadı. Bilgileri kontrol edip tekrar deneyin."
+        )
+      ).toBe("Üye oluşturulamadı. Bilgileri kontrol edip tekrar deneyin.");
     });
   });
 });
