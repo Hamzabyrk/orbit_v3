@@ -91,6 +91,8 @@ client/src/
 │   ├── passwordPolicy.ts   # Şifre kuralları, Türkçe harflerle uyumlu
 │   ├── idleTimeout.ts / useIdleTimeout.ts  # 30 dk hareketsizlik sayacı
 │   └── runtime.ts          # isDemoMode — preview derlemeleri demo modundadır
+├── organization/           # Dershane tarafının veri katmanı — kurum yöneticisinin gördüğü
+│   └── memberService.ts    # Kurum üyeleri; giriş numarası kurulumu ve sıralama saf fonksiyonlarda
 ├── platform/               # Platform operatörü paneli — dershane ağacından ayrı
 │   ├── PlatformShell.tsx   # Kabuk, sekmeler, boş durum
 │   ├── tabs.ts             # Sekme tanımları

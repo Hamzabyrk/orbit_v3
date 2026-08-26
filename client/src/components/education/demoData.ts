@@ -5,6 +5,7 @@
  * Bugün hâlâ production'da da okunuyor; demo moduna hapsedilmesi Faz E5'in
  * sıradaki dilimidir. Buraya yeni veri eklerken bunu aklında tut.
  */
+import type { OrganizationMember } from "@/organization/memberService";
 import type {
   Automation,
   AttendanceState,
@@ -534,3 +535,62 @@ export const roleEmail: Record<Role, string> = {
   student: "ogrenci@orbit.edu.tr",
   parent: "veli@orbit.edu.tr",
 };
+
+export const organizationMembers: OrganizationMember[] = [
+  {
+    membershipId: "demo-mem-1",
+    displayName: "Ayşe Yalçın",
+    loginNumber: "10011001",
+    role: "admin",
+    branchName: "Çorlu Şube",
+    status: "active",
+  },
+  {
+    membershipId: "demo-mem-2",
+    displayName: "Merve Karaca",
+    loginNumber: "10011002",
+    role: "teacher",
+    branchName: "Çorlu Şube",
+    status: "active",
+  },
+  {
+    membershipId: "demo-mem-3",
+    displayName: "Caner Aydın",
+    loginNumber: "10011003",
+    role: "teacher",
+    branchName: null,
+    status: "active",
+  },
+  {
+    membershipId: "demo-mem-4",
+    displayName: "Zeynep Kaya",
+    loginNumber: "10011004",
+    role: "student",
+    branchName: "Çorlu Şube",
+    status: "active",
+  },
+  {
+    membershipId: "demo-mem-5",
+    displayName: "Efe Demir",
+    loginNumber: null,
+    role: "student",
+    branchName: "Çorlu Şube",
+    status: "invited",
+  },
+  {
+    membershipId: "demo-mem-6",
+    displayName: "Murat Kaya",
+    loginNumber: "10011006",
+    role: "parent",
+    branchName: "Çorlu Şube",
+    status: "active",
+  },
+  {
+    membershipId: "demo-mem-7",
+    displayName: "Burak Şen",
+    loginNumber: "10011007",
+    role: "teacher",
+    branchName: "Çorlu Şube",
+    status: "suspended",
+  },
+];

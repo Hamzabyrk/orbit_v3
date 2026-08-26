@@ -464,7 +464,9 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
   Gerekçe: 2026-08-25'ten bu yana süresi dolmuş bir geçici şifre, değiştirilerek kurtarılamıyor (Issue #80 · B06, `20260825190000_enforce_password_expiry.sql`). Kilit ancak yeni bir geçici şifre üretilerek açılır. Bugün bu güvenli, çünkü hesabı olan tek rol kurum yöneticisidir ve `reset-admin-password` ona bu yolu sunar. E6 öğretmen/öğrenci/veli hesaplarını açtığında aynı yol onlar için de bulunmazsa, **7 gün içinde giriş yapmayan bir öğrenci kalıcı olarak kilitlenir ve kurtarılamaz.**
 
-- [ ] **Kurum içi üye tablosu** — kurum yöneticisinin panelinde, tablo biçiminde: kişi adı, giriş numarası, rol, şube, bağlı veli/öğrenci, durum. Satır bazında işlemler: şifre sıfırlama, rol değiştirme, kurumdan çıkarma.
+- [x] **Kurum içi üye tablosu — salt okunur kısım** (#105). Ayarlar altında, yalnızca kurum yöneticisinde: kişi adı, giriş numarası, rol, şube, durum. Dershane tarafının ilk servis modülü (`client/src/organization/`) bu dilimde kuruldu.
+- [ ] **Satır bazında işlemler.** Şifre sıfırlama #107'de, `CredentialsPanel`'in ortak yere taşınmasıyla birlikte. Rol değiştirme ve kurumdan çıkarma henüz açılmadı.
+- [ ] **Bağlı veli/öğrenci sütunu.** Tablodan çıkarıldı: veli ile öğrenciyi bağlayan tablo hiç oluşturulmamış, sütunun veri kaynağı yok. Ayrı bir iş; ilişki modeli kurulmadan yazılamaz.
 
   Tablo **yalnızca kurum yöneticisinin** panelinde bulunur. Platform paneline konulamaz: operatörün kurum kişi listesini görmesi "operatör kapları yönetir, içeriği görmez" taahhüdünü ihlal eder.
 

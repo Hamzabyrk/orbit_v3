@@ -7,12 +7,14 @@ import {
   SlidersHorizontal,
   UploadCloud,
   User,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
 export type SettingsCategoryId =
   | "profil"
   | "kurum"
+  | "uyeler"
   | "bildirimler"
   | "roller"
   | "sistem"
@@ -42,6 +44,13 @@ export const SETTINGS_CATEGORIES: SettingsCategoryMeta[] = [
     subtitle: "Şube ve kurum bilgileri",
     icon: School,
     eyebrow: "Kurum ve şube bilgileri",
+  },
+  {
+    id: "uyeler",
+    title: "Üyeler",
+    subtitle: "Kurum içi kullanıcı listesi",
+    icon: Users,
+    eyebrow: "Kullanıcılar ve roller",
   },
   {
     id: "bildirimler",
