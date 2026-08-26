@@ -443,6 +443,21 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 ### E6 - Kurum yöneticisinin kullanıcı ekleme ekranı (v1.4'ün ilk maddesi)
 
+> **Hazır olan sunucu parçaları (2026-08-26):**
+>
+> - `internal_next_person_code(uuid)` — advisory lock'lu numara tahsisi, E1'den (`service_role`)
+> - `reset-member-password` Edge Function + `internal_resolve_member_for_reset` — ön koşulun sunucu yarısı (#97)
+> - `profiles_select_organization_admin` politikası — yöneticinin kendi üyelerinin **adını** okuması (#100). Bu olmadan üye tablosu bir UUID listesidir.
+>
+> **Planlanan bölünme.** İki iş paralel yürüyebilir; dosya kümeleri kesişmiyor:
+>
+> | Kim            | İş                                                                                               | Dosyalar    |
+> | -------------- | ------------------------------------------------------------------------------------------------ | ----------- |
+> | **Yazan ajan** | Üye tablosu — salt okunur liste: ad, giriş numarası, rol, şube, durum                            | `client/`   |
+> | **Denetleyen** | `create-member` Edge Function — numara tahsisi, `admin.createUser`, üyelik, kilit, denetim kaydı | `supabase/` |
+>
+> **Satır bazında işlemler ayrı dilimdir** ve tablodan sonra gelir. Sebebi bağımlılık değil, karar eksikliği: "yeni geçici şifre üret" sonucu geçici şifreyi **bir kez** göstermek zorunda ve o ekran (`CredentialsPanel`) bugün `platform/` altında, operatör paneline ait. Dershane ağacında yeniden kullanılması modül sınırını aşar; nereye taşınacağına karar verilmeden arayüz yazılmamalıdır.
+
 - [ ] Ayarlar altında öğretmen/öğrenci/veli ekleme; ad-soyad, rol, **şube**, isteğe bağlı e-posta ve telefon.
 - [ ] `person_code`'un sıradaki değerinin tahsisi ve geçici şifrenin bir kez gösterimi; yazdırılabilir liste.
 - [ ] **Bağlayıcı ön koşul — kullanıcı başına "yeni geçici şifre üret".** Bu iş, hesap açma ile **aynı sürümde** gelmek zorundadır, sonraya bırakılamaz.

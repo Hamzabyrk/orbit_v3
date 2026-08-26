@@ -311,3 +311,11 @@ Brevo veya Mailjet gibi servisler, alan adı sahibi olmadan **doğrulanmış bir
 A ve B, pilot öncesi geçici çözümlerdir; ikisi de gönderen adresi sorununu çözmez. C, ticarileşme kapısıyla (`ROADMAP.md` v2.0) birlikte ele alınmalıdır.
 
 **Hangisi seçilirse seçilsin, Supabase'in yerleşik SMTP'si ilk gerçek kurum davetinden önce terk edilmelidir.**
+
+### Tavsiye (2026-08-26) — henüz karar değil
+
+**Şimdi kurulmasın.** E4'ün maddelerinin çoğu maili beklemiyor ve mailsiz yarısı zaten yapıldı (#95 · #96 · #97 · #98). Sağlayıcı yalnızca **doğrulama ve kurtarma linkinin gönderimi** için gerekli.
+
+Vakti geldiğinde **B (Brevo/Mailjet, alan adsız)**, A'ya (kişisel Gmail) tercih edilmeli. A'nın tek avantajı on dakikalık kurulum; karşılığında Supabase ayarlarına kişisel bir Gmail uygulama şifresi konur ve sızarsa **o kişi adına mail gönderilebilir**. B ücretsiz katmanda bounce yönetimi ve DKIM veriyor, kişisel hesabı riske atmıyor.
+
+**Ama asıl mesele gönderen adresi ve bu, şifre sıfırlama maili için sıradan bir marka sorunu değil.** Dershane yöneticisi "şifrenizi sıfırlayın" bağlantısını kişisel bir Gmail adresinden alırsa, ona **oltalama e-postasına güvenmeyi öğretmiş oluruz**. Pilot gerçekleştiğinde C'ye (kendi alan adı) geçilmesinin asıl gerekçesi budur; marka görünümü ikincildir.
