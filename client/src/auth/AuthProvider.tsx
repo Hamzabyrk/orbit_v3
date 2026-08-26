@@ -21,7 +21,7 @@ function createDemoIdentity(role: EducationRole): AuthIdentity {
     displayName: roleMeta[role].name,
     demo: true,
     // Demo modunda kilit yok; satış sunumunda şifre değiştirme ekranı çıkmaz.
-    mustChangePassword: false,
+    passwordLock: "clear",
     passwordExpiresAt: null,
     membership: {
       membershipId: `demo-membership-${role}`,
@@ -312,6 +312,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setRecovering(false);
   }, [setRecovering]);
 
+  /**
+   * Oturumu okur ve kimliği yeniden yükler. Profil okuma hatası veya geçici
+   * ağ sorunları nedeniyle "unresolved" durumunda kalan ekranlarda kullanıcının
+   * işlemi tekrar denemesini sağlar. Hata durumunda hatayı yukarı fırlatır;
+   * çağıran bileşen yakalayıp kullanıcıya gösterir, mevcut kimlik bozulmaz.
+   */
+  const refreshIdentity = useCallback(async () => {
+    if (isDemoMode) {
+      return;
+    }
+
+    if (!supabaseConfigured) {
+      throw new Error(
+        "Giriş servisi yapılandırılmamış. Sistem yöneticisine başvurun."
+      );
+    }
+
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error || !data.session) {
+      throw new Error("Oturum doğrulanamadı. Lütfen tekrar giriş yapın.");
+    }
+
+    const freshIdentity = await loadAuthenticatedIdentity(data.session.user);
+    setIdentity(freshIdentity);
+  }, []);
+
   const value = useMemo(
     () => ({
       identity,
@@ -325,6 +352,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       completePasswordReset,
       cancelPasswordRecovery,
       completeRequiredPasswordChange,
+      refreshIdentity,
     }),
     [
       identity,
@@ -337,6 +365,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       completePasswordReset,
       cancelPasswordRecovery,
       completeRequiredPasswordChange,
+      refreshIdentity,
     ]
   );
 

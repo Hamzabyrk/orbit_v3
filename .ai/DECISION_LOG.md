@@ -19,6 +19,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Auth e-postası hiç değişmez; kurtarma linkini biz üretir, biz göndeririz
 - Şifre değiştirme ile sıfırlama ayrı akışlardır; kurtarma kanalı isteğe bağlıdır ama görünürdür
 - Rol, atama ve bağlantı üç ayrı kavramdır
+- Kilit bayrağı üç durumludur — "okunamadı" ile "değiştirmelisin" aynı ekran değildir
 
 **Platform operatörlüğü ve destek**
 
@@ -890,3 +891,44 @@ Asıl kök neden bakım borcuydu: **hiçbir dosyayı güncellemek iş akışın�
 - **Her şeyi tek bir büyük dosyada birleştirmek:** Reddedildi. Seçmeli okumayı yok eder; en ucuz sorunun bedelini en pahalı hâle getirir.
 - **`PROJECT_ARCHITECT.md`'yi yerinde bırakıp başına "uygulanmaz" notu koymak:** Reddedildi. §04'teki eskimiş `ci.yml` kopyası ve çelişen akış tarifi dosyada kalmaya devam ederdi; bir ajanın notu okuyup gerisini yok sayacağına güvenmek, bu projede zaten bir kez başarısız olmuş bir bahistir.
 - **`WORK_LOG.md`'yi kısaltıp canlandırmak:** Reddedildi. Taşıdığı bilgi zaten `git log`, `DECISION_LOG.md` ve `PLATFORM_SETTINGS.md`'de yaşıyor; kaldırmadan önce tek tek doğrulandı (`ALLOW-DESTRUCTIVE` kaçış yolu workflow'un içinde, KVKK "kap/içerik" sınırı bu dosyada, lodash override'ı `package.json`'da). Uyulmayan bir kuralı üçüncü kez yazmak onu kural yapmaz.
+
+---
+
+### Karar: Kilit bayrağı üç durumludur — "okunamadı" ile "değiştirmelisin" aynı ekran değildir
+
+**Durum:** Alındı
+**Tarih:** 2026-08-26
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Production denemesinde (Issue #102) bir operatör, veritabanında `must_change_password = false` olmasına rağmen şifre değiştirme ekranıyla karşılaştı ve şifresini gereksiz yere değiştirmeye yönlendirildi. Kök neden `authService.ts`'te bilinçli olarak bırakılmış bir satırdı:
+
+```ts
+mustChangePassword: profileResult.data ? profileResult.data.must_change_password : true,
+```
+
+Karar doğruydu — bilinmeyen bir güvenlik durumunda kilitli tarafta kalmak K-04'tür. Yanlış olan sunumdu. Profil okuması geçici olarak başarısız olduğunda (ağ dalgalanması, soğuk başlangıç) istemci kilidi varsayıyor, kullanıcı da ekranda "şifrenizi değiştirmelisiniz" cümlesini okuyordu. Aynı anda panel verisi de yüklenemediği için tek bir geçici hata iki ayrı belirti üretiyordu ve kullanıcı hangisinin sebep hangisinin sonuç olduğunu göremiyordu.
+
+Boolean alan üç ayrı olguyu tek kutuya topluyordu: **kilit var** · **okuma hata verdi** · **profil satırı yok**.
+
+**Karar:**
+
+1. `AuthIdentity.mustChangePassword: boolean` kaldırıldı; yerine `passwordLock: "required" | "clear" | "unresolved"` geçti.
+2. `unresolved` durumu **panele girdirmez** — K-04 aynen korunur. Değişen tek şey, `required` ile aynı ekranı ve aynı metni paylaşmamasıdır.
+3. `unresolved` kendi ekranına sahiptir: `ProfileUnavailableScreen` — "Bilgileriniz okunamadı", bir **tekrar dene** düğmesi ve çıkış bağlantısı. Şifreden hiç söz etmez.
+4. Profil okuması hata alırsa 300 ms sonra **bir kez sessizce** yeniden denenir. Yeniden deneme yalnızca `error` durumunda çalışır; satırın boş dönmesi geçici bir arıza değildir.
+5. Ekranda selamlama yoktur. Profil okunamadığında görünen ad sentetik e-postadan türetilir; okunamayan veriyi uydurulmuş bir isimle göstermek K-03 ihlalidir.
+
+**Gerekçe:** Fail-closed kalmak, kullanıcıya sebebini yanlış söylemeyi haklı çıkarmaz. Güvenlik kararı ile kullanıcıya kurulan cümle iki ayrı şeydir; birincisi doğru olduğu için ikincisi denetlenmeden kalmıştı.
+
+Üçlü alanın boolean'a tercih edilmesinin sebebi diff büyüklüğü değil, hatanın cinsidir: bu bir "çağrı noktası bilinmeyeni yanlış yorumladı" hatasıdır. Tek alanı üçe çıkarmak, üç çağrı noktasının da yeni durumu ele almasını **derleme zamanında** zorunlu kılar; unutmak mümkün değildir.
+
+Gecikmesiz bir yeniden deneme bilinçli olarak reddedildi: aynı milisaniyede aynı hataya çarpar. 300 ms yalnızca hata yolunda ödenir ve issue'daki belirti — kullanıcının ancak üçüncü denemede düzelen oturumu — tam olarak bağlantının toparlanmasına pay bırakılmasını gerektiriyordu.
+
+**Alternatifler:**
+
+- **Boolean'ı koruyup yanına `profileResolved: boolean` eklemek:** Reddedildi. İki boolean üç durumu kodlar ve dördüncü, anlamsız bir kombinasyonu tip düzeyinde mümkün bırakır. Daha önemlisi mevcut çağrı noktaları derlenmeye devam eder — yani yeni alanı okumayı unutan yer bugünkü hatayı sessizce sürdürür. K-06'nın ısırdığı kalıbın aynısı.
+- **Profil okunamazsa `loadAuthenticatedIdentity`'nin hata fırlatması:** Reddedildi. Geçerli oturumu olan kullanıcı tek bir ağ dalgalanmasında dışarı atılırdı — bugünkünden daha sert, üstelik tekrar deneme imkânı da kaybolurdu. Belirtiyi çözmez, yerini değiştirir.
+- **`ForcePasswordChangeScreen`'e üçüncü bir dal eklemek:** Reddedildi. Ekran zaten "süresi doldu" dalını taşıyor; üçüncüsü dosyayı üç ilgisiz kaygının ortak evi yapardı. Yeni ekran kendi dosyasına gitti.
+- **Boş profil satırına ayrı bir metin yazmak:** Reddedildi (bugünlük). Eksik kurulmuş bir hesapta "tekrar dene" hiçbir zaman işe yaramaz, ancak dördüncü bir durum taşımanın bedeli bugün karşılığını bulmuyor; ortak metin "sorun sürerse kurum yöneticinize başvurun" diyerek ikisini de dürüstçe karşılıyor.
+
+**Kapsam dışı bırakıldı:** Panel verisinin aynı anda yüklenememesi (`loadOrganizations`). Kök neden ortaktır ama issue'nun istediği düzeltme kilit ekranıdır; ayrı ele alınacak.
