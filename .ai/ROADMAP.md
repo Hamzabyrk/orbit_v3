@@ -466,7 +466,9 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
   **Arayüz yarısı yazıldı (#113):** `MemberCreateDialog` — ad-soyad, rol, şube; başarıda `CredentialsPanel` ile geçici şifrenin bir kez gösterimi; liste yenilenmesi.
 
-  **Kutucuk hâlâ boş, çünkü akış canlıda çalışmıyor (K-08).** Tek eksik `create-member`'ın deploy'u; insan onayı gerekiyor. Deploy edilene kadar form gerçek ortamda `service_unavailable` ile döner.
+  **`create-member` 2026-08-26'da deploy edildi** (v1, ACTIVE, `verify_jwt: true`). Modülün yüklendiği veri oluşturmadan doğrulandı: izinli origin ile `OPTIONS` → `204` + CORS başlıkları, izinsiz origin ile → `403 origin_not_allowed`. Yanıtta `x-deno-execution-id` var, yani Deno fonksiyonu gerçekten çalıştırdı. Deno bütün üst düzey import'ları çalıştırmadan önce çözdüğü için bu, `_shared/http.ts`, `_shared/temporaryPassword.ts` ve `_shared/syntheticEmail.ts` üçünün de çözüldüğü anlamına gelir.
+
+  **Kutucuk hâlâ boş (K-08):** fonksiyon açılıyor ama **henüz tek bir üye oluşturulmadı.** `internal_allocate_member_slot` ve `internal_create_membership` bugüne kadar yalnızca pgTAP ile kanıtlandı, canlı bir çağrıyla değil. Kutucuk E7-3 ile birlikte kapanır.
 
   E-posta ve telefon alanları **bu dilimde yok**: `create-member`'ın sözleşmesi bunları almıyor. Sözleşmeyi genişletmek ayrı iştir.
 
