@@ -1,3 +1,4 @@
+import type { IssuedCredentials } from "@/components/credentials/IssuedCredentials";
 import type { EducationRole } from "@/components/educationAccess";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -192,4 +193,95 @@ export async function loadOrganizationMembers(
   });
 
   return sortMembers(members);
+}
+
+const RESET_MEMBER_ERROR_MESSAGES: Record<string, string> = {
+  unauthorized: "Oturumunuz düşmüş görünüyor. Tekrar giriş yapın.",
+  forbidden:
+    "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya üye bulunamadı.",
+  invalid_input: "Geçersiz üyelik bilgisi gönderildi.",
+  lookup_failed: "Üye yetkilendirmesi doğrulanamadı. Lütfen tekrar deneyin.",
+  password_update_failed: "Yeni şifre kaydedilemedi. Lütfen tekrar deneyin.",
+  service_unavailable:
+    "Servis şu anda yanıt vermiyor. Birkaç dakika sonra tekrar deneyin.",
+  origin_not_allowed: "Bu adres sunucu tarafında izinli değil.",
+};
+
+async function readFunctionErrorCode(error: unknown): Promise<unknown> {
+  const context = (error as { context?: { json?: () => Promise<unknown> } })
+    ?.context;
+
+  if (!context?.json) {
+    console.error(
+      "[memberService] edge function failed",
+      (error as Error | null)?.message
+    );
+    return undefined;
+  }
+
+  try {
+    const body = (await context.json()) as { error?: unknown };
+    return body?.error;
+  } catch {
+    return undefined;
+  }
+}
+
+export function resetMemberErrorMessage(code: unknown): string {
+  if (typeof code === "string" && code in RESET_MEMBER_ERROR_MESSAGES) {
+    return RESET_MEMBER_ERROR_MESSAGES[code];
+  }
+  return "Yeni şifre üretilemedi. Lütfen tekrar deneyin.";
+}
+
+/**
+ * Kurumdaki bir üyenin şifresini sıfırlar ve yeni geçici şifre üretir.
+ *
+ * Bu işlem kurum yöneticisi tarafından çağrılır (`reset-member-password`
+ * Edge Function). Üretilen geçici şifre veritabanında saklanmaz, yalnızca
+ * bu yanıtta bir kez döner.
+ */
+export async function resetMemberPassword(
+  membershipId: string
+): Promise<IssuedCredentials> {
+  const { data, error } = await supabase.functions.invoke(
+    "reset-member-password",
+    { body: { membershipId } }
+  );
+
+  if (error) {
+    throw new Error(
+      resetMemberErrorMessage(await readFunctionErrorCode(error))
+    );
+  }
+
+  const payload = (data as { data?: Record<string, unknown> } | null)?.data;
+  const loginNumber = payload?.login_number;
+  const temporaryPassword = payload?.temporary_password;
+  const passwordLockSet =
+    typeof payload?.password_lock_set === "boolean"
+      ? payload.password_lock_set
+      : undefined;
+  const auditWritten =
+    typeof payload?.audit_written === "boolean"
+      ? payload.audit_written
+      : undefined;
+
+  // Şifre sunucuda zaten değişti. Yanıtı okuyamazsak sessizce başarılı dönmek,
+  // kimsenin bilmediği bir şifreyle hesabı büsbütün kilitlemek olurdu.
+  if (
+    typeof loginNumber !== "string" ||
+    typeof temporaryPassword !== "string"
+  ) {
+    throw new Error(
+      "Şifre sıfırlandı ancak yanıt okunamadı. İşlemi tekrarlayın; yeni şifre üretilecektir."
+    );
+  }
+
+  return {
+    loginNumber,
+    temporaryPassword,
+    passwordLockSet,
+    auditWritten,
+  };
 }

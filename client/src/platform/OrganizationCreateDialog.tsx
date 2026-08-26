@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { CredentialsPanel } from "./CredentialsPanel";
+import { CredentialsPanel } from "@/components/credentials/CredentialsPanel";
 import { Label } from "@/components/ui/label";
 import {
   createOrganization,
@@ -145,7 +145,9 @@ export function OrganizationCreateDialog({
           </DialogHeader>
 
           <CredentialsPanel
-            organizationName={credentials.organizationName}
+            subjectLabel="Kurum"
+            subjectName={credentials.organizationName}
+            organizationCode={credentials.organizationCode}
             credentials={credentials}
             onDone={() => {
               reset();
