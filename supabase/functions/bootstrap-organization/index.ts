@@ -1,5 +1,15 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { z } from "npm:zod@4.1.12";
+import {
+  isAllowedOrigin,
+  jsonResponse,
+  preflightResponse,
+} from "../_shared/http.ts";
+import {
+  generateTemporaryPassword,
+  temporaryPasswordExpiresAt,
+} from "../_shared/temporaryPassword.ts";
+import { syntheticEmailFor } from "../_shared/syntheticEmail.ts";
 
 const requestSchema = z.object({
   organizationName: z.string().trim().min(2).max(120),
@@ -18,8 +28,6 @@ const requestSchema = z.object({
  * çözümlenmez. İstemcideki `loginIdentifier.ts` ile aynı değer olmak zorunda;
  * ikisi ayrışırsa oluşturulan hesaba giriş yapılamaz.
  */
-const SYNTHETIC_EMAIL_DOMAIN = "orbit.invalid";
-
 /** Yeni bir kurumun ilk kişisi. Veritabanı da aynı değeri hesaplar ve doğrular. */
 const FIRST_PERSON_CODE = 1000;
 
@@ -28,124 +36,15 @@ const FIRST_PERSON_CODE = 1000;
  * süresiz geçerli kalmamalı; bkz. `.ai/DECISION_LOG.md` — "Kimlik ve Giriş
  * Bilgisi Mimarisi".
  */
-const TEMPORARY_PASSWORD_TTL_DAYS = 7;
-
-/**
- * Geçici şifre alfabesi.
- *
- * Karışan karakterler bilinçli olarak yok: `0`/`O`, `1`/`l`/`I`. Şifre kâğıda
- * yazılıp elden veriliyor; okuyan kişi yanlış karakteri denerse hesabı
- * kilitlenmiş sanır ve destek çağrısı üretir.
- */
-const PASSWORD_LOWER = "abcdefghijkmnopqrstuvwxyz";
-const PASSWORD_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-const PASSWORD_DIGIT = "23456789";
-const PASSWORD_ALPHABET = PASSWORD_LOWER + PASSWORD_UPPER + PASSWORD_DIGIT;
-const PASSWORD_LENGTH = 12;
-
-/**
- * Kişiye özel geçici şifre üretir.
- *
- * `crypto.getRandomValues` kullanılıyor; `Math.random` kriptografik değildir ve
- * üretilen şifreler tahmin edilebilir olurdu.
- *
- * Modulo sapması (`% alphabet.length`) burada önemsizdir: alfabe 59 karakter,
- * 256'nın 59'a bölümünden kalan küçük bir eğrilik yaratır ve 12 karakterlik bir
- * şifrede saldırgana kayda değer bir avantaj sağlamaz. Yine de eğriliği
- * tamamen kaldırmak ucuz olduğu için aralık dışındaki baytlar atılıyor.
- *
- * Şifre politikası küçük harf, büyük harf ve rakamın üçünü de istiyor; rastgele
- * seçim üçünü de içermeyebileceği için ilk üç karakter her sınıftan birer tane
- * olacak şekilde garanti ediliyor, sonra tamamı karıştırılıyor.
- */
-function generateTemporaryPassword(): string {
-  const pick = (alphabet: string): string => {
-    const limit = 256 - (256 % alphabet.length);
-    const buffer = new Uint8Array(1);
-
-    for (;;) {
-      crypto.getRandomValues(buffer);
-      if (buffer[0] < limit) {
-        return alphabet[buffer[0] % alphabet.length];
-      }
-    }
-  };
-
-  const characters = [
-    pick(PASSWORD_LOWER),
-    pick(PASSWORD_UPPER),
-    pick(PASSWORD_DIGIT),
-  ];
-
-  while (characters.length < PASSWORD_LENGTH) {
-    characters.push(pick(PASSWORD_ALPHABET));
-  }
-
-  // Fisher-Yates. Garanti edilen üç karakter hep baştaki üç konumda kalmasın;
-  // aksi halde şifrenin ilk üç hanesinin karakter sınıfı önceden bilinirdi.
-  const randomIndices = new Uint32Array(characters.length);
-  crypto.getRandomValues(randomIndices);
-
-  for (let index = characters.length - 1; index > 0; index -= 1) {
-    const swapWith = randomIndices[index] % (index + 1);
-    [characters[index], characters[swapWith]] = [
-      characters[swapWith],
-      characters[index],
-    ];
-  }
-
-  return characters.join("");
-}
-
-const allowedOrigins = new Set(
-  (
-    Deno.env.get("ALLOWED_ORIGINS") ??
-    "http://localhost:5173,http://127.0.0.1:5173,https://orbit-v3-topaz.vercel.app"
-  )
-    .split(",")
-    .map(origin => origin.trim())
-    .filter(Boolean)
-);
-
-function responseHeaders(origin: string | null): HeadersInit {
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    Vary: "Origin",
-  };
-
-  if (origin && allowedOrigins.has(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin;
-    headers["Access-Control-Allow-Headers"] =
-      "authorization, content-type, x-client-info, apikey";
-    headers["Access-Control-Allow-Methods"] = "POST, OPTIONS";
-  }
-
-  return headers;
-}
-
-function jsonResponse(
-  body: Record<string, unknown>,
-  status: number,
-  origin: string | null
-) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: responseHeaders(origin),
-  });
-}
-
 Deno.serve(async request => {
   const origin = request.headers.get("origin");
 
-  if (origin && !allowedOrigins.has(origin)) {
+  if (!isAllowedOrigin(origin)) {
     return jsonResponse({ error: "origin_not_allowed" }, 403, null);
   }
 
   if (request.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: responseHeaders(origin),
-    });
+    return preflightResponse(origin);
   }
 
   if (request.method !== "POST") {
@@ -230,7 +129,7 @@ Deno.serve(async request => {
   }
 
   const loginNumber = `${reservedCode}${FIRST_PERSON_CODE}`;
-  const syntheticEmail = `${loginNumber}@${SYNTHETIC_EMAIL_DOMAIN}`;
+  const syntheticEmail = syntheticEmailFor(loginNumber);
   const temporaryPassword = generateTemporaryPassword();
 
   // `inviteUserByEmail` DEĞİL. Davet, teslim edilemez `.invalid` adresini
@@ -285,9 +184,7 @@ Deno.serve(async request => {
   // `admin.createUser` şifreyi yazdığı için `on_auth_password_changed`
   // tetikleyicisi çalışır ve bayrağı düşürür. Bayrağı önce set etseydik
   // tetikleyici onu hemen silerdi ve kilit hiç devreye girmezdi.
-  const passwordExpiresAt = new Date(
-    Date.now() + TEMPORARY_PASSWORD_TTL_DAYS * 24 * 60 * 60 * 1000
-  ).toISOString();
+  const passwordExpiresAt = temporaryPasswordExpiresAt();
 
   const { error: lockError } = await adminClient
     .from("profiles")

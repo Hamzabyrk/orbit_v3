@@ -19,6 +19,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Auth e-postası hiç değişmez; kurtarma linkini biz üretir, biz göndeririz
 - Şifre değiştirme ile sıfırlama ayrı akışlardır; kurtarma kanalı isteğe bağlıdır ama görünürdür
 - Rol, atama ve bağlantı üç ayrı kavramdır
+- `service_role` taşıyan sınır SQL'de durur, TypeScript'te değil
 - Kilit bayrağı üç durumludur — "okunamadı" ile "değiştirmelisin" aynı ekran değildir
 
 **Platform operatörlüğü ve destek**
@@ -932,3 +933,38 @@ Gecikmesiz bir yeniden deneme bilinçli olarak reddedildi: aynı milisaniyede ay
 - **Boş profil satırına ayrı bir metin yazmak:** Reddedildi (bugünlük). Eksik kurulmuş bir hesapta "tekrar dene" hiçbir zaman işe yaramaz, ancak dördüncü bir durum taşımanın bedeli bugün karşılığını bulmuyor; ortak metin "sorun sürerse kurum yöneticinize başvurun" diyerek ikisini de dürüstçe karşılıyor.
 
 **Kapsam dışı bırakıldı:** Panel verisinin aynı anda yüklenememesi (`loadOrganizations`). Kök neden ortaktır ama issue'nun istediği düzeltme kilit ekranıdır; ayrı ele alınacak.
+
+---
+
+### Karar: `service_role` taşıyan sınır SQL'de durur, TypeScript'te değil
+
+**Durum:** Alındı
+**Tarih:** 2026-08-26
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `create-member` (#106), kurum yöneticisinin öğretmen/öğrenci/veli hesabı açmasının sunucu yarısı. Fonksiyon `service_role` anahtarıyla çalışıyor ve o anahtar RLS'i baypas ediyor — yani "bu kişi bu kurumun yöneticisi mi" sorusu **hiçbir politikadan geçmiyor.** Aynı durum `reset-member-password`'de de vardı ve orada yetki kararı `internal_resolve_member_for_reset` içine konmuştu.
+
+**Karar:** `service_role` ile çalışan bir Edge Function'ın yetki kararı **`SECURITY DEFINER` bir SQL fonksiyonunda** yaşar ve pgTAP ile test edilir. Fonksiyonun TypeScript tarafı yalnızca sırayı yürütür.
+
+Bunun üç somut karşılığı `create-member`'da uygulandı:
+
+1. **İki RPC de çağıranı ayrı ayrı doğrular.** İkisi ayrı HTTP çağrısıdır; ikincisinin "birincisi zaten baktı" varsayımına dayanması, onu sınır olmaktan çıkarır.
+2. **Yetkisiz çağırana hata değil, boş sonuç döner.** Bulunamayan yetki, askıya alınmış yönetici ve başka kurumun şubesi aynı boş sonucu verir. Ayırt edilebilselerdi çağıran taraf deneme yanılmayla hangi şubelerin var olduğunu öğrenebilirdi.
+3. **Hedef kullanıcı da kısıtlanır.** `internal_create_membership`, herhangi bir kurumda üyeliği olan bir kullanıcıyı reddeder ve `admin` rolünü yazmaz. İkisi de "çağıran fonksiyon doğru davranıyor" varsayımını ortadan kaldırmak içindir; ilki olmasaydı fonksiyon var olan birini çağıranın kurumuna bağlayıp görünen adını sessizce değiştirebilirdi.
+
+**Gerekçe:** Bir sınırın sınır olması, yanlış tarafından zorlanabilmesine bağlıdır. RLS politikaları bu güvenceyi veritabanının kendisinden alır; `service_role` onu kaldırdığı anda geriye yalnızca çağıran kodun iyi niyeti kalır. SQL'e taşındığında sınır yeniden **çalıştırılabilir bir kontrole** dönüşür — `create_member.test.sql` bugün 16 iddiayla tam olarak bunu yapıyor.
+
+**İkinci karar — kopyalar tek kaynağa indirildi.** Dört Edge Function'ın dördünde de CORS yüzeyi, üçünde geçici şifre üreticisi ve ömür sabiti, ikisinde sentetik e-posta alan adı ayrı ayrı yazılıydı. `supabase/functions/_shared/` kuruldu ve 351 satır kopya silindi.
+
+Origin listesi bunlar arasında en kritik olanıydı: dört kopya demek, birine eklenen bir adresin diğer üçünde eksik kalması ve boşluğun yalnızca o fonksiyon çağrıldığında görünmesi demektir. Birleştirmeden önce dört kopyanın varsayılan listeleri ve izin verilen yöntemleri karşılaştırıldı; hepsi aynıydı, dolayısıyla taşıma hiçbir fonksiyonun davranışını değiştirmedi.
+
+Sentetik e-posta alan adı ayrı bir modüle kondu çünkü **derleyicinin göremediği bir ikizi var**: `client/src/auth/loginIdentifier.ts` giriş numarasını bu adresten çözüyor. İki derleme hedefi tek dosyayı paylaşamıyor, bu yüzden bağımlılık yorumla yazıldı. İkisi sapsaydı açılan hesaplar giriş yapamaz ve sebebi hiçbir yerde görünmezdi.
+
+**Alternatifler:**
+
+- **Yetki kararını Edge Function'ın TypeScript'inde tutmak:** Reddedildi. Okunması daha kolay olurdu ama test edilebilir tek yolu fonksiyonu ayağa kaldırmaktır; repoda Deno testi yok ve kalite kapısının beş komutu Deno kodunu hiç çalıştırmıyor. Sınır, kapının göremediği bir yerde duramaz.
+- **Tek bir RPC:** Reddedildi, teknik olarak mümkün değil. Sentetik adres giriş numarasını içeriyor, numara `person_code`'a muhtaç, auth kullanıcısı ise üyeliğin foreign key'i. Düğüm ancak "önce tahsis, sonra kullanıcı, sonra üyelik" sırasıyla çözülüyor — `bootstrap-organization` da aynı sebeple ikiye bölünmüştü.
+- **`admin` rolünü yalnızca Zod şemasında engellemek:** Reddedildi. Şema girdiyi doğrular, sınırı kurmaz; SQL'in izin verdiği bir şey er ya da geç yazılır.
+- **`_shared/` yerine dördüncü kopya:** Reddedildi. Kopyanın tehlikesi zaten kodun kendi yorumunda yazılıydı ve yazmak yetmemişti.
+
+**Kapsam dışı bırakıldı:** İki RPC arasında `person_code` yarışı mümkün — tahsis ile ekleme ayrı işlemler ve advisory lock arada bırakılıyor. `organization_memberships_org_person_code_idx` benzersiz indeksi yakalıyor; ikinci istek hata alır ve yaratılan kullanıcı geri alınır. Sonuç güvenli tarafta olduğu için bilinçli olarak bırakıldı.

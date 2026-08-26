@@ -115,6 +115,8 @@ client/src/
 
 **Bağlayıcı kural — taşınabilirlik:** `components/` ve `pages/` altındaki dosyalar Supabase istemcisini **doğrudan import edemez**; veri erişimi yukarıdaki servis modüllerinden geçer. Kural ESLint ile zorlanır (`eslint.config.js`). Gerekçe: `DECISION_LOG.md` — "Taşınabilirlik sınırı".
 
+**Edge Function'ların ortak katmanı:** `supabase/functions/_shared/` — `http.ts` (origin listesi, CORS, JSON yanıtı), `temporaryPassword.ts` (ömür sabiti ve üretici), `syntheticEmail.ts` (giriş adresi alan adı). Alt çizgiyle başladığı için ayrı bir fonksiyon olarak deploy edilmez. `syntheticEmail.ts`'in istemci tarafında derleyicinin göremediği bir ikizi var: `client/src/auth/loginIdentifier.ts` giriş numarasını bu adresten çözer, dolayısıyla ikisi birlikte değişir.
+
 **`lib/documents.ts` ölü koddur** — hiçbir yerden çağrılmıyor ve dayandığı `workspace_documents` tablosunda hiç policy yok. "Belgeler" özelliği v1.6'da yeniden ele alınana kadar bu şekilde kalır; bkz. `PLATFORM_SETTINGS.md` kabul edilmiş açıklar.
 
 ---
