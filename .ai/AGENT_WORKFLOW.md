@@ -322,6 +322,16 @@ Bu üç kez oldu: `AGENTS.md` beş komut listelerken "dört" dedi, `PROJECT_STAT
 
 _Kaynak: Issue #77 (B08, B10) ve E4 durum denetimi._
 
+### K-09 · Güvenli tarafta kalmak, sebebini yanlış söylemeyi haklı çıkarmaz
+
+K-04 bilinmeyende kısıtlayıcı olanı seçmeyi söyler ve bu doğrudur. Ama **kararı almak ile kullanıcıya cümleyi kurmak iki ayrı iştir.** Kısıtlama doğru olduğu için ekrandaki metin denetlenmeden kalabiliyor.
+
+Bir durum okunamadığında ekran, **okunabilmiş gibi** konuşmaz. "Okuyamadım" ile "hayır" aynı cevap değildir; kullanıcıya ikincisi söylenirse, olmayan bir sorunu çözmeye çalışır.
+
+Pratik karşılığı: bir güvenlik durumu üç değer taşıyorsa (**var** · **yok** · **okunamadı**) bunu iki değerli bir alanda tutma. Üçüncü durumu tipe koy — o zaman her çağrı noktası onu ele almak zorunda kalır ve unutmak derleme zamanında yakalanır.
+
+_Kaynak: Issue #102. `must_change_password` okunamadığında istemci kilidi varsayıyordu — karar doğru — ama kullanıcı "şifrenizi değiştirmelisiniz" ekranını görüyor ve veritabanı "gerek yok" derken şifresini gereksiz yere değiştiriyordu. Production'da yaşandı._
+
 ---
 
 ## Görev dosyalarının ömrü
