@@ -10,30 +10,30 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 >
 > Ayrıntı için ilgili bölüme bakın; bu tablo yalnızca tek bakışta durum içindir.
 
-| Sürüm / Dilim | Kapsam                                                                                                        | Durum |
-| ------------- | ------------------------------------------------------------------------------------------------------------- | ----- |
-| v1.0          | Arayüz demosu, 4 rol görünümü, mock veri katmanı, kalite kapısı, Vercel + Supabase bağlantısı                 | ✅    |
-| v1.1          | Tenant şeması, rol enum'u, gerçek Auth session, `audit_events`, kurum kurulum Edge Function'ı                 | ✅    |
-| v1.1.1        | Fonksiyon yetkileri, production Auth ayarları, `PLATFORM_SETTINGS.md`, CI sertleştirmesi, güvenlik başlıkları | ✅    |
-| v1.1.2 · D0   | Sentetik e-posta ile hesap açma ve giriş kanıtı (#35)                                                         | ✅    |
-| v1.1.2 · D1   | `organizations.code`, Edge Function operatör kontrolü (#37)                                                   | ✅    |
-| v1.1.2 · D2   | Kimliğin iki bağımsız eksene ayrılması, `/platform` rotası (#40)                                              | ✅    |
-| v1.1.2 · D3   | Panel: kurum listesi, kurum oluşturma, operatör listesi, denetim kaydı (#41)                                  | ✅    |
-| v1.1.2 · D4   | İlk platform operatörleri (#43) — ikisi de eklendi                                                            | ✅    |
-| —             | Panel bağlantısı, demo rol kartlarının gizlenmesi, kullanılabilir sol menü (#45)                              | ✅    |
-| **Faz E**     | **Kimlik zinciri — ayrıntı bölüm 4.5**                                                                        | 🟡    |
-| Faz E · E0    | E-posta değişimi spike'ı (#51)                                                                                | ✅    |
-| Faz E · E1    | Kurum kurma makinesi: `person_code`, geçici şifre, yazdırılabilir fiş (#53 · #57 · #59 · #61 · #63 · #65)     | ✅    |
-| Faz E · E2    | Test kurumu `orbitdershane`'in kaldırılması                                                                   | ✅    |
-| Faz E · E3    | İlk giriş kilidi ve 8 haneli numarayla giriş (#69 · #73)                                                      | ✅    |
-| Faz E · E4    | İletişim bilgisi ve kurtarma zinciri — **e-posta sağlayıcısı ön koşulu bekliyor**                             | ⬜    |
-| Faz E · E5    | Mock verinin kaldırılması (#88 · #90 · #93) — üç madde v1.2'ye taşındı                                        | ✅    |
-| Faz E · E6    | Kurum yöneticisinin kullanıcı ekleme ekranı                                                                   | ⬜    |
-| Faz E · E7    | Uçtan uca doğrulama                                                                                           | ⬜    |
-| v1.2          | İş tabloları + tenant/rol RLS matrisi                                                                         | ⬜    |
-| v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları                                                          | ⬜    |
-| v1.5          | 4 rol kabul testi, KVKK envanteri ve hukuki hazırlık, pilot geri bildirimi                                    | ⬜    |
-| v1.6 – v2.0   | Storage, toplu aktarım, raporlama, ticarileşme kapısı                                                         | ⬜    |
+| Sürüm / Dilim | Kapsam                                                                                                               | Durum |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- | ----- |
+| v1.0          | Arayüz demosu, 4 rol görünümü, mock veri katmanı, kalite kapısı, Vercel + Supabase bağlantısı                        | ✅    |
+| v1.1          | Tenant şeması, rol enum'u, gerçek Auth session, `audit_events`, kurum kurulum Edge Function'ı                        | ✅    |
+| v1.1.1        | Fonksiyon yetkileri, production Auth ayarları, `PLATFORM_SETTINGS.md`, CI sertleştirmesi, güvenlik başlıkları        | ✅    |
+| v1.1.2 · D0   | Sentetik e-posta ile hesap açma ve giriş kanıtı (#35)                                                                | ✅    |
+| v1.1.2 · D1   | `organizations.code`, Edge Function operatör kontrolü (#37)                                                          | ✅    |
+| v1.1.2 · D2   | Kimliğin iki bağımsız eksene ayrılması, `/platform` rotası (#40)                                                     | ✅    |
+| v1.1.2 · D3   | Panel: kurum listesi, kurum oluşturma, operatör listesi, denetim kaydı (#41)                                         | ✅    |
+| v1.1.2 · D4   | İlk platform operatörleri (#43) — ikisi de eklendi                                                                   | ✅    |
+| —             | Panel bağlantısı, demo rol kartlarının gizlenmesi, kullanılabilir sol menü (#45)                                     | ✅    |
+| **Faz E**     | **Kimlik zinciri — ayrıntı bölüm 4.5**                                                                               | 🟡    |
+| Faz E · E0    | E-posta değişimi spike'ı (#51)                                                                                       | ✅    |
+| Faz E · E1    | Kurum kurma makinesi: `person_code`, geçici şifre, yazdırılabilir fiş (#53 · #57 · #59 · #61 · #63 · #65)            | ✅    |
+| Faz E · E2    | Test kurumu `orbitdershane`'in kaldırılması                                                                          | ✅    |
+| Faz E · E3    | İlk giriş kilidi ve 8 haneli numarayla giriş (#69 · #73)                                                             | ✅    |
+| Faz E · E4    | İletişim bilgisi ve kurtarma zinciri — **mailsiz yarısı bitti**, gönderim sağlayıcı bekliyor (#95 · #96 · #97 · #98) | 🟡    |
+| Faz E · E5    | Mock verinin kaldırılması (#88 · #90 · #93) — üç madde v1.2'ye taşındı                                               | ✅    |
+| Faz E · E6    | Kurum yöneticisinin kullanıcı ekleme ekranı                                                                          | ⬜    |
+| Faz E · E7    | Uçtan uca doğrulama                                                                                                  | ⬜    |
+| v1.2          | İş tabloları + tenant/rol RLS matrisi                                                                                | ⬜    |
+| v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları                                                                 | ⬜    |
+| v1.5          | 4 rol kabul testi, KVKK envanteri ve hukuki hazırlık, pilot geri bildirimi                                           | ⬜    |
+| v1.6 – v2.0   | Storage, toplu aktarım, raporlama, ticarileşme kapısı                                                                | ⬜    |
 
 **v1.1 neden artık yeşil (2026-08-25):** Uzun süre ⚠️ idi, çünkü release gate'i _"davet edilen kullanıcı kendi şifresini kurup giriş yapabilir"_ diyordu ve bu doğru değildi — `type=invite` istemcide hiç ele alınmıyordu. **Faz E1 davet yolunu tamamen kaldırdı**, E3 de yerine geçen akışı kapattı. Gate bugünkü karşılığıyla yeniden yazıldı: _"panelden açılan hesap, numara ve geçici şifreyle girip şifresini değiştirebilir"_ — ve bu production'da doğrulandı. Bkz. `DECISION_LOG.md` — "Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır".
 
@@ -396,12 +396,15 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 - [ ] Kurum yöneticisi için ilk girişte **zorunlu** e-posta ekleme ve doğrulama; diğer roller için isteğe bağlı. Doğrulama, ürettiğimiz kodun adrese gönderilip geri girilmesiyle yapılır; GoTrue'nun e-posta değiştirme akışına **dokunulmaz**.
 - [ ] Kurtarma akışı: Edge Function `admin/generate_link` ile link ve 6 haneli kodu üretir, `profiles`'taki doğrulanmış adrese gönderir, denetim kaydı yazar.
-- [ ] Ayarlar ekranının iletişim bölümünün gerçek veriye bağlanması (bugün mock).
-- [ ] **Mevcut iki auth ekranındaki metin kayması düzeltilsin.** Davet akışı döneminden kalma; Codex tanıma turunda buldu (Issue #71):
+- [x] Ayarlar ekranının iletişim bölümü gerçek veriye bağlandı (#98). Ekran ayrıca uydurma ad ve telefon gösteriyordu; "Kaydet" de hiçbir şey kaydetmiyordu.
+- [x] **Mevcut iki auth ekranındaki metin kayması düzeltildi (#96).** Davet akışı döneminden kalma; Codex tanıma turunda buldu (Issue #71):
   - `SetPasswordScreen.tsx` — _"Bundan sonra e-posta ve şifrenizle giriş yapacaksınız"_ diyor. Kullanıcıların çoğu **numarayla** girecek; e-postası olmayanlar için bu cümle yanlış.
   - `ForgotPasswordScreen.tsx` — _"Kurum hesabınızın e-posta adresini girin"_ diyor ve Supabase'in kendi sıfırlama e-postasını varsayıyor. Güncel tasarımda akış kanal varlığına göre dallanıyor: doğrulanmış adres varsa link + kod gönderilir, yoksa kullanıcı kurum yöneticisine yönlendirilir.
-- [ ] **Kurtarma yöntemi olmayan hesap için kalıcı uyarı.** İletişim bilgisi kurum yöneticisi dışındaki roller için isteğe bağlıdır; yalnızca "atla" sunulursa çoğu kullanıcı atlar ve sorun geri gelir. Uyarı ayarlar ve profil alanında sürekli görünür: _"Kurtarma yöntemin yok — şifreni unutursan kurum yöneticine başvurman gerekir."_
+- [x] **Kurtarma yöntemi olmayan hesap için kalıcı uyarı (#98).** İletişim bilgisi kurum yöneticisi dışındaki roller için isteğe bağlıdır; yalnızca "atla" sunulursa çoğu kullanıcı atlar ve sorun geri gelir. Uyarı ayarlar ve profil alanında sürekli görünür: _"Kurtarma yöntemin yok — şifreni unutursan kurum yöneticine başvurman gerekir."_
 - [ ] **Sıfırlama akışı kanal varlığına göre dallanır:** doğrulanmış adres varsa link + 6 haneli kod gönderilir; yoksa kullanıcı kurum yöneticisine yönlendirilir.
+
+  **Yarısı yapıldı (#96):** ekran artık e-postası olmayana ne yapacağını **söylüyor**. Dallanmanın kendisi e-posta sağlayıcısını bekliyor.
+
 - [ ] Kurum yöneticisi panelinde kullanıcı başına "yeni geçici şifre üret" işlemi — iletişim bilgisi olmayanların tek kurtarma yolu.
   - [x] **Sunucu yarısı (#97).** `reset-member-password` Edge Function'ı ve yetki kararını veren `internal_resolve_member_for_reset`.
 
@@ -412,7 +415,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [x] Platform panelinde kurum yöneticisinin şifresini sıfırlama işlemi - kurtarma zincirinin son halkası. Denetim kaydı üretir. **Öne çekildi (Issue #59):** panel denemesinde geçici şifre kaybolunca kurum kalıcı olarak erişilemez hâle geldi ve tek çare yeni bir kurum açmak oldu.
 - [ ] Kurum yöneticisinin hesabında yapılan her kimlik bilgisi işleminin (geçici şifre üretimi, sıfırlama) **ona bildirilmesi**. Operatörün yetki yükseltebildiği kabul edilmiş bir gerçektir; bildirim onu gizli olmaktan çıkarır.
 - [ ] **Operatör teşhis ekranı (destek Katman 1).** Kurum başına kayıt sayıları, son işlem zamanı, hata kayıtları, şema tutarsızlıkları. **Hiçbir kişisel veri yok** — kişi adı, not, yoklama, ödeme görünmez. Destek taleplerinin çoğu bununla teşhis edilir; KVKK sınırına dokunmadığı için izin gerektirmez ve iş tablolarını beklemez. Katman 2 (izinli destek oturumu) ve Katman 3 (acil erişim) v1.2 sonrasına aittir; bkz. `DECISION_LOG.md` — "Operatör desteği üç katmanlıdır".
-- [ ] Telefon alanı doldurulur ancak doğrulanmaz; doğrulama ileriye bırakıldı.
+- [x] Telefon alanı doldurulur ancak doğrulanmaz (#95, #98). `current_user_has_recovery_channel()` telefonu **kurtarma kanalı saymaz** — doğrulanmıyor ve üzerinden kod gönderilmiyor.
 
 **Release gate:** Kurum yöneticisi e-postasını doğrulamadan panele giremez. Doğrulanmamış adrese şifre sıfırlama gönderilmez. Kurtarma yöntemi olmayan kullanıcı bunu ekranında görür.
 
@@ -439,6 +442,21 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [x] İstemci tarafı hareketsizlik sayacı (Issue #57). Panel denemesinde ortaya çıktığı için öne çekildi: siteye girildiğinde giriş ekranı hiç görünmeden eski oturuma düşülüyordu. 30 dakika, son bir dakikada uyarı. Zaman damgası `localStorage`'da tutuluyor — yalnızca bellekte olsaydı sayfa yenilemesi sayacı sıfırlar ve tarayıcı ertesi gün açıldığında oturum hâlâ açık olurdu.
 
 ### E6 - Kurum yöneticisinin kullanıcı ekleme ekranı (v1.4'ün ilk maddesi)
+
+> **Hazır olan sunucu parçaları (2026-08-26):**
+>
+> - `internal_next_person_code(uuid)` — advisory lock'lu numara tahsisi, E1'den (`service_role`)
+> - `reset-member-password` Edge Function + `internal_resolve_member_for_reset` — ön koşulun sunucu yarısı (#97)
+> - `profiles_select_organization_admin` politikası — yöneticinin kendi üyelerinin **adını** okuması (#100). Bu olmadan üye tablosu bir UUID listesidir.
+>
+> **Planlanan bölünme.** İki iş paralel yürüyebilir; dosya kümeleri kesişmiyor:
+>
+> | Kim            | İş                                                                                               | Dosyalar    |
+> | -------------- | ------------------------------------------------------------------------------------------------ | ----------- |
+> | **Yazan ajan** | Üye tablosu — salt okunur liste: ad, giriş numarası, rol, şube, durum                            | `client/`   |
+> | **Denetleyen** | `create-member` Edge Function — numara tahsisi, `admin.createUser`, üyelik, kilit, denetim kaydı | `supabase/` |
+>
+> **Satır bazında işlemler ayrı dilimdir** ve tablodan sonra gelir. Sebebi bağımlılık değil, karar eksikliği: "yeni geçici şifre üret" sonucu geçici şifreyi **bir kez** göstermek zorunda ve o ekran (`CredentialsPanel`) bugün `platform/` altında, operatör paneline ait. Dershane ağacında yeniden kullanılması modül sınırını aşar; nereye taşınacağına karar verilmeden arayüz yazılmamalıdır.
 
 - [ ] Ayarlar altında öğretmen/öğrenci/veli ekleme; ad-soyad, rol, **şube**, isteğe bağlı e-posta ve telefon.
 - [ ] `person_code`'un sıradaki değerinin tahsisi ve geçici şifrenin bir kez gösterimi; yazdırılabilir liste.
