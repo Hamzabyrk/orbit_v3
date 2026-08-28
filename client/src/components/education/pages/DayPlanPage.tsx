@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { dayPlanEventsByRole } from "../educationData";
-import { EmptyState, PageHeader } from "../shared";
+import { PageHeader } from "../shared";
 import type { DayPlanRole, DayPlanTask } from "../types";
 import { DayPlanCalendar } from "./DayPlanCalendar";
 import { DayPlanToDoBoard } from "./DayPlanToDoBoard";
@@ -79,9 +79,10 @@ export function DayPlanPage({
       <div className="mt-5">
         {tab === "todo" ? (
           <DayPlanToDoBoard tasks={tasks} setTasks={setTasks} />
-        ) : events.length === 0 ? (
-          <EmptyState title="Bugün için planlanmış bir şey yok" />
         ) : (
+          // Takvim, kayıt listesi değil; boş bir ay da geçerli bir takvimdir.
+          // Kayıt yokken tümünü gizlemek, kullanıcıya ekranın bozulduğunu
+          // düşündürüyordu; ayrıca ay geçişi ve gün seçimi de erişilemez oluyordu.
           <DayPlanCalendar events={events} />
         )}
       </div>

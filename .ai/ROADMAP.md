@@ -493,13 +493,31 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 ### E7 - Uçtan uca doğrulama
 
-- [ ] Platform operatörü gerçek bir kurum ve kurum yöneticisi oluşturur.
-- [ ] Kurum yöneticisi kendi hesabıyla girer, şifresini değiştirir, e-postasını doğrular.
-- [ ] Kurum yöneticisi bir öğretmen ve bir öğrenci ekler.
-- [ ] Öğretmen ve öğrenci kendi numaralarıyla girer.
-- [ ] Her rolün yalnızca kendi kapsamını gördüğü doğrulanır.
+Production'da koşuldu: 2026-08-26, kurum **1003 · deneme3**.
 
-**Release gate:** Zincirin hiçbir adımında elle veritabanı müdahalesi gerekmez.
+- [x] Platform operatörü gerçek bir kurum ve kurum yöneticisi oluşturur.
+- [x] Kurum yöneticisi kendi hesabıyla girer, şifresini değiştirir. **E-posta doğrulaması bu adımdan düştü:** hesap sentetik adres kullanıyor (`10031000@orbit.invalid`), doğrulanacak bir e-posta yok. Bkz. #118.
+- [x] Kurum yöneticisi bir öğretmen ve bir öğrenci ekler. Üçü de açıldı: `10031001` öğretmen, `10031002` öğrenci, `10031003` veli.
+- [x] Öğretmen ve öğrenci kendi numaralarıyla girer. Üçü de girdi, şifrelerini belirledi, çıkıp tekrar girdi. Öğretmenin şifresi satırdan sıfırlanıp yeniden giriş de denendi.
+- [ ] **Her rolün yalnızca kendi kapsamını gördüğü doğrulanır.** Bugün anlamlı biçimde doğrulanamaz — #116.
+
+**Release gate: karşılandı.** Zincirin hiçbir adımında elle veritabanı müdahalesi gerekmedi.
+
+#### E7.1 - Canlı koşudan çıkan bulgular (2026-08-26/27)
+
+Zincir çalışıyor. Aynı koşu, zincirin **etrafındaki** ekranlarda beş şey gösterdi:
+
+| #    | Bulgu                                                                                                                                              | Durum              |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| #116 | Dört panelin dördü de canlıda uydurma veri gösteriyor. Öğrenci ve veli **başkasının adıyla** karşılanıyor ("Merhaba Zeynep").                      | açık — **en acil** |
+| #117 | Ders programı gün şeridi: "Bugün" Pazartesi'ye sabit, düğmeler tıklanamıyor.                                                                       | açık               |
+| #118 | Şifre kurtarma iki eksende de çalışmıyor: sentetik adresler ulaşılamaz; gerçek adresli operatör hesabına mail gitmiyor (muhtemelen özel SMTP yok). | açık               |
+| #119 | "Kurum geneli" varsayılanı üyeye **tüm şubeleri** açıyor; sınıf düzeyinde kapsam hiç yok. Kurum izolasyonu sağlam.                                 | açık               |
+| #120 | Kayıt yokken takvim tamamen gizleniyordu.                                                                                                          | **kapandı**        |
+
+**Neden 5. adım kapanamıyor:** "kendi kapsamını görmek" ölçülebilir bir şey değil, çünkü her rolün ekranında görülenin büyük kısmı veritabanından gelmiyor. Bir öğrencinin "yalnızca kendi verisini" gördüğünü, ekranda başka birinin adı yazarken doğrulayamayız. #116 kapandığında bu adım tek başına koşulabilir.
+
+**Yetki tarafı ayrıca ölçüldü ve sağlam:** kurum izolasyonu `current_user_has_membership` içinde kaçışsız. Doğrulanamayan şey arayüzün ne gösterdiği, veritabanının ne verdiği değil.
 
 ---
 
