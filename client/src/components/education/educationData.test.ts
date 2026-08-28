@@ -52,6 +52,40 @@ describe("educationData ortam dallanması", () => {
       expect(data.dayPlanTasksByRole.admin).toHaveLength(0);
       expect(data.dayPlanTasksByRole.teacher).toHaveLength(0);
     });
+
+    it("panel içeriklerini de boş döndürür", async () => {
+      // Bu değerler #116'ya kadar doğrudan JSX'te sabit yazılıydı ve kapının
+      // yanından dolanıyordu: canlıda "54 aktif öğrenci" görünüyor,
+      // öğrenci başkasının adıyla karşılanıyordu. Kapının arkasına taşındılar;
+      // testin kapsamaması, aynı hatanın sessizce geri gelmesi demektir.
+      const data = await loadEducationData(false);
+
+      expect(data.adminOverviewStats).toEqual([]);
+      expect(data.adminAutomationActivities).toEqual([]);
+      expect(data.adminFollowUpNote).toBeNull();
+
+      expect(data.teacherOverviewStats).toEqual([]);
+      expect(data.teacherFollowUpItems).toEqual([]);
+
+      expect(data.studentOverviewStats).toEqual([]);
+      expect(data.studentActionSteps).toEqual([]);
+      expect(data.studentWeeklyNote).toBeNull();
+
+      expect(data.parentOverviewStats).toEqual([]);
+      expect(data.parentCommunicationItems).toEqual([]);
+      expect(data.parentProgressSummary).toBeNull();
+
+      expect(data.attendanceLessonInfo).toBeNull();
+    });
+
+    it("yönetici üst başlığında uydurulmuş şube adı taşımaz", async () => {
+      // Üst başlık boş dönemez — ekranın her zaman bir açıklaması var. Bu
+      // yüzden boşluk değil, içeriğin uydurulmamış olması doğrulanıyor.
+      const data = await loadEducationData(false);
+
+      expect(data.adminOverviewHeader.subtitle).not.toContain("Çorlu");
+      expect(data.adminOverviewHeader.subtitle.length).toBeGreaterThan(0);
+    });
   });
 
   describe("Demo modu (isDemoMode === true)", () => {
@@ -77,6 +111,29 @@ describe("educationData ortam dallanması", () => {
       expect(data.dayPlanTasksByRole).toHaveProperty("teacher");
       expect(data.dayPlanTasksByRole.admin.length).toBeGreaterThan(0);
       expect(data.dayPlanTasksByRole.teacher.length).toBeGreaterThan(0);
+    });
+
+    it("panel içerikleri sunum için dolu kalır", async () => {
+      // Satış sunumu bu içeriğe dayanıyor; kapıyı kurarken demo tarafının
+      // boşalması sessiz bir kayıp olurdu.
+      const data = await loadEducationData(true);
+
+      expect(data.adminOverviewStats.length).toBeGreaterThan(0);
+      expect(data.adminAutomationActivities.length).toBeGreaterThan(0);
+      expect(data.adminFollowUpNote).not.toBeNull();
+
+      expect(data.teacherOverviewStats.length).toBeGreaterThan(0);
+      expect(data.teacherFollowUpItems.length).toBeGreaterThan(0);
+
+      expect(data.studentOverviewStats.length).toBeGreaterThan(0);
+      expect(data.studentActionSteps.length).toBeGreaterThan(0);
+      expect(data.studentWeeklyNote).not.toBeNull();
+
+      expect(data.parentOverviewStats.length).toBeGreaterThan(0);
+      expect(data.parentCommunicationItems.length).toBeGreaterThan(0);
+      expect(data.parentProgressSummary).not.toBeNull();
+
+      expect(data.attendanceLessonInfo).not.toBeNull();
     });
   });
 });

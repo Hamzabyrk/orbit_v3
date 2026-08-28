@@ -5,6 +5,20 @@
  * Bugün hâlâ production'da da okunuyor; demo moduna hapsedilmesi Faz E5'in
  * sıradaki dilimidir. Buraya yeni veri eklerken bunu aklında tut.
  */
+import {
+  BarChart3,
+  BookOpen,
+  CalendarDays,
+  Check,
+  CircleAlert,
+  ClipboardCheck,
+  FileText,
+  MessageSquare,
+  Sparkles,
+  UserRoundCheck,
+  Users,
+  WalletCards,
+} from "lucide-react";
 import type { OrganizationMember } from "@/organization/memberService";
 import type {
   Automation,
@@ -594,3 +608,299 @@ export const organizationMembers: OrganizationMember[] = [
     status: "suspended",
   },
 ];
+
+export type OverviewStat = {
+  label: string;
+  value: string;
+  detail: string;
+  icon: typeof Users;
+  tone?: "blue" | "green" | "amber" | "violet" | "rose";
+};
+
+export type AdminOverviewHeader = {
+  subtitle: string;
+};
+
+export type AdminFollowUpNote = {
+  title: string;
+  message: string;
+  actionLabel: string;
+};
+
+export type AutomationActivity = {
+  title: string;
+  detail: string;
+  icon: typeof Sparkles;
+};
+
+export type TeacherFollowUpItem = {
+  id: string;
+  student: string;
+  note: string;
+};
+
+export type StudentActionStep = {
+  title: string;
+  detail: string;
+  icon: typeof BookOpen;
+  tone: "blue" | "amber" | "violet" | "green" | "rose";
+};
+
+export type StudentWeeklyNote = {
+  tag: string;
+  title: string;
+  description: string;
+};
+
+export type ParentProgressSummary = {
+  examTitle: string;
+  examDate: string;
+  examComparison: string;
+  scoreBadge: string;
+  note: string;
+};
+
+export type ParentCommunicationItem = {
+  title: string;
+  detail: string;
+  icon: typeof MessageSquare;
+  tone: "blue" | "amber" | "violet" | "green" | "rose";
+};
+
+export type AttendanceLessonInfo = {
+  pageDescription: string;
+  groupTitle: string;
+  groupDetail: string;
+};
+
+export const adminOverviewHeader: AdminOverviewHeader = {
+  subtitle:
+    "Çorlu Şube’de aday kayıtları, dersler, yoklamalar ve veli takipleri tek çalışma alanında güncel.",
+};
+
+export const adminOverviewStats: OverviewStat[] = [
+  {
+    label: "Aktif öğrenci",
+    value: "54",
+    detail: "3 sınıfta kayıtlı",
+    icon: Users,
+  },
+  {
+    label: "Bugünkü devam",
+    value: "%93",
+    detail: "4 yoklama tamamlandı",
+    icon: ClipboardCheck,
+    tone: "green",
+  },
+  {
+    label: "Takip gerekli",
+    value: "4",
+    detail: "Akademik veya devam sinyali",
+    icon: CircleAlert,
+    tone: "amber",
+  },
+  {
+    label: "Yaklaşan tahsilat",
+    value: "₺86.400",
+    detail: "7 taksit bu hafta vade",
+    icon: WalletCards,
+    tone: "violet",
+  },
+  {
+    label: "Çalışan otomasyon",
+    value: "3",
+    detail: "Son 24 saatte 15 işlem",
+    icon: Sparkles,
+    tone: "blue",
+  },
+];
+
+export const adminFollowUpNote: AdminFollowUpNote = {
+  title: "İnsan takibi gerekenler",
+  message:
+    "Efe Demir’in son iki deneme sonucunda gerileme ve Aras Öztürk’te devamsızlık sinyali var.",
+  actionLabel: "Öğrencileri incele",
+};
+
+export const adminAutomationActivities: AutomationActivity[] = [
+  {
+    title: "Aday kayıt takibi",
+    detail: "4 aday için sonraki adım açıldı",
+    icon: UserRoundCheck,
+  },
+  {
+    title: "Devamsızlık bildirimi",
+    detail: "3 veli bildirimi taslağı hazırlandı",
+    icon: ClipboardCheck,
+  },
+  {
+    title: "Deneme sonucu takibi",
+    detail: "42 öğrenci gelişim özeti aldı",
+    icon: BarChart3,
+  },
+  {
+    title: "Veli iletişim merkezi",
+    detail: "2 görüşme önerisi bekliyor",
+    icon: MessageSquare,
+  },
+];
+
+export const teacherOverviewStats: OverviewStat[] = [
+  {
+    label: "Bugünkü ders",
+    value: "3",
+    detail: "İlk ders 09:00",
+    icon: CalendarDays,
+  },
+  {
+    label: "Sınıf ortalaması",
+    value: "76",
+    detail: "Son TYT denemesi",
+    icon: BarChart3,
+    tone: "violet",
+  },
+  {
+    label: "Teslim bekleyen",
+    value: "6",
+    detail: "Problem seti · bugün",
+    icon: BookOpen,
+    tone: "amber",
+  },
+  {
+    label: "Takip önerisi",
+    value: "2",
+    detail: "Rehberlik görüşmesi",
+    icon: CircleAlert,
+    tone: "rose",
+  },
+];
+
+export const teacherFollowUpItems: TeacherFollowUpItem[] = [
+  {
+    id: "tfu-1",
+    student: "Efe Demir",
+    note: "Matematik netlerinde iki denemedir düşüş var.",
+  },
+  {
+    id: "tfu-2",
+    student: "Aras Öztürk",
+    note: "Bu hafta bir devamsızlık kaydı oluştu.",
+  },
+];
+
+export const studentOverviewStats: OverviewStat[] = [
+  {
+    label: "Bugünkü ders",
+    value: "2",
+    detail: "İlk ders 09:00",
+    icon: CalendarDays,
+  },
+  {
+    label: "Tamamlanan ödev",
+    value: "8/9",
+    detail: "Bu hafta",
+    icon: Check,
+    tone: "green",
+  },
+  {
+    label: "Son deneme",
+    value: "84",
+    detail: "+6 puan gelişim",
+    icon: BarChart3,
+    tone: "violet",
+  },
+  {
+    label: "Devam",
+    value: "%96",
+    detail: "Bu dönem",
+    icon: ClipboardCheck,
+    tone: "blue",
+  },
+];
+
+export const studentActionSteps: StudentActionStep[] = [
+  {
+    title: "TYT Matematik",
+    detail: "09:00 · Derslik 204",
+    icon: BookOpen,
+    tone: "blue",
+  },
+  {
+    title: "Problem Seti 04",
+    detail: "Teslim için 1 gün kaldı",
+    icon: ClipboardCheck,
+    tone: "amber",
+  },
+  {
+    title: "Deneme sonucu",
+    detail: "Sözel mantıkta gelişim notunu incele",
+    icon: BarChart3,
+    tone: "violet",
+  },
+];
+
+export const studentWeeklyNote: StudentWeeklyNote = {
+  tag: "Bu hafta",
+  title: "Hedefine sakin ve düzenli ilerliyorsun.",
+  description:
+    "Son denemede problem çözme alanında 6 puan gelişim var. Bir sonraki odak alanın geometri.",
+};
+
+export const parentOverviewStats: OverviewStat[] = [
+  {
+    label: "Devam",
+    value: "%96",
+    detail: "Bu dönem",
+    icon: ClipboardCheck,
+    tone: "green",
+  },
+  {
+    label: "Son deneme",
+    value: "84",
+    detail: "+6 puan gelişim",
+    icon: BarChart3,
+    tone: "violet",
+  },
+  {
+    label: "Yaklaşan ders",
+    value: "09:00",
+    detail: "TYT Matematik",
+    icon: CalendarDays,
+  },
+  {
+    label: "Ödeme planı",
+    value: "Güncel",
+    detail: "Sonraki taksit 5 Eylül",
+    icon: WalletCards,
+    tone: "green",
+  },
+];
+
+export const parentProgressSummary: ParentProgressSummary = {
+  examTitle: "TYT Deneme 06",
+  examDate: "14 Ağustos 2026",
+  examComparison: "Sınıf ortalamasının üzerinde",
+  scoreBadge: "84 puan",
+  note: "Zeynep’in problem çözme performansında düzenli gelişim görülüyor. Geometri alanında öğretmen tarafından ek çalışma önerildi.",
+};
+
+export const parentCommunicationItems: ParentCommunicationItem[] = [
+  {
+    title: "Veli görüşmesi",
+    detail: "20 Ağustos · 15:30 önerildi",
+    icon: MessageSquare,
+    tone: "violet",
+  },
+  {
+    title: "Deneme analiz dosyası",
+    detail: "İncelemeye hazır",
+    icon: FileText,
+    tone: "blue",
+  },
+];
+
+export const attendanceLessonInfo: AttendanceLessonInfo = {
+  pageDescription: "TYT Matematik · YKS 12-A · 15 Ağustos, 09:00",
+  groupTitle: "YKS 12-A · TYT Matematik",
+  groupDetail: "18 kayıtlı öğrenci · yoklama durumunu ders bitmeden doğrulayın",
+};
