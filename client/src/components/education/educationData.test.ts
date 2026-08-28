@@ -53,34 +53,108 @@ describe("educationData ortam dallanması", () => {
       expect(data.dayPlanTasksByRole.teacher).toHaveLength(0);
     });
 
-    it("panel içeriklerini de boş döndürür", async () => {
-      // Bu değerler #116'ya kadar doğrudan JSX'te sabit yazılıydı ve kapının
-      // yanından dolanıyordu: canlıda "54 aktif öğrenci" görünüyor,
-      // öğrenci başkasının adıyla karşılanıyordu. Kapının arkasına taşındılar;
-      // testin kapsamaması, aynı hatanın sessizce geri gelmesi demektir.
+    it("tüm panellerde ve sayfalarda kart kabuklarını korur ve yalnızca güvenli boşluk değerleri döndürür", async () => {
+      // Revizyon #116: Kart kabukları tasarım bütünlüğü için ekranda kalmalı,
+      // ancak içeriklerine hiçbir uydurma değer (54, %93, 84 vb.) sızmamalıdır.
+      // Yalnızca sayım/toplam için '0' veya '₺0', oran/ortalama/tarih için '—'
+      // ve oranlı sayım için '0/0' güvenli kabul edilir.
+      const data = await loadEducationData(false);
+      const allowedEmptyValues = new Set(["0", "—", "₺0", "0/0"]);
+
+      const allStatGroups = [
+        data.adminOverviewStats,
+        data.teacherOverviewStats,
+        data.studentOverviewStats,
+        data.parentOverviewStats,
+        data.paymentOverviewStats,
+        data.assessmentStatsByRole.personal,
+        data.assessmentStatsByRole.institution,
+      ];
+
+      expect(data.adminOverviewStats).toHaveLength(5);
+      expect(data.teacherOverviewStats).toHaveLength(4);
+      expect(data.studentOverviewStats).toHaveLength(4);
+      expect(data.parentOverviewStats).toHaveLength(4);
+      expect(data.paymentOverviewStats).toHaveLength(3);
+      expect(data.assessmentStatsByRole.personal).toHaveLength(3);
+      expect(data.assessmentStatsByRole.institution).toHaveLength(3);
+
+      for (const group of allStatGroups) {
+        for (const stat of group) {
+          expect(
+            allowedEmptyValues.has(stat.value),
+            `Üretimde uydurma kart değeri tespit edildi: "${stat.label}" = "${stat.value}"`
+          ).toBe(true);
+        }
+      }
+    });
+
+    it("takip, otomasyon, sınav ve rapor aksiyon içeriklerini boş döndürür", async () => {
       const data = await loadEducationData(false);
 
-      expect(data.adminOverviewStats).toEqual([]);
       expect(data.adminAutomationActivities).toEqual([]);
       expect(data.adminFollowUpNote).toBeNull();
 
-      expect(data.teacherOverviewStats).toEqual([]);
       expect(data.teacherFollowUpItems).toEqual([]);
 
-      expect(data.studentOverviewStats).toEqual([]);
       expect(data.studentActionSteps).toEqual([]);
       expect(data.studentWeeklyNote).toBeNull();
 
-      expect(data.parentOverviewStats).toEqual([]);
       expect(data.parentCommunicationItems).toEqual([]);
       expect(data.parentProgressSummary).toBeNull();
 
       expect(data.attendanceLessonInfo).toBeNull();
+
+      expect(data.assessmentHeaderInfo).toBeNull();
+      expect(data.assessmentSubjects).toEqual([]);
+      expect(data.assessmentFollowUp).toBeNull();
+
+      expect(data.reportActions).toEqual([]);
+      expect(data.reportAttendanceValues).toEqual([0, 0, 0, 0]);
+      expect(data.reportExamValues).toEqual([0, 0, 0, 0]);
+      expect(data.reportHomeworkValues).toEqual([0, 0, 0, 0]);
+      expect(data.reportExamLabels).not.toContain("D-03");
+    });
+
+    it("kart alt satırları sayısız geçmiş zaman kullanmaz", async () => {
+      // Değer 0 veya — olsa bile alt satır geçmiş zamanda konuşursa kart yine
+      // yalan söyleyebilir: "0 · İletişim önerisi oluşturuldu", oluşmamış bir
+      // öneriyi olmuş gibi bildirir.
+      //
+      // Geçmiş zamanın kendisi yasak değil: "0 yoklama tamamlandı" sayıyı açıkça
+      // verdiği için doğru bir cümledir. Ayrım, iddianın bir miktara bağlanıp
+      // bağlanmadığıdır.
+      const data = await loadEducationData(false);
+      const gecmisZaman = [
+        "oluşturuldu",
+        "önerildi",
+        "tamamlandı",
+        "gönderildi",
+      ];
+
+      const kartlar = [
+        ...data.adminOverviewStats,
+        ...data.teacherOverviewStats,
+        ...data.studentOverviewStats,
+        ...data.parentOverviewStats,
+        ...data.paymentOverviewStats,
+        ...data.assessmentStatsByRole.personal,
+        ...data.assessmentStatsByRole.institution,
+      ];
+
+      for (const kart of kartlar) {
+        const detay = kart.detail?.toLocaleLowerCase("tr") ?? "";
+        const iddiaVar = gecmisZaman.some(kelime => detay.includes(kelime));
+        const miktaraBagli = detay.includes("0") || detay.includes("yok");
+
+        expect(
+          iddiaVar && !miktaraBagli,
+          `"${kart.label}" alt satırı miktar vermeden olmuş bir olay bildiriyor: "${kart.detail}"`
+        ).toBe(false);
+      }
     });
 
     it("yönetici üst başlığında uydurulmuş şube adı taşımaz", async () => {
-      // Üst başlık boş dönemez — ekranın her zaman bir açıklaması var. Bu
-      // yüzden boşluk değil, içeriğin uydurulmamış olması doğrulanıyor.
       const data = await loadEducationData(false);
 
       expect(data.adminOverviewHeader.subtitle).not.toContain("Çorlu");
@@ -90,8 +164,6 @@ describe("educationData ortam dallanması", () => {
 
   describe("Demo modu (isDemoMode === true)", () => {
     it("tüm dışa aktarımların dolu olduğunu garanti eder", async () => {
-      // Demo verisinin tek tek içeriği değişebilir; bu nedenle içeriğe değil,
-      // verinin boş olmamasına bakılır.
       const data = await loadEducationData(true);
 
       expect(data.classes.length).toBeGreaterThan(0);
@@ -113,9 +185,7 @@ describe("educationData ortam dallanması", () => {
       expect(data.dayPlanTasksByRole.teacher.length).toBeGreaterThan(0);
     });
 
-    it("panel içerikleri sunum için dolu kalır", async () => {
-      // Satış sunumu bu içeriğe dayanıyor; kapıyı kurarken demo tarafının
-      // boşalması sessiz bir kayıp olurdu.
+    it("panel ve sayfa içerikleri sunum için dolu kalır", async () => {
       const data = await loadEducationData(true);
 
       expect(data.adminOverviewStats.length).toBeGreaterThan(0);
@@ -134,6 +204,18 @@ describe("educationData ortam dallanması", () => {
       expect(data.parentProgressSummary).not.toBeNull();
 
       expect(data.attendanceLessonInfo).not.toBeNull();
+
+      expect(data.paymentOverviewStats.length).toBeGreaterThan(0);
+      expect(data.assessmentStatsByRole.personal.length).toBeGreaterThan(0);
+      expect(data.assessmentStatsByRole.institution.length).toBeGreaterThan(0);
+      expect(data.assessmentHeaderInfo).not.toBeNull();
+      expect(data.assessmentSubjects.length).toBeGreaterThan(0);
+      expect(data.assessmentFollowUp).not.toBeNull();
+
+      expect(data.reportActions.length).toBeGreaterThan(0);
+      expect(data.reportAttendanceValues.some(v => v > 0)).toBe(true);
+      expect(data.reportExamValues.some(v => v > 0)).toBe(true);
+      expect(data.reportHomeworkValues.some(v => v > 0)).toBe(true);
     });
   });
 });
