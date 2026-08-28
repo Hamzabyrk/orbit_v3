@@ -8,16 +8,12 @@
 import {
   BarChart3,
   BookOpen,
-  CalendarDays,
-  Check,
-  CircleAlert,
   ClipboardCheck,
   FileText,
   MessageSquare,
   Sparkles,
   UserRoundCheck,
   Users,
-  WalletCards,
 } from "lucide-react";
 import type { OrganizationMember } from "@/organization/memberService";
 import type {
@@ -617,6 +613,20 @@ export type OverviewStat = {
   tone?: "blue" | "green" | "amber" | "violet" | "rose";
 };
 
+export type OverviewStatTemplate = {
+  key: string;
+  label: string;
+  icon: typeof Users;
+  tone?: "blue" | "green" | "amber" | "violet" | "rose";
+  emptyValue: string;
+  emptyDetail: string;
+};
+
+export type OverviewStatValue = {
+  value: string;
+  detail?: string;
+};
+
 export type AdminOverviewHeader = {
   subtitle: string;
 };
@@ -673,47 +683,44 @@ export type AttendanceLessonInfo = {
   groupDetail: string;
 };
 
+export type AssessmentHeaderInfo = {
+  title: string;
+  date: string;
+  participantSummary: string;
+  studentName: string;
+  statusBadge: string;
+};
+
+export type AssessmentSubject = {
+  label: string;
+  value: number;
+  color: string;
+};
+
+export type AssessmentFollowUp = {
+  personalNote: string;
+  institutionNote: string;
+};
+
+export type ReportActionItem = {
+  title: string;
+  detail: string;
+  icon: typeof BookOpen;
+  tone: "blue" | "amber" | "violet" | "green" | "rose";
+};
+
 export const adminOverviewHeader: AdminOverviewHeader = {
   subtitle:
     "Çorlu Şube’de aday kayıtları, dersler, yoklamalar ve veli takipleri tek çalışma alanında güncel.",
 };
 
-export const adminOverviewStats: OverviewStat[] = [
-  {
-    label: "Aktif öğrenci",
-    value: "54",
-    detail: "3 sınıfta kayıtlı",
-    icon: Users,
-  },
-  {
-    label: "Bugünkü devam",
-    value: "%93",
-    detail: "4 yoklama tamamlandı",
-    icon: ClipboardCheck,
-    tone: "green",
-  },
-  {
-    label: "Takip gerekli",
-    value: "4",
-    detail: "Akademik veya devam sinyali",
-    icon: CircleAlert,
-    tone: "amber",
-  },
-  {
-    label: "Yaklaşan tahsilat",
-    value: "₺86.400",
-    detail: "7 taksit bu hafta vade",
-    icon: WalletCards,
-    tone: "violet",
-  },
-  {
-    label: "Çalışan otomasyon",
-    value: "3",
-    detail: "Son 24 saatte 15 işlem",
-    icon: Sparkles,
-    tone: "blue",
-  },
-];
+export const demoAdminOverviewStatValues: Record<string, OverviewStatValue> = {
+  "active-students": { value: "54", detail: "3 sınıfta kayıtlı" },
+  "today-attendance": { value: "%93", detail: "4 yoklama tamamlandı" },
+  "follow-up": { value: "4", detail: "Akademik veya devam sinyali" },
+  "upcoming-payment": { value: "₺86.400", detail: "7 taksit bu hafta vade" },
+  "active-automations": { value: "3", detail: "Son 24 saatte 15 işlem" },
+};
 
 export const adminFollowUpNote: AdminFollowUpNote = {
   title: "İnsan takibi gerekenler",
@@ -745,35 +752,13 @@ export const adminAutomationActivities: AutomationActivity[] = [
   },
 ];
 
-export const teacherOverviewStats: OverviewStat[] = [
+export const demoTeacherOverviewStatValues: Record<string, OverviewStatValue> =
   {
-    label: "Bugünkü ders",
-    value: "3",
-    detail: "İlk ders 09:00",
-    icon: CalendarDays,
-  },
-  {
-    label: "Sınıf ortalaması",
-    value: "76",
-    detail: "Son TYT denemesi",
-    icon: BarChart3,
-    tone: "violet",
-  },
-  {
-    label: "Teslim bekleyen",
-    value: "6",
-    detail: "Problem seti · bugün",
-    icon: BookOpen,
-    tone: "amber",
-  },
-  {
-    label: "Takip önerisi",
-    value: "2",
-    detail: "Rehberlik görüşmesi",
-    icon: CircleAlert,
-    tone: "rose",
-  },
-];
+    "today-lessons": { value: "3", detail: "İlk ders 09:00" },
+    "class-average": { value: "76", detail: "Son TYT denemesi" },
+    "pending-homework": { value: "6", detail: "Problem seti · bugün" },
+    "follow-up-recommendation": { value: "2", detail: "Rehberlik görüşmesi" },
+  };
 
 export const teacherFollowUpItems: TeacherFollowUpItem[] = [
   {
@@ -788,35 +773,13 @@ export const teacherFollowUpItems: TeacherFollowUpItem[] = [
   },
 ];
 
-export const studentOverviewStats: OverviewStat[] = [
+export const demoStudentOverviewStatValues: Record<string, OverviewStatValue> =
   {
-    label: "Bugünkü ders",
-    value: "2",
-    detail: "İlk ders 09:00",
-    icon: CalendarDays,
-  },
-  {
-    label: "Tamamlanan ödev",
-    value: "8/9",
-    detail: "Bu hafta",
-    icon: Check,
-    tone: "green",
-  },
-  {
-    label: "Son deneme",
-    value: "84",
-    detail: "+6 puan gelişim",
-    icon: BarChart3,
-    tone: "violet",
-  },
-  {
-    label: "Devam",
-    value: "%96",
-    detail: "Bu dönem",
-    icon: ClipboardCheck,
-    tone: "blue",
-  },
-];
+    "today-lessons": { value: "2", detail: "İlk ders 09:00" },
+    "completed-homework": { value: "8/9", detail: "Bu hafta" },
+    "last-exam": { value: "84", detail: "+6 puan gelişim" },
+    attendance: { value: "%96", detail: "Bu dönem" },
+  };
 
 export const studentActionSteps: StudentActionStep[] = [
   {
@@ -846,35 +809,12 @@ export const studentWeeklyNote: StudentWeeklyNote = {
     "Son denemede problem çözme alanında 6 puan gelişim var. Bir sonraki odak alanın geometri.",
 };
 
-export const parentOverviewStats: OverviewStat[] = [
-  {
-    label: "Devam",
-    value: "%96",
-    detail: "Bu dönem",
-    icon: ClipboardCheck,
-    tone: "green",
-  },
-  {
-    label: "Son deneme",
-    value: "84",
-    detail: "+6 puan gelişim",
-    icon: BarChart3,
-    tone: "violet",
-  },
-  {
-    label: "Yaklaşan ders",
-    value: "09:00",
-    detail: "TYT Matematik",
-    icon: CalendarDays,
-  },
-  {
-    label: "Ödeme planı",
-    value: "Güncel",
-    detail: "Sonraki taksit 5 Eylül",
-    icon: WalletCards,
-    tone: "green",
-  },
-];
+export const demoParentOverviewStatValues: Record<string, OverviewStatValue> = {
+  attendance: { value: "%96", detail: "Bu dönem" },
+  "last-exam": { value: "84", detail: "+6 puan gelişim" },
+  "upcoming-lesson": { value: "09:00", detail: "TYT Matematik" },
+  "payment-plan": { value: "Güncel", detail: "Sonraki taksit 5 Eylül" },
+};
 
 export const parentProgressSummary: ParentProgressSummary = {
   examTitle: "TYT Deneme 06",
@@ -904,3 +844,78 @@ export const attendanceLessonInfo: AttendanceLessonInfo = {
   groupTitle: "YKS 12-A · TYT Matematik",
   groupDetail: "18 kayıtlı öğrenci · yoklama durumunu ders bitmeden doğrulayın",
 };
+
+export const demoPaymentOverviewStatValues: Record<string, OverviewStatValue> =
+  {
+    "monthly-collection": {
+      value: "₺248.600",
+      detail: "Planlanan tahsilatın %82’si",
+    },
+    "upcoming-installments": { value: "7", detail: "Önümüzdeki 7 gün" },
+    "follow-up-payments": {
+      value: "2",
+      detail: "İletişim önerisi oluşturuldu",
+    },
+  };
+
+export const demoAssessmentOverviewStatValues = {
+  personal: {
+    score: { value: "84", detail: "100 üzerinden" },
+    progress: { value: "+6", detail: "Önceki denemeye göre" },
+    "focus-area": { value: "Geometri", detail: "Ek çalışma önerildi" },
+  },
+  institution: {
+    score: { value: "72", detail: "100 üzerinden" },
+    progress: { value: "+6", detail: "Önceki denemeye göre" },
+    "focus-area": { value: "Geometri", detail: "Ek çalışma önerildi" },
+  },
+};
+
+export const demoAssessmentHeaderInfo: AssessmentHeaderInfo = {
+  title: "TYT Deneme 06",
+  date: "14 Ağustos 2026",
+  participantSummary: "54 öğrenci",
+  studentName: "Zeynep Kaya",
+  statusBadge: "Yayınlandı",
+};
+
+export const demoAssessmentSubjects: AssessmentSubject[] = [
+  { label: "Matematik", value: 82, color: "bg-blue-500" },
+  { label: "Türkçe", value: 88, color: "bg-emerald-500" },
+  { label: "Fen", value: 71, color: "bg-violet-500" },
+  { label: "Geometri", value: 62, color: "bg-amber-400" },
+];
+
+export const demoAssessmentFollowUp: AssessmentFollowUp = {
+  personalNote:
+    "Geometri konularında kısa tekrar ve soru çözüm etüdü öneriliyor.",
+  institutionNote:
+    "YKS 12-B sınıfında geometri ortalaması kurum eşiğinin altında. Rehberlik ve etüt planı oluşturabilirsiniz.",
+};
+
+export const demoReportAttendanceValues = [92, 94, 90, 93];
+export const demoReportExamValues = [68, 71, 69, 72];
+export const demoReportExamLabels = ["D-03", "D-04", "D-05", "D-06"];
+export const demoReportHomeworkValues = [78, 82, 86, 84];
+export const demoReportHomeworkLabels = ["May", "Haz", "Tem", "Ağu"];
+
+export const demoReportActions: ReportActionItem[] = [
+  {
+    title: "YKS 12-B",
+    detail: "Geometri etüdü önerildi",
+    icon: BookOpen,
+    tone: "amber",
+  },
+  {
+    title: "Devam sinyali",
+    detail: "2 öğrenci için veli bildirimi",
+    icon: ClipboardCheck,
+    tone: "rose",
+  },
+  {
+    title: "Kayıt dönüşümü",
+    detail: "4 aday için takip görevi",
+    icon: UserRoundCheck,
+    tone: "blue",
+  },
+];

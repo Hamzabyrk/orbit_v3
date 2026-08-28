@@ -1,6 +1,5 @@
-import { CircleAlert, Clock3, WalletCards } from "lucide-react";
 import { toast } from "sonner";
-import { paymentRows } from "../educationData";
+import { paymentOverviewStats, paymentRows } from "../educationData";
 import { Badge, EmptyState, PageHeader, StatCard } from "../shared";
 import type { Role } from "../types";
 
@@ -16,7 +15,7 @@ export function PaymentsPage({ role }: { role: Role }) {
         title={role === "parent" ? "Kayıt ve ödeme planı" : "Kayıt ve ödemeler"}
         description={
           role === "parent"
-            ? "Zeynep Kaya’nın kayıt paketi ve yaklaşan taksitleri."
+            ? "Kayıt paketleri ve yaklaşan taksit detaylarını takip edin."
             : "Kayıt paketleri, taksit planları ve takip gerektiren ödemeler."
         }
         action={role === "admin" ? "Yeni kayıt" : undefined}
@@ -30,29 +29,20 @@ export function PaymentsPage({ role }: { role: Role }) {
             : undefined
         }
       />
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <StatCard
-          label="Bu ay tahsilat"
-          value="₺248.600"
-          detail="Planlanan tahsilatın %82’si"
-          icon={WalletCards}
-          tone="green"
-        />
-        <StatCard
-          label="Yaklaşan taksit"
-          value="7"
-          detail="Önümüzdeki 7 gün"
-          icon={Clock3}
-          tone="amber"
-        />
-        <StatCard
-          label="Takip gereken"
-          value="2"
-          detail="İletişim önerisi oluşturuldu"
-          icon={CircleAlert}
-          tone="rose"
-        />
-      </div>
+      {paymentOverviewStats.length > 0 ? (
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          {paymentOverviewStats.map(stat => (
+            <StatCard
+              key={stat.label}
+              label={stat.label}
+              value={stat.value}
+              detail={stat.detail}
+              icon={stat.icon}
+              tone={stat.tone}
+            />
+          ))}
+        </div>
+      ) : null}
       <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,.025)]">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left">
