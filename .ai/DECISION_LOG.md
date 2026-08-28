@@ -678,6 +678,15 @@ Bu bir ek yük değil, **zaten planlı olan işin öne çekilmesi**: `PLATFORM_S
 - **`admin.updateUserById` ile adresi doğrudan yazmak:** Ölçüldü; çalışıyor ama hiçbir doğrulama üretmiyor ve yine numarayı öldürüyor.
 - **Kurtarmayı tamamen kurum yöneticisine bırakmak:** Öğretmen/öğrenci/veli için zaten böyle. Ancak kurum yöneticisinin kendisi için bir üst basamak gerekiyor; aksi halde her unutulan yönetici şifresi geliştirme ekibine geliyor.
 
+**Durum notu (2026-08-28) — karar değişmiyor, aradaki boşluk kayda geçiyor.** E7 canlı koşusunda kurtarma denendi ve çalışmadı; sebebi araştırılınca kararla kod arasında dört açık olduğu görüldü:
+
+1. **`profiles.pending_email` sütunu yok.** Kararın doğrulama mekanizması ("adresini girer, `profiles.pending_email` alanına yazılır") hiç oluşturulmamış bir sütuna dayanıyor. `20260825210000_recovery_contact.sql` yalnızca `phone` ve `recovery_email` ekledi — E4'ün şema yarısı tam değil.
+2. **Migration'ın vaat ettiği uyarı arayüzde yok.** `recovery_contact` migration'ı "bugün sütun her hesapta NULL'dır ve **arayüz bunu 'kurtarma yöntemin yok' uyarısıyla gösterir**" diyor. Göstermiyor. Bunun yerine "Şifremi unuttum" ekranı gönderilmemiş bir bağlantı için **"Bağlantı gönderildi"** diyor (#118). `current_user_has_recovery_channel()` fonksiyonu var ama hiçbir yerden çağrılmıyor.
+3. **Ön koşulun sırası fiilen ters döndü.** Karar, e-posta sağlayıcısını "Faz E4'ün ön koşulu, gerçek bir kuruma hesap açılmadan önce tamamlanmalı" diye bağlamıştı. E6 hesap açmayı getirdi ve E7 canlıda koştu; sağlayıcı hâlâ yok. Bugün ihlal değil — açılan hesapların hepsi test kurumunda. **Gerçek bir pilot kuruma geçmeden önce kapatılması gereken şart olarak duruyor.**
+4. **Supabase'in SMTP ayarını doldurmak yetmez.** Kararın kendisi söylüyor: paylaşımlı SMTP yalnızca GoTrue'nun kendi akışlarını tetikliyor, biz `generate_link` ile linki kendimiz ürettiğimizde araya girmiyor. Gereken şey, **Edge Function'dan çağrılabilen bir gönderim sağlayıcısıdır**; Supabase panelindeki SMTP alanı yalnızca operatör hesaplarının GoTrue akışını kurtarır, kararın tasarladığı yolu kurtarmaz.
+
+Dördü de kararın **uygulanmamış olmasından** kaynaklanıyor; kararın kendisinde değişen bir şey yok.
+
 ---
 
 ### Karar: Şifre değiştirme ile sıfırlama ayrı akışlardır; kurtarma kanalı isteğe bağlıdır ama görünürdür
