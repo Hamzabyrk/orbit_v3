@@ -1,16 +1,16 @@
-import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/auth/useAuth";
 import { SettingsFormField } from "./SettingsFormField";
 
 export function SettingsInstitutionSection() {
-  const [name, setName] = useState("ORBIT Eğitim Kurumları");
-  const [branch, setBranch] = useState("Çorlu Şube");
-  const [region, setRegion] = useState("Trakya pilotu");
-  const [term, setTerm] = useState("2026–2027");
+  const { identity } = useAuth();
+  const name = identity?.membership?.organizationName ?? "";
+  const branch = identity?.membership?.branchName ?? "Kurum geneli";
 
   const save = () =>
-    toast.success("Değişiklikler kaydedildi", {
-      description: "Kurum bilgileriniz bu oturumda güncellendi.",
+    toast.info("Kurum tercihleri salt okunur", {
+      description:
+        "Kurum ve şube bilgileri organizasyon üyeliğinizden okunmaktadır; panelden düzenleme sonraki sürümdedir.",
     });
 
   return (
@@ -26,11 +26,12 @@ export function SettingsInstitutionSection() {
           Değişiklikleri Kaydet
         </button>
       </div>
+      {/* Alanlar salt okunur: değerler üyelikten geliyor ve panelden yazılmıyor.
+          Yazılabilir bırakılıp "salt okunur" denseydi ekran kendi kendisiyle
+          çelişirdi — kullanıcı düzeltir, kaydeder, hiçbir şey olmazdı. */}
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <SettingsFormField label="Kurum adı" value={name} onChange={setName} />
-        <SettingsFormField label="Şube" value={branch} onChange={setBranch} />
-        <SettingsFormField label="Bölge" value={region} onChange={setRegion} />
-        <SettingsFormField label="Dönem" value={term} onChange={setTerm} />
+        <SettingsFormField label="Kurum adı" value={name} disabled />
+        <SettingsFormField label="Şube" value={branch} disabled />
       </div>
     </>
   );

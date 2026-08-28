@@ -130,6 +130,7 @@ export const classes: ClassGroup[] = [
 
 export const schedule: ScheduleItem[] = [
   {
+    day: "Pazartesi",
     time: "09:00",
     title: "TYT Matematik",
     group: "YKS 12-A",
@@ -138,6 +139,7 @@ export const schedule: ScheduleItem[] = [
     tone: "bg-sky-50 text-sky-700 ring-sky-100",
   },
   {
+    day: "Pazartesi",
     time: "10:30",
     title: "Problem Atölyesi",
     group: "YKS 12-B",
@@ -146,6 +148,7 @@ export const schedule: ScheduleItem[] = [
     tone: "bg-violet-50 text-violet-700 ring-violet-100",
   },
   {
+    day: "Salı",
     time: "13:00",
     title: "Rehberlik Görüşmesi",
     group: "Zeynep Kaya",
@@ -154,12 +157,67 @@ export const schedule: ScheduleItem[] = [
     tone: "bg-amber-50 text-amber-700 ring-amber-100",
   },
   {
+    day: "Salı",
     time: "14:30",
     title: "TYT Deneme Analizi",
     group: "YKS 11-C",
     teacher: "Seda Kılıç",
     room: "Etüt Salonu",
     tone: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+  },
+  {
+    day: "Çarşamba",
+    time: "09:00",
+    title: "Geometri Soru Çözümü",
+    group: "YKS 12-A",
+    teacher: "Merve Karaca",
+    room: "Derslik 204",
+    tone: "bg-sky-50 text-sky-700 ring-sky-100",
+  },
+  {
+    day: "Çarşamba",
+    time: "11:00",
+    title: "Paragraf ve Sözel Mantık",
+    group: "YKS 12-B",
+    teacher: "Seda Kılıç",
+    room: "Derslik 105",
+    tone: "bg-violet-50 text-violet-700 ring-violet-100",
+  },
+  {
+    day: "Perşembe",
+    time: "10:00",
+    title: "Fizik Laboratuvarı",
+    group: "YKS 12-A",
+    teacher: "Bora Ekin",
+    room: "Lab 1",
+    tone: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+  },
+  {
+    day: "Perşembe",
+    time: "13:30",
+    title: "Bireysel Etüt Takibi",
+    group: "Zeynep Kaya",
+    teacher: "Seda Kılıç",
+    room: "Etüt Salonu",
+    tone: "bg-amber-50 text-amber-700 ring-amber-100",
+  },
+  {
+    day: "Cuma",
+    time: "09:30",
+    title: "Haftalık Deneme Sınavı",
+    group: "YKS 12-A",
+    teacher: "Merve Karaca",
+    room: "Konferans Salonu",
+    tone: "bg-sky-50 text-sky-700 ring-sky-100",
+  },
+  {
+    day: "Cuma",
+    time: "14:00",
+    title: "Haftalık Değerlendirme",
+    group: "YKS 11-C",
+    teacher: "Seda Kılıç",
+    room: "Derslik 105",
+    tone: "bg-violet-50 text-violet-700 ring-violet-100",
   },
 ];
 
@@ -709,6 +767,26 @@ export type ReportActionItem = {
   tone: "blue" | "amber" | "violet" | "green" | "rose";
 };
 
+export type CommunicationItem = {
+  id: string;
+  name: string;
+  detail: string;
+  time: string;
+  selected?: boolean;
+};
+
+export type ConversationMessage = {
+  id: string;
+  sender: "self" | "other";
+  text: string;
+};
+
+export type ActiveConversation = {
+  audienceByRole: Record<Role, string>;
+  contextTitle: string;
+  messages: ConversationMessage[];
+};
+
 export const adminOverviewHeader: AdminOverviewHeader = {
   subtitle:
     "Çorlu Şube’de aday kayıtları, dersler, yoklamalar ve veli takipleri tek çalışma alanında güncel.",
@@ -919,3 +997,47 @@ export const demoReportActions: ReportActionItem[] = [
     tone: "blue",
   },
 ];
+
+export const demoCommunicationsList: CommunicationItem[] = [
+  {
+    id: "comm-1",
+    name: "Merve Karaca",
+    detail: "Deneme analiz dosyası paylaşıldı",
+    time: "10:24",
+    selected: true,
+  },
+  {
+    id: "comm-2",
+    name: "Çorlu Şube",
+    detail: "20 Ağustos veli görüşmesi",
+    time: "Dün",
+  },
+  {
+    id: "comm-3",
+    name: "ORBIT Otomasyon",
+    detail: "Devamsızlık bildirimi hazırlandı",
+    time: "Dün",
+  },
+];
+
+export const demoActiveConversation: ActiveConversation = {
+  audienceByRole: {
+    teacher: "YKS 12-A velileri",
+    parent: "Merve Karaca",
+    student: "Merve Karaca",
+    admin: "Çorlu Şube velileri",
+  },
+  contextTitle: "Bağlam: Zeynep Kaya · TYT Deneme 06",
+  messages: [
+    {
+      id: "msg-1",
+      sender: "other",
+      text: "Merhaba, Zeynep’in son deneme sonucunu ve gelecek haftaki çalışma önerisini paylaştım.",
+    },
+    {
+      id: "msg-2",
+      sender: "self",
+      text: "Teşekkür ederim. Geometri çalışması için ek kaynak önerir misiniz?",
+    },
+  ],
+};

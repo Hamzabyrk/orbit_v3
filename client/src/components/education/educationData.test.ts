@@ -109,6 +109,9 @@ describe("educationData ortam dallanması", () => {
       expect(data.assessmentSubjects).toEqual([]);
       expect(data.assessmentFollowUp).toBeNull();
 
+      expect(data.communicationsList).toEqual([]);
+      expect(data.activeConversation).toBeNull();
+
       expect(data.reportActions).toEqual([]);
       expect(data.reportAttendanceValues).toEqual([0, 0, 0, 0]);
       expect(data.reportExamValues).toEqual([0, 0, 0, 0]);
@@ -211,6 +214,10 @@ describe("educationData ortam dallanması", () => {
       expect(data.assessmentHeaderInfo).not.toBeNull();
       expect(data.assessmentSubjects.length).toBeGreaterThan(0);
       expect(data.assessmentFollowUp).not.toBeNull();
+
+      expect(data.communicationsList.length).toBeGreaterThan(0);
+      expect(data.activeConversation).not.toBeNull();
+      expect(data.schedule.every(item => Boolean(item.day))).toBe(true);
 
       expect(data.reportActions.length).toBeGreaterThan(0);
       expect(data.reportAttendanceValues.some(v => v > 0)).toBe(true);

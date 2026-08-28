@@ -45,8 +45,8 @@ export function EducationPlatform({
   onLogout,
   initialRole = "admin",
   displayName,
-  organizationName = "Trakya pilotu",
-  branchName = "Çorlu Şube",
+  organizationName,
+  branchName,
   canSwitchRole = true,
   onRoleChange,
   canAccessPlatform = false,
@@ -411,9 +411,13 @@ export function EducationPlatform({
                 <p className="text-[11px] font-semibold text-slate-500">
                   {meta.description}
                 </p>
+                {/* Akademik dönem burada yazılıydı ve hiçbir yerden gelmiyordu:
+                    ne `organizations` tablosunda ne kimlikte böyle bir alan var.
+                    Her kuruma aynı dönemi söylüyordu. Kurum adı da artık
+                    korumalı; çözülemediğinde başlık boş kalır, yarım kalmış bir
+                    ayıraç bırakmaz. */}
                 <p className="text-[10px] text-slate-400">
-                  {branchName ? `${branchName} · ` : ""}
-                  {organizationName} · 2026–2027 dönemi
+                  {[branchName, organizationName].filter(Boolean).join(" · ")}
                 </p>
               </div>
             </div>

@@ -20,11 +20,13 @@ import {
   classes as demoClasses,
   dayPlanEventsByRole as demoDayPlanEventsByRole,
   dayPlanTasksByRole as demoDayPlanTasksByRole,
+  demoActiveConversation,
   demoAdminOverviewStatValues,
   demoAssessmentFollowUp,
   demoAssessmentHeaderInfo,
   demoAssessmentOverviewStatValues,
   demoAssessmentSubjects,
+  demoCommunicationsList,
   demoParentOverviewStatValues,
   demoPaymentOverviewStatValues,
   demoReportActions,
@@ -54,6 +56,7 @@ import type {
   OverviewStatValue,
 } from "./demoData";
 export type {
+  ActiveConversation,
   AdminFollowUpNote,
   AdminOverviewHeader,
   AssessmentFollowUp,
@@ -61,6 +64,8 @@ export type {
   AssessmentSubject,
   AttendanceLessonInfo,
   AutomationActivity,
+  CommunicationItem,
+  ConversationMessage,
   OverviewStat,
   OverviewStatTemplate,
   OverviewStatValue,
@@ -454,3 +459,6 @@ export const reportHomeworkLabels = isDemoMode
   : getLastFourMonths();
 
 export const reportActions = isDemoMode ? demoReportActions : [];
+
+export const communicationsList = isDemoMode ? demoCommunicationsList : [];
+export const activeConversation = isDemoMode ? demoActiveConversation : null;
