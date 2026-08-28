@@ -499,7 +499,7 @@ Production'da koşuldu: 2026-08-26, kurum **1003 · deneme3**.
 - [x] Kurum yöneticisi kendi hesabıyla girer, şifresini değiştirir. **E-posta doğrulaması bu adımdan düştü:** hesap sentetik adres kullanıyor (`10031000@orbit.invalid`), doğrulanacak bir e-posta yok. Bkz. #118.
 - [x] Kurum yöneticisi bir öğretmen ve bir öğrenci ekler. Üçü de açıldı: `10031001` öğretmen, `10031002` öğrenci, `10031003` veli.
 - [x] Öğretmen ve öğrenci kendi numaralarıyla girer. Üçü de girdi, şifrelerini belirledi, çıkıp tekrar girdi. Öğretmenin şifresi satırdan sıfırlanıp yeniden giriş de denendi.
-- [ ] **Her rolün yalnızca kendi kapsamını gördüğü doğrulanır.** Bugün anlamlı biçimde doğrulanamaz — #116.
+- [ ] **Her rolün yalnızca kendi kapsamını gördüğü doğrulanır.** #116 kapandı; doğrulama canlıda dört rolle tekrar giriş yapılarak koşulacak.
 
 **Release gate: karşılandı.** Zincirin hiçbir adımında elle veritabanı müdahalesi gerekmedi.
 
@@ -507,15 +507,15 @@ Production'da koşuldu: 2026-08-26, kurum **1003 · deneme3**.
 
 Zincir çalışıyor. Aynı koşu, zincirin **etrafındaki** ekranlarda beş şey gösterdi:
 
-| #    | Bulgu                                                                                                                                              | Durum              |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| #116 | Dört panelin dördü de canlıda uydurma veri gösteriyor. Öğrenci ve veli **başkasının adıyla** karşılanıyor ("Merhaba Zeynep").                      | açık — **en acil** |
-| #117 | Ders programı gün şeridi: "Bugün" Pazartesi'ye sabit, düğmeler tıklanamıyor.                                                                       | açık               |
-| #118 | Şifre kurtarma iki eksende de çalışmıyor: sentetik adresler ulaşılamaz; gerçek adresli operatör hesabına mail gitmiyor (muhtemelen özel SMTP yok). | açık               |
-| #119 | "Kurum geneli" varsayılanı üyeye **tüm şubeleri** açıyor; sınıf düzeyinde kapsam hiç yok. Kurum izolasyonu sağlam.                                 | açık               |
-| #120 | Kayıt yokken takvim tamamen gizleniyordu.                                                                                                          | **kapandı**        |
+| #    | Bulgu                                                                                                                                              | Durum       |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| #116 | Dört panelin dördü de canlıda uydurma veri gösteriyor. Öğrenci ve veli **başkasının adıyla** karşılanıyor ("Merhaba Zeynep").                      | **kapandı** |
+| #117 | Ders programı gün şeridi: "Bugün" Pazartesi'ye sabit, düğmeler tıklanamıyor.                                                                       | açık        |
+| #118 | Şifre kurtarma iki eksende de çalışmıyor: sentetik adresler ulaşılamaz; gerçek adresli operatör hesabına mail gitmiyor (muhtemelen özel SMTP yok). | açık        |
+| #119 | "Kurum geneli" varsayılanı üyeye **tüm şubeleri** açıyor; sınıf düzeyinde kapsam hiç yok. Kurum izolasyonu sağlam.                                 | açık        |
+| #120 | Kayıt yokken takvim tamamen gizleniyordu.                                                                                                          | **kapandı** |
 
-**Neden 5. adım kapanamıyor:** "kendi kapsamını görmek" ölçülebilir bir şey değil, çünkü her rolün ekranında görülenin büyük kısmı veritabanından gelmiyor. Bir öğrencinin "yalnızca kendi verisini" gördüğünü, ekranda başka birinin adı yazarken doğrulayamayız. #116 kapandığında bu adım tek başına koşulabilir.
+**Neden bugüne kadar kapanamadı:** "kendi kapsamını görmek" ölçülebilir bir şey değil, çünkü her rolün ekranında görülenin büyük kısmı veritabanından gelmiyor. Bir öğrencinin "yalnızca kendi verisini" gördüğünü, ekranda başka birinin adı yazarken doğrulayamayız. #116 kapandığına göre bu adım artık tek başına koşulabilir.
 
 **Yetki tarafı ayrıca ölçüldü ve sağlam:** kurum izolasyonu `current_user_has_membership` içinde kaçışsız. Doğrulanamayan şey arayüzün ne gösterdiği, veritabanının ne verdiği değil.
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { students } from "../educationData";
+import { attendanceLessonInfo, students } from "../educationData";
 import { Badge, EmptyState, PageHeader } from "../shared";
 import type { AttendanceState, Role } from "../types";
 
@@ -42,7 +42,10 @@ export function AttendancePage({
       <PageHeader
         eyebrow="Ders operasyonu"
         title="Yoklama"
-        description="TYT Matematik · YKS 12-A · 15 Ağustos, 09:00"
+        description={
+          attendanceLessonInfo?.pageDescription ??
+          "Ders yoklamasını tamamlayın ve kaydedin."
+        }
         action={saved ? "Kaydedildi" : "Yoklamayı kaydet"}
         onAction={() => {
           setSaved(true);
@@ -56,10 +59,11 @@ export function AttendancePage({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
           <div>
             <p className="text-[12px] font-extrabold text-slate-800">
-              YKS 12-A · TYT Matematik
+              {attendanceLessonInfo?.groupTitle ?? "Yoklama Listesi"}
             </p>
             <p className="mt-1 text-[10px] text-slate-500">
-              18 kayıtlı öğrenci · yoklama durumunu ders bitmeden doğrulayın
+              {attendanceLessonInfo?.groupDetail ??
+                `${selected.length} kayıtlı öğrenci`}
             </p>
           </div>
           <Badge tone={saved ? "green" : "amber"}>

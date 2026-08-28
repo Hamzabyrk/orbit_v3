@@ -1,5 +1,8 @@
-import { BarChart3, BookOpen, CalendarDays, CircleAlert } from "lucide-react";
-import { schedule } from "../educationData";
+import {
+  schedule,
+  teacherFollowUpItems,
+  teacherOverviewStats,
+} from "../educationData";
 import { EmptyState, PageHeader, StatCard } from "../shared";
 import type { Section } from "../types";
 
@@ -21,36 +24,25 @@ export function TeacherDashboard({
         action="Yoklama al"
         onAction={() => onNavigate("Yoklama")}
       />
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Bugünkü ders"
-          value="3"
-          detail="İlk ders 09:00"
-          icon={CalendarDays}
-        />
-        <StatCard
-          label="Sınıf ortalaması"
-          value="76"
-          detail="Son TYT denemesi"
-          icon={BarChart3}
-          tone="violet"
-        />
-        <StatCard
-          label="Teslim bekleyen"
-          value="6"
-          detail="Problem seti · bugün"
-          icon={BookOpen}
-          tone="amber"
-        />
-        <StatCard
-          label="Takip önerisi"
-          value="2"
-          detail="Rehberlik görüşmesi"
-          icon={CircleAlert}
-          tone="rose"
-        />
-      </div>
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.3fr_.9fr]">
+      {teacherOverviewStats.length > 0 ? (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {teacherOverviewStats.map(stat => (
+            <StatCard
+              key={stat.label}
+              label={stat.label}
+              value={stat.value}
+              detail={stat.detail}
+              icon={stat.icon}
+              tone={stat.tone}
+            />
+          ))}
+        </div>
+      ) : null}
+      <div
+        className={`mt-6 grid gap-6 ${
+          teacherFollowUpItems.length > 0 ? "xl:grid-cols-[1.3fr_.9fr]" : ""
+        }`}
+      >
         <section className="rounded-2xl border border-slate-200 bg-white p-5">
           <h2 className="font-display text-[17px] font-extrabold text-slate-900">
             Bugünün dersleri
@@ -79,27 +71,26 @@ export function TeacherDashboard({
             ))}
           </div>
         </section>
-        <section className="rounded-2xl border border-amber-100 bg-amber-50/55 p-5">
-          <h2 className="text-[15px] font-extrabold text-amber-900">
-            Takip önerileri
-          </h2>
-          <div className="mt-3 space-y-3 text-[11px] text-amber-900">
-            <p>
-              <strong>Efe Demir:</strong> Matematik netlerinde iki denemedir
-              düşüş var.
-            </p>
-            <p>
-              <strong>Aras Öztürk:</strong> Bu hafta bir devamsızlık kaydı
-              oluştu.
-            </p>
-          </div>
-          <button
-            onClick={() => onNavigate("Öğrenciler")}
-            className="mt-4 text-[11px] font-bold text-amber-800 underline underline-offset-4"
-          >
-            Öğrenci profillerini aç
-          </button>
-        </section>
+        {teacherFollowUpItems.length > 0 ? (
+          <section className="rounded-2xl border border-amber-100 bg-amber-50/55 p-5">
+            <h2 className="text-[15px] font-extrabold text-amber-900">
+              Takip önerileri
+            </h2>
+            <div className="mt-3 space-y-3 text-[11px] text-amber-900">
+              {teacherFollowUpItems.map(item => (
+                <p key={item.id}>
+                  <strong>{item.student}:</strong> {item.note}
+                </p>
+              ))}
+            </div>
+            <button
+              onClick={() => onNavigate("Öğrenciler")}
+              className="mt-4 text-[11px] font-bold text-amber-800 underline underline-offset-4"
+            >
+              Öğrenci profillerini aç
+            </button>
+          </section>
+        ) : null}
       </div>
     </>
   );

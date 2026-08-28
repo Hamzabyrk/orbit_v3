@@ -1,16 +1,14 @@
+import { format } from "date-fns";
+import { tr } from "date-fns/locale";
+import { BookOpen, ChevronRight, CircleAlert } from "lucide-react";
 import {
-  BarChart3,
-  BookOpen,
-  ChevronRight,
-  CircleAlert,
-  ClipboardCheck,
-  MessageSquare,
-  Sparkles,
-  UserRoundCheck,
-  Users,
-  WalletCards,
-} from "lucide-react";
-import { classes, schedule } from "../educationData";
+  adminAutomationActivities,
+  adminFollowUpNote,
+  adminOverviewHeader,
+  adminOverviewStats,
+  classes,
+  schedule,
+} from "../educationData";
 import { AutomationMini, Badge, EmptyState, StatCard } from "../shared";
 import type { Section } from "../types";
 
@@ -34,53 +32,39 @@ export function AdminDashboard({
               Günün eğitim operasyonu kontrol altında.
             </h1>
             <p className="mt-2 max-w-2xl text-[12px] leading-5 text-slate-500">
-              Çorlu Şube’de aday kayıtları, dersler, yoklamalar ve veli
-              takipleri tek çalışma alanında güncel.
+              {adminOverviewHeader.subtitle}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge tone="green">Sistemler çalışıyor</Badge>
-            <Badge tone="blue">15 Ağustos 2026</Badge>
+            {/* Tarih tarayıcıdan okunuyor. Sabit bir tarih yazılıyken ekran
+                haftalar öncesini gösteriyordu; bugünün tarihi uydurulmuş bir
+                değer değil, her iki modda da doğru olan tek değerdir. */}
+            <Badge tone="blue">
+              {format(new Date(), "d MMMM yyyy", { locale: tr })}
+            </Badge>
           </div>
         </div>
       </section>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard
-          label="Aktif öğrenci"
-          value="54"
-          detail="3 sınıfta kayıtlı"
-          icon={Users}
-        />
-        <StatCard
-          label="Bugünkü devam"
-          value="%93"
-          detail="4 yoklama tamamlandı"
-          icon={ClipboardCheck}
-          tone="green"
-        />
-        <StatCard
-          label="Takip gerekli"
-          value="4"
-          detail="Akademik veya devam sinyali"
-          icon={CircleAlert}
-          tone="amber"
-        />
-        <StatCard
-          label="Yaklaşan tahsilat"
-          value="₺86.400"
-          detail="7 taksit bu hafta vade"
-          icon={WalletCards}
-          tone="violet"
-        />
-        <StatCard
-          label="Çalışan otomasyon"
-          value="3"
-          detail="Son 24 saatte 15 işlem"
-          icon={Sparkles}
-          tone="blue"
-        />
-      </div>
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1.45fr_.9fr]">
+      {adminOverviewStats.length > 0 ? (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          {adminOverviewStats.map(stat => (
+            <StatCard
+              key={stat.label}
+              label={stat.label}
+              value={stat.value}
+              detail={stat.detail}
+              icon={stat.icon}
+              tone={stat.tone}
+            />
+          ))}
+        </div>
+      ) : null}
+      <div
+        className={`mt-6 grid gap-6 ${
+          adminFollowUpNote ? "xl:grid-cols-[1.45fr_.9fr]" : ""
+        }`}
+      >
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.03)]">
           <div className="flex items-end justify-between gap-3">
             <div>
@@ -131,28 +115,29 @@ export function AdminDashboard({
             ))}
           </div>
         </section>
-        <section className="rounded-2xl border border-amber-100 bg-amber-50/55 p-5">
-          <div className="flex gap-3">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
-              <CircleAlert className="h-4 w-4" />
-            </span>
-            <div>
-              <h2 className="text-[14px] font-extrabold text-amber-900">
-                İnsan takibi gerekenler
-              </h2>
-              <p className="mt-1 text-[11px] leading-5 text-amber-800">
-                Efe Demir’in son iki deneme sonucunda gerileme ve Aras Öztürk’te
-                devamsızlık sinyali var.
-              </p>
-              <button
-                onClick={() => onNavigate("Öğrenciler")}
-                className="mt-3 text-[11px] font-bold text-amber-800 underline underline-offset-4"
-              >
-                Öğrencileri incele
-              </button>
+        {adminFollowUpNote ? (
+          <section className="rounded-2xl border border-amber-100 bg-amber-50/55 p-5">
+            <div className="flex gap-3">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
+                <CircleAlert className="h-4 w-4" />
+              </span>
+              <div>
+                <h2 className="text-[14px] font-extrabold text-amber-900">
+                  {adminFollowUpNote.title}
+                </h2>
+                <p className="mt-1 text-[11px] leading-5 text-amber-800">
+                  {adminFollowUpNote.message}
+                </p>
+                <button
+                  onClick={() => onNavigate("Öğrenciler")}
+                  className="mt-3 text-[11px] font-bold text-amber-800 underline underline-offset-4"
+                >
+                  {adminFollowUpNote.actionLabel}
+                </button>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
       </div>
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr]">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.03)]">
@@ -222,26 +207,17 @@ export function AdminDashboard({
             </button>
           </div>
           <div className="mt-4 space-y-3">
-            <AutomationMini
-              title="Aday kayıt takibi"
-              detail="4 aday için sonraki adım açıldı"
-              icon={UserRoundCheck}
-            />
-            <AutomationMini
-              title="Devamsızlık bildirimi"
-              detail="3 veli bildirimi taslağı hazırlandı"
-              icon={ClipboardCheck}
-            />
-            <AutomationMini
-              title="Deneme sonucu takibi"
-              detail="42 öğrenci gelişim özeti aldı"
-              icon={BarChart3}
-            />
-            <AutomationMini
-              title="Veli iletişim merkezi"
-              detail="2 görüşme önerisi bekliyor"
-              icon={MessageSquare}
-            />
+            {adminAutomationActivities.length === 0 ? (
+              <EmptyState title="Gösterilecek aktivite yok" />
+            ) : null}
+            {adminAutomationActivities.map(activity => (
+              <AutomationMini
+                key={activity.title}
+                title={activity.title}
+                detail={activity.detail}
+                icon={activity.icon}
+              />
+            ))}
           </div>
         </section>
       </div>
