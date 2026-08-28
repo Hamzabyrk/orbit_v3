@@ -23,6 +23,11 @@ function createDemoIdentity(role: EducationRole): AuthIdentity {
     // Demo modunda kilit yok; satış sunumunda şifre değiştirme ekranı çıkmaz.
     passwordLock: "clear",
     passwordExpiresAt: null,
+    // Demo hesabının gerçek bir kurtarma adresi yok ve olamaz. "missing"
+    // bugün canlıdaki her hesap için de doğru; sunumda görülen uyarı gerçek
+    // üründe görülenle aynı.
+    recoveryChannel: "missing",
+    recoveryEmail: null,
     membership: {
       membershipId: `demo-membership-${role}`,
       role,

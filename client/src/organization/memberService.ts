@@ -237,6 +237,32 @@ export function memberErrorMessage(code: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Arayüzdeki şube seçim anahtarını sunucu sözleşmesindeki branchId değerine dönüştürür.
+ *
+ * Sunucu sözleşmesinde (`create-member` ve `internal_create_membership`):
+ * - `null`: Kurum geneli yetkisi (tüm şubeleri görür)
+ * - `"<uuid>"`: Yalnızca ilgili şubeye bağlı yetki
+ *
+ * Arayüzde "henüz seçim yapılmadı" durumunu sunucudaki "kurum geneli" (null)
+ * ile karıştırmamak için üçüncü durum `undefined` olarak çözümlenir (K-03 / K-04).
+ *
+ * - `""` veya `undefined` -> `undefined` (seçim henüz yapılmadı, form gönderilemez)
+ * - `"__all__"` -> `null` (kurum geneli seçildi)
+ * - `"<id>"` -> `"<id>"` (belirli şube seçildi)
+ */
+export function resolveBranchSelection(
+  selection: string | null | undefined
+): string | null | undefined {
+  if (selection === undefined || selection === null || selection === "") {
+    return undefined;
+  }
+  if (selection === "__all__") {
+    return null;
+  }
+  return selection;
+}
+
 export async function createMember(input: {
   fullName: string;
   role: Exclude<EducationRole, "admin">;

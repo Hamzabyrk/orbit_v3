@@ -260,4 +260,61 @@ describe("loadAuthenticatedIdentity", () => {
       expect(identity.passwordExpiresAt).toBeNull();
     });
   });
+
+  describe("recoveryChannel (kurtarma kanalı durumu)", () => {
+    it("profilde recovery_email doluysa configured ve e-posta adresini döner", async () => {
+      mockTables({
+        organization_memberships: membershipRow,
+        organizations: organizationRow,
+        branches: branchRow,
+        platform_operators: empty,
+        profiles: ok({
+          display_name: "Test Kişi",
+          must_change_password: false,
+          password_expires_at: null,
+          recovery_email: "kurtarma@dershane.com",
+        }),
+      });
+
+      const identity = await loadAuthenticatedIdentity(user);
+
+      expect(identity.recoveryChannel).toBe("configured");
+      expect(identity.recoveryEmail).toBe("kurtarma@dershane.com");
+    });
+
+    it("profilde recovery_email null veya boş ise missing döner", async () => {
+      mockTables({
+        organization_memberships: membershipRow,
+        organizations: organizationRow,
+        branches: branchRow,
+        platform_operators: empty,
+        profiles: ok({
+          display_name: "Test Kişi",
+          must_change_password: false,
+          password_expires_at: null,
+          recovery_email: null,
+        }),
+      });
+
+      const identity = await loadAuthenticatedIdentity(user);
+
+      expect(identity.recoveryChannel).toBe("missing");
+      expect(identity.recoveryEmail).toBeNull();
+    });
+
+    it("profil sorgusu başarısız olduğunda veya profil satırı bulunamadığında unresolved döner", async () => {
+      mockTables({
+        organization_memberships: membershipRow,
+        organizations: organizationRow,
+        branches: branchRow,
+        platform_operators: empty,
+        profiles: failed,
+      });
+
+      const identity = await loadAuthenticatedIdentity(user);
+
+      expect(identity.recoveryChannel).toBe("unresolved");
+      expect(identity.recoveryEmail).toBeNull();
+    });
+  });
 });

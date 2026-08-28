@@ -3,6 +3,7 @@ import {
   formatLoginNumber,
   isMemberStatus,
   memberErrorMessage,
+  resolveBranchSelection,
   sortMembers,
   type OrganizationMember,
 } from "./memberService";
@@ -245,6 +246,25 @@ describe("memberService", () => {
           "Üye oluşturulamadı. Bilgileri kontrol edip tekrar deneyin."
         )
       ).toBe("Üye oluşturulamadı. Bilgileri kontrol edip tekrar deneyin.");
+    });
+  });
+
+  describe("resolveBranchSelection", () => {
+    it("seçim yapılmadığında (boş string, null, undefined) undefined döner ve gönderimi engeller", () => {
+      expect(resolveBranchSelection("")).toBeUndefined();
+      expect(resolveBranchSelection(null)).toBeUndefined();
+      expect(resolveBranchSelection(undefined)).toBeUndefined();
+    });
+
+    it("kurum geneli (__all__) seçildiğinde sunucu sözleşmesine uygun null döner", () => {
+      expect(resolveBranchSelection("__all__")).toBeNull();
+    });
+
+    it("belirli bir şube ID'si seçildiğinde şube ID'sini aynen korur", () => {
+      expect(resolveBranchSelection("branch-corlu")).toBe("branch-corlu");
+      expect(
+        resolveBranchSelection("9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d")
+      ).toBe("9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d");
     });
   });
 });

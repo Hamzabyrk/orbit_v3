@@ -130,6 +130,7 @@ type ProfileRow = {
   display_name: string | null;
   must_change_password: boolean;
   password_expires_at: string | null;
+  recovery_email: string | null;
 };
 
 /**
@@ -142,7 +143,9 @@ const PROFILE_RETRY_DELAY_MS = 300;
 function readProfileRow(userId: string) {
   return supabase
     .from("profiles")
-    .select("display_name, must_change_password, password_expires_at")
+    .select(
+      "display_name, must_change_password, password_expires_at, recovery_email"
+    )
     .eq("id", userId)
     .maybeSingle<ProfileRow>();
 }
@@ -200,6 +203,18 @@ export async function loadAuthenticatedIdentity(
       : "clear"
     : "unresolved";
 
+  // Kurtarma e-postası bilgisi profil tablosundan çözülür. Profil okunamadıysa
+  // "kurtarma yöntemi yok" demek yanlış bir iddia olacağı için (K-03 / K-04)
+  // durum "unresolved" olarak işaretlenir.
+  const recoveryChannel = profileResult.data
+    ? profileResult.data.recovery_email &&
+      profileResult.data.recovery_email.trim().length > 0
+      ? "configured"
+      : "missing"
+    : "unresolved";
+
+  const recoveryEmail = profileResult.data?.recovery_email?.trim() || null;
+
   return {
     userId: user.id,
     displayName:
@@ -207,6 +222,8 @@ export async function loadAuthenticatedIdentity(
     demo: false,
     passwordLock,
     passwordExpiresAt: profileResult.data?.password_expires_at ?? null,
+    recoveryChannel,
+    recoveryEmail,
     membership,
     platformOperator,
   };

@@ -30,6 +30,14 @@ export type PlatformOperatorIdentity = {
 export type PasswordLockState = "required" | "clear" | "unresolved";
 
 /**
+ * Kullanıcının kurtarma kanalı (recovery_email) durumu:
+ * - "configured": Profil başarıyla okundu ve doğrulanmış kurtarma e-postası mevcut.
+ * - "missing": Profil başarıyla okundu ancak kurtarma e-postası tanımlı değil (null veya boş).
+ * - "unresolved": Profil okunamadı (ağ hatası veya profil satırı yok). Durum bilinemiyor (K-03 / K-04).
+ */
+export type RecoveryChannelState = "configured" | "missing" | "unresolved";
+
+/**
  * Kimlik iki bağımsız eksen taşır ve bir kullanıcı ikisinden birine, hiçbirine
  * veya her ikisine birden sahip olabilir.
  *
@@ -54,6 +62,16 @@ export type AuthIdentity = {
   passwordLock: PasswordLockState;
   /** Geçici şifrenin son geçerlilik anı (ISO). Kilit yoksa veya okunamadıysa `null`. */
   passwordExpiresAt: string | null;
+  /**
+   * Kullanıcının kurtarma kanalı durumu.
+   *
+   * `passwordLock` gibi **zorunlu**: isteğe bağlı olsaydı `undefined` dördüncü
+   * bir durum olurdu ve üçlü ayrımın varlık sebebi tam olarak bunu önlemek.
+   * Her kimlik kuran yer bu alanı bilerek doldurmak zorunda.
+   */
+  recoveryChannel: RecoveryChannelState;
+  /** Kurtarma e-postası adresi. Tanımlı değilse veya okunamadıysa `null`. */
+  recoveryEmail: string | null;
   /** Aktif kurum üyeliği yoksa `null`. */
   membership: MembershipIdentity | null;
   /** Aktif platform operatörlüğü yoksa `null`. */
