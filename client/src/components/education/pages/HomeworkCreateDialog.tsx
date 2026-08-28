@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/auth/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -20,11 +21,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { classes } from "../educationData";
 import type { Homework, HomeworkSubject } from "../types";
-
-const TEACHER_NAME = "Merve Karaca";
-const TEACHER_CLASSES = classes
-  .filter(item => item.mentor === TEACHER_NAME)
-  .map(item => item.name);
 
 const SUBJECTS: HomeworkSubject[] = [
   "Matematik",
@@ -51,7 +47,18 @@ export function HomeworkCreateDialog({
   onOpenChange: (open: boolean) => void;
   onCreate: (item: Homework) => void;
 }) {
-  const [classGroup, setClassGroup] = useState(TEACHER_CLASSES[0] ?? "");
+  const { identity } = useAuth();
+  const teacherName = identity?.displayName?.trim() ?? "";
+
+  // Liste öğretmenin kendi sınıflarıyla sınırlı ve ad çözülemediğinde boş
+  // kalır. Bilinmeyende genişleyip tüm sınıfları açmak, öğretmene başkasının
+  // sınıfına ödev verdirmek olurdu (K-04). Boş liste zaten ele alınıyor:
+  // seçici devre dışı kalıyor ve sebebi yazılıyor.
+  const availableClasses = teacherName
+    ? classes.filter(item => item.mentor === teacherName).map(item => item.name)
+    : [];
+
+  const [classGroup, setClassGroup] = useState(availableClasses[0] ?? "");
   const [subject, setSubject] = useState<HomeworkSubject>(SUBJECTS[0]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -60,7 +67,7 @@ export function HomeworkCreateDialog({
   const canSubmit = classGroup !== "" && title.trim() !== "" && dueDate !== "";
 
   const resetForm = () => {
-    setClassGroup(TEACHER_CLASSES[0] ?? "");
+    setClassGroup(availableClasses[0] ?? "");
     setSubject(SUBJECTS[0]);
     setTitle("");
     setDescription("");
@@ -75,7 +82,7 @@ export function HomeworkCreateDialog({
       subject,
       title: title.trim(),
       description: description.trim(),
-      assignedBy: TEACHER_NAME,
+      assignedBy: teacherName || "Öğretmen",
       assignedDate: formatDate(new Date()),
       dueDate: formatDate(new Date(dueDate)),
       status: "Aktif",
@@ -112,20 +119,20 @@ export function HomeworkCreateDialog({
               <Select
                 value={classGroup}
                 onValueChange={setClassGroup}
-                disabled={TEACHER_CLASSES.length === 0}
+                disabled={availableClasses.length === 0}
               >
                 <SelectTrigger className="mt-1.5 h-9 w-full text-[13px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TEACHER_CLASSES.map(name => (
+                  {availableClasses.map(name => (
                     <SelectItem key={name} value={name}>
                       {name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {TEACHER_CLASSES.length === 0 ? (
+              {availableClasses.length === 0 ? (
                 <p className="mt-1.5 text-[11px] leading-5 text-slate-500">
                   Ödev verilebilecek bir sınıf yok.
                 </p>

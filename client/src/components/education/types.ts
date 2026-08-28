@@ -31,7 +31,10 @@ export type ClassGroup = {
   nextLesson: string;
 };
 
+export type WeekDay = "Pazartesi" | "Salı" | "Çarşamba" | "Perşembe" | "Cuma";
+
 export type ScheduleItem = {
+  day: WeekDay;
   time: string;
   title: string;
   group: string;

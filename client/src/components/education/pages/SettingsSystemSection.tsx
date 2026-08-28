@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/auth/useAuth";
 import {
   Select,
   SelectContent,
@@ -13,13 +14,14 @@ import { SettingsFormField } from "./SettingsFormField";
 const DATE_FORMATS = ["DD.MM.YYYY", "YYYY-MM-DD", "DD MMM YYYY"];
 
 export function SettingsSystemSection() {
-  const [term, setTerm] = useState("2026–2027");
-  const [branch, setBranch] = useState("Çorlu Şube");
+  const { identity } = useAuth();
+  const branch = identity?.membership?.branchName ?? "Kurum geneli";
   const [dateFormat, setDateFormat] = useState(DATE_FORMATS[0]);
 
   const save = () =>
-    toast.success("Değişiklikler kaydedildi", {
-      description: "Sistem varsayımlarınız bu oturumda güncellendi.",
+    toast.info("Sistem tercihleri salt okunur", {
+      description:
+        "Sistem ve şube tercihleri oturum kimliğinizden okunmaktadır.",
     });
 
   return (
@@ -36,16 +38,8 @@ export function SettingsSystemSection() {
         </button>
       </div>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <SettingsFormField
-          label="Akademik dönem"
-          value={term}
-          onChange={setTerm}
-        />
-        <SettingsFormField
-          label="Varsayılan şube"
-          value={branch}
-          onChange={setBranch}
-        />
+        {/* Şube üyelikten geliyor ve panelden yazılmıyor; salt okunur. */}
+        <SettingsFormField label="Varsayılan şube" value={branch} disabled />
         <div>
           <Label className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
             Tarih biçimi
