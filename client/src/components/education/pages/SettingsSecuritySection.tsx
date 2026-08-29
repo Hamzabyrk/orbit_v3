@@ -1,7 +1,6 @@
-import { useState } from "react";
 import { AlertTriangle, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
 import { useAuth } from "@/auth/useAuth";
+import { IDLE_TIMEOUT_MS } from "@/auth/idleTimeout";
 import {
   Select,
   SelectContent,
@@ -12,25 +11,42 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-const TIMEOUTS = ["15 dakika", "30 dakika", "1 saat", "4 saat"];
+const TIMEOUT_OPTIONS = [
+  { ms: 15 * 60 * 1000, label: "15 dakika" },
+  { ms: 30 * 60 * 1000, label: "30 dakika" },
+  { ms: 60 * 60 * 1000, label: "1 saat" },
+  { ms: 240 * 60 * 1000, label: "4 saat" },
+] as const;
+
+function formatIdleTimeout(ms: number): string {
+  const match = TIMEOUT_OPTIONS.find(opt => opt.ms === ms);
+  if (match) return match.label;
+  const minutes = Math.round(ms / (60 * 1000));
+  return `${minutes} dakika`;
+}
+
+/**
+ * Seçicide gösterilecek etiketler.
+ *
+ * Geçerli süre listede yoksa başa eklenir: Radix Select, `value`'suna karşılık
+ * gelen bir öğe bulamazsa hiçbir şey çizmez. `IDLE_TIMEOUT_MS` bir gün listede
+ * olmayan bir değere çekilirse ekran, süreyi yanlış değil **boş** gösterirdi —
+ * sessizce bozulan bir güvenlik bilgisi.
+ */
+function timeoutLabels(activeLabel: string): string[] {
+  const labels: string[] = TIMEOUT_OPTIONS.map(option => option.label);
+  return labels.includes(activeLabel) ? labels : [activeLabel, ...labels];
+}
 
 export function SettingsSecuritySection() {
   const { identity } = useAuth();
-  const [timeout_, setTimeout_] = useState(TIMEOUTS[1]);
-  const [twoFactor, setTwoFactor] = useState(false);
-  const [newDeviceAlerts, setNewDeviceAlerts] = useState(true);
+  const activeTimeoutLabel = formatIdleTimeout(IDLE_TIMEOUT_MS);
 
   const isAdmin = identity?.membership?.role === "admin";
   // Geri düşüş yok: kimlik bu alanı zorunlu taşıyor ve "bilinmiyor" durumunun
   // adı zaten var. Buraya ikinci bir varsayılan yazmak, kuralı kimlik
   // katmanından bir ekran dosyasına taşırdı (K-06).
   const recoveryChannel = identity?.recoveryChannel ?? "unresolved";
-
-  const save = () =>
-    toast.info("Bu tercihler henüz kaydedilmiyor", {
-      description:
-        "Oturum zaman aşımı herkes için 30 dakikadır; buradaki seçimler saklı tutulmuyor.",
-    });
 
   return (
     <>
@@ -39,8 +55,9 @@ export function SettingsSecuritySection() {
           Güvenlik Tercihleri
         </h2>
         <button
-          onClick={save}
-          className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-4 text-[11px] font-bold text-white shadow-[0_8px_16px_rgba(15,23,42,.12)] transition hover:bg-slate-800 active:scale-[.98]"
+          type="button"
+          disabled
+          className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-4 text-[11px] font-bold text-white shadow-[0_8px_16px_rgba(15,23,42,.12)] transition disabled:cursor-not-allowed disabled:opacity-40"
         >
           Değişiklikleri Kaydet
         </button>
@@ -92,14 +109,14 @@ export function SettingsSecuritySection() {
         <Label className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
           Oturum zaman aşımı
         </Label>
-        <Select value={timeout_} onValueChange={setTimeout_}>
-          <SelectTrigger className="mt-1.5 h-9 w-full text-[13px]">
+        <Select value={activeTimeoutLabel} disabled>
+          <SelectTrigger disabled className="mt-1.5 h-9 w-full text-[13px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {TIMEOUTS.map(option => (
-              <SelectItem key={option} value={option}>
-                {option}
+            {timeoutLabels(activeTimeoutLabel).map(label => (
+              <SelectItem key={label} value={label}>
+                {label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -115,7 +132,7 @@ export function SettingsSecuritySection() {
               Girişte ikinci doğrulama adımı iste.
             </p>
           </div>
-          <Switch checked={twoFactor} onCheckedChange={setTwoFactor} />
+          <Switch disabled checked={false} />
         </div>
         <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-100 p-3">
           <div>
@@ -126,10 +143,7 @@ export function SettingsSecuritySection() {
               Farklı bir cihazdan giriş yapıldığında bildirim gönder.
             </p>
           </div>
-          <Switch
-            checked={newDeviceAlerts}
-            onCheckedChange={setNewDeviceAlerts}
-          />
+          <Switch disabled checked={false} />
         </div>
       </div>
       <p className="mt-4 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] leading-5 text-slate-600">

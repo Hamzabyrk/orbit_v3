@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import {
   clearLastActivity,
   IDLE_TIMEOUT_MS,
+  type IdleTracking,
   readLastActivity,
   remainingIdleMs,
   resolveIdleState,
@@ -30,15 +31,16 @@ const CHECK_INTERVAL_MS = 15 * 1000;
  * bir sayfa, kimse başında olmadığı hâlde oturumu sonsuza kadar açık tutardı.
  * Dinlenen olaylar gerçek bir kullanıcı eylemi gerektirir.
  *
- * Sayaç yalnızca oturum açıkken çalışır. `enabled` false iken depo da
- * temizleniyor; aksi halde çıkış yapıp tekrar giren kullanıcı, eski zaman
- * damgası yüzünden anında dışarı atılabilirdi.
+ * Sayaç yalnızca oturum açıkken çalışır (`tracking === "track"`).
+ * - "wait": Oturum durumu henüz çözülmediğinden depoya dokunulmaz ve dinleyici eklenmez (#128).
+ * - "clear": Oturum kapalı veya demo modunda depodaki eski zaman damgası temizlenir; aksi halde
+ *   çıkış yapıp tekrar giren kullanıcı eski zaman damgası yüzünden anında dışarı atılabilirdi.
  */
 export function useIdleTimeout({
-  enabled,
+  tracking,
   onExpire,
 }: {
-  enabled: boolean;
+  tracking: IdleTracking;
   onExpire: () => void;
 }): void {
   // Geri çağrım her render'da değişebilir; efektin yeniden kurulmaması için
@@ -49,7 +51,11 @@ export function useIdleTimeout({
   const warnedRef = useRef(false);
 
   useEffect(() => {
-    if (!enabled) {
+    if (tracking === "wait") {
+      return;
+    }
+
+    if (tracking === "clear") {
       clearLastActivity();
       warnedRef.current = false;
       return;
@@ -117,7 +123,7 @@ export function useIdleTimeout({
       document.removeEventListener("visibilitychange", onVisible);
       window.clearInterval(interval);
     };
-  }, [enabled]);
+  }, [tracking]);
 }
 
 export { IDLE_TIMEOUT_MS };

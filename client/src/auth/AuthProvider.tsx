@@ -9,7 +9,7 @@ import {
 } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { AuthContext } from "./AuthContext";
-import { clearLastActivity } from "./idleTimeout";
+import { clearLastActivity, resolveIdleTracking } from "./idleTimeout";
 import { useIdleTimeout } from "./useIdleTimeout";
 import { loadAuthenticatedIdentity } from "./authService";
 import { isDemoMode } from "./runtime";
@@ -180,13 +180,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIdentity(null);
   }, []);
 
+  const idleTracking = resolveIdleTracking({
+    demoMode: isDemoMode,
+    sessionLoading: loading,
+    signedIn: identity !== null,
+  });
+
   // Hareketsizlik zaman aşımı. Supabase'in sunucu tarafı karşılığı Pro plan
   // gerektirdiği için ücretsiz alternatif; bkz. `idleTimeout.ts`.
   //
-  // Demo modunda kapalı: satış sunumu sırasında ekran açık kalırken oturumun
-  // kendiliğinden düşmesi işe yaramaz.
+  // Demo modunda kapalı; oturum çözülürken ("wait") depoya dokunulmaz (#128).
   useIdleTimeout({
-    enabled: !isDemoMode && identity !== null,
+    tracking: idleTracking,
     onExpire: () => {
       void supabase.auth
         .signOut()
