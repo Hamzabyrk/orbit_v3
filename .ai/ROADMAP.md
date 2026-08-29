@@ -6,7 +6,7 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 
 ## 0. Durum Özeti
 
-> Son güncelleme: **2026-08-25**. İşaretler: ✅ tamam · 🟡 kısmen · ⬜ başlanmadı · ⚠️ tamam sanılıyordu, değil.
+> Son güncelleme: **2026-08-29**. İşaretler: ✅ tamam · 🟡 kısmen · ⬜ başlanmadı · ⚠️ tamam sanılıyordu, değil.
 >
 > Ayrıntı için ilgili bölüme bakın; bu tablo yalnızca tek bakışta durum içindir.
 
@@ -28,8 +28,9 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 | Faz E · E3    | İlk giriş kilidi ve 8 haneli numarayla giriş (#69 · #73)                                                             | ✅    |
 | Faz E · E4    | İletişim bilgisi ve kurtarma zinciri — **mailsiz yarısı bitti**, gönderim sağlayıcı bekliyor (#95 · #96 · #97 · #98) | 🟡    |
 | Faz E · E5    | Mock verinin kaldırılması (#88 · #90 · #93) — üç madde v1.2'ye taşındı                                               | ✅    |
-| Faz E · E6    | Kurum yöneticisinin kullanıcı ekleme ekranı                                                                          | ⬜    |
-| Faz E · E7    | Uçtan uca doğrulama                                                                                                  | ⬜    |
+| Faz E · E6    | Kurum yöneticisinin kullanıcı ekleme ekranı (#105 · #106 · #107 · #113) — rol değiştirme, kurumdan çıkarma ve yönetici devri **v1.4'te** | 🟡    |
+| Faz E · E7    | Uçtan uca doğrulama — beş adımın beşi de koşuldu (2026-08-26 · 2026-08-29)                                            | ✅    |
+| Faz E · E7.2  | Canlı turdan çıkan çevre ekran bulguları (#131 – #137)                                                                | ⬜    |
 | v1.2          | İş tabloları + tenant/rol RLS matrisi                                                                                | ⬜    |
 | v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları                                                                 | ⬜    |
 | v1.5          | 4 rol kabul testi, KVKK envanteri ve hukuki hazırlık, pilot geri bildirimi                                           | ⬜    |
@@ -499,9 +500,33 @@ Production'da koşuldu: 2026-08-26, kurum **1003 · deneme3**.
 - [x] Kurum yöneticisi kendi hesabıyla girer, şifresini değiştirir. **E-posta doğrulaması bu adımdan düştü:** hesap sentetik adres kullanıyor (`10031000@orbit.invalid`), doğrulanacak bir e-posta yok. Bkz. #118.
 - [x] Kurum yöneticisi bir öğretmen ve bir öğrenci ekler. Üçü de açıldı: `10031001` öğretmen, `10031002` öğrenci, `10031003` veli.
 - [x] Öğretmen ve öğrenci kendi numaralarıyla girer. Üçü de girdi, şifrelerini belirledi, çıkıp tekrar girdi. Öğretmenin şifresi satırdan sıfırlanıp yeniden giriş de denendi.
-- [ ] **Her rolün yalnızca kendi kapsamını gördüğü doğrulanır.** #116 kapandı; doğrulama canlıda dört rolle tekrar giriş yapılarak koşulacak.
+- [x] **Her rolün yalnızca kendi kapsamını gördüğü doğrulanır.** Koşuldu: **2026-08-29**, dört rolle ayrı ayrı giriş yapılarak, her ekran tek tek gezilerek.
+
+  **Sonuç: kapsam doğru.** Dört rolün menüsü de `educationAccess.ts`'teki listeyle birebir uyuştu — öğretmende Ayarlar/Otomasyonlar/Kayıt-Ödemeler yok, öğrencide beş bölüm, velide altı. Kurumlar arası hiçbir sızıntı görülmedi. Sınavlar ekranı personel ile öğrenci/veliyi doğru ayırıyor ("Kurum ortalaması" ↔ "Puan"). `HomeworkCreateDialog` fail-closed çalışıyor: sınıf listesi boş, düğme kapalı.
+
+  **Ölçülemeyen tek şey kalmadı:** bu adım #116 kapanana kadar koşulamıyordu, çünkü ekranlarda başkasının adı yazarken "kendi kapsamını görmek" doğrulanamıyordu.
 
 **Release gate: karşılandı.** Zincirin hiçbir adımında elle veritabanı müdahalesi gerekmedi.
+
+#### E7.2 - İkinci canlı turdan çıkan bulgular (2026-08-29)
+
+Aynı tur, zincirin **etrafındaki** ekranlarda 28 gözlem üretti. Bunlar 7 issue'da toplandı; ikisi kimlik zincirini değil, ekranların doğruluğunu ilgilendiriyor.
+
+| #    | Bulgu                                                                                                     | Dilim | Durum |
+| ---- | --------------------------------------------------------------------------------------------------------- | ----- | ----- |
+| #131 | Beş ekran yapılmayan işi yapılmış gibi bildiriyor (sahte `toast.success`)                                  | A     | açık  |
+| #132 | Oturum sekmeler arasında ortak; ikinci sekme giriş ekranı görmeden açılıyor                                | A     | açık  |
+| #133 | `roleMeta` demo kimlikleri üretimde okunuyor — veli başlığında "Zeynep Kaya"                               | A     | açık  |
+| #134 | Arkasında iş olmayan beş ekran dürüstlük notu taşımıyor (Bildirimler, Sistem, Veri İçe Aktarma, Veri Yönetimi, Raporlar) | A     | açık  |
+| #135 | Ayarlar yalnızca kurum yöneticisinde; kişisel ayarlar diğer üç rolde hiç yok, Tema kategorisi hiç yok      | B     | açık  |
+| #136 | Kapsam sabit metinlerle belirleniyor; `PageHeader` her eyleme artı basıyor; rol kapısı iki yerde           | B     | açık  |
+| #137 | Başlıklar role çevrilmiş, içerik çevrilmemiş — öğretmene/veliye personel metrikleri                        | B     | açık  |
+
+**En ağır olan #131.** Uydurma veriden daha tehlikeli, çünkü görünmez: bir öğretmen yoklama alır, "Yoklama kaydedildi" bildirimini görür, düğme "Kaydedildi"ye döner — ve hiçbir kayıt oluşmamıştır.
+
+**Çözüm kalıpları depoda zaten var.** #131 için `SettingsSecuritySection.tsx:30`'un dürüst `toast.info`'su; #137 için `AssessmentsPage`'in rol ayrımı; #136 için `HomeworkCreateDialog`'un fail-closed deseni. Üçü de yazılmış, sadece diğer ekranlara uygulanmamış.
+
+**Sıra bağlayıcı:** A önce, B sonra. `EducationPlatform.tsx`, `PaymentsPage.tsx` ve `CommunicationsPage.tsx` her iki dilimde de değişiyor.
 
 #### E7.1 - Canlı koşudan çıkan bulgular (2026-08-26/27)
 
