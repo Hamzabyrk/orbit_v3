@@ -30,6 +30,21 @@ import type {
   Student,
 } from "./types";
 
+/**
+ * Demo ortamında rol bazlı kapsam filtreleme için kullanılan örnek veri sabitleri.
+ * Gerçek kapsam (öğretmen-sınıf, veli-öğrenci tabloları) v1.2'de veritabanından
+ * gelecektir; o zamana kadar bu sabitler yalnızca demo modunda kullanılır (#136).
+ */
+export const DEMO_TEACHER_NAMES = ["Merve Karaca", "Seda Kılıç"] as const;
+export const DEMO_TEACHER_CLASS_GROUPS = ["YKS 12-A", "YKS 11-C"] as const;
+/** Demo sınıflarının danışman öğretmeni. Ayrı sabit: dizinin sırasına
+ *  bağlanmak, diziyi yeniden sıralayan birinin davranışı sessizce
+ *  değiştirmesine yol açardı. */
+export const DEMO_CLASS_MENTOR = "Merve Karaca";
+export const DEMO_STUDENT_ID = "stu-001";
+export const DEMO_STUDENT_NAME = "Zeynep Kaya";
+export const DEMO_STUDENT_CLASS_GROUP = "YKS 12-A";
+
 export const students: Student[] = [
   {
     id: "stu-001",

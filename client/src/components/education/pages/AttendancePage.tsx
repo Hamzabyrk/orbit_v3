@@ -1,5 +1,7 @@
 import { toast } from "sonner";
+import { isDemoMode } from "@/auth/runtime";
 import { attendanceLessonInfo, students } from "../educationData";
+import { filterAttendanceStudents } from "../scopeFilters";
 import { Badge, EmptyState, PageHeader } from "../shared";
 import type { AttendanceState, Role } from "../types";
 
@@ -20,13 +22,7 @@ export function AttendancePage({
     "Gelmedi",
     "İzinli",
   ];
-  const selected =
-    role === "teacher"
-      ? students.filter(
-          student =>
-            student.group === "YKS 12-A" || student.group === "YKS 11-C"
-        )
-      : students;
+  const selected = filterAttendanceStudents(students, role, isDemoMode);
   const tone = (status: AttendanceState) =>
     status === "Katıldı"
       ? "green"

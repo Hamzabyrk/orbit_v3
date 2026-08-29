@@ -4,7 +4,9 @@ import { Bell, LogOut, Menu, PanelLeft, ShieldCheck, X } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { clearDemoData, readDemoData, writeDemoData } from "@/lib/demoStorage";
+import { isDemoMode } from "@/auth/runtime";
 import { availableEducationSections } from "@/components/educationAccess";
+import { filterStudentsForRole } from "./scopeFilters";
 import { AdminDashboard } from "./dashboards/AdminDashboard";
 import { ParentDashboard } from "./dashboards/ParentDashboard";
 import { StudentDashboard } from "./dashboards/StudentDashboard";
@@ -88,15 +90,7 @@ export function EducationPlatform({
     availableEducationSections(role).includes(item.label)
   );
   const visibleStudents = useMemo(() => {
-    const roleStudents =
-      role === "teacher"
-        ? students.filter(
-            student =>
-              student.group === "YKS 12-A" || student.group === "YKS 11-C"
-          )
-        : role === "student" || role === "parent"
-          ? students.filter(student => student.id === "stu-001")
-          : students;
+    const roleStudents = filterStudentsForRole(students, role, isDemoMode);
     return roleStudents.filter(student =>
       `${student.name} ${student.code} ${student.group}`
         .toLocaleLowerCase("tr")
@@ -186,6 +180,7 @@ export function EducationPlatform({
     if (active === "Öğrenciler")
       return (
         <StudentsPage
+          role={role}
           students={visibleStudents}
           query={query}
           onQuery={setQuery}
@@ -293,19 +288,31 @@ export function EducationPlatform({
             ekranlarda alttaki maddelere hiç ulaşılamıyordu.
           */}
           <nav className="-mr-1 flex-1 space-y-1 overflow-y-auto pr-1">
-            {(["Ana çalışma alanı", "Kurum yönetimi"] as const).map(group => (
-              <div
-                key={group}
-                className={group === "Kurum yönetimi" ? "mt-6" : ""}
-              >
-                <p
-                  className={`mb-2 px-3 text-[9px] font-extrabold uppercase tracking-[.14em] text-slate-400 ${navCollapsed ? "lg:hidden" : ""}`}
+            {(["Ana çalışma alanı", "Kurum yönetimi"] as const).map(group => {
+              const groupItems = navItems.filter(item => item.group === group);
+              if (groupItems.length === 0) return null;
+
+              // "Kurum yönetimi" başlığı yalnızca kurum yöneticisi için doğru.
+              // Öğretmenin o gruptaki maddeleri Raporlar ve Ayarlar; öğrenci ve
+              // velininki Kayıt-Ödemeler ve Ayarlar. Hiçbiri kurumu yönetmiyor.
+              const groupTitle =
+                group === "Kurum yönetimi" && role !== "admin"
+                  ? "Hesap ve Ayarlar"
+                  : group;
+
+              return (
+                <div
+                  key={group}
+                  className={
+                    group === "Kurum yönetimi" ? "mt-6 space-y-1" : "space-y-1"
+                  }
                 >
-                  {group}
-                </p>
-                {navItems
-                  .filter(item => item.group === group)
-                  .map(item => {
+                  <p
+                    className={`mb-2 px-3 text-[9px] font-extrabold uppercase tracking-[.14em] text-slate-400 ${navCollapsed ? "lg:hidden" : ""}`}
+                  >
+                    {groupTitle}
+                  </p>
+                  {groupItems.map(item => {
                     const Icon = item.icon;
                     const selected = active === item.label;
                     return (
@@ -328,8 +335,9 @@ export function EducationPlatform({
                       </button>
                     );
                   })}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </nav>
           <div className="mt-auto space-y-1 border-t border-slate-100 pt-4">
             {/*

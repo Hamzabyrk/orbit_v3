@@ -27,6 +27,7 @@ export function ParentDashboard({
         title={title}
         description="Devam, ders programı, akademik gelişim ve ödeme bilgilerini sade biçimde takip edin."
         action="Öğrenci programı"
+        actionKind="navigate"
         onAction={() => onNavigate("Ders Programı")}
       />
       {parentOverviewStats.length > 0 ? (

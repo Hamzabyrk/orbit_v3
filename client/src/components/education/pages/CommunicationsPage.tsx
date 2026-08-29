@@ -21,6 +21,15 @@ export function CommunicationsPage({
     setMessage("");
   };
 
+  const pageDescription =
+    role === "student"
+      ? "Öğretmenleriniz ve danışmanınızla doğrudan iletişim kurun."
+      : role === "parent"
+        ? "Öğrencinizin öğretmenleri ve danışmanıyla doğrudan iletişim kurun."
+        : role === "teacher"
+          ? "Öğrencileriniz ve velilerle doğru ders bağlamında iletişim kurun."
+          : "Doğru kişiyle, doğru öğrenci veya sınıf bağlamında iletişim kurun.";
+
   return (
     <>
       <PageHeader
@@ -32,7 +41,7 @@ export function CommunicationsPage({
               ? "Öğretmen iletişimi"
               : "Duyurular ve iletişim"
         }
-        description="Doğru kişiyle, doğru öğrenci veya sınıf bağlamında iletişim kurun."
+        description={pageDescription}
       />
       <div className="mt-6 grid gap-6 xl:grid-cols-[.82fr_1.18fr]">
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,.025)]">

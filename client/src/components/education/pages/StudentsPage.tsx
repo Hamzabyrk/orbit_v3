@@ -1,14 +1,19 @@
 import { Search } from "lucide-react";
 import { Badge, EmptyState, PageHeader } from "../shared";
-import type { Student } from "../types";
+import type { Role, Student } from "../types";
 
 export function StudentsPage({
+  role,
   students: visibleStudents,
   query,
   onQuery,
   onSelect,
   onAdd,
 }: {
+  // Zorunlu: bir rol kapısının varsayılanı olmaz. Opsiyonel olsaydı
+  // varsayılanı en geniş yetki olurdu ve prop'u geçmeyi unutan bir çağrı
+  // "Yeni öğrenci" düğmesini sessizce herkese açardı (K-04).
+  role: Role;
   students: Student[];
   query: string;
   onQuery: (value: string) => void;
@@ -21,8 +26,8 @@ export function StudentsPage({
         eyebrow="Öğrenci operasyonları"
         title="Öğrenciler"
         description="Akademik gelişim, devam ve ödeme sinyallerini öğrenci bazında takip edin."
-        action="Yeni öğrenci"
-        onAction={onAdd}
+        action={role === "admin" ? "Yeni öğrenci" : undefined}
+        onAction={role === "admin" ? onAdd : undefined}
       />
       <div className="mt-6 rounded-xl border border-slate-200 bg-white p-3 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
         <div className="relative">
@@ -42,7 +47,7 @@ export function StudentsPage({
             description={
               query
                 ? "Arama kriterlerine uygun öğrenci bulunamadı."
-                : "Henüz kayıtlı öğrenci bulunmuyor."
+                : "Akademik öğrenci ve sınıf kayıtları bir sonraki aşamada (v1.2) sisteme bağlanacaktır; şu an listelenecek kayıtlı öğrenci bulunmuyor."
             }
           />
         ) : (
