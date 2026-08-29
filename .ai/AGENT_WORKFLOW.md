@@ -332,6 +332,36 @@ Pratik karşılığı: bir güvenlik durumu üç değer taşıyorsa (**var** · 
 
 _Kaynak: Issue #102. `must_change_password` okunamadığında istemci kilidi varsayıyordu — karar doğru — ama kullanıcı "şifrenizi değiştirmelisiniz" ekranını görüyor ve veritabanı "gerek yok" derken şifresini gereksiz yere değiştiriyordu. Production'da yaşandı._
 
+### K-10 · Dilim açılışında keşif turu
+
+Hiçbir alt başlık, **beyan ettiği varsayımlar canlı sistemde doğrulanmadan** başlamaz.
+
+Her alt başlık `ROADMAP.md`'de bir **"Dayandığı varsayımlar"** satırı taşır. Açılışta o satırdaki her madde tek tek sınanır — dosyadan okunarak değil, çalışan sistemden. Beş dakikalık bir iştir; uzun sürüyorsa varsayımlar fazla soyut yazılmıştır.
+
+Doğrulanmayan bir varsayım **engel değil, kapsamın parçasıdır**: ya düzeltilir ya dilim yeniden yazılır. "Sonra bakarız" diye geçilen varsayım, dilimin ortasında keşfedilir ve o noktada geri dönmek pahalıdır.
+
+_Kaynak: 2026-08-29 denetimi. E7.2-B2, yedi dosyada sabit isimle kapsam belirlendiğini varsayıyordu; gerçekte iki dosya yazılmıştı, yedi bulundu. Aynı denetimde, `create-member` Edge Function'ının deploy edildiği varsayılarak arayüz yazılmış ve form çalışmayan bir arka uca bağlanmıştı (#113/#114)._
+
+### K-11 · Zemin kaydı — kararı geçersiz kılan iş, kaydını da yapar
+
+Bir iş, **başka bir dilimin ya da kararın beyan ettiği varsayımı geçersiz kılıyorsa**, bunu kaydetmek isteğe bağlı temizlik değil **işin kendisidir**.
+
+Kayıt, varsayımın **yaşadığı yere** düşülür — sonradan hatırlanacağı yere değil. Kararı silmek gerekmez; altına tarihli bir not yeter. Amaç kararı iptal etmek değil, **hangi paragrafın artık başlangıç noktası olduğunu** söylemek.
+
+Soru cevaplanabilir olmalı: _"Bu iş, birinin yazılı olarak doğru saydığı bir şeyi yanlışladı mı?"_ Cevap evetse iş bitmemiştir.
+
+_Kaynak: 2026-08-29. Hesap geçişi kararı (2026-08-25) oturumun `localStorage`'da olduğu bir dünyada yazılmıştı; E7.2-A onu `sessionStorage`'a taşıdı. "İki oturumu aynı anda sakla" ve "sayaç hepsini kapatsın" maddelerinin uygulaması tamamen değişti, karar metni bunu bilmiyordu. Aynı gün dal koruması kararı da benzer durumdaydı: "Team planı gerekir" varsayıyordu, depo public olunca ruleset'ler ücretsiz hâle geldi ve başka bir yoldan sağlandı._
+
+### K-12 · Koşullu kararın sahibi olur
+
+_"Şu şart sağlanınca şunu yapacağız"_ diyen hiçbir karar, **şartı kimin ve ne zaman kontrol edeceği** yazılmadan kapanmaz.
+
+Şartsız karar bir karardır; **sahipsiz şart bir dilektir.** Şart genellikle sessizce sağlanır ve kimse fark etmez — çünkü fark etmek kimsenin adımı değildir.
+
+Pratik karşılığı: koşullu her karar üç şey taşır — **şart**, **şartı kontrol edecek adım** (hangi dilimin açılışında, hangi kapıda), ve **şart sağlandığında yapılacak iş**. Üçü de yoksa karar yarımdır.
+
+_Kaynak: PR #81 bu tuzağı adıyla tarif etmişti — "`PLATFORM_SETTINGS` §4'teki beş ertelenmiş ayara tam olarak bu oldu; şart aynı gün sağlandı, kimse fark etmedi." 2026-08-29 denetimi aynı kalıbın üç canlı örneğini buldu: KVKK/Frankfurt kararı ("ilk gerçek kurum verisinden önce"), SMTP terki ("ilk gerçek kurum davetinden önce"), ve dal koruması (şart üçüncü bir yoldan sağlandı, metin hâlâ eski yolu tarif ediyor)._
+
 ---
 
 ## Görev dosyalarının ömrü
