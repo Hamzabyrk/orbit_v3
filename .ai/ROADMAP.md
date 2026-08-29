@@ -37,6 +37,7 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 | Faz E · E7.2  | Canlı turdan çıkan çevre ekran bulguları (#131 – #137) — yedisi de kapandı, dört rolle doğrulandı                                        | ✅    |
 | **Denetim**   | **Sistem denetimi (2026-08-29) — bulgular #143 – #151, kurallar K-10/11/12, dilimler §4.6**                                              | 🟡    |
 | v1.2          | İş tabloları + tenant/rol RLS matrisi — **dilimleri §4.6'da**                                                                            | ⬜    |
+| v1.3 (kalan)  | Ekranların canlı sorguya bağlanması, hesaplar arası geçiş ve kişi kaydı — mock temizliği E5'te bitti, **kalanın dilimleri §4.6'da**      | ⬜    |
 | v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları                                                                                     | ⬜    |
 | v1.5          | 4 rol kabul testi, KVKK envanteri ve hukuki hazırlık, pilot geri bildirimi                                                               | ⬜    |
 | v1.6 – v2.0   | Storage, toplu aktarım, raporlama, ticarileşme kapısı                                                                                    | ⬜    |
@@ -174,6 +175,10 @@ Kurum yöneticisi için e-posta ekleme ve doğrulama **zorunludur**; kendi kurum
 
 ## 4. Phase 1 - Functional MVP (Hedef: v1.5)
 
+> **Bu bölüm _ne yapılacağını_ tutar:** kapsam maddeleri, kutucuklar, release gate'ler. **§4.6 _hangi sırayla ve neye dayanarak_ yapılacağını** tutar: dilimler, bağımlılıklar, varsayımlar.
+>
+> İkisi birbirini tekrar etmez. Bir maddenin **kapsamı** buradadır; o maddeye **ne zaman başlanabileceği** §4.6'dadır. Kapsam değişirse burası, sıra veya bağımlılık değişirse orası güncellenir (**K-06**).
+
 ### v1.1 - Supabase Auth ve Tenant Temeli
 
 **Hedef:** Kimliği doğrulanmış kullanıcıyı güvenli kurum üyeliğine bağlamak.
@@ -246,7 +251,10 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 **Hedef:** Kurumun insan, sınıf ve akademik organizasyonunu foreign key ilişkileriyle kurmak.
 
-- [ ] **Ön koşul: `isMock: true` tiplerden kaldırılsın.** `types.ts`'te sekiz tipte **zorunlu** alan; gerçek veri bu alanı sağlayamaz. Tablolar yazılmadan önce temizlenmeli, sonra değil — bkz. Faz E5.
+- [x] **Ön koşul: `isMock: true` tiplerden kaldırılsın.** `types.ts`'te sekiz tipte **zorunlu** alan; gerçek veri bu alanı sağlayamaz. Tablolar yazılmadan önce temizlenmeli, sonra değil — bkz. Faz E5.
+
+  **Kapandı (#96, Faz E5).** 2026-08-29 denetiminde doğrulandı: `grep -r isMock client/src` → sonuç yok. Kutucuk aylarca işaretsiz kaldı ve v1.2'nin önünde duran bir ön koşul gibi göründü; oysa iş çoktan bitmişti (**K-08'in tersi: biten iş de kendiliğinden işaretlenmiyor**).
+
 - [ ] `students`, `guardians`, `student_guardians`.
 - [ ] Öğretmen üyelik detayları ve öğretmen-sınıf/ders atamaları.
 - [ ] `classes`, `class_enrollments`, `subjects`, `schedule_entries`.
@@ -564,6 +572,8 @@ Zincir çalışıyor. Aynı koşu, zincirin **etrafındaki** ekranlarda beş şe
 > - **Kapanışta:** iş, başka bir dilimin varsayımını geçersiz kıldıysa kaydı düşülür — varsayımın yaşadığı yere.
 >
 > Varsayımlar bu grafiğin **kenarlarıdır**. Bir düğüm değişince hangi düğümlerin etkilendiği aranarak bulunur, hatırlanarak değil.
+>
+> **Kapsam burada değil.** Bu bölüm _sıra, bağımlılık ve varsayım_ tutar; bir dilimin **ne içerdiği** §4 ve §5'teki sürüm bölümlerinde yazılıdır ve orada kutucuklarıyla izlenir. Aynı olguyu iki yerde yazmıyoruz (**K-06**) — dilimler kapsamı tekrar etmez, ona **atıf verir**.
 
 ### v1.2 · İlişkisel veritabanı ve RLS
 
@@ -571,26 +581,36 @@ Zincir çalışıyor. Aynı koşu, zincirin **etrafındaki** ekranlarda beş şe
 
 Bu yüzden v1.2 "tabloları ekle" işi değildir. Her varlık için **dört katman** birden gerekir: tablo → RLS → servis → ekran bağlantısı. Dilimler bu dörtlüye göre kesilmiştir.
 
-| Dilim       | Kapsam                                  | Dayandığı varsayımlar                                                                                                                              |
-| ----------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v1.2-01** | `students` tablosu, RLS, servis         | Bir giriş hesabı tek kuruma aittir (`DECISION_LOG` 2026-08-24) · `auth_user_id` opsiyonel kalabilir (Soru 4) · `anon` hiçbir tabloda yetkili değil |
-| **v1.2-02** | `classes` + öğretmen–sınıf ataması      | v1.2-01 · Ders vermek bir **atama**, rol değil (`DECISION_LOG` 2026-08-25) · `admin` yetkileri `teacher`'ı kapsar                                  |
-| **v1.2-03** | `student_guardians` (veli–öğrenci bağı) | v1.2-01 · `parent` bir rol olarak **kalır**, kapsamı bağlantıdan gelir · Çoklu rol için ikinci hesap açılır                                        |
-| **v1.2-04** | `attendance`                            | v1.2-01 · v1.2-02                                                                                                                                  |
-| **v1.2-05** | `exams` ve sonuçlar                     | v1.2-01 · v1.2-02 · Öğrenci/veli yalnızca kendi sonucunu görür, diğerleri anonim (Soru 6)                                                          |
-| **v1.2-06** | `payments`                              | v1.2-01 · v1.2-03 · Ödeme modülü yalnızca takiptir; kart verisi ve tahsilat kapsam dışı                                                            |
-| **v1.2-07** | `schedule` (ders programı)              | v1.2-02 · Gün alanı gerçek (#117)                                                                                                                  |
-| **v1.2-08** | `homework`                              | v1.2-02 · `HomeworkCreateDialog` fail-closed çalışıyor                                                                                             |
-| **v1.2-09** | **Kapsam çözümleyicisi**                | v1.2-02 · v1.2-03 · `scopeFilters.ts` bugün üretimde **boş küme** dönüyor (#136); gerçek kapsam bu dilimde gelir                                   |
-| **v1.2-10** | Kurum denetim kaydı ekranı (**#149**)   | `audit_events` yazılıyor ve `audit_events_select_admin` politikası var · İzlenebilirlik kararı (`DECISION_LOG` 2026-08-25)                         |
+**Kapsam ve release gate için §4 → "v1.2 - İlişkisel Veritabanı ve RLS"**. Aşağıdaki tablo o maddelerin _sırasını ve bağımlılığını_ verir, içeriğini değil.
+
+| Dilim       | Kapsam                                                                   | Dayandığı varsayımlar                                                                                                                                               |
+| ----------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v1.2-01** | `students`, `guardians`                                                  | Bir giriş hesabı tek kuruma aittir (`DECISION_LOG` 2026-08-24) · `auth_user_id` opsiyonel kalabilir (Soru 4) · `anon` hiçbir tabloda yetkili değil                  |
+| **v1.2-02** | `classes`, `class_enrollments`, `subjects` + öğretmen–sınıf/ders ataması | v1.2-01 · Ders vermek bir **atama**, rol değil (`DECISION_LOG` 2026-08-25) · `admin` yetkileri `teacher`'ı kapsar                                                   |
+| **v1.2-03** | `student_guardians` (veli–öğrenci bağı)                                  | v1.2-01 · `parent` bir rol olarak **kalır**, kapsamı bağlantıdan gelir · Çoklu rol için ikinci hesap açılır                                                         |
+| **v1.2-04** | `attendance_sessions`, `attendance_records`                              | v1.2-01 · v1.2-02                                                                                                                                                   |
+| **v1.2-05** | `exams`, `exam_results` + güvenli sıralama görünümü                      | v1.2-01 · v1.2-02 · Öğrenci/veli yalnızca kendi sonucunu görür, diğerleri anonim (Soru 6)                                                                           |
+| **v1.2-06** | `payment_plans`, `installments`                                          | v1.2-01 · v1.2-03 · Ödeme modülü yalnızca takiptir; kart verisi ve tahsilat kapsam dışı                                                                             |
+| **v1.2-07** | `schedule_entries` (ders programı)                                       | v1.2-02 · Gün alanı gerçek (#117)                                                                                                                                   |
+| **v1.2-08** | `homework_assignments`                                                   | v1.2-02 · `HomeworkCreateDialog` fail-closed çalışıyor                                                                                                              |
+| **v1.2-09** | `daily_feed_posts` · kişisel `tasks` ve `calendar_events`                | v1.2-02 · **Günlük Akış ile Gün Planı ayrı iki modeldir** (Soru 5): ilki kurum/sınıf hedefli duyuru, ikincisi yalnızca sahibinin gördüğü kişisel kayıt              |
+| **v1.2-10** | **Kapsam çözümleyicisi**                                                 | v1.2-02 · v1.2-03 · `scopeFilters.ts` bugün üretimde **boş küme** dönüyor (#136); gerçek kapsam bu dilimde gelir                                                    |
+| **v1.2-11** | **Kilit sunucuda devreye girsin** 🔒                                     | v1.2-01…09 · `current_user_must_change_password()` E3'te yazıldı, süreyi de okuyor, ama **bugün hiçbir RLS politikasında kullanılmıyor** — kilit yalnızca istemcide |
+| **v1.2-12** | Kurum denetim kaydı ekranı (**#149**)                                    | `audit_events` yazılıyor ve `audit_events_select_admin` politikası var · İzlenebilirlik kararı (`DECISION_LOG` 2026-08-25)                                          |
 
 > ⚠️ **v1.2'nin her tablo dilimi `internal_delete_organization`'a dokunur (#150).** Fonksiyon bugün **içerik koruması taşımıyor**; yeni tablo eklendiğinde kontrol listesine de eklenmezse dolu bir kurum tek çağrıyla silinebilir hâle gelir. Bu, ayrı bir iş olarak bırakılırsa unutulur — her dilimin kapsamına dahildir.
 
-> ⚠️ **v1.2-09 bir K-11 olayıdır.** Kapsam gerçek olduğu anda, E7.2-B2'nin "üretimde boş küme" varsayımı geçersizleşir. `scopeFilters.ts`'in başlığındaki gerekçe notu o gün güncellenmelidir.
+> ⚠️ **v1.2-10 bir K-11 olayıdır.** Kapsam gerçek olduğu anda, E7.2-B2'nin "üretimde boş küme" varsayımı geçersizleşir. `scopeFilters.ts`'in başlığındaki gerekçe notu o gün güncellenmelidir.
+
+> 🔒 **v1.2-11 atlanabilir görünür, atlanamaz.** Zorunlu şifre değişimi kilidi bugün **yalnızca istemcide** duruyor; kilitli bir kullanıcı REST API'yi doğrudan çağırabilir. Bugün zararı sınırlı çünkü erişebileceği tek şey kendi profili ve üyeliği. **İş tabloları geldiği anda bu, kilidin hiç var olmaması demektir.** Bu yüzden dilim v1.2-01…09'un tamamına bağlıdır: her yeni tablonun politikasına `and not public.current_user_must_change_password()` koşulu girmelidir.
+>
+> _2026-08-29 denetiminde bu madde **gözden kaçtı**: RLS politikaları listelendi ama hangi koşulun eksik olduğu sorulmadı. §4'teki kutucuk sayesinde bulundu — iki kaydın birbirini denetlemesinin işe yaradığı bir örnek._
 
 ### v1.3 · Ekranların canlı veriye bağlanması
 
 **E5 bu sürümün mock temizliği kısmını tamamladı.** Kalan, ekranların gerçekten sorgu atması.
+
+**Kapsam ve release gate için §4 → "v1.3 - Dinamik Frontend ve Temiz Kurum Görünümü"**. Orada Realtime abonelikleri ve hesaplar arası geçişin tasarım kuralları da yazılıdır.
 
 | Dilim       | Kapsam                                     | Dayandığı varsayımlar                                                                                                                                       |
 | ----------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -600,6 +620,8 @@ Bu yüzden v1.2 "tabloları ekle" işi değildir. Her varlık için **dört katm
 | **v1.3-04** | Hesaplar arası geçiş düğmesi ve kişi kaydı | Çoklu hesap kararı (`DECISION_LOG` 2026-08-25) · ⚠️ **zemin notu 2026-08-29**: oturum artık `sessionStorage`'da, kararın iki paragrafı bu dünyada yazılmadı |
 
 ### v1.4 · Yetkili CRUD ve operasyon akışları
+
+**Kapsam ve release gate için §4 → "v1.4 - Yetkili CRUD ve Operasyon Akışları"**.
 
 | Dilim       | Kapsam                                                | Dayandığı varsayımlar                                                                                               |
 | ----------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
@@ -617,6 +639,8 @@ Bu yüzden v1.2 "tabloları ekle" işi değildir. Her varlık için **dört katm
 
 ### v1.5 · Kabul, hukuk ve pilot hazırlığı
 
+**Kapsam ve release gate için §4 → "v1.5 - Functional MVP ve Kapalı Beta"**.
+
 | Dilim       | Kapsam                                               | Dayandığı varsayımlar                                                                                     |
 | ----------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | **v1.5-01** | Dört rol kabul testi                                 | v1.4 tamamı · E7 zinciri (2026-08-29'da doğrulandı)                                                       |
@@ -626,6 +650,8 @@ Bu yüzden v1.2 "tabloları ekle" işi değildir. Her varlık için **dört katm
 | **v1.5-05** | Pilot geri bildirimi                                 | v1.5-01…04                                                                                                |
 
 ### v1.6 – v2.0 · Phase 2
+
+**Kapsam için §5 → "Phase 2 - Operational Depth ve Core Product"**.
 
 | Dilim       | Kapsam                                    | Dayandığı varsayımlar                                                                                                                             |
 | ----------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
