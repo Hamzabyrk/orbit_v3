@@ -549,6 +549,93 @@ Zincir çalışıyor. Aynı koşu, zincirin **etrafındaki** ekranlarda beş şe
 
 ---
 
+## 4.6 Dilimler ve dayandıkları varsayımlar
+
+> **Bu bölüm 2026-08-29 denetiminden çıktı.** Kalan bütün sürümler, tek tek çalışılabilir dilimlere bölünmüştür. Her dilim **neyin doğru olduğunu varsaydığını** yazar.
+>
+> Varsayım satırı süs değildir; **K-10** onu bir açılış kontrolüne, **K-11** de bir kapanış yükümlülüğüne bağlar:
+>
+> - **Açılışta:** dilimin varsayımları canlı sistemde tek tek doğrulanır. Doğrulanmayan varsayım engel değil, kapsamın parçasıdır.
+> - **Kapanışta:** iş, başka bir dilimin varsayımını geçersiz kıldıysa kaydı düşülür — varsayımın yaşadığı yere.
+>
+> Varsayımlar bu grafiğin **kenarlarıdır**. Bir düğüm değişince hangi düğümlerin etkilendiği aranarak bulunur, hatırlanarak değil.
+
+### v1.2 · İlişkisel veritabanı ve RLS
+
+**Bugünkü gerçek (denetimde ölçüldü):** iş tablolarının **hiçbiri yok**. 40 eğitim bileşeninin 37'si hiçbir veriye bağlı değil; `educationData.ts`'in her ihracı `isDemoMode ? demo… : boş` kalıbında sabitlenmiş ve dosyanın Supabase importu **sıfır**.
+
+Bu yüzden v1.2 "tabloları ekle" işi değildir. Her varlık için **dört katman** birden gerekir: tablo → RLS → servis → ekran bağlantısı. Dilimler bu dörtlüye göre kesilmiştir.
+
+| Dilim       | Kapsam                                  | Dayandığı varsayımlar                                                                                                                              |
+| ----------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v1.2-01** | `students` tablosu, RLS, servis         | Bir giriş hesabı tek kuruma aittir (`DECISION_LOG` 2026-08-24) · `auth_user_id` opsiyonel kalabilir (Soru 4) · `anon` hiçbir tabloda yetkili değil |
+| **v1.2-02** | `classes` + öğretmen–sınıf ataması      | v1.2-01 · Ders vermek bir **atama**, rol değil (`DECISION_LOG` 2026-08-25) · `admin` yetkileri `teacher`'ı kapsar                                  |
+| **v1.2-03** | `student_guardians` (veli–öğrenci bağı) | v1.2-01 · `parent` bir rol olarak **kalır**, kapsamı bağlantıdan gelir · Çoklu rol için ikinci hesap açılır                                        |
+| **v1.2-04** | `attendance`                            | v1.2-01 · v1.2-02                                                                                                                                  |
+| **v1.2-05** | `exams` ve sonuçlar                     | v1.2-01 · v1.2-02 · Öğrenci/veli yalnızca kendi sonucunu görür, diğerleri anonim (Soru 6)                                                          |
+| **v1.2-06** | `payments`                              | v1.2-01 · v1.2-03 · Ödeme modülü yalnızca takiptir; kart verisi ve tahsilat kapsam dışı                                                            |
+| **v1.2-07** | `schedule` (ders programı)              | v1.2-02 · Gün alanı gerçek (#117)                                                                                                                  |
+| **v1.2-08** | `homework`                              | v1.2-02 · `HomeworkCreateDialog` fail-closed çalışıyor                                                                                             |
+| **v1.2-09** | **Kapsam çözümleyicisi**                | v1.2-02 · v1.2-03 · `scopeFilters.ts` bugün üretimde **boş küme** dönüyor (#136); gerçek kapsam bu dilimde gelir                                   |
+| **v1.2-10** | Kurum denetim kaydı ekranı (**#149**)   | `audit_events` yazılıyor ve `audit_events_select_admin` politikası var · İzlenebilirlik kararı (`DECISION_LOG` 2026-08-25)                         |
+
+> ⚠️ **v1.2'nin her tablo dilimi `internal_delete_organization`'a dokunur (#150).** Fonksiyon bugün **içerik koruması taşımıyor**; yeni tablo eklendiğinde kontrol listesine de eklenmezse dolu bir kurum tek çağrıyla silinebilir hâle gelir. Bu, ayrı bir iş olarak bırakılırsa unutulur — her dilimin kapsamına dahildir.
+
+> ⚠️ **v1.2-09 bir K-11 olayıdır.** Kapsam gerçek olduğu anda, E7.2-B2'nin "üretimde boş küme" varsayımı geçersizleşir. `scopeFilters.ts`'in başlığındaki gerekçe notu o gün güncellenmelidir.
+
+### v1.3 · Ekranların canlı veriye bağlanması
+
+**E5 bu sürümün mock temizliği kısmını tamamladı.** Kalan, ekranların gerçekten sorgu atması.
+
+| Dilim       | Kapsam                                     | Dayandığı varsayımlar                                                                                                                                       |
+| ----------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v1.3-01** | `educationData.ts` yerine gerçek servisler | v1.2 tamamı · `components/` Supabase istemcisini import edemez (taşınabilirlik sınırı, ESLint zorluyor)                                                     |
+| **v1.3-02** | Yükleme ve hata durumları                  | v1.3-01 · `skeleton.tsx` var ama hiçbir eğitim ekranı kullanmıyor                                                                                           |
+| **v1.3-03** | Giriş ekranının uydurma verisi (**#144**)  | Bağımsız — bugün yapılabilir                                                                                                                                |
+| **v1.3-04** | Hesaplar arası geçiş düğmesi ve kişi kaydı | Çoklu hesap kararı (`DECISION_LOG` 2026-08-25) · ⚠️ **zemin notu 2026-08-29**: oturum artık `sessionStorage`'da, kararın iki paragrafı bu dünyada yazılmadı |
+
+### v1.4 · Yetkili CRUD ve operasyon akışları
+
+| Dilim       | Kapsam                                                | Dayandığı varsayımlar                                                                                               |
+| ----------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **v1.4-01** | Öğrenci kaydı CRUD                                    | v1.2-01 · v1.3-01 · Öğretmen öğrenci **ekleyemez** (2026-08-29 kararı)                                              |
+| **v1.4-02** | Sınıf yönetimi                                        | v1.2-02                                                                                                             |
+| **v1.4-03** | Yoklama akışı                                         | v1.2-04 · Bugün "Yoklamayı kaydet" hiçbir şey kaydetmiyor ve bunu söylüyor (#131)                                   |
+| **v1.4-04** | Sınav sonucu girişi                                   | v1.2-05                                                                                                             |
+| **v1.4-05** | Ödev akışı                                            | v1.2-08                                                                                                             |
+| **v1.4-06** | Ödeme takibi                                          | v1.2-06                                                                                                             |
+| **v1.4-07** | Üye satır işlemleri: rol değiştirme, kurumdan çıkarma | E6'dan kalan · `CredentialsPanel` `components/credentials/` altında ortak                                           |
+| **v1.4-08** | Kurum yöneticisi devri                                | v1.4-07 · Bugün tek "kaldırma" işlemi kurumu silmek                                                                 |
+| **v1.4-09** | Şube yönetimi (ikinci şube açma)                      | #119 şube seçimini zorunlu kıldı ama **ikinci şube üretilemiyor** — kurulumda gelen varsayılan şube dışında yol yok |
+
+> **v1.4'ün her CRUD dilimi denetim kaydı yazar.** İzlenebilirlik kararı bunu "atlanamaz" diyor; **#149** ekranı v1.4'ten önce gelmelidir, yoksa kayıtlar birikirken kimse göremez.
+
+### v1.5 · Kabul, hukuk ve pilot hazırlığı
+
+| Dilim       | Kapsam                                               | Dayandığı varsayımlar                                                                                     |
+| ----------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **v1.5-01** | Dört rol kabul testi                                 | v1.4 tamamı · E7 zinciri (2026-08-29'da doğrulandı)                                                       |
+| **v1.5-02** | **KVKK envanteri ve Frankfurt kararı**               | ⏳ **K-12 borcu**: karar _"ilk gerçek kurum verisinden önce"_ diyor, şartı kontrol edecek adım yazılmamış |
+| **v1.5-03** | E-posta sağlayıcısı + E4'ün ikinci yarısı (**#118**) | ⏳ **K-12 borcu**: _"ilk gerçek kurum davetinden önce"_ · `recovery_email` sütunu ve GRANT kilidi hazır   |
+| **v1.5-04** | Rate limit ve CORS denetimi                          | `ALLOWED_ORIGINS` bir güvenlik sınırı değil, CORS hijyeni                                                 |
+| **v1.5-05** | Pilot geri bildirimi                                 | v1.5-01…04                                                                                                |
+
+### v1.6 – v2.0 · Phase 2
+
+| Dilim       | Kapsam                                    | Dayandığı varsayımlar                                                                                                                             |
+| ----------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v1.6-01** | Storage: private bucket + signed URL      | ⚠️ `workspace_documents` bugün ölü ve **public URL** saklıyor (**#148**); bu tasarıma uymuyor — dilim açılışında kaldırma/uyarlama kararı verilir |
+| **v1.6-02** | Sınav evrakı ve öğrenci fotoğrafı         | v1.6-01 · v1.2-01 · v1.2-05                                                                                                                       |
+| **v1.7-01** | CSV/Excel toplu aktarım                   | v1.2 tamamı · Bugün ekranı var, arkasında hiçbir şey yok ve bunu söylüyor (#134)                                                                  |
+| **v1.7-02** | Kolon eşleme ve idempotent import         | v1.7-01                                                                                                                                           |
+| **v1.8-01** | Güvenli aggregate view / RPC              | v1.2 tamamı · `platform_organization_stats` deseni (fail-closed + `search_path` sertleştirmesi)                                                   |
+| **v1.8-02** | Filtreleme, grafikler, rapor dışa aktarma | v1.8-01 · Öğretmen kurum ortalamasını **isimsiz** görür (2026-08-29 kararı)                                                                       |
+| **v2.0-01** | Hesap silme ve anonimleştirme             | ⚠️ Çoklu hesap ihtimali: aynı kişinin birden fazla kaydı olabilir, eksik silme riski (`DECISION_LOG` 2026-08-25)                                  |
+| **v2.0-02** | Backup ve kurtarma                        | —                                                                                                                                                 |
+| **v2.0-03** | Ticarileşme kapısı: tüm gate'ler          | Yukarıdakilerin tamamı                                                                                                                            |
+
+---
+
 ## 5. Phase 2 - Operational Depth ve Core Product
 
 ### v1.6 - Supabase Storage ile Dosya Yönetimi

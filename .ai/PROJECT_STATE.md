@@ -141,6 +141,81 @@ Güncel sıra **`ROADMAP.md` bölüm 4.5 — Faz E**'dedir:
 
 Eski listedeki "sınıf/öğrenci CRUD" ve "yoklama güncellemeleri" maddeleri v1.4'te, `isMock` temizliği E5'te ele alınır.
 
+**Güncelleme (2026-08-29):** Faz E'nin sekiz adımının sekizi de kapandı. Güncel sıra artık `ROADMAP.md` **bölüm 4.6 — Dilimler ve dayandıkları varsayımlar**'dadır. Sıradaki iş **v1.2-01**'dir.
+
+---
+
+## 6.1 Sistem denetimi — 2026-08-29
+
+> Faz E kapanışında, kayıt ile gerçeğin karşılaştırıldığı beş aşamalı bir denetim yapıldı: 82 PR ve 60 issue okundu, canlı şema ve Edge Function'lar envanterlendi, bağlantı matrisi çıkarıldı, güvenlik canlı istekle sınandı, dört rolle production turu koşuldu.
+>
+> Bu bölüm **o denetimin cevabıdır**: ne inşa edildi, ne eksik, nereden devam edilecek.
+
+### Ne inşa edildi
+
+**Kimlik zinciri uçtan uca çalışıyor.** Platform operatörü kurum açar → varsayılan şube oluşur → kurum yöneticisi giriş numarası ve geçici şifreyle açılır → girer, şifresini değiştirir → kendi öğretmen/öğrenci/velisini açar → hepsi kendi numarasıyla girer → şifre satırdan sıfırlanabilir → her adım denetim kaydı yazar. **Zincirin hiçbir halkasında elle veritabanı müdahalesi gerekmiyor** ve bu production'da doğrulandı (kurum 1003).
+
+**Güvenlik mimarisi sağlam ve tutarlı.** Canlı sisteme istek atılarak ölçüldü:
+
+| Kontrol                    | Sonuç                                                                                         |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
+| `anon` → 8 tablonun tamamı | `401 / 42501` — yetki düzeyinde red, RLS'e sıra gelmiyor                                      |
+| `anon` → RPC               | `current_user_*` 401 · `internal_*` **404, keşfedilemiyor**                                   |
+| Kayıt olma (signup)        | `422 signup_disabled`                                                                         |
+| Edge Function ×5           | Kimliksiz çağrıda 401                                                                         |
+| Güvenlik başlıkları        | Altısı da yerinde (CSP, HSTS 2 yıl + preload, `X-Frame-Options: DENY`, …)                     |
+| Sütun yetkileri            | `recovery_email`, `must_change_password`, `password_expires_at` → kullanıcı **okur, yazamaz** |
+| Sır taraması               | Depo, git geçmişi ve **canlı paket** temiz                                                    |
+| pgTAP                      | 13 dosya, **135 iddia**, beşi kurumlar arası negatif test                                     |
+| Depo ↔ production         | 18/18 migration, 5/5 fonksiyon — **sıfır ayrışma**                                            |
+
+**Sızma, ihlal veya yetki yükseltme yolu bulunmadı.** v1.1.1 denetiminde tespit edilen yükseltme yolu iki bacağından da ölü.
+
+**Yazma mimarisi bilinçli ve tek biçimli:** 11 RLS politikasının 10'u SELECT; tek yazma politikası `profiles_update_self`. Diğer bütün yazmalar `service_role` üzerinden Edge Function ve `internal_*` RPC'lerle geçiyor, yetki kararları SQL'de yaşıyor ve pgTAP ile sabitleniyor.
+
+### Ne eksik
+
+**Eğitim alanı bir kabuk.** Ölçüm net:
+
+```
+40 eğitim bileşeni      →  3'ü veritabanına ulaşıyor
+educationData.ts        →  Supabase import sayısı: 0
+İş tabloları            →  students, classes, attendance, exams, payments,
+                           student_guardians, homework, schedule → HİÇBİRİ YOK
+```
+
+Üretimde eğitim paneli veritabanına **boş dönmüyor — hiç sormuyor.** Her ihraç `isDemoMode ? demo… : boş` kalıbında sabitlenmiş.
+
+**Bağlantı matrisi** — hangi varlığın hangi katmanı var:
+
+| Varlık                                                                                     | Tablo  | Servis | Ekran |    Yazma     |
+| ------------------------------------------------------------------------------------------ | :----: | :----: | :---: | :----------: |
+| Kurum · Şube · Üyelik · Profil · Operatör · Platform denetimi                              |   ✅   |   ✅   |  ✅   |  ✅ / kısmi  |
+| Kurum denetim kaydı                                                                        |   ✅   |   ❌   |  ❌   | ✅ yazılıyor |
+| Öğrenci · Sınıf · Program · Yoklama · Sınav · Ödev · Ödeme · Mesaj · Gün planı · Otomasyon |   ❌   |   ❌   |  ✅   |      ❌      |
+| Öğretmen–sınıf ataması · Veli–öğrenci bağı                                                 |   ❌   |   ❌   |  ❌   |      ❌      |
+| Belge (`workspace_documents`)                                                              | ☠️ ölü | ☠️ ölü |  ❌   |      ❌      |
+
+Son iki satır yalnızca eksik veri değil: **kapsamın kendisi** onlardan gelir. E7.2-B2'de yedi filtrenin üretimde boş küme dönmesinin sebebi budur.
+
+### Yapısal borçlar
+
+Denetimin ortaya çıkardığı, tek bir issue'ya sığmayan üç kalıp:
+
+1. **Koşullu kararların sahibi yok.** PR #81 bunu adıyla tarif etmiş ama mekanizma kurulmamıştı; üç canlı örnek bulundu (KVKK/Frankfurt, SMTP terki, dal koruması). → **K-12**
+2. **Kararların zemini sessizce kayıyor.** Hesap geçişi kararı `localStorage` dünyasında yazıldı, E7.2-A zemini değiştirdi, karar bunu bilmiyordu. → **K-11**
+3. **Dilimler doğrulanmamış varsayımlarla başlıyor.** `create-member` deploy edilmiş sanılarak arayüz yazıldı; kapsam iki dosyada sanılırken yedi çıktı. → **K-10**
+
+Üçü de `AGENT_WORKFLOW.md`'ye birikimli kural olarak yazıldı; `ROADMAP.md` bölüm 4.6 bunları dilim başına varsayım beyanına bağlar.
+
+### Nereden devam edilecek
+
+**Açık issue'lar:** #118 (kurtarma, sağlayıcı bekliyor) · #143 (zaman aşımı yenilemeyle aşılıyor — **en acil**) · #144–#151 (denetim bulguları).
+
+**Sıra:** #143 önce — çalışmayan bir koruma, korumasızlıktan kötüdür. Ardından `ROADMAP.md` 4.6'daki **v1.2-01**.
+
+**Pilot öncesi kapatılması zorunlu, koda bağlı olmayan iki kapı:** KVKK/Frankfurt kararı ve e-posta sağlayıcısı. İkisi de **bugün sahipsiz** ve ikisi de "ilk gerçek kurum" şartına bağlı — yani tetiklenmelerine az kaldı.
+
 ---
 
 ## 7. v1.1 Auth ve Tenant Temeli (Issue #8)
