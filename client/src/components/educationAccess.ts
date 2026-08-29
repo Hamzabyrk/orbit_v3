@@ -42,8 +42,16 @@ const access: Record<EducationRole, EducationSection[]> = {
     "Ödevler",
     "İletişim",
     "Raporlar",
+    "Ayarlar",
   ],
-  student: ["Genel Bakış", "Ders Programı", "Sınavlar", "Ödevler", "İletişim"],
+  student: [
+    "Genel Bakış",
+    "Ders Programı",
+    "Sınavlar",
+    "Ödevler",
+    "İletişim",
+    "Ayarlar",
+  ],
   parent: [
     "Genel Bakış",
     "Ders Programı",
@@ -51,6 +59,7 @@ const access: Record<EducationRole, EducationSection[]> = {
     "Ödevler",
     "İletişim",
     "Kayıt ve Ödemeler",
+    "Ayarlar",
   ],
 };
 
