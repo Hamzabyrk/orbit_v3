@@ -26,6 +26,43 @@ export const IDLE_STORAGE_KEY = "orbit:last-activity";
 
 export type IdleState = "active" | "warning" | "expired";
 
+export type IdleTracking = "track" | "clear" | "wait";
+
+export interface IdleTrackingInput {
+  demoMode: boolean;
+  sessionLoading: boolean;
+  signedIn: boolean;
+}
+
+/**
+ * Oturum ve çalışma ortamı durumuna göre hareketsizlik sayacının ne
+ * yapması gerektiğini belirler.
+ *
+ * Üç durum vardır:
+ * - "wait": Oturum henüz çözülüyor (soğuk açılış). Zaman damgasına dokunulmaz
+ *   (ne yazılır ne silinir). Aksi halde dünden kalan damga silinir ve oturum
+ *   zaman aşımı soğuk açılışta atlanmış olurdu (#128).
+ * - "track": Oturum açık ve doğrulandı. Zaman aşımı kontrolü ve etkinlik
+ *   dinleyicileri aktif.
+ * - "clear": Oturum kapalı veya demo modundayız. Depodaki eski damga
+ *   temizlenir; böylece tekrar giriş yapan kullanıcı anında dışarı atılmaz.
+ */
+export function resolveIdleTracking(input: IdleTrackingInput): IdleTracking {
+  if (input.demoMode) {
+    return "clear";
+  }
+
+  if (input.sessionLoading) {
+    return "wait";
+  }
+
+  if (input.signedIn) {
+    return "track";
+  }
+
+  return "clear";
+}
+
 /**
  * Son etkinlik zamanına göre durumu belirler.
  *

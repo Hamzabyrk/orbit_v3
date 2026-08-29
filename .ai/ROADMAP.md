@@ -514,6 +514,8 @@ Zincir çalışıyor. Aynı koşu, zincirin **etrafındaki** ekranlarda beş şe
 | #118 | Kurtarma: "Bağlantı gönderildi" yalanı kalktı, kurtarma kanalı durumu görünür oldu. **E4'ün ikinci yarısı sağlayıcıyı bekliyor.** | kısmen açık |
 | #119 | Şube seçimi zorunlu oldu; "Kurum geneli" artık bilinçli seçim. Sınıf düzeyinde kapsam hâlâ yok — ayrı iş.                         | **kapandı** |
 | #120 | Kayıt yokken takvim tamamen gizleniyordu.                                                                                         | **kapandı** |
+| #128 | Hareketsizlik zaman aşımı soğuk açılışta sıfırlanıyordu; tarayıcı kapatılıp ertesi gün açıldığında oturum açık geliyordu.         | **kapandı** |
+| #126 | Güvenlik ayarlarındaki üç kontrol hiçbir şey yapmıyordu; artık devre dışı ve zaman aşımı gerçek sabitten okunuyor.                | **kapandı** |
 | #123 | İkinci dalga: İletişim'de uydurma yazışma, Ayarlar'da başka bir kurumun bilgileri, başlıkta uydurma akademik dönem.               | **kapandı** |
 
 **Neden bugüne kadar kapanamadı:** "kendi kapsamını görmek" ölçülebilir bir şey değil, çünkü her rolün ekranında görülenin büyük kısmı veritabanından gelmiyor. Bir öğrencinin "yalnızca kendi verisini" gördüğünü, ekranda başka birinin adı yazarken doğrulayamayız. #116 kapandığına göre bu adım artık tek başına koşulabilir.

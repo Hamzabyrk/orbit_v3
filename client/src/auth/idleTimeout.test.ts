@@ -4,6 +4,7 @@ import {
   IDLE_WARNING_MS,
   remainingIdleMs,
   resolveIdleState,
+  resolveIdleTracking,
 } from "./idleTimeout";
 
 const NOW = 1_800_000_000_000;
@@ -59,5 +60,66 @@ describe("remainingIdleMs", () => {
 
   it("kayıt yoksa sıfır döner", () => {
     expect(remainingIdleMs(null, NOW)).toBe(0);
+  });
+});
+
+describe("resolveIdleTracking", () => {
+  it("demo modunda sayaç takip edilmez ve depo temizlenir", () => {
+    expect(
+      resolveIdleTracking({
+        demoMode: true,
+        sessionLoading: false,
+        signedIn: true,
+      })
+    ).toBe("clear");
+    expect(
+      resolveIdleTracking({
+        demoMode: true,
+        sessionLoading: true,
+        signedIn: false,
+      })
+    ).toBe("clear");
+  });
+
+  it("oturum çözülürken ('wait') damgaya dokunulmaz, 'clear' dönmez", () => {
+    // Soğuk açılışta dünün damgasının silinmesini önleyen kritik durum (#128).
+    // Oturum henüz doğrulanırken 'clear' dönülürse dünden kalan zaman aşımı
+    // değerlendirilmeden silinir ve kullanıcı süresiz içeride kalırdı.
+    expect(
+      resolveIdleTracking({
+        demoMode: false,
+        sessionLoading: true,
+        signedIn: false,
+      })
+    ).toBe("wait");
+    expect(
+      resolveIdleTracking({
+        demoMode: false,
+        sessionLoading: true,
+        signedIn: true,
+      })
+    ).toBe("wait");
+  });
+
+  it("giriş yapılmış oturumda takip başlar", () => {
+    expect(
+      resolveIdleTracking({
+        demoMode: false,
+        sessionLoading: false,
+        signedIn: true,
+      })
+    ).toBe("track");
+  });
+
+  it("çıkış yapılmış veya oturum yokken depo temizlenir", () => {
+    // Eski davranışın koruduğu doğru durum: çıkış yapılmışsa eski damga
+    // silinir, böylece tekrar giriş yapan kullanıcı hemen atılmaz.
+    expect(
+      resolveIdleTracking({
+        demoMode: false,
+        sessionLoading: false,
+        signedIn: false,
+      })
+    ).toBe("clear");
   });
 });
