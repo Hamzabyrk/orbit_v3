@@ -507,14 +507,14 @@ Production'da koşuldu: 2026-08-26, kurum **1003 · deneme3**.
 
 Zincir çalışıyor. Aynı koşu, zincirin **etrafındaki** ekranlarda beş şey gösterdi:
 
-| #    | Bulgu                                                                                                                         | Durum       |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| #116 | Dört panelin dördü de canlıda uydurma veri gösteriyor. Öğrenci ve veli **başkasının adıyla** karşılanıyor ("Merhaba Zeynep"). | **kapandı** |
-| #117 | Ders programı gün şeridi: "Bugün" Pazartesi'ye sabit, düğmeler tıklanamıyor.                                                  | **kapandı** |
-| #118 | Kurtarma: karar 2026-08-24'te alınmış ama E4'ün ikinci yarısı hiç yazılmamış — dört açık.                                     | açık        |
-| #119 | "Kurum geneli" varsayılanı üyeye **tüm şubeleri** açıyor; sınıf düzeyinde kapsam hiç yok. Kurum izolasyonu sağlam.            | açık        |
-| #120 | Kayıt yokken takvim tamamen gizleniyordu.                                                                                     | **kapandı** |
-| #123 | İkinci dalga: İletişim'de uydurma yazışma, Ayarlar'da başka bir kurumun bilgileri, başlıkta uydurma akademik dönem.           | **kapandı** |
+| #    | Bulgu                                                                                                                             | Durum       |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| #116 | Dört panelin dördü de canlıda uydurma veri gösteriyor. Öğrenci ve veli **başkasının adıyla** karşılanıyor ("Merhaba Zeynep").     | **kapandı** |
+| #117 | Ders programı gün şeridi: "Bugün" Pazartesi'ye sabit, düğmeler tıklanamıyor.                                                      | **kapandı** |
+| #118 | Kurtarma: "Bağlantı gönderildi" yalanı kalktı, kurtarma kanalı durumu görünür oldu. **E4'ün ikinci yarısı sağlayıcıyı bekliyor.** | kısmen açık |
+| #119 | Şube seçimi zorunlu oldu; "Kurum geneli" artık bilinçli seçim. Sınıf düzeyinde kapsam hâlâ yok — ayrı iş.                         | **kapandı** |
+| #120 | Kayıt yokken takvim tamamen gizleniyordu.                                                                                         | **kapandı** |
+| #123 | İkinci dalga: İletişim'de uydurma yazışma, Ayarlar'da başka bir kurumun bilgileri, başlıkta uydurma akademik dönem.               | **kapandı** |
 
 **Neden bugüne kadar kapanamadı:** "kendi kapsamını görmek" ölçülebilir bir şey değil, çünkü her rolün ekranında görülenin büyük kısmı veritabanından gelmiyor. Bir öğrencinin "yalnızca kendi verisini" gördüğünü, ekranda başka birinin adı yazarken doğrulayamayız. #116 kapandığına göre bu adım artık tek başına koşulabilir.
 

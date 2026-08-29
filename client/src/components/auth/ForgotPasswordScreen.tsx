@@ -62,21 +62,23 @@ export function ForgotPasswordScreen({
   if (sent) {
     return (
       <AuthShell
-        title="E-postanızı kontrol edin"
-        description="Girdiğiniz adres sistemde kayıtlıysa, şifre belirleme bağlantısı gönderildi."
+        title="Sıfırlama isteği alındı"
+        description="Girdiğiniz adrese ait kayıtlı ve doğrulanmış bir kurtarma e-postası bulunuyorsa şifre belirleme bağlantısı iletilecektir."
         footer={
           <Link href="/" className="font-bold text-blue-600">
             Giriş ekranına dön
           </Link>
         }
       >
-        <div className="flex items-start gap-3 rounded-xl bg-emerald-50 p-4">
-          <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-          <div className="text-[12px] leading-5 text-emerald-900">
-            <p className="font-bold">Bağlantı gönderildi</p>
-            <p className="mt-1 text-emerald-800">
-              Bağlantı kısa süre için geçerlidir. E-postayı göremiyorsanız
-              gereksiz klasörünü kontrol edin.
+        <div className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/75 p-4">
+          <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+          <div className="text-[12px] leading-5 text-blue-950">
+            <p className="font-bold text-blue-900">İstek işleme alındı</p>
+            <p className="mt-1 text-blue-800">
+              Şifre sıfırlama bağlantısı yalnızca sistemde kayıtlı ve
+              doğrulanmış kurtarma adresi bulunan hesaplara gönderilir. Giriş
+              numarasıyla oturum açan üyeler yeni geçici şifre için kurum
+              yöneticisine başvurmalıdır.
             </p>
           </div>
         </div>

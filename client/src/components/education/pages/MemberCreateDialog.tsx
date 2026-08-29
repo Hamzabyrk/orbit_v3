@@ -15,6 +15,7 @@ import { useAuth } from "@/auth/useAuth";
 import {
   createMember,
   loadOrganizationBranches,
+  resolveBranchSelection,
   type MemberRole,
 } from "@/organization/memberService";
 import { roleMeta } from "../roleMeta";
@@ -37,7 +38,7 @@ export function MemberCreateDialog({
   const { demoMode } = useAuth();
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<MemberRole>("teacher");
-  const [branchId, setBranchId] = useState<string | null>(null);
+  const [selectedBranchKey, setSelectedBranchKey] = useState<string>("");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchLoading, setBranchLoading] = useState(false);
   const [branchError, setBranchError] = useState<string | null>(null);
@@ -86,7 +87,7 @@ export function MemberCreateDialog({
   const reset = () => {
     setFullName("");
     setRole("teacher");
-    setBranchId(null);
+    setSelectedBranchKey("");
     setBranches([]);
     setBranchError(null);
     setError(null);
@@ -103,11 +104,23 @@ export function MemberCreateDialog({
     onOpenChange(next);
   };
 
-  const validationError =
+  const resolvedBranchId = resolveBranchSelection(selectedBranchKey);
+  const nameValidationError =
     fullName.trim().length < 2 ? "Ad-soyad en az iki karakter olmalı." : null;
+  const branchValidationError =
+    resolvedBranchId === undefined
+      ? "Lütfen bir şube veya kurum geneli seçin."
+      : null;
+  const formValidationError = nameValidationError ?? branchValidationError;
 
   const handleSubmit = async () => {
-    if (validationError || submitting || branchError || branchLoading) {
+    if (
+      formValidationError ||
+      submitting ||
+      branchError ||
+      branchLoading ||
+      resolvedBranchId === undefined
+    ) {
       return;
     }
 
@@ -126,7 +139,7 @@ export function MemberCreateDialog({
         : await createMember({
             fullName: fullName.trim(),
             role,
-            branchId,
+            branchId: resolvedBranchId,
           });
 
       setCredentials(result);
@@ -208,20 +221,27 @@ export function MemberCreateDialog({
             <Label htmlFor="member-branch">Şube</Label>
             <select
               id="member-branch"
-              value={branchId ?? ""}
-              onChange={event =>
-                setBranchId(event.target.value ? event.target.value : null)
-              }
+              value={selectedBranchKey}
+              onChange={event => setSelectedBranchKey(event.target.value)}
               disabled={branchLoading || Boolean(branchError)}
               className="h-10 rounded-md border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="">Kurum geneli</option>
+              <option value="" disabled>
+                Şube seçin…
+              </option>
+              <option value="__all__">Kurum geneli (tüm şubeler)</option>
               {branches.map(branch => (
                 <option key={branch.id} value={branch.id}>
                   {branch.name}
                 </option>
               ))}
             </select>
+            {selectedBranchKey === "__all__" ? (
+              <p className="rounded-md bg-amber-50/70 p-2 text-[11px] leading-4 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                <strong>Kurum geneli:</strong> Bu üye kurumun tüm mevcut ve
+                gelecekte açılacak şubelerini görebilir ve işlem yapabilir.
+              </p>
+            ) : null}
             {branchLoading ? (
               <p className="text-[11px] text-muted-foreground">
                 Şubeler yükleniyor…
@@ -255,21 +275,21 @@ export function MemberCreateDialog({
             type="button"
             onClick={() => void handleSubmit()}
             disabled={
-              Boolean(validationError) ||
+              Boolean(formValidationError) ||
               submitting ||
               branchLoading ||
               Boolean(branchError)
             }
-            title={validationError ?? undefined}
+            title={formValidationError ?? undefined}
             className="rounded-xl bg-slate-900 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-40 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300"
           >
             {submitting ? "Oluşturuluyor…" : "Üyeyi oluştur"}
           </button>
         </DialogFooter>
 
-        {validationError ? (
+        {formValidationError ? (
           <p className="-mt-1 text-right text-[11px] font-bold text-amber-600 dark:text-amber-400">
-            {validationError}
+            {formValidationError}
           </p>
         ) : null}
       </DialogContent>

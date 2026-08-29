@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/auth/useAuth";
 import {
   Select,
   SelectContent,
@@ -14,13 +15,21 @@ import { Switch } from "@/components/ui/switch";
 const TIMEOUTS = ["15 dakika", "30 dakika", "1 saat", "4 saat"];
 
 export function SettingsSecuritySection() {
+  const { identity } = useAuth();
   const [timeout_, setTimeout_] = useState(TIMEOUTS[1]);
   const [twoFactor, setTwoFactor] = useState(false);
   const [newDeviceAlerts, setNewDeviceAlerts] = useState(true);
 
+  const isAdmin = identity?.membership?.role === "admin";
+  // Geri düşüş yok: kimlik bu alanı zorunlu taşıyor ve "bilinmiyor" durumunun
+  // adı zaten var. Buraya ikinci bir varsayılan yazmak, kuralı kimlik
+  // katmanından bir ekran dosyasına taşırdı (K-06).
+  const recoveryChannel = identity?.recoveryChannel ?? "unresolved";
+
   const save = () =>
-    toast.success("Değişiklikler kaydedildi", {
-      description: "Güvenlik tercihleriniz bu oturumda güncellendi.",
+    toast.info("Bu tercihler henüz kaydedilmiyor", {
+      description:
+        "Oturum zaman aşımı herkes için 30 dakikadır; buradaki seçimler saklı tutulmuyor.",
     });
 
   return (
@@ -36,6 +45,49 @@ export function SettingsSecuritySection() {
           Değişiklikleri Kaydet
         </button>
       </div>
+
+      {recoveryChannel === "missing" ? (
+        <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-[12px] leading-5 text-amber-950">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <div>
+            <p className="font-bold text-amber-900">
+              Hesabınıza kayıtlı bir kurtarma e-postası bulunmuyor
+            </p>
+            <p className="mt-1 text-amber-800">
+              {isAdmin
+                ? "Şifrenizi unutmanız durumunda kendi başınıza sıfırlama yapamazsınız; yeni geçici şifre için platform operatörüne başvurmanız gerekir."
+                : "Şifrenizi unutmanız durumunda kendi başınıza sıfırlama yapamazsınız; yeni geçici şifre için kurum yöneticinize başvurmanız gerekir."}
+            </p>
+          </div>
+        </div>
+      ) : recoveryChannel === "unresolved" ? (
+        <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-[12px] leading-5 text-amber-950">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <div>
+            <p className="font-bold text-amber-900">
+              Kurtarma bilgisi doğrulanamadı
+            </p>
+            <p className="mt-1 text-amber-800">
+              Güvenlik ve kurtarma bilgileriniz şu anda okunamıyor. Lütfen
+              sayfayı yenileyin veya daha sonra tekrar deneyin.
+            </p>
+          </div>
+        </div>
+      ) : recoveryChannel === "configured" ? (
+        <div className="mt-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 text-[12px] leading-5 text-emerald-950">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+          <div>
+            <p className="font-bold text-emerald-900">
+              Kurtarma e-postası tanımlı
+            </p>
+            <p className="mt-1 text-emerald-800">
+              Şifrenizi unuttuğunuzda sıfırlama bağlantısı bu adrese gönderilir
+              ({identity?.recoveryEmail}).
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-5 max-w-xs">
         <Label className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
           Oturum zaman aşımı
@@ -80,12 +132,13 @@ export function SettingsSecuritySection() {
           />
         </div>
       </div>
-      <p className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-[10px] leading-5 text-amber-800">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+      <p className="mt-4 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] leading-5 text-slate-600">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
         <span>
-          Bu tercihler yerel demo davranışını temsil eder; gerçek Supabase Auth
-          ve oturum güvenliği <strong>.ai/ROADMAP.md</strong> Aşama 3 kapsamında
-          kalıcı veri tabanı fazında aktifleşecek.
+          <strong>Bu bölümdeki tercihler henüz işlemiyor.</strong> Oturum zaman
+          aşımı herkes için 30 dakikadır ve buradan değiştirilemez; iki aşamalı
+          doğrulama ile yeni cihaz bildirimleri de henüz kurulmadı. Yukarıdaki
+          kurtarma durumu gerçek bilgidir.
         </span>
       </p>
     </>
