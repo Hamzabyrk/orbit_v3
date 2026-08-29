@@ -854,6 +854,20 @@ Birden fazla rolü olan kişi, rolü kadar hesaba sahiptir. Her giriş-çıkış
 
 **Bağlayıcı sonuç — sayaç tüm oturumları birden kapatır.** Şifresiz geçiş, iki oturumun aynı anda saklanması demektir. Hareketsizlik sayacı yalnızca aktif oturumu kapatırsa diğeri açık kalır ve sayacın var olma sebebi ortadan kalkar.
 
+> **Zemin değişti (2026-08-29) — karar geçerli, dayandığı varsayım değil.**
+>
+> Yukarıdaki iki paragraf, oturumun `localStorage`'da saklandığı bir dünyada yazıldı. O gün "iki oturum aynı anda saklanır" demek, **tarayıcı genelinde** iki oturum demekti; "sayaç tüm oturumları kapatır" da tek bir depoyu temizlemek anlamına geliyordu.
+>
+> E7.2-A (#132) oturumu `sessionStorage`'a taşıdı: artık **her sekme kendi oturumunu** taşıyor ve sekme kapanınca oturum bitiyor. Sebebi ayrıydı ve çoklu hesapla ilgisi yoktu — paylaşılan dershane bilgisayarında ikinci sekme açan herkes öncekinin oturumuna düşüyordu.
+>
+> Kararın kendisi ayakta: geçiş şifre sormaz, sayaç tüm oturumları kapatır, hesaplar kişi kaydına bağlanır. Değişen, bunların **nasıl uygulanacağı**:
+>
+> - "İki oturumu aynı anda saklamak" artık sekme başına bir sorundur. `sessionStorage` sekmeler arasında paylaşılmadığı için, A sekmesinde yönetici B sekmesinde veli olmak **kendiliğinden** mümkün — ama aynı sekmede iki oturumu tutmak için jetonların uygulama tarafından yönetilmesi gerekir.
+> - "Sayacın tüm oturumları kapatması" tek bir anahtarı silmekle olmaz. Sekme başına ayrılmış oturumlarda bu, sekmeler arası bir sinyal (`BroadcastChannel` ya da `storage` olayı) gerektirir.
+> - `orbit:last-activity` de `sessionStorage`'a taşındı; sayaç artık sekme başına işliyor.
+>
+> **v1.3 tasarlanırken bu paragraf başlangıç noktasıdır**, yukarıdaki iki paragraf değil. Not, kararı geçersiz kılmak için değil, altı ay sonra "neden çalışmıyor" sorusunun cevabının kayıp olmaması için düşülmüştür (**K-06**).
+
 **Hesaplar bir kişi kaydına bağlanır — ikili bağ olarak DEĞİL.** "Bu kişinin diğer hesapları hangileri" sorusunun cevabı bir yerde durmak zorunda; düğmenin çalışması için zaten gerekli.
 
 Modelleme biçimi önemli: hesaptan hesaba işaret eden bir alan (`linked_account_id`) iki hesapta çalışır, **üçte kırılır** — üç hesabın hangi ikisinin bağlanacağı belirsizdir ve zincir kopabilir. Doğrusu **hesapların ait olduğu bir kişi kaydı**: N hesap aynı kişiye bağlanır, kaç tane olduğu fark etmez.
