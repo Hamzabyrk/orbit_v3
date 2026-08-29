@@ -34,6 +34,7 @@ describe("education role access", () => {
       "Sınavlar",
       "Ödevler",
       "İletişim",
+      "Ayarlar",
     ]);
     expect(canAccessEducationSection("parent", "Kayıt ve Ödemeler")).toBe(true);
     expect(canAccessEducationSection("parent", "Öğrenciler")).toBe(false);
@@ -44,5 +45,12 @@ describe("education role access", () => {
     expect(canAccessEducationSection("teacher", "Ödevler")).toBe(true);
     expect(canAccessEducationSection("student", "Ödevler")).toBe(true);
     expect(canAccessEducationSection("parent", "Ödevler")).toBe(true);
+  });
+
+  it("gives every role access to Ayarlar, with category visibility handled inside the settings page", () => {
+    expect(canAccessEducationSection("admin", "Ayarlar")).toBe(true);
+    expect(canAccessEducationSection("teacher", "Ayarlar")).toBe(true);
+    expect(canAccessEducationSection("student", "Ayarlar")).toBe(true);
+    expect(canAccessEducationSection("parent", "Ayarlar")).toBe(true);
   });
 });

@@ -1,6 +1,7 @@
 import {
   Bell,
   Lock,
+  Palette,
   RotateCcw,
   School,
   ShieldCheck,
@@ -10,6 +11,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import type { Role } from "../types";
 
 export type SettingsCategoryId =
   | "profil"
@@ -19,6 +21,7 @@ export type SettingsCategoryId =
   | "roller"
   | "sistem"
   | "guvenlik"
+  | "tema"
   | "veri-yonetimi"
   | "veri-ice-aktarma";
 
@@ -28,7 +31,11 @@ export type SettingsCategoryMeta = {
   subtitle: string;
   icon: LucideIcon;
   eyebrow: string;
+  roles: Role[];
 };
+
+const ALL_ROLES: Role[] = ["admin", "teacher", "student", "parent"];
+const ADMIN_ONLY: Role[] = ["admin"];
 
 export const SETTINGS_CATEGORIES: SettingsCategoryMeta[] = [
   {
@@ -37,6 +44,7 @@ export const SETTINGS_CATEGORIES: SettingsCategoryMeta[] = [
     subtitle: "Kişisel hesap ve iletişim",
     icon: User,
     eyebrow: "Kişisel bilgiler",
+    roles: ALL_ROLES,
   },
   {
     id: "kurum",
@@ -44,6 +52,7 @@ export const SETTINGS_CATEGORIES: SettingsCategoryMeta[] = [
     subtitle: "Şube ve kurum bilgileri",
     icon: School,
     eyebrow: "Kurum ve şube bilgileri",
+    roles: ADMIN_ONLY,
   },
   {
     id: "uyeler",
@@ -51,6 +60,7 @@ export const SETTINGS_CATEGORIES: SettingsCategoryMeta[] = [
     subtitle: "Kurum içi kullanıcı listesi",
     icon: Users,
     eyebrow: "Kullanıcılar ve roller",
+    roles: ADMIN_ONLY,
   },
   {
     id: "bildirimler",
@@ -58,6 +68,7 @@ export const SETTINGS_CATEGORIES: SettingsCategoryMeta[] = [
     subtitle: "Takip ve hatırlatma tercihleri",
     icon: Bell,
     eyebrow: "Bildirim tercihleri",
+    roles: ALL_ROLES,
   },
   {
     id: "roller",
@@ -65,6 +76,7 @@ export const SETTINGS_CATEGORIES: SettingsCategoryMeta[] = [
     subtitle: "Rol bazlı görünürlük matrisi",
     icon: ShieldCheck,
     eyebrow: "Erişim matrisi",
+    roles: ADMIN_ONLY,
   },
   {
     id: "sistem",
@@ -72,6 +84,7 @@ export const SETTINGS_CATEGORIES: SettingsCategoryMeta[] = [
     subtitle: "Genel çalışma varsayımları",
     icon: SlidersHorizontal,
     eyebrow: "Sistem varsayımları",
+    roles: ADMIN_ONLY,
   },
   {
     id: "guvenlik",
@@ -79,6 +92,15 @@ export const SETTINGS_CATEGORIES: SettingsCategoryMeta[] = [
     subtitle: "Oturum ve erişim tercihleri",
     icon: Lock,
     eyebrow: "Hesap güvenliği",
+    roles: ALL_ROLES,
+  },
+  {
+    id: "tema",
+    title: "Tema",
+    subtitle: "Arayüz renk ve görünüm tercihi",
+    icon: Palette,
+    eyebrow: "Görünüm tercihleri",
+    roles: ALL_ROLES,
   },
   {
     id: "veri-yonetimi",
@@ -86,6 +108,7 @@ export const SETTINGS_CATEGORIES: SettingsCategoryMeta[] = [
     subtitle: "Dışa aktarma ve sıfırlama",
     icon: RotateCcw,
     eyebrow: "Arşiv, dışa aktarma ve sıfırlama",
+    roles: ADMIN_ONLY,
   },
   {
     id: "veri-ice-aktarma",
@@ -93,5 +116,6 @@ export const SETTINGS_CATEGORIES: SettingsCategoryMeta[] = [
     subtitle: "Eski kayıtları sisteme aktarın",
     icon: UploadCloud,
     eyebrow: "Toplu veri aktarımı",
+    roles: ADMIN_ONLY,
   },
 ];

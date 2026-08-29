@@ -11,6 +11,7 @@ import { SettingsNotificationsSection } from "./SettingsNotificationsSection";
 import { SettingsProfileSection } from "./SettingsProfileSection";
 import { SettingsSecuritySection } from "./SettingsSecuritySection";
 import { SettingsSystemSection } from "./SettingsSystemSection";
+import { SettingsThemeSection } from "./SettingsThemeSection";
 import {
   SETTINGS_CATEGORIES,
   type SettingsCategoryId,
@@ -25,20 +26,20 @@ export function SettingsPage({
 }) {
   const [selected, setSelected] = useState<SettingsCategoryId>("profil");
 
-  // Üyeler kategorisi yalnızca kurum yöneticilerine gösterilir.
+  // Kategoriler role göre filtrelenir; yönetimsel kategoriler yalnızca yöneticide görünür.
   //
   // Bu kontrol bir güvenlik sınırı DEĞİLDİR: istemci kodunu yok sayan biri
   // API veya servisi doğrudan çağırabilir. Gerçek yetki sınırı veritabanındaki
   // `profiles_select_organization_admin` ve `memberships_select_self_or_admin`
   // RLS politikalarıdır; buradaki kontrol yalnızca kullanıcı deneyimi içindir.
-  const categories = SETTINGS_CATEGORIES.filter(
-    item => item.id !== "uyeler" || role === "admin"
+  const categories = SETTINGS_CATEGORIES.filter(item =>
+    item.roles.includes(role)
   );
   const category =
     categories.find(item => item.id === selected) ?? categories[0];
 
   const renderSection = () => {
-    switch (selected) {
+    switch (category.id) {
       case "profil":
         return <SettingsProfileSection role={role} />;
       case "kurum":
@@ -53,6 +54,8 @@ export function SettingsPage({
         return <SettingsSystemSection />;
       case "guvenlik":
         return <SettingsSecuritySection />;
+      case "tema":
+        return <SettingsThemeSection />;
       case "veri-yonetimi":
         return (
           <SettingsDataManagementSection onResetDemoData={onResetDemoData} />
