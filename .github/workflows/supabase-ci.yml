@@ -2,15 +2,18 @@ name: Supabase Database Tests
 
 on:
   # Hedef dal filtresi bilinçli olarak yok; bkz. ci.yml'deki aynı not.
-  # Yol filtresi korunuyor: bu workflow yalnızca veritabanı değişikliklerinde
-  # anlamlı ve `supabase start` her koşuda birkaç dakika sürüyor.
+  #
+  # Yol filtresi de kaldırıldı (2026-08-29). Filtre doğru bir tasarrufdu ama
+  # bu işin **zorunlu kontrol** olmasını engelliyordu: yol eşleşmediğinde
+  # workflow hiç başlamıyor, GitHub da hiç başlamamış bir zorunlu kontrolü
+  # "bekliyor" sayarak merge'ü süresiz bloke ediyor. Tasarruf artık işin
+  # içinde: `supabase/` değişmediyse iş saniyeler içinde yeşil biter.
+  #
+  # Neden #112: `feat/106-create-member` PR'ında bu iş hiç koşmadı ve PR
+  # kırık bir pgTAP plan sayısıyla merge edildi.
   pull_request:
-    paths:
-      - "supabase/**"
   push:
     branches: [main]
-    paths:
-      - "supabase/**"
 
 permissions:
   contents: read
@@ -122,16 +125,63 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Değişen dosyaları tespit edebilmek için geçmiş gerekiyor.
+          fetch-depth: 0
+
+      # `supabase start` her koşuda birkaç dakika sürüyor; veritabanına
+      # dokunmayan PR'larda bunu ödemeye gerek yok. İş yine de koşuyor ve
+      # yeşil bildiriyor, böylece zorunlu kontrol olarak kullanılabiliyor.
+      #
+      # Emin olunamayan her durumda testler KOŞAR. Bir değişikliği kaçırmaktansa
+      # gereksiz yere birkaç dakika harcamak tercih edilir.
+      - name: Veritabanı dosyaları değişti mi
+        id: degisiklik
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -uo pipefail
+
+          calistir() {
+            echo "gerekli=true" >> "$GITHUB_OUTPUT"
+            echo "$1"
+            exit 0
+          }
+
+          if [ "$EVENT" = "pull_request" ]; then
+            range="$BASE_SHA...$HEAD_SHA"
+          elif [ -n "${BEFORE_SHA:-}" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            range="$BEFORE_SHA..$GITHUB_SHA"
+          else
+            calistir "Karşılaştırma noktası yok (yeni dal veya ilk push); testler koşuyor."
+          fi
+
+          if ! degisen=$(git diff --name-only "$range" 2>/dev/null); then
+            calistir "Diff alınamadı; emin olunamadığı için testler koşuyor."
+          fi
+
+          if echo "$degisen" | grep -q '^supabase/'; then
+            calistir "supabase/ altında değişiklik var; testler koşuyor."
+          fi
+
+          echo "gerekli=false" >> "$GITHUB_OUTPUT"
+          echo "supabase/ altında değişiklik yok; veritabanı testleri atlanıyor."
 
       - name: Supabase CLI kurulumu
+        if: steps.degisiklik.outputs.gerekli == 'true'
         uses: supabase/setup-cli@v1
         with:
           version: 2.115.0
 
       - name: Yerel Supabase test ortamını başlat
+        if: steps.degisiklik.outputs.gerekli == 'true'
         run: supabase start
 
       - name: Migration ve pgTAP RLS testleri
+        if: steps.degisiklik.outputs.gerekli == 'true'
         run: supabase test db
 
       # Kimlik mimarisinin tamamı, Supabase'in teslim edilemez alan adlarını
@@ -141,8 +191,9 @@ jobs:
       # kalıcı regresyon testidir; Supabase davranışı değiştirirse bunu bir
       # müşteri değil CI bildirir.
       - name: Sentetik e-posta ile giriş kanıtı
+        if: steps.degisiklik.outputs.gerekli == 'true'
         run: bash supabase/tests/auth/synthetic_email.sh
 
       - name: Test ortamını kapat
-        if: always()
+        if: always() && steps.degisiklik.outputs.gerekli == 'true'
         run: supabase stop --no-backup
