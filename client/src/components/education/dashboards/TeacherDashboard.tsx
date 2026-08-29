@@ -1,8 +1,11 @@
+import { useAuth } from "@/auth/useAuth";
+import { isDemoMode } from "@/auth/runtime";
 import {
   schedule,
   teacherFollowUpItems,
   teacherOverviewStats,
 } from "../educationData";
+import { filterScheduleForTeacher } from "../scopeFilters";
 import { EmptyState, PageHeader, StatCard } from "../shared";
 import type { Section } from "../types";
 
@@ -11,17 +14,24 @@ export function TeacherDashboard({
 }: {
   onNavigate: (section: Section) => void;
 }) {
-  const visibleSchedule = schedule.filter(
-    item => item.teacher === "Merve Karaca" || item.teacher === "Seda Kılıç"
-  );
+  const { identity } = useAuth();
+  const teacherName = identity?.displayName?.trim()
+    ? identity.displayName.trim().split(" ")[0]
+    : null;
+  const title = teacherName
+    ? `Merhaba ${teacherName}, bugün sınıflarınızla ilerleyin.`
+    : "Bugün sınıflarınızla ilerleyin.";
+
+  const visibleSchedule = filterScheduleForTeacher(schedule, isDemoMode);
 
   return (
     <>
       <PageHeader
         eyebrow="Öğretmen çalışma alanı"
-        title="Bugün sınıflarınızla ilerleyin."
+        title={title}
         description="Ders programı, yoklama ve takip gerektiren öğrenciler burada."
         action="Yoklama al"
+        actionKind="navigate"
         onAction={() => onNavigate("Yoklama")}
       />
       {teacherOverviewStats.length > 0 ? (

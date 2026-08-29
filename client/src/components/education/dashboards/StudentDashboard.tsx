@@ -27,6 +27,7 @@ export function StudentDashboard({
         title={title}
         description="Derslerini, ödevlerini ve sınav hedeflerini tek bakışta takip et."
         action="Ders programım"
+        actionKind="navigate"
         onAction={() => onNavigate("Ders Programı")}
       />
       {studentOverviewStats.length > 0 ? (

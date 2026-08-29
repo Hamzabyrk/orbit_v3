@@ -11,12 +11,18 @@ import { ActionLine, PageHeader, ReportCard } from "../shared";
 import type { Role } from "../types";
 
 export function ReportsPage({ role }: { role: Role }) {
+  const isTeacher = role === "teacher";
+
   return (
     <>
       <PageHeader
-        eyebrow="Kurum içgörüleri"
-        title={role === "teacher" ? "Sınıf raporları" : "Kurum raporları"}
-        description="Akademik, devam ve operasyon görünümünü karar vermeyi kolaylaştıracak şekilde izleyin."
+        eyebrow={isTeacher ? "Akademik içgörüler" : "Kurum içgörüleri"}
+        title={isTeacher ? "Sınıf raporları" : "Kurum raporları"}
+        description={
+          isTeacher
+            ? "Sınıflarınızın devam, deneme ve ödev tamamlanma görünümünü kurum ortalamalarıyla izleyin."
+            : "Akademik, devam ve operasyon görünümünü karar vermeyi kolaylaştıracak şekilde izleyin."
+        }
       />
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <ReportCard
@@ -28,14 +34,16 @@ export function ReportsPage({ role }: { role: Role }) {
         />
         <ReportCard
           title="Deneme gelişimi"
-          subtitle="TYT kurum ortalaması"
+          subtitle={
+            isTeacher ? "Sınıf ve genel ortalama" : "TYT kurum ortalaması"
+          }
           values={reportExamValues}
           labels={reportExamLabels}
           color="bg-violet-500"
         />
         <ReportCard
           title="Ödev tamamlama"
-          subtitle="Aktif gruplar"
+          subtitle={isTeacher ? "Sorumlu sınıflar" : "Aktif gruplar"}
           values={reportHomeworkValues}
           labels={reportHomeworkLabels}
           color="bg-blue-500"

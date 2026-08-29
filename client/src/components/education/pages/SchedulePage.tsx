@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { BookOpen } from "lucide-react";
+import { isDemoMode } from "@/auth/runtime";
 import { schedule } from "../educationData";
+import { filterScheduleForRole } from "../scopeFilters";
 import { Badge, EmptyState, PageHeader } from "../shared";
 import type { Role, WeekDay } from "../types";
 import {
@@ -15,17 +17,7 @@ export function SchedulePage({ role }: { role: Role }) {
     getDefaultScheduleDay()
   );
 
-  const roleFiltered =
-    role === "student" || role === "parent"
-      ? schedule.filter(
-          item => item.group === "YKS 12-A" || item.group === "Zeynep Kaya"
-        )
-      : role === "teacher"
-        ? schedule.filter(
-            item =>
-              item.teacher === "Merve Karaca" || item.teacher === "Seda Kılıç"
-          )
-        : schedule;
+  const roleFiltered = filterScheduleForRole(schedule, role, isDemoMode);
 
   const dayFiltered = roleFiltered.filter(item => item.day === selectedDay);
 

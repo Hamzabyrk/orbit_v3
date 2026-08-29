@@ -1,17 +1,16 @@
 import { toast } from "sonner";
+import { isDemoMode } from "@/auth/runtime";
 import { paymentOverviewStats, paymentRows } from "../educationData";
+import { filterPaymentsForRole } from "../scopeFilters";
 import { Badge, EmptyState, PageHeader, StatCard } from "../shared";
 import type { Role } from "../types";
 
 export function PaymentsPage({ role }: { role: Role }) {
-  const visible =
-    role === "parent"
-      ? paymentRows.filter(item => item.student === "Zeynep Kaya")
-      : paymentRows;
+  const visible = filterPaymentsForRole(paymentRows, role, isDemoMode);
   return (
     <>
       <PageHeader
-        eyebrow="Kayıt operasyonu"
+        eyebrow={role === "parent" ? "Veli ödeme alanı" : "Kayıt operasyonu"}
         title={role === "parent" ? "Kayıt ve ödeme planı" : "Kayıt ve ödemeler"}
         description={
           role === "parent"
@@ -29,7 +28,7 @@ export function PaymentsPage({ role }: { role: Role }) {
             : undefined
         }
       />
-      {paymentOverviewStats.length > 0 ? (
+      {role === "admin" && paymentOverviewStats.length > 0 ? (
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           {paymentOverviewStats.map(stat => (
             <StatCard
@@ -114,8 +113,10 @@ export function PaymentsPage({ role }: { role: Role }) {
         </div>
       </section>
       <p className="mt-4 rounded-xl border border-blue-100 bg-blue-50/50 px-4 py-3 text-[10px] leading-5 text-blue-800">
-        <strong>Not:</strong> Bu alan eğitim kurumu tahsilat operasyonunu takip
-        eder; resmi muhasebe veya e-Fatura kaydı oluşturmaz.
+        <strong>Not:</strong>{" "}
+        {role === "admin"
+          ? "Bu alan eğitim kurumu tahsilat operasyonunu takip eder; resmi muhasebe veya e-Fatura kaydı oluşturmaz."
+          : "Bu alan öğrencinizin kayıt ve taksit ödeme planını gösterir; ödemeleriniz kurum muhasebesi tarafından işlenir."}
       </p>
     </>
   );

@@ -1,6 +1,8 @@
 import { ChevronRight, School } from "lucide-react";
 import { toast } from "sonner";
+import { isDemoMode } from "@/auth/runtime";
 import { classes } from "../educationData";
+import { filterClassesForRole } from "../scopeFilters";
 import { Badge, EmptyState, PageHeader } from "../shared";
 import type { Role, Section } from "../types";
 
@@ -11,10 +13,7 @@ export function ClassesPage({
   role: Role;
   onNavigate: (section: Section) => void;
 }) {
-  const shown =
-    role === "teacher"
-      ? classes.filter(group => group.mentor === "Merve Karaca")
-      : classes;
+  const shown = filterClassesForRole(classes, role, isDemoMode);
   return (
     <>
       <PageHeader

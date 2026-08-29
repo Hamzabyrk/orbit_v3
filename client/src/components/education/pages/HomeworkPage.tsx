@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { isDemoMode } from "@/auth/runtime";
+import { filterHomeworkForRole } from "../scopeFilters";
 import { PageHeader } from "../shared";
 import type { Homework, Role } from "../types";
 import { HomeworkCard } from "./HomeworkCard";
@@ -15,22 +17,23 @@ export function HomeworkPage({
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const visible =
+  const visible = filterHomeworkForRole(homework, role, isDemoMode);
+
+  const pageDescription =
     role === "teacher"
-      ? homework.filter(
-          item =>
-            item.classGroup === "YKS 12-A" || item.classGroup === "YKS 11-C"
-        )
-      : role === "student" || role === "parent"
-        ? homework.filter(item => item.classGroup === "YKS 12-A")
-        : homework;
+      ? "Sınıflarınıza atanan ödevleri ve teslim tarihlerini takip edin."
+      : role === "student"
+        ? "Dersleriniz için verilen ödevleri ve teslim tarihlerini takip edin."
+        : role === "parent"
+          ? "Öğrencinizin ödevlerini ve teslim tarihlerini takip edin."
+          : "Kurum genelinde atanan ödevleri ve teslim tarihlerini takip edin.";
 
   return (
     <>
       <PageHeader
         eyebrow="Akademik takip"
         title={role === "teacher" ? "Sınıflarınızın ödevleri" : "Ödevler"}
-        description="Sınıflara atanan ödevleri ve teslim tarihlerini takip edin."
+        description={pageDescription}
         action={role === "teacher" ? "Yeni ödev" : undefined}
         onAction={role === "teacher" ? () => setDialogOpen(true) : undefined}
       />
