@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { toast } from "sonner";
+import { AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
 type NotificationKey =
@@ -8,42 +7,39 @@ type NotificationKey =
   | "parentContact"
   | "weeklyDigest";
 
-const ROWS: { key: NotificationKey; title: string; description: string }[] = [
+const ROWS: {
+  key: NotificationKey;
+  title: string;
+  description: string;
+  defaultChecked: boolean;
+}[] = [
   {
     key: "attendance",
     title: "Devamsızlık bildirimleri",
     description: "Yoklamada işaretlenmeyen öğrenciler için anlık bildirim.",
+    defaultChecked: true,
   },
   {
     key: "homeworkDue",
     title: "Ödev teslim hatırlatmaları",
     description: "Teslim tarihi yaklaşan ödevler için hatırlatma.",
+    defaultChecked: true,
   },
   {
     key: "parentContact",
     title: "Veli iletişim bildirimleri",
     description: "Veliyle yeni bir görüşme/notu paylaşıldığında bildirim.",
+    defaultChecked: true,
   },
   {
     key: "weeklyDigest",
     title: "Haftalık özet e-postası",
     description: "Her Pazartesi devam ve akademik özet e-postası.",
+    defaultChecked: false,
   },
 ];
 
 export function SettingsNotificationsSection() {
-  const [values, setValues] = useState<Record<NotificationKey, boolean>>({
-    attendance: true,
-    homeworkDue: true,
-    parentContact: true,
-    weeklyDigest: false,
-  });
-
-  const save = () =>
-    toast.success("Değişiklikler kaydedildi", {
-      description: "Bildirim tercihleriniz bu oturumda güncellendi.",
-    });
-
   return (
     <>
       <div className="flex items-center justify-between">
@@ -51,8 +47,9 @@ export function SettingsNotificationsSection() {
           Bildirim Tercihleri
         </h2>
         <button
-          onClick={save}
-          className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-4 text-[11px] font-bold text-white shadow-[0_8px_16px_rgba(15,23,42,.12)] transition hover:bg-slate-800 active:scale-[.98]"
+          type="button"
+          disabled
+          className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-4 text-[11px] font-bold text-white shadow-[0_8px_16px_rgba(15,23,42,.12)] transition disabled:cursor-not-allowed disabled:opacity-40"
         >
           Değişiklikleri Kaydet
         </button>
@@ -71,15 +68,18 @@ export function SettingsNotificationsSection() {
                 {row.description}
               </p>
             </div>
-            <Switch
-              checked={values[row.key]}
-              onCheckedChange={checked =>
-                setValues(current => ({ ...current, [row.key]: checked }))
-              }
-            />
+            <Switch disabled checked={row.defaultChecked} />
           </div>
         ))}
       </div>
+      <p className="mt-4 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] leading-5 text-slate-600">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+        <span>
+          <strong>Bu bölümdeki tercihler henüz işlemiyor.</strong> Bildirim
+          gönderimi ve haftalık özet e-postası özellikleri, e-posta sağlayıcısı
+          entegrasyonu tamamlandığında devreye alınacaktır.
+        </span>
+      </p>
     </>
   );
 }

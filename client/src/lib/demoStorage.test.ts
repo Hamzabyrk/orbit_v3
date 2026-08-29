@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   __writeRawForTest,
   clearDemoData,
+  purgeDemoStorageIfProduction,
   readDemoData,
   writeDemoData,
 } from "./demoStorage";
@@ -36,5 +37,9 @@ describe("demoStorage", () => {
     writeDemoData(key, "value");
     clearDemoData(key);
     expect(readDemoData(key, "fallback")).toBe("fallback");
+  });
+
+  it("purgeDemoStorageIfProduction executes safely without crashing", () => {
+    expect(() => purgeDemoStorageIfProduction()).not.toThrow();
   });
 });

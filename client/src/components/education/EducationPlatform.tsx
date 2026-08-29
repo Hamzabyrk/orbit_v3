@@ -83,7 +83,7 @@ export function EducationPlatform({
   );
   const [message, setMessage] = useState("");
   const meta = roleMeta[role];
-  const currentDisplayName = displayName ?? meta.name;
+  const currentDisplayName = displayName ?? "";
   const navItems = allNav.filter(item =>
     availableEducationSections(role).includes(item.label)
   );
@@ -119,11 +119,6 @@ export function EducationPlatform({
   useEffect(() => {
     writeDemoData("homework", homework);
   }, [homework]);
-
-  useEffect(() => {
-    setRole(initialRole);
-    setActive("Genel Bakış");
-  }, [initialRole]);
 
   const resetDemoData = () => {
     clearDemoData("attendances");
@@ -330,15 +325,6 @@ export function EducationPlatform({
                         >
                           {item.label}
                         </span>
-                        {item.label === "Yoklama" &&
-                        role !== "student" &&
-                        role !== "parent" ? (
-                          <span
-                            className={`rounded-full px-1.5 py-0.5 text-[9px] font-extrabold ${navCollapsed ? "lg:hidden" : ""} ${selected ? "bg-white/15" : "bg-rose-50 text-rose-600"}`}
-                          >
-                            1
-                          </span>
-                        ) : null}
                       </button>
                     );
                   })}
@@ -462,16 +448,22 @@ export function EducationPlatform({
                   className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-[11px] font-extrabold text-white sm:hidden"
                 >
                   {currentDisplayName
-                    .split(" ")
-                    .map(word => word[0])
-                    .join("")}
+                    ? currentDisplayName
+                        .split(" ")
+                        .filter(Boolean)
+                        .map(word => word[0])
+                        .join("")
+                    : "O"}
                 </button>
               ) : (
                 <span className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-[11px] font-extrabold text-white">
                   {currentDisplayName
-                    .split(" ")
-                    .map(word => word[0])
-                    .join("")}
+                    ? currentDisplayName
+                        .split(" ")
+                        .filter(Boolean)
+                        .map(word => word[0])
+                        .join("")
+                    : "O"}
                 </span>
               )}
             </div>

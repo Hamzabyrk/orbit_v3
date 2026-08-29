@@ -53,3 +53,34 @@ export function clearDemoData(key: string): void {
 export function __writeRawForTest(key: string, raw: string): void {
   getStorage().setItem(STORAGE_PREFIX + key, raw);
 }
+
+/**
+ * Üretim ortamında geçmişten kalan ölü `orbit:demo:*` anahtarlarını temizler.
+ * Demo modunda çalışmaz. Modül yüklendiğinde bir kez çağrılır (#134).
+ */
+export function purgeDemoStorageIfProduction(): void {
+  if (isDemoMode) return;
+
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i);
+        if (key && key.startsWith(STORAGE_PREFIX)) {
+          keysToRemove.push(key);
+        }
+      }
+      for (const key of keysToRemove) {
+        window.localStorage.removeItem(key);
+      }
+    } catch {
+      // Depo erişim hatası (ör. kısıtlı gizli sekme ortamı) yoksayılır
+    }
+  }
+
+  for (const key of Array.from(memoryStore.keys())) {
+    if (key.startsWith(STORAGE_PREFIX)) {
+      memoryStore.delete(key);
+    }
+  }
+}

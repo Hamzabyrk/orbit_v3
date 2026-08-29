@@ -6,12 +6,22 @@ import {
 } from "lucide-react";
 import type { Role } from "./types";
 
+/**
+ * Demo ortamında gösterilen sahte rol isimleri.
+ * Üretim kodunun demo isimlere erişebildiği hiçbir yol bırakılmamıştır (#133).
+ */
+export const demoRoleNames: Record<Role, string> = {
+  admin: "Ayşe Yalçın",
+  teacher: "Merve Karaca",
+  student: "Zeynep Kaya",
+  parent: "Murat Kaya",
+};
+
 export const roleMeta: Record<
   Role,
   {
     label: string;
     short: string;
-    name: string;
     description: string;
     icon: typeof ShieldCheck;
     color: string;
@@ -20,7 +30,6 @@ export const roleMeta: Record<
   admin: {
     label: "Kurum Yöneticisi",
     short: "Yönetici",
-    name: "Ayşe Yalçın",
     description: "Kurum genelini yönetin",
     icon: ShieldCheck,
     color: "bg-slate-900 text-white",
@@ -28,7 +37,6 @@ export const roleMeta: Record<
   teacher: {
     label: "Öğretmen",
     short: "Öğretmen",
-    name: "Merve Karaca",
     description: "Sınıflarınız ve öğrencileriniz",
     icon: GraduationCap,
     color: "bg-blue-600 text-white",
@@ -36,7 +44,6 @@ export const roleMeta: Record<
   student: {
     label: "Öğrenci",
     short: "Öğrenci",
-    name: "Zeynep Kaya",
     description: "Kendi programınız ve gelişiminiz",
     icon: BookOpen,
     color: "bg-emerald-600 text-white",
@@ -44,8 +51,7 @@ export const roleMeta: Record<
   parent: {
     label: "Veli",
     short: "Veli",
-    name: "Murat Kaya",
-    description: "Zeynep Kaya için takip alanı",
+    description: "Öğrencinizin takip alanı",
     icon: UserRoundCheck,
     color: "bg-violet-600 text-white",
   },

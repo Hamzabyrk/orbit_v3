@@ -29,7 +29,21 @@ export const arrivedWithRecoveryLink =
 // Fall back to a syntactically valid placeholder so a missing config doesn't
 // crash the whole app at import time — calls will just fail until the real
 // env vars are set, instead of taking down every page that imports this module.
+//
+// Paylaşılan dershane bilgisayarında ikinci sekme açıldığında önceki
+// kullanıcının oturumunun devralınmasını engellemek için oturum jetonu
+// `sessionStorage`'da saklanır. Böylece her sekme kendi bağımsız oturumunu
+// yürütür ve sekme kapatıldığında oturum sonlanır (#132).
 export const supabase = createClient(
   supabaseUrl || "https://placeholder.supabase.co",
-  supabaseAnonKey || "placeholder-anon-key"
+  supabaseAnonKey || "placeholder-anon-key",
+  {
+    auth: {
+      storage:
+        typeof window !== "undefined" ? window.sessionStorage : undefined,
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  }
 );
