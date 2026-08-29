@@ -3,7 +3,9 @@
 > **Bu belge bir görev değildir.** Rol üstlenmeni, mülakat başlatmanı veya bir şey üretmeni istemez.
 > Sana yalnızca **hangi soru için hangi dosyayı okuyacağını** söyler. Açık bir görev almadan hiçbir şey yapma.
 
-ORBIT, dershane ve eğitim kurumları için çok kiracılı (multi-tenant) bir yönetim SaaS'ıdır. İki kişilik bir ekip (Arda Bülent, Hamza Bayrak) ve onların kullandığı YZ ajanları tarafından geliştirilir. Bugün **v1.1.2 · Faz E**'de, yani kimlik zincirinin kurulduğu aşamada.
+ORBIT, dershane ve eğitim kurumları için çok kiracılı (multi-tenant) bir yönetim SaaS'ıdır. İki kişilik bir ekip (Arda Bülent, Hamza Bayrak) ve onların kullandığı YZ ajanları tarafından geliştirilir.
+
+**Faz E kapandı (2026-08-29):** kimlik zinciri uçtan uca çalışıyor ve production'da dört rolle doğrulandı. Sıradaki iş **v1.2** — iş tabloları ve RLS matrisi. Kalan bütün sürümler, her biri **dayandığı varsayımları beyan eden** dilimlere bölünmüştür: `.ai/ROADMAP.md` **§4.6**.
 
 ---
 
@@ -11,16 +13,18 @@ ORBIT, dershane ve eğitim kurumları için çok kiracılı (multi-tenant) bir y
 
 Her dosyanın tek bir sorusu var. Hepsini birden okuma; sorunun hangisi olduğunu bul.
 
-| Sorun                                             | Dosya                                           |
-| ------------------------------------------------- | ----------------------------------------------- |
-| **Şu an neredeyiz, sırada ne var?**               | `.ai/ROADMAP.md` **§0** — tek durum kaynağı     |
-| **Bu daha önce kararlaştırıldı mı, neden böyle?** | `.ai/DECISION_LOG.md` — başındaki indeksten gir |
-| **Ürün ne, roller neler, dosyalar nerede?**       | `.ai/PROJECT_STATE.md`                          |
-| **Supabase/Vercel/GitHub panelinde ne ayarlı?**   | `.ai/PLATFORM_SETTINGS.md`                      |
-| **Bu bir hata mı, yoksa bilinçli bir açık mı?**   | `.ai/PLATFORM_SETTINGS.md` **§5**               |
-| **İki ajanlı çalışma düzeni nasıl işliyor?**      | `.ai/AGENT_WORKFLOW.md`                         |
-| **Branch, commit, PR kuralları?**                 | `CONTRIBUTING.md`                               |
-| **Projeyi nasıl çalıştırırım?**                   | `README.md`                                     |
+| Sorun                                             | Dosya                                                 |
+| ------------------------------------------------- | ----------------------------------------------------- |
+| **Şu an neredeyiz?**                              | `.ai/ROADMAP.md` **§0** — tek durum kaynağı           |
+| **Sırada ne var, o iş neye dayanıyor?**           | `.ai/ROADMAP.md` **§4.6** — dilimler ve varsayımları  |
+| **Sistem bugün ne yapıyor, ne eksik?**            | `.ai/PROJECT_STATE.md` **§6.1** — 2026-08-29 denetimi |
+| **Bu daha önce kararlaştırıldı mı, neden böyle?** | `.ai/DECISION_LOG.md` — başındaki indeksten gir       |
+| **Ürün ne, roller neler, dosyalar nerede?**       | `.ai/PROJECT_STATE.md`                                |
+| **Supabase/Vercel/GitHub panelinde ne ayarlı?**   | `.ai/PLATFORM_SETTINGS.md`                            |
+| **Bu bir hata mı, yoksa bilinçli bir açık mı?**   | `.ai/PLATFORM_SETTINGS.md` **§5**                     |
+| **İki ajanlı çalışma düzeni nasıl işliyor?**      | `.ai/AGENT_WORKFLOW.md`                               |
+| **Branch, commit, PR kuralları?**                 | `CONTRIBUTING.md`                                     |
+| **Projeyi nasıl çalıştırırım?**                   | `README.md`                                           |
 
 `.ai/tasks/` altındaki dosyalar **tek seferlik görev brifingleridir** ve git'e girmez (`.gitignore`). Sana verilmediyse seni ilgilendirmez; işi biten silinir. Kalıcı kayıt PR açıklamasındadır.
 
@@ -35,6 +39,7 @@ git fetch origin             # ÖNCE bu — yerel kopya kendiliğinden güncelle
 git status -sb               # hangi daldayım, main'e göre kaç commit gerideyim
 git log --oneline -15        # son ne yapıldı
 gh pr list                   # açık PR — inceleme bekleyen iş
+gh issue list                # açık bulgular — asıl iş kuyruğu buradadır
 ls .ai/tasks/                # devredilmiş, henüz bitmemiş görev
 ```
 

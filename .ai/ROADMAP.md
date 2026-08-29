@@ -9,6 +9,10 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 > Son güncelleme: **2026-08-29**. İşaretler: ✅ tamam · 🟡 kısmen · ⬜ başlanmadı · ⚠️ tamam sanılıyordu, değil.
 >
 > Ayrıntı için ilgili bölüme bakın; bu tablo yalnızca tek bakışta durum içindir.
+>
+> **Sıradaki işi buradan seçme.** Bu tablo _nerede olduğumuzu_ söyler; _ne yapılacağını_ **§4.6** söyler. Orada kalan bütün sürümler dilimlere bölünmüş ve her dilim **dayandığı varsayımları** yazmıştır — bir dilim, o varsayımlar canlı sistemde doğrulanmadan başlamaz (**K-10**).
+>
+> **Açık bulgular `gh issue list`'tedir.** Bugün 10 açık issue var; en acili **#143** (hareketsizlik zaman aşımı sayfa yenilemesiyle aşılıyor). Sistemin bugünkü durumu: `PROJECT_STATE.md` **§6.1**.
 
 | Sürüm / Dilim | Kapsam                                                                                                                                   | Durum |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----- |
@@ -30,8 +34,9 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 | Faz E · E5    | Mock verinin kaldırılması (#88 · #90 · #93) — üç madde v1.2'ye taşındı                                                                   | ✅    |
 | Faz E · E6    | Kurum yöneticisinin kullanıcı ekleme ekranı (#105 · #106 · #107 · #113) — rol değiştirme, kurumdan çıkarma ve yönetici devri **v1.4'te** | 🟡    |
 | Faz E · E7    | Uçtan uca doğrulama — beş adımın beşi de koşuldu (2026-08-26 · 2026-08-29)                                                               | ✅    |
-| Faz E · E7.2  | Canlı turdan çıkan çevre ekran bulguları (#131 – #137)                                                                                   | ⬜    |
-| v1.2          | İş tabloları + tenant/rol RLS matrisi                                                                                                    | ⬜    |
+| Faz E · E7.2  | Canlı turdan çıkan çevre ekran bulguları (#131 – #137) — yedisi de kapandı, dört rolle doğrulandı                                        | ✅    |
+| **Denetim**   | **Sistem denetimi (2026-08-29) — bulgular #143 – #151, kurallar K-10/11/12, dilimler §4.6**                                              | 🟡    |
+| v1.2          | İş tabloları + tenant/rol RLS matrisi — **dilimleri §4.6'da**                                                                            | ⬜    |
 | v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları                                                                                     | ⬜    |
 | v1.5          | 4 rol kabul testi, KVKK envanteri ve hukuki hazırlık, pilot geri bildirimi                                                               | ⬜    |
 | v1.6 – v2.0   | Storage, toplu aktarım, raporlama, ticarileşme kapısı                                                                                    | ⬜    |
