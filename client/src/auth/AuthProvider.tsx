@@ -193,16 +193,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useIdleTimeout({
     tracking: idleTracking,
     onExpire: () => {
-      void supabase.auth
-        .signOut()
-        .catch(() => undefined)
-        .finally(() => {
-          setIdentity(null);
-          toast.info("Oturumunuz kapatıldı", {
-            description:
-              "Uzun süre işlem yapılmadığı için güvenlik amacıyla çıkış yapıldı. Tekrar giriş yapabilirsiniz.",
-          });
+      void (async () => {
+        // `signOut()` hata FIRLATMAZ, hatayı döndürür. Eski kod `.catch` ile
+        // yakalamaya çalışıyordu; o zincir hiç çalışmıyordu ve sunucu isteği
+        // başarısız olduğunda jeton depoda kalıyordu. Ekran giriş sayfasına
+        // dönüyor, sayfa yenilenince oturum geri geliyordu — yani sayacın
+        // koruduğu iddia edilen şey korunmuyordu (#143).
+        const { error } = await supabase.auth.signOut();
+
+        if (error) {
+          console.warn(
+            "[auth] Oturum sunucuda kapatılamadı; yerel jeton yine de siliniyor.",
+            error
+          );
+          // Ağ istemez, yalnızca yerel depoyu temizler. Sayacın var olma
+          // sebebi bu satırdır: ekranı kilitlemek yetmez, jeton gitmelidir.
+          await supabase.auth.signOut({ scope: "local" });
+        }
+
+        setIdentity(null);
+        toast.info("Oturumunuz kapatıldı", {
+          description:
+            "Uzun süre işlem yapılmadığı için güvenlik amacıyla çıkış yapıldı. Tekrar giriş yapabilirsiniz.",
         });
+      })();
     },
   });
 
