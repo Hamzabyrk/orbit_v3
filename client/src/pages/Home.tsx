@@ -107,6 +107,7 @@ export default function Home() {
 
   return (
     <EducationPlatform
+      key={identity.userId}
       initialRole={identity.membership.role}
       displayName={identity.displayName}
       organizationName={identity.membership.organizationName}

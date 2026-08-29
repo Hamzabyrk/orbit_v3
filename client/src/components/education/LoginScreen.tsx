@@ -12,7 +12,7 @@ import {
 import { toast } from "sonner";
 import type { LoginInput } from "@/auth/types";
 import { resolveLoginIdentifier } from "@/auth/loginIdentifier";
-import { roleMeta } from "./roleMeta";
+import { demoRoleNames, roleMeta } from "./roleMeta";
 import { roleEmail } from "./demoData";
 import { Badge } from "./shared";
 import type { Role } from "./types";
@@ -52,7 +52,7 @@ export function EducationLoginScreen({
       });
       toast.success(
         demoMode
-          ? `Hoş geldiniz, ${roleMeta[selectedRole].name}`
+          ? `Hoş geldiniz, ${demoRoleNames[selectedRole]}`
           : "ORBIT oturumu açıldı"
       );
     } catch (error) {

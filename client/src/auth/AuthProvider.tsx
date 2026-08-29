@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { EducationRole } from "@/components/educationAccess";
-import { roleMeta } from "@/components/education/roleMeta";
+import { demoRoleNames } from "@/components/education/roleMeta";
 import {
   arrivedWithRecoveryLink,
   supabase,
@@ -18,7 +18,7 @@ import type { AuthIdentity, AuthProviderProps, LoginInput } from "./types";
 function createDemoIdentity(role: EducationRole): AuthIdentity {
   return {
     userId: `demo-${role}`,
-    displayName: roleMeta[role].name,
+    displayName: demoRoleNames[role],
     demo: true,
     // Demo modunda kilit yok; satış sunumunda şifre değiştirme ekranı çıkmaz.
     passwordLock: "clear",

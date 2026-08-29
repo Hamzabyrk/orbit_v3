@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { toast } from "sonner";
+import { AlertTriangle } from "lucide-react";
 import { useAuth } from "@/auth/useAuth";
 import {
   Select,
@@ -15,14 +14,7 @@ const DATE_FORMATS = ["DD.MM.YYYY", "YYYY-MM-DD", "DD MMM YYYY"];
 
 export function SettingsSystemSection() {
   const { identity } = useAuth();
-  const branch = identity?.membership?.branchName ?? "Kurum geneli";
-  const [dateFormat, setDateFormat] = useState(DATE_FORMATS[0]);
-
-  const save = () =>
-    toast.info("Sistem tercihleri salt okunur", {
-      description:
-        "Sistem ve şube tercihleri oturum kimliğinizden okunmaktadır.",
-    });
+  const branch = identity?.membership?.branchName || "—";
 
   return (
     <>
@@ -31,8 +23,9 @@ export function SettingsSystemSection() {
           Sistem Tercihleri
         </h2>
         <button
-          onClick={save}
-          className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-4 text-[11px] font-bold text-white shadow-[0_8px_16px_rgba(15,23,42,.12)] transition hover:bg-slate-800 active:scale-[.98]"
+          type="button"
+          disabled
+          className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-4 text-[11px] font-bold text-white shadow-[0_8px_16px_rgba(15,23,42,.12)] transition disabled:cursor-not-allowed disabled:opacity-40"
         >
           Değişiklikleri Kaydet
         </button>
@@ -44,8 +37,8 @@ export function SettingsSystemSection() {
           <Label className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
             Tarih biçimi
           </Label>
-          <Select value={dateFormat} onValueChange={setDateFormat}>
-            <SelectTrigger className="mt-1.5 h-9 w-full text-[13px]">
+          <Select value={DATE_FORMATS[0]} disabled>
+            <SelectTrigger disabled className="mt-1.5 h-9 w-full text-[13px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -58,6 +51,13 @@ export function SettingsSystemSection() {
           </Select>
         </div>
       </div>
+      <p className="mt-4 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] leading-5 text-slate-600">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+        <span>
+          <strong>Bu bölümdeki tercihler salt okunurdur.</strong> Şube bilgisi
+          oturum kimliğinizden okunur; sistem tercihleri buradan değiştirilemez.
+        </span>
+      </p>
     </>
   );
 }

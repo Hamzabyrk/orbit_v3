@@ -208,28 +208,39 @@ export function ReportCard({
   labels: string[];
   color: string;
 }) {
+  const veriYok = values.length === 0 || values.every(value => value === 0);
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
       <h2 className="font-display text-[16px] font-extrabold text-slate-900">
         {title}
       </h2>
       <p className="mt-1 text-[11px] text-slate-500">{subtitle}</p>
-      <div className="mt-6 flex h-36 items-end justify-between gap-3">
-        {values.map((value, index) => (
-          <div
-            key={labels[index]}
-            className="flex h-full flex-1 flex-col justify-end"
-          >
-            <span
-              style={{ height: `${value}%` }}
-              className={`rounded-t-md ${color}`}
-            />
-            <span className="mt-2 text-center text-[9px] font-bold text-slate-400">
-              {labels[index]}
-            </span>
-          </div>
-        ))}
-      </div>
+      {veriYok ? (
+        <div className="mt-4">
+          <EmptyState
+            title="Rapor verisi henüz yok"
+            description="Görüntülenecek analitik veri bulunmuyor."
+          />
+        </div>
+      ) : (
+        <div className="mt-6 flex h-36 items-end justify-between gap-3">
+          {values.map((value, index) => (
+            <div
+              key={labels[index]}
+              className="flex h-full flex-1 flex-col justify-end"
+            >
+              <span
+                style={{ height: `${value}%` }}
+                className={`rounded-t-md ${color}`}
+              />
+              <span className="mt-2 text-center text-[9px] font-bold text-slate-400">
+                {labels[index]}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

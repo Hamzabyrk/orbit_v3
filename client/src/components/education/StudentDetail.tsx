@@ -101,8 +101,9 @@ export function StudentDetail({
           </p>
           <button
             onClick={() =>
-              toast.success("Veli görüşmesi önerildi", {
-                description: `${student.parent} için iletişim kuyruğuna taslak eklendi.`,
+              toast.info("Veli görüşmesi taslağı henüz kaydedilmiyor", {
+                description:
+                  "İletişim kuyruğu altyapısı bir sonraki aşamada kurulacaktır; şu an bir taslak oluşturulmadı.",
               })
             }
             className="mt-3 text-[11px] font-bold text-blue-700 underline underline-offset-4"

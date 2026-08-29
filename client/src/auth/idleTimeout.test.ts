@@ -41,7 +41,7 @@ describe("resolveIdleState", () => {
   });
 
   it("tarayıcı kapatılıp ertesi gün açıldığında süresi dolmuş olur", () => {
-    // Zaman damgası localStorage'da tutulduğu için sayfa yenilemesi sayacı
+    // Zaman damgası sessionStorage'da tutulduğu için sayfa yenilemesi sayacı
     // sıfırlamaz; bu testin koruduğu davranış tam olarak budur.
     const yesterday = NOW - 24 * 60 * 60 * 1000;
 

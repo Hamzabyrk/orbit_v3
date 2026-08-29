@@ -5,7 +5,7 @@ import {
   loadProfileContact,
   saveProfilePhone,
 } from "@/auth/profileContactService";
-import { roleMeta } from "../roleMeta";
+import { demoRoleNames, roleMeta } from "../roleMeta";
 import { roleEmail } from "../demoData";
 import type { Role } from "../types";
 import { SettingsFormField } from "./SettingsFormField";
@@ -21,7 +21,7 @@ export function SettingsProfileSection({ role }: { role: Role }) {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const displayName = demoMode
-    ? roleMeta[role].name
+    ? demoRoleNames[role]
     : (identity?.displayName ?? "");
 
   useEffect(() => {
@@ -121,8 +121,9 @@ export function SettingsProfileSection({ role }: { role: Role }) {
           boş kalır — yani uyarı görünür, ki bilinmeyende doğru taraf odur. */}
       {!demoMode && !loading && !recoveryEmail.trim() ? (
         <p className="mt-5 rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-[11px] leading-5 text-amber-900">
-          Kurtarma yöntemin yok — şifreni unutursan kurum yöneticine başvurman
-          gerekir.
+          {role === "admin"
+            ? "Hesabınıza kayıtlı bir kurtarma e-postası bulunmuyor — şifrenizi unutmanız durumunda kendi başınıza sıfırlama yapamazsınız; yeni geçici şifre için platform operatörüne başvurmanız gerekir."
+            : "Hesabınıza kayıtlı bir kurtarma e-postası bulunmuyor — şifrenizi unutmanız durumunda kendi başınıza sıfırlama yapamazsınız; yeni geçici şifre için kurum yöneticinize başvurmanız gerekir."}
         </p>
       ) : null}
     </>

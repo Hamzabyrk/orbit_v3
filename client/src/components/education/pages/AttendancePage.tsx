@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { toast } from "sonner";
 import { attendanceLessonInfo, students } from "../educationData";
 import { Badge, EmptyState, PageHeader } from "../shared";
@@ -15,7 +14,6 @@ export function AttendancePage({
     React.SetStateAction<Record<string, AttendanceState>>
   >;
 }) {
-  const [saved, setSaved] = useState(false);
   const states: AttendanceState[] = [
     "Katıldı",
     "Geç kaldı",
@@ -46,12 +44,11 @@ export function AttendancePage({
           attendanceLessonInfo?.pageDescription ??
           "Ders yoklamasını tamamlayın ve kaydedin."
         }
-        action={saved ? "Kaydedildi" : "Yoklamayı kaydet"}
+        action="Yoklamayı kaydet"
         onAction={() => {
-          setSaved(true);
-          toast.success("Yoklama kaydedildi", {
+          toast.info("Yoklama kaydı henüz aktif değil", {
             description:
-              "Devamsızlık otomasyonu çalışmak üzere kuyruğa alındı.",
+              "Yoklama altyapısı kalıcı veri fazında kurulacaktır; şu an bir kayıt oluşturulmadı.",
           });
         }}
       />
@@ -66,9 +63,7 @@ export function AttendancePage({
                 `${selected.length} kayıtlı öğrenci`}
             </p>
           </div>
-          <Badge tone={saved ? "green" : "amber"}>
-            {saved ? "Kaydedildi" : "Taslak"}
-          </Badge>
+          <Badge tone="amber">Taslak</Badge>
         </div>
         <div className="divide-y divide-slate-100">
           {selected.length === 0 ? (
@@ -101,7 +96,6 @@ export function AttendancePage({
                   <button
                     key={state}
                     onClick={() => {
-                      setSaved(false);
                       setAttendances(current => ({
                         ...current,
                         [student.id]: state,

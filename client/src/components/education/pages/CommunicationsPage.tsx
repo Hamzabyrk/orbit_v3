@@ -14,8 +14,9 @@ export function CommunicationsPage({
 }) {
   const submit = () => {
     if (!message.trim()) return toast.error("Mesajınızı yazın");
-    toast.success("Mesaj taslağı gönderildi", {
-      description: "Demo ortamında iletişim aktivitesi kaydedildi.",
+    toast.info("Mesaj gönderimi henüz aktif değil", {
+      description:
+        "Mesajlaşma ve duyuru altyapısı bir sonraki aşamada kurulacaktır; şu an bir kayıt oluşturulmadı.",
     });
     setMessage("");
   };

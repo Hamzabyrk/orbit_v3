@@ -11,9 +11,10 @@
  * kullanmaya devam eder. Karşıladığı tehdit modeli farklı ve somut: dershanenin
  * ortak bilgisayarında açık bırakılan tarayıcı. Ona karşı etkilidir.
  *
- * Zaman damgası `localStorage`'a yazılıyor — yalnızca bellekte tutulsaydı sayaç
- * her sayfa yenilemesinde sıfırlanır ve tarayıcı kapatılıp ertesi gün açıldığında
- * oturum hâlâ açık olurdu.
+ * Zaman damgası `sessionStorage`'a yazılıyor — oturumlar sekme başına
+ * ayrıldığından sayaç da sekme başına tutulur; aksi halde A sekmesindeki
+ * etkinlik B sekmesindeki oturumu diri tutardı (#132). Sekme içi sayfa
+ * yenilemelerinde sayaç korunur, sekme kapatıldığında temizlenir.
  */
 
 /** Hareketsizlik eşiği. Dershanenin ortak bilgisayarı için makul bir üst sınır. */
@@ -119,7 +120,7 @@ export function readLastActivity(): number | null {
   }
 
   try {
-    const raw = window.localStorage.getItem(IDLE_STORAGE_KEY);
+    const raw = window.sessionStorage.getItem(IDLE_STORAGE_KEY);
     if (!raw) return null;
 
     const parsed = Number.parseInt(raw, 10);
@@ -136,7 +137,7 @@ export function writeLastActivity(value: number): void {
   }
 
   try {
-    window.localStorage.setItem(IDLE_STORAGE_KEY, String(value));
+    window.sessionStorage.setItem(IDLE_STORAGE_KEY, String(value));
   } catch {
     // Yazılamıyorsa sayaç çalışmaz; oturumu kapatmak yerine sessizce geçiyoruz
     // çünkü depoya yazamamak kullanıcıyı dışarı atmak için gerekçe değildir.
@@ -149,7 +150,7 @@ export function clearLastActivity(): void {
   }
 
   try {
-    window.localStorage.removeItem(IDLE_STORAGE_KEY);
+    window.sessionStorage.removeItem(IDLE_STORAGE_KEY);
   } catch {
     // yoksay
   }

@@ -96,8 +96,9 @@ export function PaymentsPage({ role }: { role: Role }) {
                     {role === "admin" && item.status !== "Güncel" ? (
                       <button
                         onClick={() =>
-                          toast.success("Hatırlatma hazırlandı", {
-                            description: `${item.student} velisi için ödeme hatırlatması iletişim kuyruğuna eklendi.`,
+                          toast.info("Ödeme hatırlatması henüz aktif değil", {
+                            description:
+                              "Hatırlatma gönderimi e-posta sağlayıcısı kurulduğunda çalışacaktır; şu an bir kayıt oluşturulmadı.",
                           })
                         }
                         className="text-[11px] font-bold text-blue-600"
