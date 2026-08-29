@@ -10,31 +10,31 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 >
 > Ayrıntı için ilgili bölüme bakın; bu tablo yalnızca tek bakışta durum içindir.
 
-| Sürüm / Dilim | Kapsam                                                                                                               | Durum |
-| ------------- | -------------------------------------------------------------------------------------------------------------------- | ----- |
-| v1.0          | Arayüz demosu, 4 rol görünümü, mock veri katmanı, kalite kapısı, Vercel + Supabase bağlantısı                        | ✅    |
-| v1.1          | Tenant şeması, rol enum'u, gerçek Auth session, `audit_events`, kurum kurulum Edge Function'ı                        | ✅    |
-| v1.1.1        | Fonksiyon yetkileri, production Auth ayarları, `PLATFORM_SETTINGS.md`, CI sertleştirmesi, güvenlik başlıkları        | ✅    |
-| v1.1.2 · D0   | Sentetik e-posta ile hesap açma ve giriş kanıtı (#35)                                                                | ✅    |
-| v1.1.2 · D1   | `organizations.code`, Edge Function operatör kontrolü (#37)                                                          | ✅    |
-| v1.1.2 · D2   | Kimliğin iki bağımsız eksene ayrılması, `/platform` rotası (#40)                                                     | ✅    |
-| v1.1.2 · D3   | Panel: kurum listesi, kurum oluşturma, operatör listesi, denetim kaydı (#41)                                         | ✅    |
-| v1.1.2 · D4   | İlk platform operatörleri (#43) — ikisi de eklendi                                                                   | ✅    |
-| —             | Panel bağlantısı, demo rol kartlarının gizlenmesi, kullanılabilir sol menü (#45)                                     | ✅    |
-| **Faz E**     | **Kimlik zinciri — ayrıntı bölüm 4.5**                                                                               | 🟡    |
-| Faz E · E0    | E-posta değişimi spike'ı (#51)                                                                                       | ✅    |
-| Faz E · E1    | Kurum kurma makinesi: `person_code`, geçici şifre, yazdırılabilir fiş (#53 · #57 · #59 · #61 · #63 · #65)            | ✅    |
-| Faz E · E2    | Test kurumu `orbitdershane`'in kaldırılması                                                                          | ✅    |
-| Faz E · E3    | İlk giriş kilidi ve 8 haneli numarayla giriş (#69 · #73)                                                             | ✅    |
-| Faz E · E4    | İletişim bilgisi ve kurtarma zinciri — **mailsiz yarısı bitti**, gönderim sağlayıcı bekliyor (#95 · #96 · #97 · #98) | 🟡    |
-| Faz E · E5    | Mock verinin kaldırılması (#88 · #90 · #93) — üç madde v1.2'ye taşındı                                               | ✅    |
+| Sürüm / Dilim | Kapsam                                                                                                                                   | Durum |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| v1.0          | Arayüz demosu, 4 rol görünümü, mock veri katmanı, kalite kapısı, Vercel + Supabase bağlantısı                                            | ✅    |
+| v1.1          | Tenant şeması, rol enum'u, gerçek Auth session, `audit_events`, kurum kurulum Edge Function'ı                                            | ✅    |
+| v1.1.1        | Fonksiyon yetkileri, production Auth ayarları, `PLATFORM_SETTINGS.md`, CI sertleştirmesi, güvenlik başlıkları                            | ✅    |
+| v1.1.2 · D0   | Sentetik e-posta ile hesap açma ve giriş kanıtı (#35)                                                                                    | ✅    |
+| v1.1.2 · D1   | `organizations.code`, Edge Function operatör kontrolü (#37)                                                                              | ✅    |
+| v1.1.2 · D2   | Kimliğin iki bağımsız eksene ayrılması, `/platform` rotası (#40)                                                                         | ✅    |
+| v1.1.2 · D3   | Panel: kurum listesi, kurum oluşturma, operatör listesi, denetim kaydı (#41)                                                             | ✅    |
+| v1.1.2 · D4   | İlk platform operatörleri (#43) — ikisi de eklendi                                                                                       | ✅    |
+| —             | Panel bağlantısı, demo rol kartlarının gizlenmesi, kullanılabilir sol menü (#45)                                                         | ✅    |
+| **Faz E**     | **Kimlik zinciri — ayrıntı bölüm 4.5**                                                                                                   | 🟡    |
+| Faz E · E0    | E-posta değişimi spike'ı (#51)                                                                                                           | ✅    |
+| Faz E · E1    | Kurum kurma makinesi: `person_code`, geçici şifre, yazdırılabilir fiş (#53 · #57 · #59 · #61 · #63 · #65)                                | ✅    |
+| Faz E · E2    | Test kurumu `orbitdershane`'in kaldırılması                                                                                              | ✅    |
+| Faz E · E3    | İlk giriş kilidi ve 8 haneli numarayla giriş (#69 · #73)                                                                                 | ✅    |
+| Faz E · E4    | İletişim bilgisi ve kurtarma zinciri — **mailsiz yarısı bitti**, gönderim sağlayıcı bekliyor (#95 · #96 · #97 · #98)                     | 🟡    |
+| Faz E · E5    | Mock verinin kaldırılması (#88 · #90 · #93) — üç madde v1.2'ye taşındı                                                                   | ✅    |
 | Faz E · E6    | Kurum yöneticisinin kullanıcı ekleme ekranı (#105 · #106 · #107 · #113) — rol değiştirme, kurumdan çıkarma ve yönetici devri **v1.4'te** | 🟡    |
-| Faz E · E7    | Uçtan uca doğrulama — beş adımın beşi de koşuldu (2026-08-26 · 2026-08-29)                                            | ✅    |
-| Faz E · E7.2  | Canlı turdan çıkan çevre ekran bulguları (#131 – #137)                                                                | ⬜    |
-| v1.2          | İş tabloları + tenant/rol RLS matrisi                                                                                | ⬜    |
-| v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları                                                                 | ⬜    |
-| v1.5          | 4 rol kabul testi, KVKK envanteri ve hukuki hazırlık, pilot geri bildirimi                                           | ⬜    |
-| v1.6 – v2.0   | Storage, toplu aktarım, raporlama, ticarileşme kapısı                                                                | ⬜    |
+| Faz E · E7    | Uçtan uca doğrulama — beş adımın beşi de koşuldu (2026-08-26 · 2026-08-29)                                                               | ✅    |
+| Faz E · E7.2  | Canlı turdan çıkan çevre ekran bulguları (#131 – #137)                                                                                   | ⬜    |
+| v1.2          | İş tabloları + tenant/rol RLS matrisi                                                                                                    | ⬜    |
+| v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları                                                                                     | ⬜    |
+| v1.5          | 4 rol kabul testi, KVKK envanteri ve hukuki hazırlık, pilot geri bildirimi                                                               | ⬜    |
+| v1.6 – v2.0   | Storage, toplu aktarım, raporlama, ticarileşme kapısı                                                                                    | ⬜    |
 
 **v1.1 neden artık yeşil (2026-08-25):** Uzun süre ⚠️ idi, çünkü release gate'i _"davet edilen kullanıcı kendi şifresini kurup giriş yapabilir"_ diyordu ve bu doğru değildi — `type=invite` istemcide hiç ele alınmıyordu. **Faz E1 davet yolunu tamamen kaldırdı**, E3 de yerine geçen akışı kapattı. Gate bugünkü karşılığıyla yeniden yazıldı: _"panelden açılan hesap, numara ve geçici şifreyle girip şifresini değiştirebilir"_ — ve bu production'da doğrulandı. Bkz. `DECISION_LOG.md` — "Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır".
 
@@ -512,15 +512,15 @@ Production'da koşuldu: 2026-08-26, kurum **1003 · deneme3**.
 
 Aynı tur, zincirin **etrafındaki** ekranlarda 28 gözlem üretti. Bunlar 7 issue'da toplandı; ikisi kimlik zincirini değil, ekranların doğruluğunu ilgilendiriyor.
 
-| #    | Bulgu                                                                                                     | Dilim | Durum |
-| ---- | --------------------------------------------------------------------------------------------------------- | ----- | ----- |
-| #131 | Beş ekran yapılmayan işi yapılmış gibi bildiriyor (sahte `toast.success`)                                  | A     | açık  |
-| #132 | Oturum sekmeler arasında ortak; ikinci sekme giriş ekranı görmeden açılıyor                                | A     | açık  |
-| #133 | `roleMeta` demo kimlikleri üretimde okunuyor — veli başlığında "Zeynep Kaya"                               | A     | açık  |
+| #    | Bulgu                                                                                                                    | Dilim | Durum |
+| ---- | ------------------------------------------------------------------------------------------------------------------------ | ----- | ----- |
+| #131 | Beş ekran yapılmayan işi yapılmış gibi bildiriyor (sahte `toast.success`)                                                | A     | açık  |
+| #132 | Oturum sekmeler arasında ortak; ikinci sekme giriş ekranı görmeden açılıyor                                              | A     | açık  |
+| #133 | `roleMeta` demo kimlikleri üretimde okunuyor — veli başlığında "Zeynep Kaya"                                             | A     | açık  |
 | #134 | Arkasında iş olmayan beş ekran dürüstlük notu taşımıyor (Bildirimler, Sistem, Veri İçe Aktarma, Veri Yönetimi, Raporlar) | A     | açık  |
-| #135 | Ayarlar yalnızca kurum yöneticisinde; kişisel ayarlar diğer üç rolde hiç yok, Tema kategorisi hiç yok      | B     | açık  |
-| #136 | Kapsam sabit metinlerle belirleniyor; `PageHeader` her eyleme artı basıyor; rol kapısı iki yerde           | B     | açık  |
-| #137 | Başlıklar role çevrilmiş, içerik çevrilmemiş — öğretmene/veliye personel metrikleri                        | B     | açık  |
+| #135 | Ayarlar yalnızca kurum yöneticisinde; kişisel ayarlar diğer üç rolde hiç yok, Tema kategorisi hiç yok                    | B     | açık  |
+| #136 | Kapsam sabit metinlerle belirleniyor; `PageHeader` her eyleme artı basıyor; rol kapısı iki yerde                         | B     | açık  |
+| #137 | Başlıklar role çevrilmiş, içerik çevrilmemiş — öğretmene/veliye personel metrikleri                                      | B     | açık  |
 
 **En ağır olan #131.** Uydurma veriden daha tehlikeli, çünkü görünmez: bir öğretmen yoklama alır, "Yoklama kaydedildi" bildirimini görür, düğme "Kaydedildi"ye döner — ve hiçbir kayıt oluşmamıştır.
 
