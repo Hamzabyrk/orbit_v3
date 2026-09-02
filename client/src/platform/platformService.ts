@@ -89,6 +89,8 @@ const CREATE_ERROR_MESSAGES: Record<string, string> = {
     "Yazdığınız ad kurum adıyla eşleşmiyor. Silme işlemi yapılmadı.",
   organization_delete_failed:
     "Kurum silinemedi. Listeyi yenileyip tekrar deneyin.",
+  organization_not_empty:
+    "Bu kurumda kayıt bulunduğu için silme reddedildi. Kayıtlar kaldırılmadan kurum silinemez.",
 };
 
 export function createOrganizationErrorMessage(code: unknown): string {
@@ -97,6 +99,40 @@ export function createOrganizationErrorMessage(code: unknown): string {
   }
 
   return "Kurum oluşturulamadı. Lütfen tekrar deneyin.";
+}
+
+/**
+ * Reddedilen silmenin gerekçesi (Issue #150).
+ *
+ * Tablo adları ham hâlleriyle gösteriliyor ve bu bilinçli: bu ekranı yalnızca
+ * platform operatörleri görüyor, onlar da geliştirme ekibinin kendisi. "Bazı
+ * kayıtlar var" demek, hangi tabloya bakacağını bilen birine hiçbir şey
+ * söylemez.
+ *
+ * Liste okunamazsa red yine bildiriliyor. Gerekçeyi gösterememek, silmeye izin
+ * vermek için sebep değildir.
+ */
+export function organizationNotEmptyMessage(blockingContent: unknown): string {
+  const base = CREATE_ERROR_MESSAGES.organization_not_empty;
+
+  if (!Array.isArray(blockingContent) || blockingContent.length === 0) {
+    return base;
+  }
+
+  const parts = blockingContent
+    .map(entry => {
+      const row = entry as { table?: unknown; rows?: unknown };
+      return typeof row.table === "string" && typeof row.rows === "number"
+        ? `${row.table} (${row.rows} kayıt)`
+        : null;
+    })
+    .filter((part): part is string => part !== null);
+
+  if (parts.length === 0) {
+    return base;
+  }
+
+  return `${base} Engelleyen kayıtlar: ${parts.join(", ")}.`;
 }
 
 export async function loadOrganizations(): Promise<PlatformOrganization[]> {
@@ -281,10 +317,16 @@ export async function resetAdminPassword(
 }
 
 /**
- * `FunctionsHttpError` gövdedeki hata kodunu `context` üzerinden taşıyor;
- * okunamazsa `undefined` dönüp genel mesaja düşüyoruz.
+ * `FunctionsHttpError` hata gövdesini `context` üzerinden taşıyor; okunamazsa
+ * `null` dönüp genel mesaja düşüyoruz.
+ *
+ * Çağıranların çoğu yalnızca `error` kodunu istiyor (`readFunctionErrorCode`).
+ * Gövdenin tamamı, koda ek olarak veri taşıyan tek yanıt için gerekiyor:
+ * silme reddi, hangi tabloda kaç kayıt olduğunu da bildiriyor (Issue #150).
  */
-async function readFunctionErrorCode(error: unknown): Promise<unknown> {
+async function readFunctionErrorBody(
+  error: unknown
+): Promise<Record<string, unknown> | null> {
   const context = (error as { context?: { json?: () => Promise<unknown> } })
     .context;
 
@@ -293,15 +335,18 @@ async function readFunctionErrorCode(error: unknown): Promise<unknown> {
       "[platform] edge function failed",
       (error as Error | null)?.message
     );
-    return undefined;
+    return null;
   }
 
   try {
-    const body = (await context.json()) as { error?: unknown };
-    return body?.error;
+    return (await context.json()) as Record<string, unknown>;
   } catch {
-    return undefined;
+    return null;
   }
+}
+
+async function readFunctionErrorCode(error: unknown): Promise<unknown> {
+  return (await readFunctionErrorBody(error))?.error;
 }
 
 export async function createOrganization(
@@ -381,9 +426,16 @@ export async function deleteOrganization(
   );
 
   if (error) {
-    throw new Error(
-      createOrganizationErrorMessage(await readFunctionErrorCode(error))
-    );
+    const body = await readFunctionErrorBody(error);
+
+    // Kurumda kayıt olduğu için reddedilen silme (Issue #150), diğer
+    // hatalardan farklı bir mesaj hak ediyor: burada yapılacak şey "tekrar
+    // denemek" değil, neyin engellediğine bakmaktır.
+    if (body?.error === "organization_not_empty") {
+      throw new Error(organizationNotEmptyMessage(body.blocking_content));
+    }
+
+    throw new Error(createOrganizationErrorMessage(body?.error));
   }
 
   const payload = ((data as { data?: Record<string, unknown> } | null)?.data ??

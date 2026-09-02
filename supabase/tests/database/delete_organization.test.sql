@@ -7,10 +7,16 @@
 -- Kurucu ekibin ikisi de aynı kurumun üyesi olsaydı platformun tamamı
 -- erişilemez hale gelirdi.
 
+-- Issue #150 — içerik koruması. Kimlik koruması (yukarıdaki olay) kurumun
+-- ÜYELERİNİ kurtardı; kurumun VERİSİ hâlâ koşulsuz siliniyordu. Aşağıdaki
+-- içerik testlerinin en önemlisi, fonksiyon yazıldığında **var olmayan** bir
+-- tablonun kendiliğinden korunduğunu kanıtlayandır: v1.2'nin students, classes,
+-- exams tablolarının hepsi bugün o durumdadır.
+
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(15);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -52,6 +58,83 @@ values (
   'test.event', 'test', 'd1000000-0000-0000-0000-000000000001'
 );
 
+-- İçerik koruması (#150) ----------------------------------------------------
+
+-- Bu tablo, fonksiyon yazıldığında var olmayan bir v1.2 iş tablosunu taklit
+-- ediyor. `on delete cascade` bilinçli: koruma olmasaydı satırlar hiçbir hata
+-- vermeden yok olurdu — testin yakaladığı tehlike tam olarak budur, gürültülü
+-- bir FK ihlali değil.
+create table public.sinif_kaydi_taklidi (
+  id bigint generated always as identity primary key,
+  organization_id uuid not null
+    references public.organizations (id) on delete cascade,
+  ad text not null
+);
+
+insert into public.sinif_kaydi_taklidi (organization_id, ad)
+values
+  ('d1000000-0000-0000-0000-000000000001', 'LGS-A'),
+  ('d1000000-0000-0000-0000-000000000001', 'LGS-B');
+
+-- Reddin gerekçesi `detail` alanında taşınıyor; ona ulaşmak için istisnayı
+-- yakalayan bir sarmalayıcı gerekiyor.
+create function pg_temp.silmeyi_dene(org uuid, actor uuid)
+returns text
+language plpgsql
+as $$
+declare
+  gerekce text;
+begin
+  perform public.internal_delete_organization(org, actor);
+  return null;
+exception when sqlstate 'ORB01' then
+  get stacked diagnostics gerekce = pg_exception_detail;
+  return gerekce;
+end;
+$$;
+
+select throws_ok(
+  $$ select public.internal_delete_organization(
+       'd1000000-0000-0000-0000-000000000001',
+       'c2000000-0000-0000-0000-000000000002'
+     ) $$,
+  'ORB01',
+  'organization still holds content',
+  'a table that did not exist when the guard was written still blocks deletion'
+);
+
+select is(
+  pg_temp.silmeyi_dene(
+    'd1000000-0000-0000-0000-000000000001',
+    'c2000000-0000-0000-0000-000000000002'
+  )::jsonb,
+  '[{"table": "sinif_kaydi_taklidi", "rows": 2}]'::jsonb,
+  'the refusal names the blocking table and its row count'
+);
+
+-- Reddedilen silme hiçbir iz bırakmamalı: ne kurum gitmeli, ne "silindi"
+-- denetim kaydı yazılmalı. İkincisi ayrıca test ediliyor çünkü denetim kaydı
+-- fonksiyonda silmeden ÖNCE yazılıyor — koruma yanlış sıraya konsaydı kurum
+-- ayakta kalır ama kayıt "silindi" derdi.
+select is(
+  (select count(*) from public.organizations
+     where id = 'd1000000-0000-0000-0000-000000000001'),
+  1::bigint,
+  'the organization survives a refused deletion'
+);
+
+select is(
+  (select count(*) from public.platform_audit_events
+     where action = 'platform.organization_deleted'),
+  0::bigint,
+  'a refused deletion writes no "deleted" audit record'
+);
+
+-- Tablo boşaltılıyor ama SİLİNMİYOR: aşağıdaki başarılı silme, boş bir içerik
+-- tablosunun engel olmadığını da kanıtlasın. Koruma satır sayar, tablo varlığı
+-- saymaz.
+delete from public.sinif_kaydi_taklidi;
+
 -- Silme ---------------------------------------------------------------------
 
 create temporary table delete_result as
@@ -86,6 +169,13 @@ select is(
      where organization_id = 'd1000000-0000-0000-0000-000000000001'),
   0::bigint,
   'the institution audit trail is gone'
+);
+
+-- Koruma satır sayar, tablo varlığı saymaz. Aksi halde v1.2'nin ilk tablosu
+-- eklendiği gün hiçbir kurum bir daha silinemezdi.
+select ok(
+  (select to_regclass('public.sinif_kaydi_taklidi') is not null),
+  'an empty content table does not block deletion'
 );
 
 -- 🔴 En kritik iddialar: kimlik başka bir yerden talep ediliyorsa korunuyor mu

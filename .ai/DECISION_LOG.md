@@ -34,6 +34,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - MoneyFlow kalıntılarının temizlenmesi ve ORBIT Eğitim Çekirdeğinin kurulması
 - EducationPlatform Bileşen Bölünmesi, Mock Veri İzolasyonu ve ESLint Kalite Kapısı
 - Taşınabilirlik sınırı — yetkilendirme veritabanında, veri erişimi servis katmanında
+- Silme koruması korunacakları değil, korunmayacakları sayar
 - Öğrenci ve veli ekranları mobil-öncelikli tasarlanır
 - Sistemik Graph-First Düşünme, Blast Radius ve 6 Boyutlu Risk Protokolü
 
@@ -991,3 +992,39 @@ Sentetik e-posta alan adı ayrı bir modüle kondu çünkü **derleyicinin göre
 - **`_shared/` yerine dördüncü kopya:** Reddedildi. Kopyanın tehlikesi zaten kodun kendi yorumunda yazılıydı ve yazmak yetmemişti.
 
 **Kapsam dışı bırakıldı:** İki RPC arasında `person_code` yarışı mümkün — tahsis ile ekleme ayrı işlemler ve advisory lock arada bırakılıyor. `organization_memberships_org_person_code_idx` benzersiz indeksi yakalıyor; ikinci istek hata alır ve yaratılan kullanıcı geri alınır. Sonuç güvenli tarafta olduğu için bilinçli olarak bırakıldı.
+
+---
+
+### Karar: Silme koruması korunacakları değil, korunmayacakları sayar
+
+**Durum:** Alındı
+**Tarih:** 2026-09-02
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `internal_delete_organization` (Issue #150), 2026-08-29 denetiminin bulgusu. Fonksiyon bir olaydan sonra yazılmış ve **kimliği** koruyordu: kurum silinirken platform operatörünün auth hesabı yok olmuştu. Kurumun **verisi** ise koşulsuz siliniyordu ve bu bugüne kadar zararsızdı — `students`, `classes`, `attendance`, `exams`, `payments` tablolarının hiçbiri yok, yani "dolu kurum" diye bir şey mümkün değildi. v1.2 o tabloları eklediği anda aynı düğme, aynı yerde, geri alınamaz bir veri kaybı yoluna dönüşüyordu.
+
+Yol haritası düzeltmeyi zaten yazmıştı — _"kurumda öğrenci/sınıf/not/ödeme kaydı varsa reddetmelidir"_ — ama issue asıl sorunu başka bir yere koyuyordu: **"İki iş arasında bugün hiçbir bağ yok."** v1.2'yi yazan kişinin her yeni tabloda bu fonksiyona dönmeyi hatırlaması gerekiyordu.
+
+**Karar:** Koruma, korunacak tabloları saymaz; **korunmayacakları** sayar. `public` şemasında `organization_id` sütunu taşıyan her tablo içerik kabul edilir ve doluysa silme reddedilir. İstisna listesi dört yapısal tablodur: `branches`, `organization_memberships`, `audit_events` (kurumla birlikte silinir) ve `platform_audit_events` (kurumla birlikte silinmez, `organization_id` NULL'a düşer).
+
+Red, `ORB01` SQLSTATE'i ile durur; engelleyen tablo ve satır sayısı `detail` alanında taşınır ve operatöre olduğu gibi gösterilir. Reddin kendi denetim kaydını Edge Function yazar (`platform.organization_delete_refused`), çünkü exception işlemi geri sarar ve fonksiyonun içinden yazılan hiçbir satır kalmaz.
+
+**Gerekçe:** Bu projede hatırlamaya bırakılan adım üç kez atlandı; K-08 tam olarak bunun için yazıldı. Sabit bir tablo listesi bugün **boş** olurdu — korunacak hiçbir tablo yok — ve boş bir liste, hiç yazılmamış bir korumadan ayırt edilemez. Ters çevrilmiş liste ise v1.2'nin ilk tablosunu eklendiği gün, kimse bir şey yazmadan kapsar.
+
+Bu K-04'ün ("bilinmeyende güvenli tarafta kal") şema seviyesindeki karşılığıdır: **bilinmeyen tablo, korunan tablodur.**
+
+Ödenen bedel bilinçli ve tersi tercih edilir: gerçekten kurumla birlikte silinmesi gereken yeni bir tablo eklendiğinde birileri istisna listesini düzenlemek zorunda kalır. Unutmanın sonucu artık veri kaybı değil, açıkça reddedilen bir silme.
+
+**Sınır — dürüstçe kayda geçiyor:** koruma yalnızca `organization_id` sütununa bakar. Kuruma dolaylı bağlanan bir tablo (yalnızca `class_id` taşıyan bir `class_enrollments` gibi) doğrudan görülmez; pratikte kapsanır, çünkü böyle bir kayıt ancak `classes` doluyken var olabilir. Yine de v1.2'nin her dilimi şunu beyan etmelidir: **kuruma ait her tablo `organization_id` taşır.** Taşımayan bir tablo yalnızca bu korumayı değil, tenant modelinin tamamını deler.
+
+**Koşullu kısım — K-12 gereği sahibi yazılıyor.** Bugün dolu bir kurumu silmenin **hiçbir yolu yok**; koruma mutlak. Bu bilinçli: gerçek öğrenci verisi taşıyan bir kurumun tek çağrıyla yok edilebilmesi, çözdüğünden çok sorun üretir. Ama KVKK'nın silme hakkı er ya da geç bir yol gerektirecek. **Şart:** ilk gerçek kurum verisi girdikten sonra bir silme/anonimleştirme talebi geldiğinde. **Kontrol edecek adım:** `v2.0-01` (hesap silme ve anonimleştirme) diliminin açılışı. **Yapılacak iş:** kaldırma yolunu ayrı bir yetki ve ayrı bir denetim kaydıyla tasarlamak — bu fonksiyonun korumasını gevşetmek değil.
+
+**Alternatifler:**
+
+- **Sabit tablo listesi (`students`, `classes`, `exams`, …):** Reddedildi. Bariz çözümdü ve bugün yazılamazdı: tabloların hiçbiri yok. Yazılabilseydi bile her yeni tabloda hatırlamaya dayanırdı — issue'nun şikâyet ettiği şeyin ta kendisi.
+- **pgTAP ile sürüklenme testi (yeni tablo eklendiğinde CI kırmızıya dönsün):** Reddedildi. Sabit listeden iyidir ama alarm **tablo eklendikten sonra** çalar ve birinin doğru tepkiyi vermesine bağlıdır. Ayrıca listeye tablo eklemekle sayım kontrolünü eklemek iki ayrı iştir; birincisi yapılıp ikincisi atlanabilir.
+- **Foreign key'leri `on delete restrict` yapmakla yetinmek:** Reddedildi. Mevcut tablolar zaten öyle ve bu bir dereceye kadar korur — ama koruma tablo tasarımcısının tercihine kalır. `on delete cascade` yazan bir dilim, sessizce veri kaybeder ve hiçbir hata görünmez. Üstelik FK ihlali operatöre "silinemedi" der, **neden** silinemediğini söylemez.
+- **Reddetmek yerine zorlama (`force`) parametresi eklemek:** Reddedildi (bugünlük). Yol haritası "reddetmelidir" diyor ve bir kaçış yolu, alışkanlığın oturduğu yerdir — geri alınamaz bir işlemde ilk denemede reddedilmek, ikinci denemede onaylamaktan daha değerlidir. Gerçek kaldırma ihtiyacı yukarıdaki K-12 maddesinde sahiplendirildi.
+- **Reddedilen denemeyi hiç kaydetmemek:** Reddedildi. Bu, geri alınamaz bir veri kaybına kıl payı kalmış bir denemedir; iz bırakmazsa hiçbir yerde görünmez.
+
+**Kapsam dışı bırakıldı:** Silme onay ekranındaki sayılar (`platform_organization_stats`) hâlâ yalnızca üyelik, şube ve denetim kaydı sayıyor. Yeni bir iş tablosu o görünüme eklenmezse operatör "boş" görünen bir kurumu silmeye çalışır ve reddedilir — şaşırtıcı ama zararsız. Görünümü genişletmek her v1.2 diliminin isteğe bağlı işidir; **korumanın doğruluğu ona bağlı değildir** ve bu ayrım bilinçli kuruldu.

@@ -116,6 +116,52 @@ Deno.serve(async request => {
   );
 
   if (deleteError) {
+    // `ORB01`, kurumda içerik olduğu için reddedilen silmedir (Issue #150) —
+    // bir arıza değil, korumanın çalışması. Diğer hatalardan ayırt edilmesi
+    // gerekiyor çünkü operatörün yapacağı şey tamamen farklı: "tekrar deneyin"
+    // burada yanlış tavsiyedir, kayıtlar durdukça her deneme reddedilir.
+    if (deleteError.code === "ORB01") {
+      // Engelleyen tablo/satır listesi `detail` alanında JSON olarak geliyor.
+      // Ayrıştırılamazsa reddin kendisi yine de bildirilir; gerekçeyi
+      // gösterememek, silmeye izin vermek için sebep değildir.
+      let blocking: unknown = null;
+      try {
+        blocking = JSON.parse(deleteError.details ?? "null");
+      } catch {
+        console.error("[delete-organization] refusal detail was not JSON");
+      }
+
+      // Reddin kaydı BURADA yazılıyor, veritabanında değil: exception işlemi
+      // geri sardığı için fonksiyonun içinden yazılan hiçbir satır kalmazdı.
+      //
+      // Neden hiç yazılıyor: bu, geri alınamaz bir veri kaybına kıl payı
+      // kalmış bir denemedir. İz bırakmazsa, dolu bir kurumu silmeye çalışan
+      // birinin bunu yaptığı hiçbir yerde görünmez.
+      const { error: auditError } = await adminClient
+        .from("platform_audit_events")
+        .insert({
+          actor_user_id: userData.user.id,
+          action: "platform.organization_delete_refused",
+          entity_type: "organization",
+          entity_id: input.organizationId,
+          organization_id: input.organizationId,
+          metadata: {
+            organization_name: organization.name,
+            blocking_content: blocking,
+          },
+        });
+
+      if (auditError) {
+        console.error("[delete-organization] refusal audit write failed");
+      }
+
+      return jsonResponse(
+        { error: "organization_not_empty", blocking_content: blocking },
+        409,
+        origin
+      );
+    }
+
     console.error("[delete-organization] delete failed");
     return jsonResponse({ error: "organization_delete_failed" }, 409, origin);
   }
