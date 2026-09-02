@@ -12,7 +12,7 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 >
 > **Sıradaki işi buradan seçme.** Bu tablo _nerede olduğumuzu_ söyler; _ne yapılacağını_ **§4.6** söyler. Orada kalan bütün sürümler dilimlere bölünmüş ve her dilim **dayandığı varsayımları** yazmıştır — bir dilim, o varsayımlar canlı sistemde doğrulanmadan başlamaz (**K-10**).
 >
-> **Açık bulgular `gh issue list`'tedir.** Bugün 10 açık issue var; en acili **#143** (hareketsizlik zaman aşımı sayfa yenilemesiyle aşılıyor). Sistemin bugünkü durumu: `PROJECT_STATE.md` **§6.1**.
+> **Açık bulgular `gh issue list`'tedir.** Sayı buraya yazılmıyor: denetimden bir gün sonra eskidi (**K-06**). Sıradaki dilim **v1.2-01** ve önündeki tek kapı **#150** — dolu kurumun silinmesi engellenmeden iş tablosu eklenmez. Sistemin bugünkü durumu: `PROJECT_STATE.md` **§6.1**.
 
 | Sürüm / Dilim | Kapsam                                                                                                                                   | Durum |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----- |
@@ -241,7 +241,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [x] Operatörün kurum **kabını** okuyabilmesi (Issue #41). `organizations_select_member` üyelik istediği için kurum listesi operatöre boş dönüyordu. Kap açıldı, içerik (`branches`, `organization_memberships`, `audit_events`) kapalı kaldı ve bu sınır pgTAP ile sabitlendi.
 - [x] Kurum oluşturma artık `platform_audit_events`'e de yazıyor (Issue #41). Öncesinde yalnızca kurumun kendi `audit_events` kaydına yazılıyordu; operatör o tabloyu okuyamadığı için panelin denetim listesi hiç dolmayacaktı.
 - [~] İlk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi (Issue #43). **Yarısı yapıldı:** Hamza Bayrak 2026-08-24'te `owner` olarak eklendi ve RLS'in ona kurum/operatör/denetim listelerini gerçekten verdiği kimliğine bürünülerek doğrulandı. Arda Bülent'in **hesabı henüz yok**; hesap açıldığında ikinci operatör kaydı eklenecek.
-- [ ] Test kurumu `orbitdershane`'in silinip ilk kurumun panel üzerinden yeniden kurulması.
+- [x] Test kurumu `orbitdershane`'in silinip ilk kurumun panel üzerinden yeniden kurulması. Silme Faz **E2**'de, panelden yeniden kurulum **E7**'de (kurum 1003) yapıldı; ayrıntı orada, burada tekrarlanmıyor (**K-06**).
 
 **Release gate:** Kurum ve kurum yöneticisi yalnızca panel üzerinden oluşturulabilir; oluşturulan kullanıcı kendisine verilen giriş numarası ve geçici şifreyle giriş yapıp şifresini değiştirebilir; platform operatörü hiçbir kurumun öğrenci/not/yoklama/ödeme verisini okuyamaz; her platform işlemi denetim kaydı üretir.
 
@@ -293,7 +293,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] **Kişi kaydı — hesapların ait olduğu grup.** "Bu kişinin diğer hesapları hangileri" bilgisi; geçiş düğmesi için zaten gerekli, KVKK "verilerimi sil" talebinde tüm kayıtların birlikte bulunabilmesi için de gerekli. **İkili bağ olarak modellenmez** (`linked_account_id` iki hesapta çalışır, üçte kırılır); N hesap aynı kişi kaydına bağlanır. Bkz. `DECISION_LOG.md` — "Rol, atama ve bağlantı üç ayrı kavramdır".
 - [ ] Kurum/sınıf kapsamlı Realtime invalidation ve abonelikleri.
 
-- [ ] İstemci tarafı hareketsizlik sayacı: belirli süre işlem yoksa oturum kapatılır. Supabase'in sunucu tarafı oturum zaman aşımı Pro plan gerektirdiği için ücretsiz karşılığıdır; dershanenin ortak bilgisayarında açık bırakılan tarayıcı senaryosuna karşı etkilidir.
+- [x] İstemci tarafı hareketsizlik sayacı: belirli süre işlem yoksa oturum kapatılır. Supabase'in sunucu tarafı oturum zaman aşımı Pro plan gerektirdiği için ücretsiz karşılığıdır; dershanenin ortak bilgisayarında açık bırakılan tarayıcı senaryosuna karşı etkilidir. Sayaç **#128**'de yazıldı (tarayıcı kapansa da süre işlemeye devam ediyor), **#143**'te tamamlandı: süre dolduğunda yalnızca ekran değil **jeton** da temizleniyor — öncesinde sayfayı yenilemek kilidi aşıyordu.
 
 **Release gate:** Yeni kurum yalnızca admin ve boş ekranlarla açılır; production bundle içinde demo kişi/kurum verisi bulunmaz; aynı veri farklı yetkili oturumlarda doğru kapsamda güncellenir.
 
