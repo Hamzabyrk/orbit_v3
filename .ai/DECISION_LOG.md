@@ -49,6 +49,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Öğretmenin yazma yetkisi rolünden değil atamasından gelir
 - Sütun maskeleme RLS'in işi değildir; sıralama bir fonksiyondan gelir
 - Ödeme kurum ile aile arasındadır; öğretmen ve öğrenci görmez
+- Dersin planlanması kurumun, yürütülmesi öğretmenin işidir
 
 **Kapsam ve sürüm**
 
@@ -1408,3 +1409,31 @@ Maskeleme sorusu yeni bir yetki kavramı getirmiyor; v1.2-01…04'te kurulmuş d
 - **Öğrenci kendi planını görsün:** Reddedildi. Yetişkin kursiyer için doğal olurdu ama küçük öğrenci de görürdü.
 - **Velisi olmayan öğrenci görsün:** Reddedildi. Yukarıdaki sessiz açılma sebebiyle.
 - **Öğretmen kendi öğrencisinin ödeme durumunu görsün:** Reddedildi. "Takip kolaylığı" gerekçesi vardı; öğrenciye davranışı etkileme riski ondan ağır.
+
+---
+
+### Karar: Dersin planlanması kurumun, yürütülmesi öğretmenin işidir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-05
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.2-04 öğretmene sistemdeki ilk yazma yetkisini vermişti: kendi sınıfının yoklamasını alabiliyor. v1.2-07 ders programını getirince aynı soru yeniden soruldu — öğretmen kendi sınıfının programını da düzenleyebilmeli mi?
+
+**Karar:** Hayır. Program **yalnızca yönetici** tarafından yazılır; öğretmen okur.
+
+Ayrım tek cümleyle: **dersin planlanması kurumun işidir, yürütülmesi öğretmenin.** Yoklama yürütmedir — o saat gerçekleşti, kim vardı. Program planlamadır — hangi sınıf, hangi saatte, hangi odada.
+
+**Gerekçe:** Program paylaşılan kaynakları bağlar: oda, saat, öğretmenin kendisi. Bir öğretmen kendi saatini kaydırabilseydi, başka bir sınıfın odasını veya başka bir öğretmenin saatini kurumun haberi olmadan işgal edebilirdi. Yoklamada böyle bir paylaşılan kaynak yok; öğretmen yalnızca kendi dersinin olgusunu kaydediyor.
+
+**Okuma tarafı ise bilinçli olarak geniş:** öğretmen sınıfı okutuyorsa görür, **ve ayrıca** satır doğrudan ona yazılmışsa görür. İkincisi vekil öğretmen içindir: `class_teachers`'ta ataması olmayan biri bir saati doldurabilir ve o saati görebilmesi gerekir. Bu yüzden `schedule_entries.membership_id` ile `class_teachers` arasında **tutarlılık zorlanmadı** — vekillik gerçek bir durum ve şemayı ona kapatmak, kurumu sistem dışında çalışmaya iter.
+
+**İkinci karar: gün, beş değil yedi.** İstemcideki `WeekDay` tipi Pazartesi–Cuma taşıyor. Veritabanı bu sınırı **miras almadı**: `day_of_week` 1–7 aralığında ISO 8601 numarasıdır. Dershanelerde hafta sonu kursu yaygın ve şemayı arayüzün bugünkü darlığına göre kurmak, yarın ürünü satılamaz kılardı. Sayı enum'a tercih edildi — doğal sıralanıyor, `extract(isodow from date)` ile karşılaştırılabiliyor ve veritabanına Türkçe gösterim metni girmiyor.
+
+**K-11 kaydı:** bu, istemciyi veritabanının gerisinde bıraktı. Kayıt `ROADMAP.md` §4.6'ya düşüldü; ekran bağlanırken (v1.2-10) ya tip genişletilecek ya da hafta sonu açıkça kapsam dışı ilan edilecek.
+
+**Alternatifler:**
+
+- **Öğretmen kendi sınıfının programını düzenlesin:** Reddedildi. Paylaşılan kaynak çakışmalarını kurumun göremediği bir yerden üretirdi.
+- **`day_of_week`'i beş günlük enum yapmak:** Reddedildi. Arayüzle birebir örtüşürdü ama hafta sonu kursu veren bir kuruma ürün satılamazdı.
+- **`membership_id`'yi `class_teachers`'a bağlamak:** Reddedildi. Tutarlılığı garanti ederdi ama vekil öğretmeni imkânsız kılardı.
