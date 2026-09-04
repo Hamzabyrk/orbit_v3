@@ -43,6 +43,19 @@ import type {
   Student,
 } from "./types";
 
+// Başlık grubun İÇERİĞİNİ adlandırır. Tek bir koşul yetmiyor çünkü aynı grup
+// her rolde farklı maddeler taşıyor; `role !== "admin"` fırçası öğretmende
+// Raporlar'ı, velide Ödemeler'i "hesap ayarı" gibi göstermişti (#147).
+//
+// Açık eşleme bilinçli: bir rolün madde listesi değişirse başlığının da
+// gözden geçirilmesi gerekir ve bu, buraya bakmayı zorunlu kılar.
+const secondaryGroupTitle: Record<Role, string> = {
+  admin: "Kurum yönetimi",
+  teacher: "Raporlar ve Ayarlar",
+  student: "Hesap ve Ayarlar",
+  parent: "Ödemeler ve Ayarlar",
+};
+
 export function EducationPlatform({
   onLogout,
   initialRole = "admin",
@@ -292,13 +305,8 @@ export function EducationPlatform({
               const groupItems = navItems.filter(item => item.group === group);
               if (groupItems.length === 0) return null;
 
-              // "Kurum yönetimi" başlığı yalnızca kurum yöneticisi için doğru.
-              // Öğretmenin o gruptaki maddeleri Raporlar ve Ayarlar; öğrenci ve
-              // velininki Kayıt-Ödemeler ve Ayarlar. Hiçbiri kurumu yönetmiyor.
               const groupTitle =
-                group === "Kurum yönetimi" && role !== "admin"
-                  ? "Hesap ve Ayarlar"
-                  : group;
+                group === "Kurum yönetimi" ? secondaryGroupTitle[role] : group;
 
               return (
                 <div
