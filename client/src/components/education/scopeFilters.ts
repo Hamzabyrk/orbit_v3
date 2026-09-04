@@ -3,10 +3,18 @@
  *
  * Kurum yöneticisi (admin) kurumun tamamından sorumludur ve tüm veriyi görür.
  * Öğretmen, öğrenci ve velinin kapsamını (öğretmen-sınıf ataması, veli-öğrenci bağı)
- * belirleyen ilişkisel tablolar (`classes`, `student_guardians`, `course_teachers`)
- * v1.2'de veritabanına eklenecektir.
+ * belirleyen ilişkisel tablolar v1.2'de veritabanına ekleniyor.
  *
- * Bu tablolar henüz mevcut olmadığından:
+ * **Güncelleme (2026-09-04):** `classes`, `class_enrollments`, `class_teachers`
+ * ve `subjects` v1.2-02'de eklendi; öğretmen ve öğrenci kapsamı artık
+ * **veritabanında** RLS ile çözülüyor. Bu dosya hâlâ eski hâlinde çünkü ekranlar
+ * o tablolara henüz bağlı değil — bağlanma işi **v1.2-10 (kapsam çözümleyicisi)**.
+ * Kalan tablo `student_guardians` (veli bağı, v1.2-03).
+ *
+ * Not: burada eskiden `course_teachers` adı geçiyordu; tablo `class_teachers`
+ * adıyla yazıldı.
+ *
+ * Tablolar bağlanana kadar:
  * - Demo modunda satış sunumu için örnek filtreleme çalışır.
  * - Üretimde çözülemeyen kapsam için dar tarafta kalınarak boş küme dönülür (K-04).
  *

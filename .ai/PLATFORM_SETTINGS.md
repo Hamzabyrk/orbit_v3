@@ -311,9 +311,14 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 | `current_user_is_platform_operator`  | WARN   | Yalnızca çağıranın kendi durumunu döndürür                                                                                 |
 | `current_user_must_change_password`  | WARN   | Yalnızca çağıranın kendi durumunu döndürür; okunamadığında `true` döner (fail-closed)                                      |
 | `platform_organization_stats`        | WARN   | Operatör olmayan çağırana veri değil `null` döner                                                                          |
+| `current_user_teaches_class`         | WARN   | v1.2-02'de eklendi. Yalnızca çağıranın kendi kapsamını döndürür: "ben bu sınıfa giriyor muyum"                             |
+| `current_user_attends_class`         | WARN   | v1.2-02'de eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
+| `current_user_teaches_student`       | WARN   | v1.2-02'de eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
 | Sızmış şifre koruması kapalı         | WARN   | Pro plan gerektiriyor                                                                                                      |
 
-**Bu sekizin dışında bir uyarı çıkarsa incelenmelidir.**
+**Bu on birin dışında bir uyarı çıkarsa incelenmelidir.**
+
+> ⚠️ **Sayı 8'den 11'e çıktı (2026-09-04, v1.2-02).** RLS politikalarının çağırdığı her `SECURITY DEFINER` yardımcı bu uyarıyı üretiyor; üç yeni kapsam yardımcısı da üretecek. **Üç satır beklentidir, ölçüm değil** — merge sonrası advisor çalıştırılarak doğrulanmalıdır. Yardımcıların `authenticated`'a açık olması zorunlu: RLS politikası onları çağıranın yetkisiyle değerlendiriyor, yetki kaldırılırsa kapsam çözümü kırılır (`current_user_has_membership` satırındaki gerekçenin aynısı).
 
 **Sonradan düzeltme (2026-09-04):** Bu liste önceden **üç** uyarı sayıyordu ve yanlıştı — advisor sekiz döndürüyordu. Sebep bizim bir değişikliğimiz değil: Supabase'in `0029` lint'i genişledi ve artık `authenticated` tarafından çağrılabilen **her** `SECURITY DEFINER` fonksiyonunu işaretliyor, yalnızca `current_user_has_membership`'i değil. Altısı da tek tek okundu; hepsi tasarım gereği. Eski liste yerinde bırakılmadı çünkü bir envanter değil **kontrol listesiydi**: "listede olmayan uyarı çıkarsa incele" kuralı, listenin eksik olduğu her gün işlemez hâle geliyordu.
 
