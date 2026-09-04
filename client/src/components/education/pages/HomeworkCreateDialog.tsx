@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { isDemoMode } from "@/auth/runtime";
 import { useAuth } from "@/auth/useAuth";
 import {
   Dialog,
@@ -76,6 +77,30 @@ export function HomeworkCreateDialog({
 
   const handleSubmit = () => {
     if (!canSubmit) return;
+
+    /**
+     * Üretimde ödevi kalıcı kılan bir yol **henüz yok.** `v1.2-08` tabloyu
+     * ekledi ama servis katmanı v1.2-10'da bağlanacak; o zamana kadar
+     * `writeDemoData` üretimde no-op ve `initialHomework` boş dizi.
+     *
+     * Bu koruma olmadan ekran yalan söylüyordu: kayıt yalnızca React state'ine
+     * ekleniyor, "Ödev oluşturuldu" deniyor ve ilk yenilemede kayboluyordu.
+     * `AttendancePage` aynı durumda doğruyu söylüyor ("şu an bir kayıt
+     * oluşturulmadı"); burası söylemiyordu. #131 ve #134 ile aynı aile.
+     *
+     * Demo modunda davranış değişmiyor: orada kayıt `localStorage`'a yazılıyor
+     * ve gerçekten kalıcı, dolayısıyla başarı mesajı doğru.
+     */
+    if (!isDemoMode) {
+      toast.info("Ödev kaydı henüz aktif değil", {
+        description:
+          "Ödev altyapısı kalıcı veri fazında bağlanacaktır; şu an bir kayıt oluşturulmadı.",
+      });
+      resetForm();
+      onOpenChange(false);
+      return;
+    }
+
     const item: Homework = {
       id: `hw-${Date.now()}`,
       classGroup,

@@ -384,7 +384,17 @@ Aynı kural SQL dışında da geçerli: bir arayüz kontrolünün çalıştığ�
 
 **Biten brifing silinir.** Sebebi klasörün şişmesi değil: **duran eski brifing, bir sonraki oturumda yanlışlıkla güncel sanılabilir.** Silme artık commit gerektirmiyor, dosyayı kaldırmak yeterli.
 
----
+### K-14 · Gerçekleşmemiş işlem başarılı gösterilmez
+
+Bir ekran, arkasında karşılığı olmayan bir işlemi **başarılı bildiremez.** "Kaydedildi" demek bir olgu iddiasıdır; kayıt yoksa iddia yanlıştır ve kullanıcı yanlış bilgiyle karar verir.
+
+Doğru davranış, işlemi gizlemek değil **ne olduğunu söylemek**: _"Ödev altyapısı kalıcı veri fazında bağlanacaktır; şu an bir kayıt oluşturulmadı."_ Kullanıcı böylece bir daha denemez ve kaydın var olduğunu sanarak üzerine iş kurmaz.
+
+Tehlikeli olan varyant, işlemin **kısmen** çalışmasıdır: kayıt ekrandaki listeye ekleniyor ama hiçbir yere yazılmıyor. Kullanıcı sonucu görüyor, doğrulanmış hissediyor ve yenilemeye kadar fark etmiyor. Görünürde çalışan bir şey, hiç çalışmayan bir şeyden daha çok zarar verir.
+
+Pratik kontrol, yeni bir ekran veya düğme yazarken: **bu işlem üretimde gerçekten bir yere yazıyor mu?** Cevap hayırsa mesaj da hayır demeli.
+
+## _Kaynak: aynı hata üç kez çıktı — #131 (yoklama kaydı), #134 (toplu aktarım) ve 2026-09-05'te `HomeworkCreateDialog`. İlk ikisi tek tek düzeltildi ama kalıp kural olarak yazılmadığı için üçüncüsü v1.2-08 açılışına kadar fark edilmedi; üstelik ROADMAP o ekranın **fail-closed çalıştığını** varsayım olarak beyan etmişti._
 
 ## Brifing yazarken
 
