@@ -60,6 +60,7 @@ Bunlar tercih değil, sınır.
 3. **`main`'e doğrudan commit yok.** Her değişiklik issue → branch → PR → karşılıklı onay yolundan geçer.
 4. **Şifre ve hesap açma işlemleri ajanlara yaptırılmaz.** Bu adımlar Supabase panelinden ekip tarafından yapılır.
 5. **Sürüm kapısı atlanmaz.** Proje aşama aşama ilerler. Bir aşama tamamlanıp release gate'i doğrulanmadan sonrakine geçilmez; kapsam ve kabul kriterleri `ROADMAP.md`'de yazılıdır. Bir işi "sonra tamamlarız" diye açık bırakıp ilerlemek, bu projede birden fazla kez tamam sanılan bir sürümün aslında kırık olduğunun aylar sonra anlaşılmasına yol açtı.
+6. **Sağlayıcı bir tercihtir, bağımlılık değil.** Sistemin ileride kendi sunucumuza (Hetzner) taşınması açık bir ihtimaldir. Yeni bir bağımlılık veya sağlayıcıya özgü özellik eklerken sorulacak soru: _bu, düz Postgres veya standart bir arayüzle (S3, SMTP, OIDC) yapılabilir mi?_ Yapılabiliyorsa öyle yapılır. Yetkilendirmenin SQL'de yaşaması bu kuralın en önemli parçasıdır ve zaten yürürlüktedir. Gerekçe ve ölçümler: `DECISION_LOG.md` — "Sistem taşınabilir kurulur; sağlayıcı bir tercih, bağımlılık değildir".
 
 ---
 
