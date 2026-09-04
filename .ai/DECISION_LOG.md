@@ -46,6 +46,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Sistem taşınabilir kurulur; sağlayıcı bir tercih, bağımlılık değildir
 - Sınıf bir öğretim yılına aittir; dönem tablosu yerine arşivleme
 - Veli yalnızca okur ve yalnızca kendi bağını görür
+- Öğretmenin yazma yetkisi rolünden değil atamasından gelir
 
 **Kapsam ve sürüm**
 
@@ -1309,3 +1310,35 @@ Taşıma yerine arşivlemenin sebebi de aynı: bir öğrenci Kasım'da sınıf d
 **Kapsam dışı — bilinçli:** `student_guardians` bir yakınlık derecesi (anne/baba/vasi) veya birincil iletişim bayrağı taşımıyor. Hiçbir politikanın buna ihtiyacı yok ve tabloya bugün yazan bir ekran da yok; alanlar v1.4'te ekranla birlikte, aydınlatma metniyle birlikte kararlaştırılır — "İş tabloları asgari kişisel veriyle açılır" kararının aynısı.
 
 **İlgili:** [[Rol, atama ve bağlantı üç ayrı kavramdır]] — velinin kapsamının **bağlantıdan** gelmesi o kararın üçüncü ayağıdır ve bu dilimle tamamlandı.
+
+---
+
+### Karar: Öğretmenin yazma yetkisi rolünden değil atamasından gelir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-04
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.2-04'e kadar öğretmen sistemde **hiçbir tabloya yazamıyordu**; her yerde salt okurdu. Yoklama bunu değiştirmek zorundaydı — yoklama almak öğretmenin kurumdaki asıl işidir ve her yoklama için yöneticiye gitmek ürünü kullanılamaz kılar.
+
+Soru şuydu: yazma yetkisi **role** mi bağlansın (rolü `teacher` olan yoklama alabilir), yoksa **atamaya** mı (o sınıfa atanmış olan alabilir)?
+
+**Karar:** Atamaya. `current_user_teaches_class()` kontrol edilir, `role = 'teacher'` değil.
+
+Somut sonucu iki yönlü:
+
+- Rolü `teacher` olup o sınıfa **atanmamış** biri yoklama alamaz — komşu sınıfın yoklamasına dokunamaz.
+- Rolü `admin` olup o sınıfa **atanmış** biri alabilir — küçük dershanenin hem yöneten hem ders veren sahibi kendi dersinin yoklamasını alır.
+
+**Gerekçe:** "Ders vermek bir atama, rol değildir" kararının (2026-08-25) doğal devamı. Rol, hangi panelin açılacağını belirler; **ne yapılabileceğini** atama belirler. Yetkiyi role bağlamak, o kararı yazma tarafında geri alırdı: bir kurumdaki bütün öğretmenler bütün sınıfların yoklamasını değiştirebilir hâle gelirdi.
+
+**Okuma ile yazma kapsamı bilinçli olarak farklı.** Öğretmen, dersini verdiği öğrencinin **bütün** yoklama geçmişini okuyabilir — devamsızlık bir örüntüdür ve tek derse bakarak anlaşılmaz. Ama yalnızca **kendi oturumuna** yazabilir. Bu yüzden okuma öğrenciye (`current_user_teaches_student`), yazma oturuma (`current_user_can_record_attendance`) bağlandı.
+
+**Yoklamayı kimin aldığı istemciden gelmez.** `recorded_by_membership_id` hiçbir yazma yetkisinde yok; bir trigger çağıranın kimliğinden dolduruyor. Sütun yazılabilir olsaydı bir öğretmen yoklamayı başkasının aldığını iddia edebilirdi ve izlenebilirliğin anlamı kalmazdı.
+
+**Geçmişe dönük düzeltme kısıtlanmadı** ve bu da bilinçli. Tek yöneticili küçük bir kurumda dünkü yoklamayı düzeltecek başka kimse olmayabilir; süre sınırı koymak sistemi kullanılamaz hâle getirir. Karşılığı erişim kısıtı değil **izlenebilirlik** — aynı gerekçe yönetici-veli çıkar çatışması için de yazılmıştı ([[Rol, atama ve bağlantı üç ayrı kavramdır]]). `recorded_by_membership_id` bu izlenebilirliğin veri tarafındaki ilk parçası; denetim kaydı yazma işi v1.4'te CRUD akışlarıyla gelir.
+
+**Alternatifler:**
+
+- **Yazmayı role bağlamak:** Reddedildi. Uygulaması bir satır daha kısaydı ama kurumdaki her öğretmene her sınıfın yoklamasını verirdi.
+- **Geçmişe dönük düzeltmeyi N gün sonra kilitlemek:** Reddedildi. Tek yöneticili kurumda düzeltmenin tek yolunu kapatır. Sorun erişimde değil izlenebilirlikte.
