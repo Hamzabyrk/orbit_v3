@@ -283,7 +283,22 @@ for p in / /sifre-sifirla /sifre-belirle; do
 done
 ```
 
-Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. Beklenen kalıcı uyarılar: `workspace_documents` policy yokluğu (INFO), `current_user_has_membership` (WARN), sızmış şifre koruması (WARN). **Bunların dışında bir uyarı çıkarsa incelenmelidir.**
+Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09-04'te ölçülen taban: 8 uyarı**, hepsi beklenen:
+
+| Uyarı                                | Seviye | Neden kalıcı                                                                                                               |
+| ------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `workspace_documents` policy yokluğu | INFO   | Özellik ölü; tablo yetkisi de yok, çift korumalı (#148 → v1.6-01)                                                          |
+| `current_user_administers_person`    | WARN   | Aşağıdaki altı satırın hepsi aynı lint: `0029`, "`authenticated` bu `SECURITY DEFINER` fonksiyonu çağırabiliyor"           |
+| `current_user_has_membership`        | WARN   | RLS politikalarının tamamı çağırıyor; içeride `auth.uid()` kullandığı için çağıran yalnızca kendi üyeliğini sorgulayabilir |
+| `current_user_has_recovery_channel`  | WARN   | Yalnızca çağıranın kendi durumunu döndürür                                                                                 |
+| `current_user_is_platform_operator`  | WARN   | Yalnızca çağıranın kendi durumunu döndürür                                                                                 |
+| `current_user_must_change_password`  | WARN   | Yalnızca çağıranın kendi durumunu döndürür; okunamadığında `true` döner (fail-closed)                                      |
+| `platform_organization_stats`        | WARN   | Operatör olmayan çağırana veri değil `null` döner                                                                          |
+| Sızmış şifre koruması kapalı         | WARN   | Pro plan gerektiriyor                                                                                                      |
+
+**Bu sekizin dışında bir uyarı çıkarsa incelenmelidir.**
+
+**Sonradan düzeltme (2026-09-04):** Bu liste önceden **üç** uyarı sayıyordu ve yanlıştı — advisor sekiz döndürüyordu. Sebep bizim bir değişikliğimiz değil: Supabase'in `0029` lint'i genişledi ve artık `authenticated` tarafından çağrılabilen **her** `SECURITY DEFINER` fonksiyonunu işaretliyor, yalnızca `current_user_has_membership`'i değil. Altısı da tek tek okundu; hepsi tasarım gereği. Eski liste yerinde bırakılmadı çünkü bir envanter değil **kontrol listesiydi**: "listede olmayan uyarı çıkarsa incele" kuralı, listenin eksik olduğu her gün işlemez hâle geliyordu.
 
 ---
 

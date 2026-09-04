@@ -186,6 +186,10 @@ educationData.ts        →  Supabase import sayısı: 0
 
 Üretimde eğitim paneli veritabanına **boş dönmüyor — hiç sormuyor.** Her ihraç `isDemoMode ? demo… : boş` kalıbında sabitlenmiş.
 
+**Sonradan düzeltme (2026-09-04):** Yukarıdaki "İş tabloları → HİÇBİRİ YOK" satırı ve aşağıdaki bağlantı matrisinin son satırı, denetim gününün doğru fotoğrafıdır ama **artık güncel değildir.** v1.2-01 `students` ve `guardians` tablolarını ekledi: Öğrenci satırının "Tablo" sütunu ✅, "Yazma" sütunu ✅ oldu; Servis ve Ekran ❌ olarak duruyor — dilimin sınırı bilinçli olarak tablo + RLS + test'ti. Diğer varlıklar (Sınıf, Program, Yoklama, Sınav, Ödev, Ödeme, Mesaj, Gün planı, Otomasyon) satırı olduğu gibi geçerli.
+
+Aynı düzeltme "**Yazma mimarisi bilinçli ve tek biçimli**" paragrafını da kapsıyor: `authenticated` rolü artık iki tabloya yazabiliyor ve toplam politika sayısı 11'den 19'a çıktı. Yetki kararı hâlâ SQL'de yaşıyor — değişen, isteğin oraya hangi yoldan gittiği. Gerekçe: `DECISION_LOG.md` — "İş verisi RLS ile yazılır, kimlik işlemleri Edge Function'da kalır".
+
 **Bağlantı matrisi** — hangi varlığın hangi katmanı var:
 
 | Varlık                                                                                     | Tablo  | Servis | Ekran |    Yazma     |
