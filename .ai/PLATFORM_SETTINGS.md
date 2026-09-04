@@ -318,11 +318,14 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 | `current_user_guards_class`          | WARN   | v1.2-03'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
 | `current_user_owns_student_record`   | WARN   | v1.2-04'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
 | `current_user_can_record_attendance` | WARN   | v1.2-04'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
+| `exam_ranking`                       | WARN   | v1.2-05'te eklendi. Yetkiyi içeride çözer; yetkisiz çağırana boş küme, yetkisiz satırlarda maskelenmiş kimlik döner        |
 | Sızmış şifre koruması kapalı         | WARN   | Pro plan gerektiriyor                                                                                                      |
 
-**Bu on beşin dışında bir uyarı çıkarsa incelenmelidir.**
+**Bu on altının dışında bir uyarı çıkarsa incelenmelidir.**
 
-> ✅ **13 sayısı doğrulandı (2026-09-04, v1.2-03 merge edildikten sonra).** İki yeni veli yardımcısı listede çıktı, beklenmeyen uyarı yok. **v1.2-04 ile beklenen sayı 15** (iki yeni yoklama yardımcısı) — **henüz doğrulanmadı**, merge sonrası advisor yeniden çalıştırılmalı.
+> ✅ **15 sayısı doğrulandı (2026-09-04, v1.2-04 merge edildikten sonra).** İki yeni yoklama yardımcısı listede çıktı; `set_attendance_recorder` **çıkmadı** — trigger fonksiyonu olduğu için `authenticated`'a hiç açılmamıştı ve revoke'un tuttuğunu bu doğruluyor. **v1.2-05 ile beklenen sayı 16** (`exam_ranking`) — **henüz doğrulanmadı**, merge sonrası advisor yeniden çalıştırılmalı.
+>
+> ✅ **13 sayısı da doğrulanmıştı (v1.2-03 merge edildikten sonra).** İki yeni veli yardımcısı listede çıktı, beklenmeyen uyarı yok. **v1.2-04 ile beklenen sayı 15** (iki yeni yoklama yardımcısı) — **henüz doğrulanmadı**, merge sonrası advisor yeniden çalıştırılmalı.
 >
 > ✅ **11 sayısı da doğrulanmıştı (v1.2-02 merge edildikten sonra).** Advisor çalıştırıldı; üç yeni yardımcının üçü de listede çıktı ve beklenmeyen tek bir uyarı yok. **v1.2-03 ile beklenen sayı 13** (iki yeni veli yardımcısı) — bu sayı **henüz doğrulanmadı**, merge sonrası advisor yeniden çalıştırılmalı.
 >
