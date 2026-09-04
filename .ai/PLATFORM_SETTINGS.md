@@ -324,7 +324,7 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 
 **Bu on yedinin dışında bir uyarı çıkarsa incelenmelidir.**
 
-> ✅ **16 sayısı doğrulandı (2026-09-04, v1.2-05 merge edildikten sonra).** `exam_ranking` listede çıktı, beklenmeyen uyarı yok. **v1.2-06 ile beklenen sayı 17** (`current_user_can_see_payment_plan`) — **henüz doğrulanmadı**, merge sonrası advisor yeniden çalıştırılmalı.
+> ✅ **16 sayısı doğrulandı (2026-09-04, v1.2-05 merge edildikten sonra).** `exam_ranking` listede çıktı, beklenmeyen uyarı yok. **v1.2-06 ile beklenen sayı 17** (`current_user_can_see_payment_plan`) — **henüz doğrulanmadı**, merge sonrası advisor yeniden çalıştırılmalı. **v1.2-07 yeni fonksiyon eklemedi**, yani beklenen sayı 17 olarak kalıyor.
 >
 > ✅ **15 sayısı da doğrulanmıştı (v1.2-04 merge edildikten sonra).** İki yeni yoklama yardımcısı listede çıktı; `set_attendance_recorder` **çıkmadı** — trigger fonksiyonu olduğu için `authenticated`'a hiç açılmamıştı ve revoke'un tuttuğunu bu doğruluyor. **v1.2-05 ile beklenen sayı 16** (`exam_ranking`) — **henüz doğrulanmadı**, merge sonrası advisor yeniden çalıştırılmalı.
 >
