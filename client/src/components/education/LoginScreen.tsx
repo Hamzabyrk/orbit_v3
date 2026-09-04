@@ -237,7 +237,13 @@ export function EducationLoginScreen({
                     Kurum genel görünümü
                   </p>
                 </div>
-                <Badge tone="green">Sistemler güncel</Badge>
+                {/*
+                  Önceden burada yeşil bir "Sistemler güncel" rozeti vardı ve
+                  bu bir DURUM İDDİASIYDI — hiçbir şey ölçmeden, her koşulda.
+                  Yerine panelin ne olduğunu söyleyen nötr bir etiket kondu
+                  (#144).
+                */}
+                <Badge tone="slate">Örnek görünüm</Badge>
               </div>
               <h2 className="mt-10 max-w-md font-display text-[38px] font-extrabold leading-[1.08] tracking-[-.06em]">
                 Eğitim ekibinizin günlük ritmi, tek yerde.
@@ -253,31 +259,47 @@ export function EducationLoginScreen({
                       <LayoutDashboard className="h-3.5 w-3.5 text-sky-100" />
                     </span>
                     <span className="text-[11px] font-bold text-slate-100">
-                      Bugünün eğitim özeti
+                      ORBIT'in kapsadığı alanlar
                     </span>
                   </div>
-                  <span className="text-[9px] text-slate-400">15 Ağustos</span>
                 </div>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-white/15 p-3">
-                    <p className="text-[9px] text-slate-300">Bugünkü devam</p>
-                    <p className="mt-1.5 text-[21px] font-extrabold">%93</p>
-                    <p className="mt-1 text-[9px] text-emerald-300">
-                      4 yoklama tamamlandı
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-white/15 p-3">
-                    <p className="text-[9px] text-slate-300">Aktif öğrenci</p>
-                    <p className="mt-1.5 text-[21px] font-extrabold">54</p>
-                    <p className="mt-1 text-[9px] text-sky-200">
-                      3 sınıfta kayıtlı
-                    </p>
-                  </div>
+                {/*
+                  Burada bir "Bugünün eğitim özeti" kartı vardı: %93 devam,
+                  54 aktif öğrenci, 4 tamamlanmış yoklama, sabit "15 Ağustos"
+                  tarihi ve "3 eğitim otomasyonu bugün çalıştı" satırı (#144).
+                  Hiçbiri ölçülmüyordu; #116'da panelden silinen sayıların
+                  aynısıydı ve giriş ekranı kimlik doğrulaması istemediği için
+                  denetim turlarının hiçbirinde görülmemişti.
+
+                  Başlık ve tarih taşıdığı için süsleme gibi değil CANLI VERİ
+                  gibi okunuyordu: tek öğrencisi olmayan pilot kurumun
+                  yöneticisi giriş yapmadan önce "%93 devam, 54 aktif öğrenci"
+                  görüyordu. K-03 — çözümlenemeyen veri uydurulmuş değerle
+                  gösterilmez; burada çözümlenecek bir veri bile yoktu.
+
+                  Yerine sayı taşımayan kapsam etiketleri kondu. Bunlar bir
+                  ölçüm değil, ürünün ne yaptığının listesi — giriş ekranının
+                  satış tarafı korunuyor, veri iddiası kalkıyor.
+                */}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {[
+                    "Yoklama ve devam",
+                    "Sınav ve sonuç analizi",
+                    "Ödev takibi",
+                    "Ödeme ve taksit takibi",
+                  ].map(alan => (
+                    <div
+                      key={alan}
+                      className="rounded-xl border border-white/15 p-3 text-[10px] font-semibold text-slate-100"
+                    >
+                      {alan}
+                    </div>
+                  ))}
                 </div>
                 <div className="mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
                   <Sparkles className="h-4 w-4 text-emerald-300" />
                   <p className="text-[10px] font-semibold text-slate-100">
-                    3 eğitim otomasyonu bugün çalıştı.
+                    Kurumunuzun kendi verisi giriş yaptıktan sonra görünür.
                   </p>
                 </div>
               </div>
