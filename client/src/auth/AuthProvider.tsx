@@ -12,6 +12,7 @@ import { AuthContext } from "./AuthContext";
 import { clearLastActivity, resolveIdleTracking } from "./idleTimeout";
 import { useIdleTimeout } from "./useIdleTimeout";
 import { loadAuthenticatedIdentity } from "./authService";
+import { resolveSessionEvent } from "./sessionEvents";
 import { isDemoMode } from "./runtime";
 import type { AuthIdentity, AuthProviderProps, LoginInput } from "./types";
 
@@ -68,13 +69,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setPasswordRecovery(value);
   }, []);
 
-  const restoreSession = useCallback(async (session: Session | null) => {
-    if (!session) {
-      setIdentity(null);
-      return;
-    }
+  // En son BAŞARIYLA çözülmüş erişim jetonu. Aynı jeton için kimliği ikinci
+  // kez okumamak içindir (#145). Kararı `resolveSessionEvent` veriyor; burada
+  // yalnızca ölçüt tutuluyor.
+  //
+  // Yalnızca başarılı okumadan SONRA yazılıyor: başarısız bir deneme jetonu
+  // işaretleseydi, tek bir ağ hatası kimliği o oturum boyunca kalıcı olarak
+  // eksik bırakırdı ve hiçbir olay onu tazeleyemezdi.
+  const resolvedTokenRef = useRef<string | null>(null);
 
+  const applyIdentity = useCallback(async (session: Session) => {
     setIdentity(await loadAuthenticatedIdentity(session.user));
+    resolvedTokenRef.current = session.access_token;
+  }, []);
+
+  const clearIdentity = useCallback(() => {
+    resolvedTokenRef.current = null;
+    setIdentity(null);
   }, []);
 
   useEffect(() => {
@@ -89,39 +100,54 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return;
     }
 
-    void supabase.auth.getSession().then(async ({ data, error }) => {
-      try {
-        if (error) throw error;
-        await restoreSession(data.session);
-      } catch {
-        if (active) setIdentity(null);
-      } finally {
-        if (active) setLoading(false);
-      }
-    });
-
+    // `getSession()` ile açılış yapılMIYOR ve bu #145'in düzeltmesidir.
+    // Öncesinde kimlik iki ayrı yoldan çözülüyordu — burada bir kez,
+    // abonelik kurulurken gelen `INITIAL_SESSION` olayıyla bir kez daha — ve
+    // her sayfa yenilemesi beş sorgu yerine on istek üretiyordu.
+    //
+    // Tek yola inmek güvenli, çünkü auth-js (2.112.3) `onAuthStateChange`
+    // abonelik kurar kurmaz `_emitInitialSession` çağırıyor ve o fonksiyon
+    // HER yolda geri çağrımı tetikliyor: başarıda oturumla, hatada `null`
+    // ile. Olayın hiç gelmediği bir durum yok, dolayısıyla `loading` asılı
+    // kalmaz.
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (event, session) => {
         window.setTimeout(() => {
           if (!active) return;
 
-          // Şifre sıfırlama bağlantısı da geçerli bir oturum açar. Bu olay
-          // ayrıştırılmazsa kullanıcı şifresini hiç belirlemeden panele girer.
-          if (event === "PASSWORD_RECOVERY") {
-            setRecovering(true);
-            setIdentity(null);
+          const { action, releasesLoading } = resolveSessionEvent({
+            event,
+            accessToken: session?.access_token ?? null,
+            resolvedToken: resolvedTokenRef.current,
+            recovering: recoveringRef.current,
+          });
+
+          // Kilit karardan BAĞIMSIZ düşüyor. "Kurtarma sürüyor" dalı olayı
+          // yok sayar; kilit karara bağlansaydı kurtarma bağlantısıyla gelen
+          // kullanıcı sonsuz spinner görürdü — bugüne kadar o kilidi kaldıran
+          // şey, yukarıda kaldırılan `getSession()` yoluydu.
+          if (releasesLoading) {
             setLoading(false);
+          }
+
+          if (action === "enter-recovery") {
+            setRecovering(true);
+            clearIdentity();
             return;
           }
 
-          // Kurtarma sürerken gelen SIGNED_IN / TOKEN_REFRESHED olayları
-          // kullanıcıyı panele düşürmemeli. Bayrak, şifre belirlenene veya
-          // vazgeçilene kadar kalıcıdır.
-          if (recoveringRef.current) {
+          if (action === "ignore" || action === "skip-resolved") {
             return;
           }
 
-          void restoreSession(session).catch(() => setIdentity(null));
+          if (action === "clear") {
+            clearIdentity();
+            return;
+          }
+
+          if (session) {
+            void applyIdentity(session).catch(() => clearIdentity());
+          }
         }, 0);
       }
     );
@@ -130,7 +156,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       active = false;
       subscription.subscription.unsubscribe();
     };
-  }, [restoreSession, setRecovering]);
+  }, [applyIdentity, clearIdentity, setRecovering]);
 
   const signIn = useCallback(
     async ({ email, password, demoRole }: LoginInput) => {
@@ -154,18 +180,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
         password,
       });
 
-      if (error || !data.user) {
+      if (error || !data.user || !data.session) {
         throw new Error("E-posta veya şifre doğrulanamadı.");
       }
 
+      // Kimlik burada okunuyor, `SIGNED_IN` olayının gelmesi beklenmiyor:
+      // okuma başarısız olursa kullanıcı dışarı alınmalı ve hata çağırana
+      // ulaşmalı. Olay yolu bunu yapamaz — orada fırlatılan hata kimseye
+      // ulaşmaz. `applyIdentity` jetonu işaretlediği için hemen ardından
+      // gelen `SIGNED_IN` aynı işi tekrar etmez (#145).
       try {
-        setIdentity(await loadAuthenticatedIdentity(data.user));
+        await applyIdentity(data.session);
       } catch (identityError) {
         await supabase.auth.signOut();
         throw identityError;
       }
     },
-    []
+    [applyIdentity]
   );
 
   const signOut = useCallback(async () => {
@@ -177,8 +208,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     clearLastActivity();
-    setIdentity(null);
-  }, []);
+    clearIdentity();
+  }, [clearIdentity]);
 
   const idleTracking = resolveIdleTracking({
     demoMode: isDemoMode,
@@ -211,7 +242,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           await supabase.auth.signOut({ scope: "local" });
         }
 
-        setIdentity(null);
+        clearIdentity();
         toast.info("Oturumunuz kapatıldı", {
           description:
             "Uzun süre işlem yapılmadığı için güvenlik amacıyla çıkış yapıldı. Tekrar giriş yapabilirsiniz.",
@@ -258,13 +289,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // durumda bırakmak yerine dışarı alıyoruz; yeni şifresiyle girer.
         await supabase.auth.signOut();
         clearLastActivity();
-        setIdentity(null);
+        clearIdentity();
         return;
       }
 
-      setIdentity(await loadAuthenticatedIdentity(data.session.user));
+      // Bu okuma atlanamaz ve jeton ölçütünün kullanıcı ölçütü OLMAMASININ
+      // sebebi budur: bayrağı veritabanı tetikleyicisi düşürüyor, düşmüş
+      // bayrağı görmenin tek yolu kimliği yeniden okumak. Şifre değişimi
+      // oturumu döndürdüğü için jeton yenidir ve okuma gerçekten yapılır.
+      await applyIdentity(data.session);
     },
-    []
+    [applyIdentity, clearIdentity]
   );
 
   const switchDemoRole = useCallback((role: EducationRole) => {
@@ -321,10 +356,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // şifrenin gerçekten çalıştığı doğrulanmamış kalırdı; bu akışın var olma
       // sebebi tam olarak o belirsizliği ortadan kaldırmaktır.
       await supabase.auth.signOut();
-      setIdentity(null);
+      clearIdentity();
       setRecovering(false);
     },
-    [setRecovering]
+    [clearIdentity, setRecovering]
   );
 
   const cancelPasswordRecovery = useCallback(async () => {
@@ -332,9 +367,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await supabase.auth.signOut();
     }
 
-    setIdentity(null);
+    clearIdentity();
     setRecovering(false);
-  }, [setRecovering]);
+  }, [clearIdentity, setRecovering]);
 
   /**
    * Oturumu okur ve kimliği yeniden yükler. Profil okuma hatası veya geçici
@@ -359,9 +394,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw new Error("Oturum doğrulanamadı. Lütfen tekrar giriş yapın.");
     }
 
-    const freshIdentity = await loadAuthenticatedIdentity(data.session.user);
-    setIdentity(freshIdentity);
-  }, []);
+    // Elle tazeleme koruma ölçütünden GEÇMEZ ve geçmemelidir: bu akışın var
+    // olma sebebi, ağ hatası yüzünden "unresolved" kalmış bir ekranda
+    // kullanıcının tekrar denemesidir. Jeton aynı olsa bile okuma yapılır.
+    await applyIdentity(data.session);
+  }, [applyIdentity]);
 
   const value = useMemo(
     () => ({
