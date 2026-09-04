@@ -40,6 +40,9 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Öğrenci ve veli ekranları mobil-öncelikli tasarlanır
 - ORBIT tüm rollere "siz" diye hitap eder
 - Sistemik Graph-First Düşünme, Blast Radius ve 6 Boyutlu Risk Protokolü
+- İş verisi RLS ile yazılır, kimlik işlemleri Edge Function'da kalır
+- Zorunlu şifre değişimi kilidi iş tablolarında baştan sunucuda durur
+- İş tabloları asgari kişisel veriyle açılır
 
 **Kapsam ve sürüm**
 
@@ -1118,3 +1121,79 @@ SettingsProfileSection  "şifrenizi unutmanız…"      → siz
 - **Herkese "sen":** Reddedildi. Yönetici, öğretmen ve veli yetişkin müşteri; pilot görüşmesinde fazla samimi algılanma riski var.
 
 **Kapsam dışı bırakıldı:** `demoData.ts` içindeki gün planı görev başlıkları (`"Sabah dersinin yoklamasını sisteme işle"` gibi). Bunlar uygulamanın kullanıcıya hitabı değil, kullanıcının kendi yapılacak listesindeki madde metinleridir; emir kipi orada doğaldır.
+
+---
+
+### Karar: İş verisi RLS ile yazılır, kimlik işlemleri Edge Function'da kalır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-04
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.2-01'e kadar `authenticated` rolü hiçbir tabloda `SELECT` dışında yetki taşımıyordu; on bir RLS politikasının onu okumaydı ve tek yazma politikası `profiles_update_self`'ti. Bütün yazmalar `service_role` taşıyan Edge Function'lardan geçiyordu.
+
+Bu, kimlik katmanı için doğru bir tercihti ve öyle kalıyor: hesap açmak, şifre sıfırlamak, kurum kurmak ve kurum silmek `auth.users`'a dokunan ayrıcalıklı işlemlerdir; hiçbiri tenant içinde kalmaz.
+
+Ama v1.2, on iki dilim boyunca öğrenci, sınıf, yoklama, sınav, ödev ve ödeme tablolarını getiriyor. Aynı deseni sürdürmek, her CRUD işlemi için ayrı bir Edge Function demekti.
+
+**Karar:** Kurum kapsamlı iş verisi **RLS politikalarıyla doğrudan** yazılır. Edge Function'lar kimlik ve ayrıcalıklı işlemlerde kalır.
+
+Sınır tek soruyla çizilir: **işlem `auth.users`'a mı dokunuyor, yoksa tenant içinde mi kalıyor?**
+
+Sınır ikinci kez sütun yetkileriyle çizilir. `students` tablosunda `auth_user_id` ve `organization_id` hiçbir yazma yetkisinde yoktur: bir öğrenciye giriş hesabı bağlamak ve bir öğrenciyi başka kuruma taşımak, adını düzeltmekle aynı sınıfta işlemler değildir. RLS politikası doğru yazılmamış olsa bile bu iki sütun yazılamaz.
+
+**Gerekçe:** İş verisinin sınırı kurumdur ve RLS bu sınırı tam olarak ifade edebilir; Edge Function'ın ekleyeceği tek şey bir ağ atlaması olurdu. Buna karşılık her fonksiyon **elle deploy edilen ayrı bir parçadır** ve bu bizi bir kez ısırdı: #113/#114'te arayüz deploy edilmemiş bir fonksiyona bağlandı ve form sessizce çalışmadı.
+
+Değişmeyen şey önemlidir: **yetki kararı hâlâ SQL'de yaşıyor.** Değişen, kararın nerede alındığı değil, isteğin oraya hangi yoldan gittiğidir.
+
+**Bedeli — açıkça kabul ediliyor:** `authenticated` artık iki tabloya yazabiliyor; bir politika hatası doğrudan veri hatasıdır. Karşılığı testtir: her yazma yolunun bir olumlu ve bir olumsuz pgTAP testi var — yönetici kendi kurumuna yazabiliyor, başka kuruma yazamıyor.
+
+**Alternatifler:**
+
+- **Her yazma Edge Function'dan:** Reddedildi. En sıkı seçenekti ama on iki dilim × N işlem kadar fonksiyon, iki kişilik ekipte sürdürülemez; her biri ayrıca elle deploy gerektirir ve unutulan deploy sessiz bir arıza üretir.
+- **Karma (okuma/güncelleme RLS, oluşturma/silme fonksiyon):** Reddedildi. Hangi işlemin hangi yoldan gittiğini her dilimde yeniden karara bağlamak gerekirdi; sınır sorusu tek ve sabit olmalı.
+
+---
+
+### Karar: Zorunlu şifre değişimi kilidi iş tablolarında baştan sunucuda durur
+
+**Durum:** Alındı
+**Tarih:** 2026-09-04
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `current_user_must_change_password()` Faz E3'te yazıldı ve süreyi de okuyor, ama **hiçbir RLS politikasında kullanılmıyordu** — kilit yalnızca istemcideydi. `ROADMAP.md` bunu ayrı bir dilime (**v1.2-11**) koymuş ve v1.2-01…09'un tamamına bağlamıştı: bütün iş tabloları yazıldıktan sonra hepsine birden eklenecekti.
+
+**Karar:** Koşul, v1.2-01'den itibaren **her yeni iş tablosunun her politikasına yazıldığı gün** girer. `students` ve `guardians`'ın sekiz politikasının sekizi de taşıyor.
+
+**Gerekçe:** v1.2-01 sistemin **yazma yetkisi olan ilk iş tablosunu** getirdi. Kilit bugüne kadar yalnızca istemcide durabiliyordu çünkü kilitli bir kullanıcının REST API'den ulaşabileceği tek şey kendi profiliydi; zarar teorikti. Öğrenci tablosuyla birlikte zarar gerçek oluyor.
+
+Koşulu dokuz dilim sonraya bırakmak, o dokuz dilimin kilitsiz yaşaması demekti — ve dokuz tablo biriktikten sonra yapılacak toplu tarama, tam olarak K-08'in tarif ettiği "sonra hatırlanacak iş" sınıfına girer. Bir satır bugün, dokuz tablo sonra yapılacak bir taramadan ucuzdur.
+
+**K-11 kaydı — bu karar başka bir kaydı geçersiz kıldı:** v1.2-11'in kapsamı daraldı. Dilim artık "her tabloya ekle" değil, **"2026-09-04 öncesi tabloları tara ve tamamla"** işidir; o tabloların listesi bilinen ve sonludur (`profiles`, `organizations`, `branches`, `organization_memberships`, `audit_events`). Not `ROADMAP.md` §4.6'daki v1.2-11 bloğuna düşüldü.
+
+**Alternatifler:**
+
+- **Plana sadık kalıp v1.2-11'i beklemek:** Reddedildi. Planın kendisi, iş tablolarının kilitsiz kalmasının kabul edilemez olduğunu yazıyordu; o cümleyi yazıp dokuz dilim beklemek kendi içinde tutarsız.
+
+---
+
+### Karar: İş tabloları asgari kişisel veriyle açılır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-04
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `students` tablosu tasarlanırken hangi kişisel alanların taşınacağı soruldu: TC kimlik numarası, doğum tarihi, adres, telefon. Dershaneler resmî kayıt için TC istiyor ve doğum tarihinin ileride somut bir gerekçesi var — "veli üzerinden kurtarma" kararı bir yaş sınırı gerektiriyor.
+
+Buna karşılık KVKK envanteri v1.5'e planlı ve kişisel verinin Frankfurt'ta tutulması **kayda geçmemiş bir karar** olarak `PLATFORM_SETTINGS.md` §5'te duruyor; şartı "ilk gerçek kurum verisi girmeden önce".
+
+**Karar:** `students` ve `guardians` yalnızca ad, kurum bağı, şube ve opsiyonel giriş hesabıyla açılır. TC kimlik numarası, doğum tarihi, adres ve telefon **bu dilimde eklenmez**.
+
+**Gerekçe:** Tabloya bugün yazan hiçbir şey yok — ekran v1.4-01'de geliyor. Dolayısıyla şimdi eklenen her kişisel alan spekülatiftir. Ve iki yön simetrik değil: **sütun eklemek ucuz bir migration, toplanmış kişisel veriyi geri almak değildir.** Yanılma maliyeti düşük olan tarafta durulur.
+
+**Şart, sahip ve yapılacak iş (K-12):** Alanlar v1.4-01 (öğrenci kaydı CRUD) açılışında, o sırada yazılacak aydınlatma metniyle **birlikte** kararlaştırılır. Ayrı bir "alanları ekle" işi açılmaz; ekranı yazan dilim bu soruyu da cevaplar.
+
+**Alternatifler:**
+
+- **Doğum tarihini şimdi eklemek:** Reddedildi. Gerekçesi gerçek ama gelecekteki bir dilime ait; o dilim geldiğinde bir sütun eklemek bir migration'dır.
+- **TC dahil tam set:** Reddedildi. Frankfurt/KVKK borcunu, onu ödeyecek dilim gelmeden öne çeker.
