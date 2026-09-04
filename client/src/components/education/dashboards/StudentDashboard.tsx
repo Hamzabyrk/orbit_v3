@@ -17,15 +17,15 @@ export function StudentDashboard({
     ? identity.displayName.trim().split(" ")[0]
     : null;
   const title = studentName
-    ? `Merhaba ${studentName}, bugün planın hazır.`
-    : "Merhaba, bugün planın hazır.";
+    ? `Merhaba ${studentName}, bugün planınız hazır.`
+    : "Merhaba, bugün planınız hazır.";
 
   return (
     <>
       <PageHeader
         eyebrow="Kişisel çalışma alanı"
         title={title}
-        description="Derslerini, ödevlerini ve sınav hedeflerini tek bakışta takip et."
+        description="Derslerinizi, ödevlerinizi ve sınav hedeflerinizi tek bakışta takip edin."
         action="Ders programım"
         actionKind="navigate"
         onAction={() => onNavigate("Ders Programı")}

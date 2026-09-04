@@ -68,9 +68,13 @@ export function SettingsPage({
   return (
     <>
       <PageHeader
-        eyebrow="Kurum ayarları"
+        eyebrow={role === "admin" ? "Kurum ayarları" : "Hesap ayarları"}
         title="Ayarlar"
-        description="Sistem ve hesap ayarlarınızı kategori bazlı yönetin."
+        description={
+          role === "admin"
+            ? "Sistem ve hesap ayarlarınızı kategori bazlı yönetin."
+            : "Kişisel ayarlarınızı kategori bazlı yönetin."
+        }
       />
       <div className="mt-6 grid gap-5 lg:grid-cols-[280px_1fr]">
         <SettingsCategoryList
