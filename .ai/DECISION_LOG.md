@@ -43,6 +43,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - İş verisi RLS ile yazılır, kimlik işlemleri Edge Function'da kalır
 - Zorunlu şifre değişimi kilidi iş tablolarında baştan sunucuda durur
 - İş tabloları asgari kişisel veriyle açılır
+- Sistem taşınabilir kurulur; sağlayıcı bir tercih, bağımlılık değildir
 
 **Kapsam ve sürüm**
 
@@ -1197,3 +1198,49 @@ Buna karşılık KVKK envanteri v1.5'e planlı ve kişisel verinin Frankfurt'ta 
 
 - **Doğum tarihini şimdi eklemek:** Reddedildi. Gerekçesi gerçek ama gelecekteki bir dilime ait; o dilim geldiğinde bir sütun eklemek bir migration'dır.
 - **TC dahil tam set:** Reddedildi. Frankfurt/KVKK borcunu, onu ödeyecek dilim gelmeden öne çeker.
+
+---
+
+### Karar: Sistem taşınabilir kurulur; sağlayıcı bir tercih, bağımlılık değildir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-04
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** İleride tüm sistemin **Hetzner** üzerinde kendi sunucumuza taşınması değerlendiriliyor. Karar henüz verilmedi, ama ihtimalin varlığı bugün alınan tasarım kararlarını etkiliyor.
+
+Taşınabilirliğin bugünkü durumu 2026-09-04'te ölçüldü ve beklenenden iyi çıktı:
+
+|                                                   |                                                       |
+| ------------------------------------------------- | ----------------------------------------------------- |
+| SQL (migration + pgTAP)                           | 4.735 satır                                           |
+| Edge Function TypeScript                          | 1.186 satır                                           |
+| `@supabase/supabase-js`'e dokunan istemci dosyası | 4 (biri test, biri tek dikiş)                         |
+| Supabase Auth admin API yüzeyi                    | 3 çağrı: `createUser`, `deleteUser`, `updateUserById` |
+| Kullanılan Supabase Storage                       | yok (`workspace_documents` ölü)                       |
+
+Bu bir tesadüf değil: **"yetkilendirme veritabanında, veri erişimi servis katmanında"** kararının doğrudan sonucu. Yetkilendirmenin tamamı düz Postgres'te yaşıyor — RLS, `SECURITY DEFINER` fonksiyonlar, trigger'lar — ve hiçbiri Supabase'e özgü değil. İstemcide adres tek bir dikişten geliyor (`client/src/lib/supabaseClient.ts`), ESLint de `components/` katmanının Supabase'i doğrudan import etmesini engelliyor.
+
+**Karar:** Taşınabilirlik **korunacak bir özelliktir**, sonradan kazanılacak bir şey değil.
+
+1. Yeni bir sağlayıcı özelliği veya bağımlılık eklenirken şu soru sorulur: **"bu, düz Postgres veya standart bir arayüzle (S3, SMTP, OIDC) yapılabilir mi?"** Yapılabiliyorsa öyle yapılır.
+2. Yetkilendirme SQL'de kalmaya devam eder. Bu kural zaten vardı; taşınabilirlik onun ikinci gerekçesidir.
+3. **Somut ilk uygulama:** v1.6 Storage, Supabase Storage'ın kendi istemcisi yerine **S3-uyumlu** bir arayüze göre tasarlanır (Hetzner Object Storage S3-uyumludur). Bugün bedava, v1.6 yazıldıktan sonra pahalı.
+
+**Gerekçe:** Taşınabilirlik bugün büyük ölçüde elimizde ve korumak bedava; kaybedip geri kazanmak pahalı. Kilitlenme tek bir büyük kararla oluşmaz — her biri tek başına makul görünen küçük tercihlerle birikir, ve fark edildiğinde geri dönüş maliyeti zaten ödenmiştir.
+
+**Bunun çözmediği şey — açıkça:** Hetzner'e geçmek **veri yerleşimi sorununu çözmez.** Hetzner'in veri merkezleri Nürnberg ve Falkenstein (Almanya), Helsinki (Finlandiya), Ashburn ve Hillsboro (ABD), Singapur'dadır; **Türkiye yoktur.** Frankfurt'tan Falkenstein'a geçmek hukuken yatay bir harekettir — ikisi de KVKK anlamında yurt dışına aktarımdır. Veri yerleşimi ayrı bir karardır ve `PLATFORM_SETTINGS.md` §5'teki "Kişisel veri Frankfurt'ta" satırına aittir.
+
+**Bedeli — açıkça kabul ediliyor:** Kendi sunucuya geçmek, bugün Supabase'in yaptığı işleri devralmak demektir: yedekleme ve **test edilmiş** geri yükleme, Postgres/GoTrue/PostgREST yamaları, izleme ve nöbet. GitHub → Supabase migration entegrasyonu da gider; migration'ları uygulayan CI adımı bizim olur. Sunucu ücreti düşer, **operasyon zamanı ücreti artar** — ve iki kişilik bir ekipte o ücret sunucu ücretinden büyüktür.
+
+**Şart, sahip ve yapılacak iş (K-12):**
+
+- **Taşınma kararının tetikleyicisi:** bir pilot kurum sözleşmede veri yerleşimi şartı koyduğunda, **veya** Supabase kullanımı ücretsiz katmanı aştığında. İkisinden biri gerçekleşene kadar taşınma gündeme alınmaz.
+- **Taşınabilirliğin kontrol noktası:** **v1.6-01 açılışı** (Storage). Taşınabilirliği sınayacak ilk dilim odur, çünkü bugüne kadar hiç kullanılmamış tek Supabase bileşeni Storage'dır.
+- **Veri yerleşiminin kontrol noktası:** ayrı ve daha erken — `PLATFORM_SETTINGS.md` §5, "ilk gerçek kurum verisi girmeden önce".
+
+**Alternatifler:**
+
+- **Şimdi taşınmak:** Reddedildi. v1.2'nin ortasında altyapı değiştirmek, iş tablolarını yazmayı durdurur ve hiçbir bugünkü sorunu çözmez.
+- **Taşınabilirliği hiç hedeflememek:** Reddedildi. Maliyeti bugün sıfıra yakın; tek gerektirdiği, sağlayıcıya özgü bir kolaylık seçerken durup sormak.
+- **Veri yerleşimi için Hetzner'e geçmek:** Reddedildi — sorunu çözmüyor. Yukarıya bakınız.
