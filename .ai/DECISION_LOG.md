@@ -48,6 +48,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Veli yalnızca okur ve yalnızca kendi bağını görür
 - Öğretmenin yazma yetkisi rolünden değil atamasından gelir
 - Sütun maskeleme RLS'in işi değildir; sıralama bir fonksiyondan gelir
+- Ödeme kurum ile aile arasındadır; öğretmen ve öğrenci görmez
 
 **Kapsam ve sürüm**
 
@@ -1375,3 +1376,35 @@ Maskeleme sorusu yeni bir yetki kavramı getirmiyor; v1.2-01…04'te kurulmuş d
 - **Görünüm (view) + `security_invoker = false`:** Reddedildi. Aynı işi yapardı ama fonksiyon, "yetkisiz çağırana boş küme" kuralını ve giriş doğrulamasını daha açık taşıyor; ayrıca repo'da zaten fonksiyon kalıbı var.
 - **Sıralamayı istemcide hesaplamak:** Reddedildi. İstemcinin sıralayabilmesi için bütün sonuçları okuması gerekir; tam olarak engellenmek istenen şey bu.
 - **Öğrenciye yalnızca kendi sırasını (tek sayı) vermek:** Reddedildi. Dağılımı göstermeden "142.'sin" demek, öğrenciye durumu hakkında hiçbir şey anlatmıyor ve ürünün akademik takip vaadini boşa çıkarıyor.
+
+---
+
+### Karar: Ödeme kurum ile aile arasındadır; öğretmen ve öğrenci görmez
+
+**Durum:** Alındı
+**Tarih:** 2026-09-04
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.2-06 ödeme planı ve taksit takibini getirdi. Bugüne kadar her dilimde kapsam **genişliyordu**: öğretmen atamadan, öğrenci kendi kaydından, veli bağdan. Ödeme, bu eğilimin tersine döndüğü ilk yer.
+
+**Karar:** Ödeme verisini yalnızca **kurum yöneticisi ve veli** görür.
+
+1. **Öğretmen hiç görmez.** Sistemde `current_user_teaches_student` kapsamının bilinçli olarak **kullanılmadığı** ilk yer burasıdır.
+2. **Öğrenci kendi planını da görmez.**
+3. **Veli okur, yazmaz.** Ödemeyi aldığını kaydeden taraf kurumdur.
+
+**Gerekçe (1):** Bir öğretmenin bir öğrenciyi okutuyor olması, o ailenin borcunu görmesi için sebep değil. Ödeme kurum ile aile arasındaki bir ilişkidir ve öğretmen o ilişkinin tarafı değil. Dahası zararı somut: öğretmenin sınıfındaki "parası ödenmemiş çocuğu" bilmesi, öğrenciye davranışını farkında olmadan değiştirebilir.
+
+**Gerekçe (2):** 14 yaşındaki bir öğrencinin panelinde "3.500 TL gecikmiş taksit" yazması, ürünün çözmesi gereken bir şey değil. Ailenin borcu çocuğun ekranına düşmemeli.
+
+**Bedeli — açıkça kabul ediliyor:** E-postasız yetişkin kursiyer kendi ödemesini kendi hesabından göremez. Yol kapalı değil: o kişi için bir **veli kaydı** açılır ve kendi kendinin velisi olur. Alternatifi — "velisi olmayan öğrenci görsün" — reddedildi çünkü yetkiyi **başka bir tablodaki satırın yokluğuna** bağlardı: veli bağı silindiği anda öğrencinin erişimi sessizce açılır ve bunu kimse fark etmez.
+
+**Bir ikinci karar aynı dilimde: taksit durumu saklanmaz.** "Ödendi", "gecikti", "yaklaşıyor" `paid_at` ve `due_date`'ten türetilir. Saklanan bir durum, vade tarihi geçtiği gün sessizce yanlışa döner ve kimse onu güncellemez — **K-02**'nin (gösterim ile karar ayrı tutulur) veri modeline yansıması.
+
+**Ve bir sınır şemaya yazıldı:** kart numarası, IBAN, ödeme jetonu veya banka hesabı taşıyan **hiçbir sütun yok ve olmayacak.** Böyle bir sütun eklendiği gün ürün PCI-DSS kapsamına girer ve iki kişilik bir ekibin taşıyamayacağı bir uyum yükü doğar. Tahsilat gerektiğinde doğru yol, ödemeyi lisanslı bir sağlayıcıya devredip buraya yalnızca **sonucu** yazmaktır.
+
+**Alternatifler:**
+
+- **Öğrenci kendi planını görsün:** Reddedildi. Yetişkin kursiyer için doğal olurdu ama küçük öğrenci de görürdü.
+- **Velisi olmayan öğrenci görsün:** Reddedildi. Yukarıdaki sessiz açılma sebebiyle.
+- **Öğretmen kendi öğrencisinin ödeme durumunu görsün:** Reddedildi. "Takip kolaylığı" gerekçesi vardı; öğrenciye davranışı etkileme riski ondan ağır.

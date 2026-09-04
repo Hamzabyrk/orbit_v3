@@ -190,11 +190,13 @@ educationData.ts        →  Supabase import sayısı: 0
 
 **İkinci düzeltme (2026-09-04, v1.2-02):** `classes`, `class_enrollments`, `subjects` ve `class_teachers` de eklendi. Bağlantı matrisinde **Sınıf** satırının "Tablo" ve "Yazma" sütunları da ✅ oldu; Servis ve Ekran ❌ olarak duruyor. Öğretmen ilk kez gerçek bir kapsam kazandı — ama yalnızca veritabanında: ekranlar hâlâ `scopeFilters.ts`'ten besleniyor ve üretimde boş küme dönüyor. Ekranların bu tablolara bağlanması **v1.2-10**'dur.
 
-Aynı düzeltme "**Yazma mimarisi bilinçli ve tek biçimli**" paragrafını da kapsıyor: `authenticated` rolü artık **on iki** tabloya yazabiliyor (biri eskiden beri `profiles`) ve toplam RLS politika sayısı 11'den **65**'e çıktı — 2026-09-04'te v1.2-05 sonrası yerel veritabanından sayıldı. Dört rolün dördünün de kapsamı veritabanında kurulu: yönetici **kurumdan**, öğretmen **atamadan**, öğrenci **kendi kaydından**, veli **bağdan**.
+Aynı düzeltme "**Yazma mimarisi bilinçli ve tek biçimli**" paragrafını da kapsıyor: `authenticated` rolü artık **on dört** tabloya yazabiliyor (biri eskiden beri `profiles`) ve toplam RLS politika sayısı 11'den **72**'ye çıktı — 2026-09-04'te v1.2-06 sonrası yerel veritabanından sayıldı. Dört rolün dördünün de kapsamı veritabanında kurulu: yönetici **kurumdan**, öğretmen **atamadan**, öğrenci **kendi kaydından**, veli **bağdan**.
 
 **Üçüncü düzeltme (2026-09-04, v1.2-04):** `attendance_sessions` ve `attendance_records` eklendi; matriste **Yoklama** satırının "Tablo" ve "Yazma" sütunları ✅ oldu. Bu dilimle birlikte **öğretmen ilk kez yazabiliyor** — ve yetkisi rolünden değil sınıf atamasından geliyor. Denetim kaydının veri tarafındaki ilk parçası da burada: `recorded_by_membership_id` trigger ile çağıranın kimliğinden doldurulur, istemci yazamaz. Yetki kararı hâlâ SQL'de yaşıyor — değişen, isteğin oraya hangi yoldan gittiği. Gerekçe: `DECISION_LOG.md` — "İş verisi RLS ile yazılır, kimlik işlemleri Edge Function'da kalır".
 
 **Dördüncü düzeltme (2026-09-04, v1.2-05):** `exams` ve `exam_results` eklendi; matriste **Sınav** satırının "Tablo" ve "Yazma" sütunları ✅ oldu. Bu dilim ayrıca sistemdeki **ilk sütun maskeleme** mekanizmasını getirdi: `exam_ranking()` yetkiyi satır bazında çözüp isim ve kimliği maskeliyor. RLS'in yapamadığı bir işi yaptığı için tablo politikalarının yerine geçmiyor, yanında duruyor — tabloyu doğrudan okuyan hâlâ yalnızca görme yetkisi olan satırları alır.
+
+**Beşinci düzeltme (2026-09-04, v1.2-06):** `payment_plans` ve `installments` eklendi; matriste **Ödeme** satırının "Tablo" ve "Yazma" sütunları ✅ oldu. Bu dilim kapsamın **daraldığı** ilk yer: öğretmen ve öğrenci ödeme verisine hiç erişemiyor. Ölçülebilir hâli — ödeme tablolarının politikalarında `teaches` geçen **sıfır** ifade var. Ayrıca şemada kart/IBAN/jeton kalıbına uyan sıfır sütun var ve bu dilim de eklemedi.
 
 **Bağlantı matrisi** — hangi varlığın hangi katmanı var:
 

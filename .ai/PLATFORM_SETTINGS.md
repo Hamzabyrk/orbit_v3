@@ -319,11 +319,14 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 | `current_user_owns_student_record`   | WARN   | v1.2-04'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
 | `current_user_can_record_attendance` | WARN   | v1.2-04'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
 | `exam_ranking`                       | WARN   | v1.2-05'te eklendi. Yetkiyi içeride çözer; yetkisiz çağırana boş küme, yetkisiz satırlarda maskelenmiş kimlik döner        |
+| `current_user_can_see_payment_plan`  | WARN   | v1.2-06'da eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
 | Sızmış şifre koruması kapalı         | WARN   | Pro plan gerektiriyor                                                                                                      |
 
-**Bu on altının dışında bir uyarı çıkarsa incelenmelidir.**
+**Bu on yedinin dışında bir uyarı çıkarsa incelenmelidir.**
 
-> ✅ **15 sayısı doğrulandı (2026-09-04, v1.2-04 merge edildikten sonra).** İki yeni yoklama yardımcısı listede çıktı; `set_attendance_recorder` **çıkmadı** — trigger fonksiyonu olduğu için `authenticated`'a hiç açılmamıştı ve revoke'un tuttuğunu bu doğruluyor. **v1.2-05 ile beklenen sayı 16** (`exam_ranking`) — **henüz doğrulanmadı**, merge sonrası advisor yeniden çalıştırılmalı.
+> ✅ **16 sayısı doğrulandı (2026-09-04, v1.2-05 merge edildikten sonra).** `exam_ranking` listede çıktı, beklenmeyen uyarı yok. **v1.2-06 ile beklenen sayı 17** (`current_user_can_see_payment_plan`) — **henüz doğrulanmadı**, merge sonrası advisor yeniden çalıştırılmalı.
+>
+> ✅ **15 sayısı da doğrulanmıştı (v1.2-04 merge edildikten sonra).** İki yeni yoklama yardımcısı listede çıktı; `set_attendance_recorder` **çıkmadı** — trigger fonksiyonu olduğu için `authenticated`'a hiç açılmamıştı ve revoke'un tuttuğunu bu doğruluyor. **v1.2-05 ile beklenen sayı 16** (`exam_ranking`) — **henüz doğrulanmadı**, merge sonrası advisor yeniden çalıştırılmalı.
 >
 > ✅ **13 sayısı da doğrulanmıştı (v1.2-03 merge edildikten sonra).** İki yeni veli yardımcısı listede çıktı, beklenmeyen uyarı yok. **v1.2-04 ile beklenen sayı 15** (iki yeni yoklama yardımcısı) — **henüz doğrulanmadı**, merge sonrası advisor yeniden çalıştırılmalı.
 >
