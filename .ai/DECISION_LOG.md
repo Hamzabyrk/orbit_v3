@@ -38,6 +38,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Kimlik jeton değişince tazelenir, kullanıcı değişince değil
 - Demo modu derleme zamanı sabitidir
 - Öğrenci ve veli ekranları mobil-öncelikli tasarlanır
+- ORBIT tüm rollere "siz" diye hitap eder
 - Sistemik Graph-First Düşünme, Blast Radius ve 6 Boyutlu Risk Protokolü
 
 **Kapsam ve sürüm**
@@ -1086,3 +1087,34 @@ Kod zaten doğru kalıbı kullanıyordu — `educationData.ts`'in her ihracı `i
 - **`vite.config.ts`'te ortam kararını satır içi yazmak:** Reddedildi. Aynı karar iki yerde yaşardı (config ve `runtime.ts`) ve fail-closed davranış ikizlenirdi — **K-06**. Bunun yerine saf mantık `deploymentEnvironment.ts`'e taşındı ve iki taraf da oradan okuyor.
 
 **Kapsam dışı bırakıldı:** `roleEmail` gibi birkaç küçük demo sabiti hâlâ `demoMode` prop'una bağlı tüketicilerden erişilebilir; bunlar kişi adı taşımadığı için #144'ün gerekçesine girmiyor.
+
+---
+
+### Karar: ORBIT tüm rollere "siz" diye hitap eder
+
+**Durum:** Alındı
+**Tarih:** 2026-09-04
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Hitap biçimi hiçbir yerde yazılı değildi ve aynı rolde bile tutarsız uygulanıyordu (#147):
+
+```
+StudentDashboard        "bugün planın hazır"        → sen
+HomeworkPage (öğrenci)  "Dersleriniz… takip edin"   → siz
+SettingsProfileSection  "şifrenizi unutmanız…"      → siz
+```
+
+Öğrenciye "sen" demek bilinçli bir tercih **olabilirdi** — ama yazılı olmadığı için tercih mi kaza mı olduğu bilinemiyordu, ve her yeni metin yazan kişi kendi sezgisine göre karar veriyordu.
+
+**Karar:** ORBIT **her role "siz" diye hitap eder.** Öğrenci dahil, istisnasız.
+
+**Gerekçe:** Kural tek cümlede yazılabiliyor ve ihlali gözle yakalanabiliyor. Role göre dallanan bir hitap kuralı (öğrenciye "sen", yetişkinlere "siz") daha sıcak bir öğrenci deneyimi verirdi ve Türkçede çocuğa "siz" demek mesafeli durur — ama her metin yazıldığında "bu ekranı kim görüyor" sorusunun ayrıca sorulmasını gerektirirdi. Yazılı olmayan bir kuralın tutarsız uygulanması bu issue'nun sebebiydi; **uygulanması düşünme gerektiren bir kural, aynı sona daha yavaş varır.**
+
+Ürün kuruma satılıyor ve ekranların çoğunu yetişkinler görüyor: kurum yöneticisi, öğretmen, veli. Tek biçimli "siz", pilot görüşmesinde de tutarlı bir ton veriyor.
+
+**Alternatifler:**
+
+- **Öğrenciye "sen", diğerlerine "siz":** Reddedildi. Mevcut `StudentDashboard` metinlerinin niyetine daha yakındı ve Türkçe konuşma normlarına daha uygundu, ancak her metin için ek bir karar gerektiriyor. Kuralın ucuz uygulanabilirliği tercih edildi.
+- **Herkese "sen":** Reddedildi. Yönetici, öğretmen ve veli yetişkin müşteri; pilot görüşmesinde fazla samimi algılanma riski var.
+
+**Kapsam dışı bırakıldı:** `demoData.ts` içindeki gün planı görev başlıkları (`"Sabah dersinin yoklamasını sisteme işle"` gibi). Bunlar uygulamanın kullanıcıya hitabı değil, kullanıcının kendi yapılacak listesindeki madde metinleridir; emir kipi orada doğaldır.

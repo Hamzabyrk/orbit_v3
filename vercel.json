@@ -29,7 +29,7 @@
   ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/(sifre-sifirla|sifre-belirle|platform|404)",
       "destination": "/index.html"
     }
   ]

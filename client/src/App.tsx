@@ -10,6 +10,25 @@ import Home from "./pages/Home";
 import Platform from "./pages/Platform";
 import SetPassword from "./pages/SetPassword";
 
+/**
+ * ⚠️ Bu rota listesinin **derleyicinin göremediği bir ikizi var**:
+ * `vercel.json`'daki `rewrites` girdisi. Buraya yeni bir rota eklerken oraya da
+ * eklenmeli, yoksa rota yalnızca uygulama içi gezinmede çalışır ve adres
+ * çubuğuna yazıldığında Vercel 404 döner.
+ *
+ * Neden böyle: eskiden `vercel.json` her yolu (`/(.*)`) `index.html`'e
+ * yönlendiriyordu. SPA'da yaygın olan bu kalıp, olmayan bir sayfaya da
+ * `HTTP 200` döndürüyordu — `/olmayan-sayfa` ve hatta `/robots.txt` dahil
+ * (#146). Tarayıcı ve botlar sayfayı geçerli sanıyordu.
+ *
+ * Rota sayısı beş ve hepsi sabit olduğu için liste açıkça yazıldı; bilinen
+ * yollar `index.html`'e gider, geri kalan her şey Vercel'in gerçek 404'üne
+ * düşer. Bedeli bu ikizlik — ama sessiz bir yalan yerine, unutulduğunda hemen
+ * görülen bir hata.
+ *
+ * Aşağıdaki `<Route component={NotFound} />` yine de gerekli: uygulama içi
+ * gezinmede sunucuya istek gitmez, o durumda bu dal devreye girer.
+ */
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
