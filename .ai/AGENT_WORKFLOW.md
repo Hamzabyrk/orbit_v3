@@ -362,7 +362,17 @@ Pratik karşılığı: koşullu her karar üç şey taşır — **şart**, **şa
 
 _Kaynak: PR #81 bu tuzağı adıyla tarif etmişti — "`PLATFORM_SETTINGS` §4'teki beş ertelenmiş ayara tam olarak bu oldu; şart aynı gün sağlandı, kimse fark etmedi." 2026-08-29 denetimi aynı kalıbın üç canlı örneğini buldu: KVKK/Frankfurt kararı ("ilk gerçek kurum verisinden önce"), SMTP terki ("ilk gerçek kurum davetinden önce"), ve dal koruması (şart üçüncü bir yoldan sağlandı, metin hâlâ eski yolu tarif ediyor)._
 
----
+### K-13 · Engelin sonucu ölçülür, mekanizması varsayılmaz
+
+Bir işlemin engellendiğini **hangi hatayı fırlattığıyla** değil, **ne olmadığıyla** doğrula. "Bu çağrı `42501` döndürür" bir varsayımdır; "bu kayıt değişmedi" bir ölçümdür.
+
+Somut tuzak: PostgreSQL, `UPDATE`'in `using` koşulu hiçbir satırı tutmadığında **hata vermez** — sessizce sıfır satır günceller. `42501` yalnızca `with check` ihlalinde veya sütun/tablo yetkisi yokken çıkar. Yani "yetkisiz kullanıcı güncelleyemez" testini `throws_ok` ile yazmak, güvenlik doğru çalışsa bile testi kırar; daha kötüsü, ters durumda **yanlış bir mekanizmaya güvenip** geçtiğini sanabilirsin.
+
+Sonucu ölçmek ayrıca daha güçlüdür: kaydın değişmediğini kanıtlayan bir iddia, engelin RLS'ten mi sütun yetkisinden mi FK'den mi geldiğine bakmaksızın doğru kalır. Mekanizma değişirse test yine geçer, çünkü test **istenen şeyi** ölçüyordur.
+
+Aynı kural SQL dışında da geçerli: bir arayüz kontrolünün çalıştığını "hata mesajı göründü" ile değil, "istek gitmedi" veya "değer değişmedi" ile doğrula.
+
+## _Kaynak: v1.2-03. Velinin öğrenci kaydını değiştiremediği testi `throws_ok(..., '42501')` olarak yazıldı ve kırmızı döndü. Kırmızı olan politika değil beklentiydi: `UPDATE 0` dönüyordu, kayıt değişmiyordu ve güvenlik tam olarak istendiği gibi çalışıyordu._
 
 ## Görev dosyalarının ömrü
 

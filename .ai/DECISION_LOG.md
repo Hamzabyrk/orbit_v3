@@ -45,6 +45,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - İş tabloları asgari kişisel veriyle açılır
 - Sistem taşınabilir kurulur; sağlayıcı bir tercih, bağımlılık değildir
 - Sınıf bir öğretim yılına aittir; dönem tablosu yerine arşivleme
+- Veli yalnızca okur ve yalnızca kendi bağını görür
 
 **Kapsam ve sürüm**
 
@@ -1283,3 +1284,28 @@ Taşıma yerine arşivlemenin sebebi de aynı: bir öğrenci Kasım'da sınıf d
 - **Rehberliği `class_teachers`'a bayrakla koymak:** Reddedildi. İki farklı kavramı tek tabloda taşır ve "en fazla bir rehber" kuralı ayrıca kısmi unique index gerektirirdi.
 
 **İlgili:** [[Rol, atama ve bağlantı üç ayrı kavramdır]] — bu karar onun v1.2-02'deki uygulamasıdır.
+
+---
+
+### Karar: Veli yalnızca okur ve yalnızca kendi bağını görür
+
+**Durum:** Alındı
+**Tarih:** 2026-09-04
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.2-03 `student_guardians` bağını getirdi ve velinin kapsamını ilk kez gerçek hâle getirdi. İki soru cevaplanmak zorundaydı: veli ne kadar **yazabilir**, ve aynı öğrencinin **diğer velisini** görür mü?
+
+**Karar:**
+
+1. **Veli hiçbir tabloya yazamaz.** Öğrenci kaydını, sınıfını, kayıt satırını ve kendi bağını değiştiremez. Yalnızca okur.
+2. **Veli yalnızca kendi bağlarını görür.** Aynı öğrenciye bağlı diğer veli — örneğin ayrı yaşayan diğer ebeveyn — onun için görünmez.
+
+**Gerekçe (1):** Kurum kaydını kurum tutar. Velinin "çocuğumun şubesi yanlış girilmiş" demesi bir **talep**tir, doğrudan bir düzeltme değil; aksi hâlde kurumun kendi kaydı üzerinde denetleyemediği bir yazma yolu açılır. Aynı gerekçe öğretmen için de geçerliydi ("öğretmen öğrenci ekleyemez", 2026-08-29).
+
+**Gerekçe (2):** Bu bilgi veliye ait değil. Velayet ve ayrılık durumları hedef kitlede yaygın ve bir ebeveynin diğerinin kuruma verdiği iletişim bilgisine erişmesi, ürünün çözmesi gereken bir sorun değil **yaratabileceği** bir sorundur. Kapalı başlayıp gerektiğinde açmak, açık başlayıp sonra daraltmaktan güvenli (K-04).
+
+**Bir ayrıntı bilinçli:** kapsam kontrolü hem bağda hem **veli kaydında** `archived_at is null` arıyor. Yalnızca bağa bakılsaydı, kurumdan ayrılmış ve kaydı arşivlenmiş bir velinin erişimi bağ üzerinden sessizce devam ederdi. Testi var.
+
+**Kapsam dışı — bilinçli:** `student_guardians` bir yakınlık derecesi (anne/baba/vasi) veya birincil iletişim bayrağı taşımıyor. Hiçbir politikanın buna ihtiyacı yok ve tabloya bugün yazan bir ekran da yok; alanlar v1.4'te ekranla birlikte, aydınlatma metniyle birlikte kararlaştırılır — "İş tabloları asgari kişisel veriyle açılır" kararının aynısı.
+
+**İlgili:** [[Rol, atama ve bağlantı üç ayrı kavramdır]] — velinin kapsamının **bağlantıdan** gelmesi o kararın üçüncü ayağıdır ve bu dilimle tamamlandı.
