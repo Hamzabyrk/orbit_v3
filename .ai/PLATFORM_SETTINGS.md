@@ -314,11 +314,15 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 | `current_user_teaches_class`         | WARN   | v1.2-02'de eklendi. Yalnızca çağıranın kendi kapsamını döndürür: "ben bu sınıfa giriyor muyum"                             |
 | `current_user_attends_class`         | WARN   | v1.2-02'de eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
 | `current_user_teaches_student`       | WARN   | v1.2-02'de eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
+| `current_user_guards_student`        | WARN   | v1.2-03'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
+| `current_user_guards_class`          | WARN   | v1.2-03'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
 | Sızmış şifre koruması kapalı         | WARN   | Pro plan gerektiriyor                                                                                                      |
 
-**Bu on birin dışında bir uyarı çıkarsa incelenmelidir.**
+**Bu on üçün dışında bir uyarı çıkarsa incelenmelidir.**
 
-> ⚠️ **Sayı 8'den 11'e çıktı (2026-09-04, v1.2-02).** RLS politikalarının çağırdığı her `SECURITY DEFINER` yardımcı bu uyarıyı üretiyor; üç yeni kapsam yardımcısı da üretecek. **Üç satır beklentidir, ölçüm değil** — merge sonrası advisor çalıştırılarak doğrulanmalıdır. Yardımcıların `authenticated`'a açık olması zorunlu: RLS politikası onları çağıranın yetkisiyle değerlendiriyor, yetki kaldırılırsa kapsam çözümü kırılır (`current_user_has_membership` satırındaki gerekçenin aynısı).
+> ✅ **11 sayısı doğrulandı (2026-09-04, v1.2-02 merge edildikten sonra).** Advisor çalıştırıldı; üç yeni yardımcının üçü de listede çıktı ve beklenmeyen tek bir uyarı yok. **v1.2-03 ile beklenen sayı 13** (iki yeni veli yardımcısı) — bu sayı **henüz doğrulanmadı**, merge sonrası advisor yeniden çalıştırılmalı.
+>
+> ⚠️ **Sayı önce 8'den 11'e çıkmıştı (v1.2-02).** RLS politikalarının çağırdığı her `SECURITY DEFINER` yardımcı bu uyarıyı üretiyor; üç yeni kapsam yardımcısı da üretecek. **Üç satır beklentidir, ölçüm değil** — merge sonrası advisor çalıştırılarak doğrulanmalıdır. Yardımcıların `authenticated`'a açık olması zorunlu: RLS politikası onları çağıranın yetkisiyle değerlendiriyor, yetki kaldırılırsa kapsam çözümü kırılır (`current_user_has_membership` satırındaki gerekçenin aynısı).
 
 **Sonradan düzeltme (2026-09-04):** Bu liste önceden **üç** uyarı sayıyordu ve yanlıştı — advisor sekiz döndürüyordu. Sebep bizim bir değişikliğimiz değil: Supabase'in `0029` lint'i genişledi ve artık `authenticated` tarafından çağrılabilen **her** `SECURITY DEFINER` fonksiyonunu işaretliyor, yalnızca `current_user_has_membership`'i değil. Altısı da tek tek okundu; hepsi tasarım gereği. Eski liste yerinde bırakılmadı çünkü bir envanter değil **kontrol listesiydi**: "listede olmayan uyarı çıkarsa incele" kuralı, listenin eksik olduğu her gün işlemez hâle geliyordu.
 

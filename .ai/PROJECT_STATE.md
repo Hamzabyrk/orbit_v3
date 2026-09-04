@@ -190,7 +190,7 @@ educationData.ts        →  Supabase import sayısı: 0
 
 **İkinci düzeltme (2026-09-04, v1.2-02):** `classes`, `class_enrollments`, `subjects` ve `class_teachers` de eklendi. Bağlantı matrisinde **Sınıf** satırının "Tablo" ve "Yazma" sütunları da ✅ oldu; Servis ve Ekran ❌ olarak duruyor. Öğretmen ilk kez gerçek bir kapsam kazandı — ama yalnızca veritabanında: ekranlar hâlâ `scopeFilters.ts`'ten besleniyor ve üretimde boş küme dönüyor. Ekranların bu tablolara bağlanması **v1.2-10**'dur.
 
-Aynı düzeltme "**Yazma mimarisi bilinçli ve tek biçimli**" paragrafını da kapsıyor: `authenticated` rolü artık **yedi** tabloya yazabiliyor (biri eskiden beri `profiles`) ve toplam RLS politika sayısı 11'den **37**'ye çıktı — 2026-09-04'te yerel veritabanından sayıldı. Yetki kararı hâlâ SQL'de yaşıyor — değişen, isteğin oraya hangi yoldan gittiği. Gerekçe: `DECISION_LOG.md` — "İş verisi RLS ile yazılır, kimlik işlemleri Edge Function'da kalır".
+Aynı düzeltme "**Yazma mimarisi bilinçli ve tek biçimli**" paragrafını da kapsıyor: `authenticated` rolü artık **sekiz** tabloya yazabiliyor (biri eskiden beri `profiles`) ve toplam RLS politika sayısı 11'den **44**'e çıktı — 2026-09-04'te v1.2-03 sonrası yerel veritabanından sayıldı. Dört rolün dördünün de kapsamı artık veritabanında kurulu: yönetici **kurumdan**, öğretmen **atamadan**, öğrenci **kendi kaydından**, veli **bağdan**. Yetki kararı hâlâ SQL'de yaşıyor — değişen, isteğin oraya hangi yoldan gittiği. Gerekçe: `DECISION_LOG.md` — "İş verisi RLS ile yazılır, kimlik işlemleri Edge Function'da kalır".
 
 **Bağlantı matrisi** — hangi varlığın hangi katmanı var:
 
