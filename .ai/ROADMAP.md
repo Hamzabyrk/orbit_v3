@@ -12,35 +12,35 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 >
 > **Sıradaki işi buradan seçme.** Bu tablo _nerede olduğumuzu_ söyler; _ne yapılacağını_ **§4.6** söyler. Orada kalan bütün sürümler dilimlere bölünmüş ve her dilim **dayandığı varsayımları** yazmıştır — bir dilim, o varsayımlar canlı sistemde doğrulanmadan başlamaz (**K-10**).
 >
-> **Açık bulgular `gh issue list`'tedir.** Bugün 10 açık issue var; en acili **#143** (hareketsizlik zaman aşımı sayfa yenilemesiyle aşılıyor). Sistemin bugünkü durumu: `PROJECT_STATE.md` **§6.1**.
+> **Açık bulgular `gh issue list`'tedir.** Sayı buraya yazılmıyor: denetimden bir gün sonra eskidi (**K-06**). Sıradaki dilim **v1.2-01** ve önündeki tek kapı **#150** — dolu kurumun silinmesi engellenmeden iş tablosu eklenmez. Sistemin bugünkü durumu: `PROJECT_STATE.md` **§6.1**.
 
-| Sürüm / Dilim | Kapsam                                                                                                                                   | Durum |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| v1.0          | Arayüz demosu, 4 rol görünümü, mock veri katmanı, kalite kapısı, Vercel + Supabase bağlantısı                                            | ✅    |
-| v1.1          | Tenant şeması, rol enum'u, gerçek Auth session, `audit_events`, kurum kurulum Edge Function'ı                                            | ✅    |
-| v1.1.1        | Fonksiyon yetkileri, production Auth ayarları, `PLATFORM_SETTINGS.md`, CI sertleştirmesi, güvenlik başlıkları                            | ✅    |
-| v1.1.2 · D0   | Sentetik e-posta ile hesap açma ve giriş kanıtı (#35)                                                                                    | ✅    |
-| v1.1.2 · D1   | `organizations.code`, Edge Function operatör kontrolü (#37)                                                                              | ✅    |
-| v1.1.2 · D2   | Kimliğin iki bağımsız eksene ayrılması, `/platform` rotası (#40)                                                                         | ✅    |
-| v1.1.2 · D3   | Panel: kurum listesi, kurum oluşturma, operatör listesi, denetim kaydı (#41)                                                             | ✅    |
-| v1.1.2 · D4   | İlk platform operatörleri (#43) — ikisi de eklendi                                                                                       | ✅    |
-| —             | Panel bağlantısı, demo rol kartlarının gizlenmesi, kullanılabilir sol menü (#45)                                                         | ✅    |
-| **Faz E**     | **Kimlik zinciri — ayrıntı bölüm 4.5**                                                                                                   | 🟡    |
-| Faz E · E0    | E-posta değişimi spike'ı (#51)                                                                                                           | ✅    |
-| Faz E · E1    | Kurum kurma makinesi: `person_code`, geçici şifre, yazdırılabilir fiş (#53 · #57 · #59 · #61 · #63 · #65)                                | ✅    |
-| Faz E · E2    | Test kurumu `orbitdershane`'in kaldırılması                                                                                              | ✅    |
-| Faz E · E3    | İlk giriş kilidi ve 8 haneli numarayla giriş (#69 · #73)                                                                                 | ✅    |
-| Faz E · E4    | İletişim bilgisi ve kurtarma zinciri — **mailsiz yarısı bitti**, gönderim sağlayıcı bekliyor (#95 · #96 · #97 · #98)                     | 🟡    |
-| Faz E · E5    | Mock verinin kaldırılması (#88 · #90 · #93) — üç madde v1.2'ye taşındı                                                                   | ✅    |
-| Faz E · E6    | Kurum yöneticisinin kullanıcı ekleme ekranı (#105 · #106 · #107 · #113) — rol değiştirme, kurumdan çıkarma ve yönetici devri **v1.4'te** | 🟡    |
-| Faz E · E7    | Uçtan uca doğrulama — beş adımın beşi de koşuldu (2026-08-26 · 2026-08-29)                                                               | ✅    |
-| Faz E · E7.2  | Canlı turdan çıkan çevre ekran bulguları (#131 – #137) — yedisi de kapandı, dört rolle doğrulandı                                        | ✅    |
-| **Denetim**   | **Sistem denetimi (2026-08-29) — bulgular #143 – #151, kurallar K-10/11/12, dilimler §4.6**                                              | 🟡    |
-| v1.2          | İş tabloları + tenant/rol RLS matrisi — **dilimleri §4.6'da**                                                                            | ⬜    |
-| v1.3 (kalan)  | Ekranların canlı sorguya bağlanması, hesaplar arası geçiş ve kişi kaydı — mock temizliği E5'te bitti, **kalanın dilimleri §4.6'da**      | ⬜    |
-| v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları                                                                                     | ⬜    |
-| v1.5          | 4 rol kabul testi, KVKK envanteri ve hukuki hazırlık, pilot geri bildirimi                                                               | ⬜    |
-| v1.6 – v2.0   | Storage, toplu aktarım, raporlama, ticarileşme kapısı                                                                                    | ⬜    |
+| Sürüm / Dilim | Kapsam                                                                                                                                         | Durum |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| v1.0          | Arayüz demosu, 4 rol görünümü, mock veri katmanı, kalite kapısı, Vercel + Supabase bağlantısı                                                  | ✅    |
+| v1.1          | Tenant şeması, rol enum'u, gerçek Auth session, `audit_events`, kurum kurulum Edge Function'ı                                                  | ✅    |
+| v1.1.1        | Fonksiyon yetkileri, production Auth ayarları, `PLATFORM_SETTINGS.md`, CI sertleştirmesi, güvenlik başlıkları                                  | ✅    |
+| v1.1.2 · D0   | Sentetik e-posta ile hesap açma ve giriş kanıtı (#35)                                                                                          | ✅    |
+| v1.1.2 · D1   | `organizations.code`, Edge Function operatör kontrolü (#37)                                                                                    | ✅    |
+| v1.1.2 · D2   | Kimliğin iki bağımsız eksene ayrılması, `/platform` rotası (#40)                                                                               | ✅    |
+| v1.1.2 · D3   | Panel: kurum listesi, kurum oluşturma, operatör listesi, denetim kaydı (#41)                                                                   | ✅    |
+| v1.1.2 · D4   | İlk platform operatörleri (#43) — ikisi de eklendi                                                                                             | ✅    |
+| —             | Panel bağlantısı, demo rol kartlarının gizlenmesi, kullanılabilir sol menü (#45)                                                               | ✅    |
+| **Faz E**     | **Kimlik zinciri — ayrıntı bölüm 4.5**                                                                                                         | 🟡    |
+| Faz E · E0    | E-posta değişimi spike'ı (#51)                                                                                                                 | ✅    |
+| Faz E · E1    | Kurum kurma makinesi: `person_code`, geçici şifre, yazdırılabilir fiş (#53 · #57 · #59 · #61 · #63 · #65)                                      | ✅    |
+| Faz E · E2    | Test kurumu `orbitdershane`'in kaldırılması                                                                                                    | ✅    |
+| Faz E · E3    | İlk giriş kilidi ve 8 haneli numarayla giriş (#69 · #73)                                                                                       | ✅    |
+| Faz E · E4    | İletişim bilgisi ve kurtarma zinciri — **mailsiz yarısı bitti**, gönderim sağlayıcı bekliyor (#95 · #96 · #97 · #98)                           | 🟡    |
+| Faz E · E5    | Mock verinin kaldırılması (#88 · #90 · #93) — üç madde v1.2'ye taşındı                                                                         | ✅    |
+| Faz E · E6    | Kurum yöneticisinin kullanıcı ekleme ekranı (#105 · #106 · #107 · #113) — rol değiştirme, kurumdan çıkarma ve yönetici devri **v1.4'te**       | 🟡    |
+| Faz E · E7    | Uçtan uca doğrulama — beş adımın beşi de koşuldu (2026-08-26 · 2026-08-29)                                                                     | ✅    |
+| Faz E · E7.2  | Canlı turdan çıkan çevre ekran bulguları (#131 – #137) — yedisi de kapandı, dört rolle doğrulandı                                              | ✅    |
+| **Denetim**   | **Sistem denetimi (2026-08-29) — bulgular #143 – #151, kurallar K-10/11/12, dilimler §4.6.** #143 ve #150 kapandı; v1.2'nin önündeki kapı açık | 🟡    |
+| v1.2          | İş tabloları + tenant/rol RLS matrisi — **dilimleri §4.6'da**                                                                                  | ⬜    |
+| v1.3 (kalan)  | Ekranların canlı sorguya bağlanması, hesaplar arası geçiş ve kişi kaydı — mock temizliği E5'te bitti, **kalanın dilimleri §4.6'da**            | ⬜    |
+| v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları                                                                                           | ⬜    |
+| v1.5          | 4 rol kabul testi, KVKK envanteri ve hukuki hazırlık, pilot geri bildirimi                                                                     | ⬜    |
+| v1.6 – v2.0   | Storage, toplu aktarım, raporlama, ticarileşme kapısı                                                                                          | ⬜    |
 
 **v1.1 neden artık yeşil (2026-08-25):** Uzun süre ⚠️ idi, çünkü release gate'i _"davet edilen kullanıcı kendi şifresini kurup giriş yapabilir"_ diyordu ve bu doğru değildi — `type=invite` istemcide hiç ele alınmıyordu. **Faz E1 davet yolunu tamamen kaldırdı**, E3 de yerine geçen akışı kapattı. Gate bugünkü karşılığıyla yeniden yazıldı: _"panelden açılan hesap, numara ve geçici şifreyle girip şifresini değiştirebilir"_ — ve bu production'da doğrulandı. Bkz. `DECISION_LOG.md` — "Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır".
 
@@ -241,7 +241,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [x] Operatörün kurum **kabını** okuyabilmesi (Issue #41). `organizations_select_member` üyelik istediği için kurum listesi operatöre boş dönüyordu. Kap açıldı, içerik (`branches`, `organization_memberships`, `audit_events`) kapalı kaldı ve bu sınır pgTAP ile sabitlendi.
 - [x] Kurum oluşturma artık `platform_audit_events`'e de yazıyor (Issue #41). Öncesinde yalnızca kurumun kendi `audit_events` kaydına yazılıyordu; operatör o tabloyu okuyamadığı için panelin denetim listesi hiç dolmayacaktı.
 - [~] İlk platform operatörü hesaplarının bir defaya mahsus kontrollü eklenmesi (Issue #43). **Yarısı yapıldı:** Hamza Bayrak 2026-08-24'te `owner` olarak eklendi ve RLS'in ona kurum/operatör/denetim listelerini gerçekten verdiği kimliğine bürünülerek doğrulandı. Arda Bülent'in **hesabı henüz yok**; hesap açıldığında ikinci operatör kaydı eklenecek.
-- [ ] Test kurumu `orbitdershane`'in silinip ilk kurumun panel üzerinden yeniden kurulması.
+- [x] Test kurumu `orbitdershane`'in silinip ilk kurumun panel üzerinden yeniden kurulması. Silme Faz **E2**'de, panelden yeniden kurulum **E7**'de (kurum 1003) yapıldı; ayrıntı orada, burada tekrarlanmıyor (**K-06**).
 
 **Release gate:** Kurum ve kurum yöneticisi yalnızca panel üzerinden oluşturulabilir; oluşturulan kullanıcı kendisine verilen giriş numarası ve geçici şifreyle giriş yapıp şifresini değiştirebilir; platform operatörü hiçbir kurumun öğrenci/not/yoklama/ödeme verisini okuyamaz; her platform işlemi denetim kaydı üretir.
 
@@ -267,7 +267,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] **Repository/query/mutation katmanı** — taşınabilirlik sınırının istemci tarafındaki dikişi. `educationData.ts` bugün bir dikiş ama sorgu katmanı değil; Faz E5'ten taşındı.
 - [ ] **Loading ve error durumları.** Boş durumlar E5'te eklendi; bekleme ve hata durumları ancak eşzamansız veri gelince anlam kazanır.
 - [ ] **Kilit sunucuda da devreye girsin.** İş tablolarının politikalarına `and not public.current_user_must_change_password()` koşulu eklenir. Fonksiyon E3'te yazıldı, süreyi de okuyor, ama **bugün hiçbir politikada kullanılmıyor**; kilit yalnızca istemcide.
-- [ ] **Dolu kurumun silinmesi engellensin.** `internal_delete_organization`, kurumda öğrenci/sınıf/not/ödeme kaydı varsa reddetmelidir. Bugün engel yok çünkü iş tabloları yok; kurumlar boşken silme düğmesi "zararsız" hissettiriyor ve alışkanlık öyle oturuyor. Veri geldiğinde aynı düğme aynı yerde duruyor olacak. Silinecek kayıt sayıları onay ekranında zaten gösteriliyor (Issue #65), ancak sayı göstermek engel değildir.
+- [x] **Dolu kurumun silinmesi engellensin** (#150). `internal_delete_organization` artık kurumda içerik varsa reddediyor: `ORB01` SQLSTATE'i ile durur, engelleyen tablo ve satır sayısını döner, hiçbir şey silmez ve "silindi" denetim kaydı yazmaz — reddin kendi kaydını Edge Function yazar. **Sabit tablo listesi yok:** `public` şemasında `organization_id` taşıyan her tablo, dört yapısal tablo (`branches`, `organization_memberships`, `audit_events`, `platform_audit_events`) dışında, içerik sayılır. Aşağıdaki her dilim tablosunu eklediği gün koruma onu kimse bir şey yazmadan kapsar. **Bunun karşılığı bir varsayımdır: kuruma ait her tablo `organization_id` taşır** — taşımayan bir tablo yalnızca bu korumayı değil tenant modelinin tamamını deler.
 
 **Release gate:** RLS test matrisi admin/teacher/student/parent için olumlu ve olumsuz senaryolarda geçer; sahipsiz tenant kaydı oluşamaz.
 
@@ -293,7 +293,7 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] **Kişi kaydı — hesapların ait olduğu grup.** "Bu kişinin diğer hesapları hangileri" bilgisi; geçiş düğmesi için zaten gerekli, KVKK "verilerimi sil" talebinde tüm kayıtların birlikte bulunabilmesi için de gerekli. **İkili bağ olarak modellenmez** (`linked_account_id` iki hesapta çalışır, üçte kırılır); N hesap aynı kişi kaydına bağlanır. Bkz. `DECISION_LOG.md` — "Rol, atama ve bağlantı üç ayrı kavramdır".
 - [ ] Kurum/sınıf kapsamlı Realtime invalidation ve abonelikleri.
 
-- [ ] İstemci tarafı hareketsizlik sayacı: belirli süre işlem yoksa oturum kapatılır. Supabase'in sunucu tarafı oturum zaman aşımı Pro plan gerektirdiği için ücretsiz karşılığıdır; dershanenin ortak bilgisayarında açık bırakılan tarayıcı senaryosuna karşı etkilidir.
+- [x] İstemci tarafı hareketsizlik sayacı: belirli süre işlem yoksa oturum kapatılır. Supabase'in sunucu tarafı oturum zaman aşımı Pro plan gerektirdiği için ücretsiz karşılığıdır; dershanenin ortak bilgisayarında açık bırakılan tarayıcı senaryosuna karşı etkilidir. Sayaç **#128**'de yazıldı (tarayıcı kapansa da süre işlemeye devam ediyor), **#143**'te tamamlandı: süre dolduğunda yalnızca ekran değil **jeton** da temizleniyor — öncesinde sayfayı yenilemek kilidi aşıyordu.
 
 **Release gate:** Yeni kurum yalnızca admin ve boş ekranlarla açılır; production bundle içinde demo kişi/kurum verisi bulunmaz; aynı veri farklı yetkili oturumlarda doğru kapsamda güncellenir.
 
@@ -598,7 +598,11 @@ Bu yüzden v1.2 "tabloları ekle" işi değildir. Her varlık için **dört katm
 | **v1.2-11** | **Kilit sunucuda devreye girsin** 🔒                                     | v1.2-01…09 · `current_user_must_change_password()` E3'te yazıldı, süreyi de okuyor, ama **bugün hiçbir RLS politikasında kullanılmıyor** — kilit yalnızca istemcide |
 | **v1.2-12** | Kurum denetim kaydı ekranı (**#149**)                                    | `audit_events` yazılıyor ve `audit_events_select_admin` politikası var · İzlenebilirlik kararı (`DECISION_LOG` 2026-08-25)                                          |
 
-> ⚠️ **v1.2'nin her tablo dilimi `internal_delete_organization`'a dokunur (#150).** Fonksiyon bugün **içerik koruması taşımıyor**; yeni tablo eklendiğinde kontrol listesine de eklenmezse dolu bir kurum tek çağrıyla silinebilir hâle gelir. Bu, ayrı bir iş olarak bırakılırsa unutulur — her dilimin kapsamına dahildir.
+> ✅ **#150 kapandı ve artık hiçbir dilimin kapsamına girmiyor.** Fonksiyon eskiden içerik koruması taşımıyordu ve her dilim "yeni tablomu kontrol listesine eklemeyi hatırlamak" zorundaydı. Koruma ters çevrildi: `organization_id` taşıyan her tablo varsayılan olarak korunuyor, istisna listesi ise elle düzenleniyor. Yeni bir tablo eklendiğinde yapılacak bir şey **yok** — unutmanın sonucu artık veri kaybı değil, açıkça reddedilen bir silme.
+>
+> ⚠️ **Karşılığı, her dilimin beyan etmesi gereken bir varsayımdır:** _tablom `organization_id` taşıyor._ Taşımıyorsa koruma onu göremez; ama o tablo zaten tenant modeline uymuyordur ve dilim açılışında (**K-10**) bu yakalanmalıdır.
+>
+> ⚠️ **İkinci karşılık:** silme onay ekranındaki sayılar (`platform_organization_stats`) yalnızca üyelik, şube ve denetim kaydı sayıyor. Yeni bir iş tablosu o görünüme eklenmezse operatör "boş" görünen bir kurumu silmeye çalışır ve reddedilir — zarar yok, ama şaşırtıcı. Görünümü genişletmek her dilimin isteğe bağlı işidir; **korumanın doğruluğu buna bağlı değildir.**
 
 > ⚠️ **v1.2-10 bir K-11 olayıdır.** Kapsam gerçek olduğu anda, E7.2-B2'nin "üretimde boş küme" varsayımı geçersizleşir. `scopeFilters.ts`'in başlığındaki gerekçe notu o gün güncellenmelidir.
 

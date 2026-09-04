@@ -210,9 +210,9 @@ Denetimin ortaya çıkardığı, tek bir issue'ya sığmayan üç kalıp:
 
 ### Nereden devam edilecek
 
-**Açık issue'lar:** #118 (kurtarma, sağlayıcı bekliyor) · #143 (zaman aşımı yenilemeyle aşılıyor — **en acil**) · #144–#151 (denetim bulguları).
+**Açık issue'lar:** #118 (kurtarma, sağlayıcı bekliyor) · #144–#151 (denetim bulguları).
 
-**Sıra:** #143 önce — çalışmayan bir koruma, korumasızlıktan kötüdür. Ardından `ROADMAP.md` 4.6'daki **v1.2-01**.
+**Sıra:** #143 (zaman aşımı yenilemeyle aşılıyor) **2026-08-29'da kapandı** — çalışmayan bir koruma, korumasızlıktan kötüdür. Sıradaki kapı **#150**: dolu kurumun silinmesi engellenmeden `ROADMAP.md` 4.6'daki **v1.2-01** açılmaz.
 
 **Pilot öncesi kapatılması zorunlu, koda bağlı olmayan iki kapı:** KVKK/Frankfurt kararı ve e-posta sağlayıcısı. İkisi de **bugün sahipsiz** ve ikisi de "ilk gerçek kurum" şartına bağlı — yani tetiklenmelerine az kaldı.
 
