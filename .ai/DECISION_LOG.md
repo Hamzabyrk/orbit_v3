@@ -47,6 +47,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Sınıf bir öğretim yılına aittir; dönem tablosu yerine arşivleme
 - Veli yalnızca okur ve yalnızca kendi bağını görür
 - Öğretmenin yazma yetkisi rolünden değil atamasından gelir
+- Sütun maskeleme RLS'in işi değildir; sıralama bir fonksiyondan gelir
 
 **Kapsam ve sürüm**
 
@@ -1342,3 +1343,35 @@ Somut sonucu iki yönlü:
 
 - **Yazmayı role bağlamak:** Reddedildi. Uygulaması bir satır daha kısaydı ama kurumdaki her öğretmene her sınıfın yoklamasını verirdi.
 - **Geçmişe dönük düzeltmeyi N gün sonra kilitlemek:** Reddedildi. Tek yöneticili kurumda düzeltmenin tek yolunu kapatır. Sorun erişimde değil izlenebilirlikte.
+
+---
+
+### Karar: Sütun maskeleme RLS'in işi değildir; sıralama bir fonksiyondan gelir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-04
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Soru 6'nın onaylı cevabı, v1.2-05'e kadar karşılaşmadığımız bir şey istiyordu: _"Öğrenci ve veli yalnızca kendi/bağlı öğrencisinin sonucunu ve sırasını görecek; diğer öğrencilerin kimlikleri anonim olacak."_
+
+Buradaki incelik şu: öğrenci **tüm sıralamayı** görmek zorunda. Kaçıncı olduğunu bilmesi için kaç kişinin önünde olduğunu görmesi gerekiyor; yalnızca kendi satırını görürse "sıra" diye bir bilgi kalmaz. Ama diğer isimleri görmemeli.
+
+Yani gizlenmesi gereken şey **satır değil, aynı satırın bazı sütunları**. RLS satır gizler; bu isteği politikayla ifade etmek mümkün değil.
+
+**Karar:** Sıralama, tablo üzerinden değil `public.exam_ranking(uuid)` fonksiyonundan okunur. Fonksiyon `SECURITY DEFINER`'dır, yetkiyi içeride çözer ve her satır için ayrı ayrı "çağıran bu öğrenciyi görebilir mi" sorusunu sorar. Cevap hayırsa **isim ve kimlik `null` döner, sıra ve puan durur.**
+
+- Yetkisiz çağırana hata değil **boş küme** döner: sıralamayı görmeye hakkı olmayan biri "bu sınav var ama göremiyorsun" bilgisini de almamalı.
+- Sıralamayı görme koşulu, sınavda **en az bir öğrenciyi görebiliyor olmak**. Sınava girmemiş ve orada kimseyi okutmayan biri isimsiz puan dağılımını bile göremez — o dağılım ona ait bir bilgi değil.
+- Tablonun kendi RLS politikaları **ayrıdır ve daha dardır**: doğrudan okuyan yalnızca görme yetkisi olan satırları alır, maskeleme yoktur. İki yol birbirinin yerine geçmez.
+
+**Gerekçe:** Kalıp yeni değil — `platform_organization_stats` da yetkiyi içeride çözen, yetkisiz çağırana veri değil `null` dönen bir `SECURITY DEFINER` fonksiyondu. Buradaki fark, kararın **satır bazında** verilmesi.
+
+Maskeleme sorusu yeni bir yetki kavramı getirmiyor; v1.2-01…04'te kurulmuş dört kapsamın birleşimi: yönetici, öğrenciyi okutan öğretmen, öğrencinin kendisi, öğrencinin velisi. Bu önemli — yetkilendirme mantığı ikinci bir yerde yeniden yazılsaydı, kapsam değiştiğinde biri güncellenip diğeri unutulurdu (**K-06**).
+
+**Sessiz bir sızıntı kapatıldı:** sonuçlar eşit puanda isme göre sıralansaydı, anonim satırların **alfabetik yeri** ele verilirdi — yeterince sınavla bir öğrencinin adının baş harfi daraltılabilirdi. Sıralama `(sıra, öğrenci kimliği)` ile yapılıyor; UUID bilgi taşımaz.
+
+**Alternatifler:**
+
+- **Görünüm (view) + `security_invoker = false`:** Reddedildi. Aynı işi yapardı ama fonksiyon, "yetkisiz çağırana boş küme" kuralını ve giriş doğrulamasını daha açık taşıyor; ayrıca repo'da zaten fonksiyon kalıbı var.
+- **Sıralamayı istemcide hesaplamak:** Reddedildi. İstemcinin sıralayabilmesi için bütün sonuçları okuması gerekir; tam olarak engellenmek istenen şey bu.
+- **Öğrenciye yalnızca kendi sırasını (tek sayı) vermek:** Reddedildi. Dağılımı göstermeden "142.'sin" demek, öğrenciye durumu hakkında hiçbir şey anlatmıyor ve ürünün akademik takip vaadini boşa çıkarıyor.
