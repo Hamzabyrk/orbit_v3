@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveDeploymentEnvironment } from "./runtime";
+import { resolveDeploymentEnvironment } from "./deploymentEnvironment";
 
 describe("resolveDeploymentEnvironment", () => {
   it("keeps Vercel preview in demo mode", () => {

@@ -5,17 +5,31 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 import type { Role } from "./types";
+import { isDemoMode } from "@/auth/runtime";
 
 /**
  * Demo ortamında gösterilen sahte rol isimleri.
- * Üretim kodunun demo isimlere erişebildiği hiçbir yol bırakılmamıştır (#133).
+ *
+ * Üretim kodunun bu isimlere erişebildiği hiçbir yol yoktu (#133) — ama
+ * isimler yine de üretim PAKETİNE giriyordu ve paketi açan biri için aradaki
+ * fark yok (#144). Ölçülmüştü: dördü de son derlemede yan yana duruyordu.
+ *
+ * Üçlü, `educationData.ts`'in her ihracında kullanılan kalıbın aynısı ve aynı
+ * işi yapıyor: `isDemoMode` derleme zamanında `false`'a katlandığı için üretim
+ * derlemesinde isim literalleri ulaşılamaz hale gelir ve elenir.
+ *
+ * Üretimdeki karşılık boş dizedir, uydurma bir isim değil — bu dalı okuyan bir
+ * kod yolu ortaya çıkarsa sahte bir ad göstermek yerine hiçbir şey göstersin
+ * (K-03). Bugün böyle bir yol yok: her tüketici zaten demo moduna bakıyor.
  */
-export const demoRoleNames: Record<Role, string> = {
-  admin: "Ayşe Yalçın",
-  teacher: "Merve Karaca",
-  student: "Zeynep Kaya",
-  parent: "Murat Kaya",
-};
+export const demoRoleNames: Record<Role, string> = isDemoMode
+  ? {
+      admin: "Ayşe Yalçın",
+      teacher: "Merve Karaca",
+      student: "Zeynep Kaya",
+      parent: "Murat Kaya",
+    }
+  : { admin: "", teacher: "", student: "", parent: "" };
 
 export const roleMeta: Record<
   Role,

@@ -36,6 +36,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Taşınabilirlik sınırı — yetkilendirme veritabanında, veri erişimi servis katmanında
 - Silme koruması korunacakları değil, korunmayacakları sayar
 - Kimlik jeton değişince tazelenir, kullanıcı değişince değil
+- Demo modu derleme zamanı sabitidir
 - Öğrenci ve veli ekranları mobil-öncelikli tasarlanır
 - Sistemik Graph-First Düşünme, Blast Radius ve 6 Boyutlu Risk Protokolü
 
@@ -1057,3 +1058,31 @@ Karar mantığı `client/src/auth/sessionEvents.ts`'te saf bir fonksiyon olarak 
 - **`signIn`'in kendi okumasını kaldırıp `SIGNED_IN`'e bırakmak:** Reddedildi. `signIn` okuma başarısız olduğunda kullanıcıyı dışarı alıp hatayı çağırana fırlatmak zorunda; olay yolunda fırlatılan hata kimseye ulaşmaz.
 
 **Kapsam dışı bırakıldı — dürüstçe:** Bu değişiklik **yerelde ve preview'da hiç koşmuyor.** `isDemoMode = deploymentEnvironment !== "production"` olduğu için `AuthProvider`'ın oturum `useEffect`'i o ortamlarda en başta dönüyor. Doğrulanan şey, saf karar fonksiyonu (13 iddia) ve auth-js'in olay sözleşmesidir; **davranışın tek gerçek doğrulama yeri production'dır.** Bu yeni bir açık değil, `PLATFORM_SETTINGS.md` §5'te kayıtlı "Auth, RLS ve platform paneli preview'da doğrulanamıyor" açığının somut bedelidir.
+
+---
+
+### Karar: Demo modu derleme zamanı sabitidir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-04
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Demo verisi hiçbir üretim ekranında gösterilmiyordu (#133 bunu kapatmıştı) ama JS paketinin **içinde** duruyordu: son ölçümde `Merve Karaca` 18, `Zeynep Kaya` 11 kez geçiyordu (#144). İşlevsel bir açık değil — sızıntı yok, sır yok. Ticari risk gerçek: pilot okulun bilişimcisi paketi açıp Türkçe kişi adları görürse sızmış müşteri verisi sanar.
+
+Kod zaten doğru kalıbı kullanıyordu — `educationData.ts`'in her ihracı `isDemoMode ? demoX : []`. Ama üçlünün hiçbir dalı eleniyordu, çünkü `isDemoMode`, `resolveDeploymentEnvironment(...)` **fonksiyon çağrısından** türüyordu ve Rollup katlayamıyordu. Doğru yazılmış bir koruma, yanlış zamanda çalıştığı için hiçbir şey korumuyordu.
+
+**Karar:** Ortam kararı `vite.config.ts`'te **bir kez** veriliyor ve `__ORBIT_DEMO_MODE__` define'ı olarak gömülüyor. `isDemoMode` bu define'ı okuyor; üretim derlemesinde literal `false` olur, üçlüler `[]`'e çöker ve `demoData.ts` ulaşılamaz hale gelip elenir.
+
+**Bunun bir kuralı vardır ve ileriye dönük bağlayıcıdır:** `isDemoMode` bir **derleme zamanı sabiti** olarak kalmalıdır. Onu çalışma zamanında hesaplanan bir şeye (fonksiyon çağrısı, context değeri, prop) bağlayan her değişiklik demo verisini sessizce pakete geri sokar — ve bu, hiçbir testin yakalamayacağı bir gerilemedir. Gerileme yalnızca paket taranarak görülür.
+
+**Gerekçe — isim değiştirme neden reddedildi.** Issue ucuz bir alternatif sunuyordu: demo isimleri `Demo Öğretmen 1` gibi belirgin biçimde kurgusal yapmak. Bu, ticari riski çözer ama `PROJECT_STATE.md`'de yazılı ürün kararını bozar — demo verisinin var olma sebebi _"müşteriye sunum yaparken kurumun dolu gözükmesini sağlayan gerçekçi örnek veriler"_. Bir sorunu çözerken başka bir kararı bozmak, kararı veren tarafa sorulmadan yapılmaz.
+
+**Doğrulama iki yönlüdür ve tek yönlü olamaz.** Üretim paketinde altı demo isminin altısı da 0; preview (demo) paketinde `Merve Karaca` 18, `YKS 12-A` 17, `stu-001` 3 — hepsi yerinde. Yalnızca birinci ölçüm yapılsaydı, demo modunu tamamen kırmış olmak da aynı sonucu verirdi. Satış sunumunun temeli olan bir özelliği "temizledim" diye bozmak, düzeltilen sorundan pahalıya mal olurdu.
+
+**Alternatifler:**
+
+- **Demo isimlerini kurgusallaştırmak:** Reddedildi, yukarıdaki karar çakışması.
+- **`demoData.ts`'i dinamik `import()` arkasına almak:** Reddedildi. Dört üretim modülü ondan içe aktarım yapıyor; hepsini asenkron hale getirmek geniş ve riskli bir refactor olurdu — üstelik kalıcı çözüm zaten daha küçük bir yerdeydi.
+- **`vite.config.ts`'te ortam kararını satır içi yazmak:** Reddedildi. Aynı karar iki yerde yaşardı (config ve `runtime.ts`) ve fail-closed davranış ikizlenirdi — **K-06**. Bunun yerine saf mantık `deploymentEnvironment.ts`'e taşındı ve iki taraf da oradan okuyor.
+
+**Kapsam dışı bırakıldı:** `roleEmail` gibi birkaç küçük demo sabiti hâlâ `demoMode` prop'una bağlı tüketicilerden erişilebilir; bunlar kişi adı taşımadığı için #144'ün gerekçesine girmiyor.
