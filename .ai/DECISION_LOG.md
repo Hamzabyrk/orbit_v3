@@ -35,6 +35,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - EducationPlatform Bileşen Bölünmesi, Mock Veri İzolasyonu ve ESLint Kalite Kapısı
 - Taşınabilirlik sınırı — yetkilendirme veritabanında, veri erişimi servis katmanında
 - Silme koruması korunacakları değil, korunmayacakları sayar
+- Kimlik jeton değişince tazelenir, kullanıcı değişince değil
 - Öğrenci ve veli ekranları mobil-öncelikli tasarlanır
 - Sistemik Graph-First Düşünme, Blast Radius ve 6 Boyutlu Risk Protokolü
 
@@ -1028,3 +1029,31 @@ Bu K-04'ün ("bilinmeyende güvenli tarafta kal") şema seviyesindeki karşılı
 - **Reddedilen denemeyi hiç kaydetmemek:** Reddedildi. Bu, geri alınamaz bir veri kaybına kıl payı kalmış bir denemedir; iz bırakmazsa hiçbir yerde görünmez.
 
 **Kapsam dışı bırakıldı:** Silme onay ekranındaki sayılar (`platform_organization_stats`) hâlâ yalnızca üyelik, şube ve denetim kaydı sayıyor. Yeni bir iş tablosu o görünüme eklenmezse operatör "boş" görünen bir kurumu silmeye çalışır ve reddedilir — şaşırtıcı ama zararsız. Görünümü genişletmek her v1.2 diliminin isteğe bağlı işidir; **korumanın doğruluğu ona bağlı değildir** ve bu ayrım bilinçli kuruldu.
+
+---
+
+### Karar: Kimlik jeton değişince tazelenir, kullanıcı değişince değil
+
+**Durum:** Alındı
+**Tarih:** 2026-09-04
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `AuthProvider` kimliği iki ayrı yoldan çözüyordu — açılışta `supabase.auth.getSession()`, ve `onAuthStateChange` abonelik kurulurken auth-js'in ürettiği `INITIAL_SESSION` olayı. İkisi de aynı beş tabloyu okuyordu; canlı ağ trafiğinde ölçüldü, tek bir sayfa yenilemesi **beş sorgu yerine on istek** üretiyordu (#145). Aynı çift okuma girişte de vardı: `signIn` kimliği kendisi okuyor, ardından `SIGNED_IN` olayı aynı işi tekrarlıyordu.
+
+**Karar:** Açılış tek yola indirildi — `getSession()` kaldırıldı, kimlik yalnızca olay akışından çözülüyor. Tekrarı engelleyen koruma **erişim jetonuyla** anahtarlanıyor: aynı jeton için kimlik ikinci kez okunmaz.
+
+**Gerekçe — ölçütün kullanıcı olMAMASI bir zorunluluktur.** Sezgisel olan "aynı kullanıcı → atla" idi ve **sessiz bir gerileme** üretirdi: zorunlu ilk şifre değişiminden sonra `completeRequiredPasswordChange` kimliği bilerek yeniden okuyor, çünkü `must_change_password` bayrağını veritabanı tetikleyicisi düşürüyor ve düşmüş bayrağı görmenin tek yolu yeniden okumaktır. Kullanıcı ölçütü o okumayı engeller, kilit ekranı açık kalırdı — K-09'un kaynağı olan #102'nin yakın akrabası. Şifre değişimi oturumu döndürdüğü için jeton yenidir ve okuma yapılır. Aynı sebeple `TOKEN_REFRESHED` de kimliği tazeler; sunucuda rolü değişmiş bir kullanıcı ısrar etmez.
+
+**Tek yola inmek güvenli, çünkü ölçüldü.** Kurulu auth-js sürümünde (2.112.3) `onAuthStateChange`, abonelik kurar kurmaz `_emitInitialSession` çağırıyor ve o fonksiyon **her yolda** geri çağrımı tetikliyor: başarıda oturumla, hata dalında `null` ile. Olayın hiç yayılmadığı bir durum yok. Bu, kaynaktan doğrulandı — varsayılmadı (**K-10**).
+
+**İkinci tuzak, `loading` kilidi.** Kilit karardan **bağımsız** düşürülüyor. "Kurtarma sürüyor" dalı olayı yok sayıyor; kilit karara bağlansaydı kurtarma bağlantısıyla gelen kullanıcı sonsuz spinner görürdü — bugüne kadar o kilidi kaldıran şey, kaldırılan `getSession()` yoluydu. Issue'nun _"`loading` durumunun ilk boyamada doğru kalması korunmalı"_ uyarısı tam olarak bunu kastediyordu.
+
+Karar mantığı `client/src/auth/sessionEvents.ts`'te saf bir fonksiyon olarak duruyor. Sebebi `idleTimeout.ts`'teki `resolveIdleTracking` ile aynı: depoda bileşen testi altyapısı yok ve yeni bağımlılık eklenmiyor, dolayısıyla sınanabilir olan kısım bileşenden ayrılıyor.
+
+**Alternatifler:**
+
+- **Kullanıcı kimliğiyle anahtarlanan koruma:** Reddedildi. Yukarıdaki gerileme; issue'nun önerdiği iki yönden biri buydu ve olduğu gibi uygulanamazdı.
+- **`getSession()`'ı bırakıp yalnızca olay yolunu korumak:** Reddedildi. Çift okumanın asıl kaynağı iki yolun varlığıdır; birini korumak, ikisini de bakımda tutmak demekti.
+- **`signIn`'in kendi okumasını kaldırıp `SIGNED_IN`'e bırakmak:** Reddedildi. `signIn` okuma başarısız olduğunda kullanıcıyı dışarı alıp hatayı çağırana fırlatmak zorunda; olay yolunda fırlatılan hata kimseye ulaşmaz.
+
+**Kapsam dışı bırakıldı — dürüstçe:** Bu değişiklik **yerelde ve preview'da hiç koşmuyor.** `isDemoMode = deploymentEnvironment !== "production"` olduğu için `AuthProvider`'ın oturum `useEffect`'i o ortamlarda en başta dönüyor. Doğrulanan şey, saf karar fonksiyonu (13 iddia) ve auth-js'in olay sözleşmesidir; **davranışın tek gerçek doğrulama yeri production'dır.** Bu yeni bir açık değil, `PLATFORM_SETTINGS.md` §5'te kayıtlı "Auth, RLS ve platform paneli preview'da doğrulanamıyor" açığının somut bedelidir.
