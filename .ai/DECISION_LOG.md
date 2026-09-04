@@ -44,6 +44,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Zorunlu şifre değişimi kilidi iş tablolarında baştan sunucuda durur
 - İş tabloları asgari kişisel veriyle açılır
 - Sistem taşınabilir kurulur; sağlayıcı bir tercih, bağımlılık değildir
+- Sınıf bir öğretim yılına aittir; dönem tablosu yerine arşivleme
 
 **Kapsam ve sürüm**
 
@@ -1244,3 +1245,41 @@ Bu bir tesadüf değil: **"yetkilendirme veritabanında, veri erişimi servis ka
 - **Şimdi taşınmak:** Reddedildi. v1.2'nin ortasında altyapı değiştirmek, iş tablolarını yazmayı durdurur ve hiçbir bugünkü sorunu çözmez.
 - **Taşınabilirliği hiç hedeflememek:** Reddedildi. Maliyeti bugün sıfıra yakın; tek gerektirdiği, sağlayıcıya özgü bir kolaylık seçerken durup sormak.
 - **Veri yerleşimi için Hetzner'e geçmek:** Reddedildi — sorunu çözmüyor. Yukarıya bakınız.
+
+---
+
+### Karar: Sınıf bir öğretim yılına aittir; dönem tablosu yerine arşivleme
+
+**Durum:** Alındı
+**Tarih:** 2026-09-04
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.2-02 `classes` tablosunu getirdi ve şu soruyu doğurdu: "YKS 12-A" adı her öğretim yılında yeniden kullanılacak. Sınıfı yıla bağlamanın iki yolu var — bir `academic_terms` tablosu açmak, ya da her yıl yeni bir sınıf satırı açıp eskisini arşivlemek.
+
+Soru önemsiz değil çünkü yoklama (v1.2-04), sınav (v1.2-05) ve ders programı (v1.2-07) hep sınıfa bağlanacak. Yanlış modellenirse geçen yılın yoklaması bu yılın sınıfında görünür.
+
+**Karar:** Dönem tablosu açılmaz. **Her öğretim yılı yeni bir `classes` satırıdır**; eski satır `archived_at` ile arşivlenir.
+
+- Benzersizlik kısmi indekstir: `unique (organization_id, name) where archived_at is null`. Böylece ad her yıl yeniden kullanılabilir ama aynı anda iki tane olamaz.
+- Aynı kalıp `organizations` ve `branches`'te zaten var; yeni bir kavram getirilmiyor.
+- Kayıt ve atama satırlarında da UPDATE yalnızca `archived_at`'e açık: bir öğrenciyi sınıftan sınıfa **taşımak** yerine kaydı arşivleyip yenisini açmak gerekiyor.
+
+**Gerekçe:** Geçmişi koruyan şey dönem etiketi değil, **her yılın kendi satırı olmasıdır.** Yoklama kaydı sınıf satırına bağlandığı için, geçen yılın 12-A'sı ayrı bir satır olduğu sürece karışma imkânı yok — dönem sütunu eklemek aynı sonucu bir tablo fazlasıyla verirdi.
+
+Taşıma yerine arşivlemenin sebebi de aynı: bir öğrenci Kasım'da sınıf değiştirirse, Ekim'deki yoklaması hangi sınıfa aitse orada kalmalı. `class_id`'yi güncellemek o geçmişi geriye dönük olarak değiştirirdi.
+
+**Bunun ikinci sonucu — rehberlik ile ders vermek ayrı ilişkilerdir.** Arayüz ikisini zaten ayrı gösteriyor (`ClassGroup.mentor` ve `ScheduleItem.teacher`) ve model bunu takip etti:
+
+- **Rehber öğretmen** `classes.mentor_membership_id` sütunudur. Sütun olması "bir sınıfın en fazla bir rehberi olur" kuralını bedavaya getirir; ayrıca yazılması gereken bir kısıt olmaz.
+- **Ders vermek** `class_teachers` tablosudur (üyelik + sınıf + ders) ve çoka-çoktur.
+- Kapsam sorusunda ikisi **birleşir**: `current_user_teaches_class()` hem atamayı hem rehberliği sayar. Sınıfın rehberi o sınıfın öğrencilerini görebilmeli, ve bunun için ayrı bir yetki kavramı yaratmaya gerek yok.
+
+**Bir dönem tablosu ne zaman gerekir:** Kurum "2025-2026 yılının tüm sınıflarını listele" veya "geçen döneme göre kıyasla" gibi bir raporlama isterse. O gün `classes`'a bir `term` sütunu eklemek bir migration'dır; bugün tablo açmak, kullanılmayan bir kavramı her sorguya taşımaktır.
+
+**Alternatifler:**
+
+- **`academic_terms` tablosu:** Reddedildi. Bugün hiçbir soruyu cevaplamıyor ve her sınıf sorgusuna bir join ekliyor.
+- **Sınıfı yeniden kullanıp öğrencileri değiştirmek:** Reddedildi. Geçmiş yoklama ve sınav kayıtlarının hangi öğrenci grubuna ait olduğu belirsizleşirdi.
+- **Rehberliği `class_teachers`'a bayrakla koymak:** Reddedildi. İki farklı kavramı tek tabloda taşır ve "en fazla bir rehber" kuralı ayrıca kısmi unique index gerektirirdi.
+
+**İlgili:** [[Rol, atama ve bağlantı üç ayrı kavramdır]] — bu karar onun v1.2-02'deki uygulamasıdır.
