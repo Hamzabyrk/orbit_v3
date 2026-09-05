@@ -13,7 +13,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(31);
+select plan(38);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -139,6 +139,98 @@ select throws_ok(
   '23503',
   null,
   'a class mentor cannot be a member of another organization'
+);
+
+-- Rol korkuluğu (v1.2-15, K-18) ------------------------------------------------
+--
+-- Yabancı anahtar üyeliğin VAR olduğunu ve doğru kuruma ait olduğunu kusursuz
+-- garanti ediyordu; **uygun** olduğunu hiç sormuyordu. Rolü `parent` olan bir
+-- üyelik sınıfa atanırsa `current_user_teaches_class` true döner ve o kişi
+-- yoklama yazar, ödev verir, sınıfın bütün öğrencilerini okur.
+--
+-- İzin verilen kümenin "teacher" DEĞİL "admin veya teacher" olduğuna dikkat:
+-- fixture'daki 444 rolü admin ve ders ataması taşıyor (v1.2-02 kararı). Bu
+-- korumanın gevşek tarafı fixture'ın kendisi tarafından kanıtlanıyor —
+-- yukarıdaki `class_teachers` satırları yüklenemeseydi dosya hiç açılmazdı.
+
+select throws_ok(
+  $sql$insert into public.class_teachers (organization_id, class_id, membership_id, subject_id)
+    values (
+      'ca000000-0000-0000-0000-0000000000ca',
+      'c1a00000-0000-0000-0000-00000000c1a0',
+      '66600000-0000-0000-0000-000000000666',
+      '5a000000-0000-0000-0000-00000000005a'
+    )$sql$,
+  'ORB03',
+  null,
+  'a parent membership cannot hold a teaching assignment'
+);
+
+select throws_ok(
+  $sql$insert into public.class_teachers (organization_id, class_id, membership_id, subject_id)
+    values (
+      'ca000000-0000-0000-0000-0000000000ca',
+      'c1a00000-0000-0000-0000-00000000c1a0',
+      '55500000-0000-0000-0000-000000000555',
+      '5a000000-0000-0000-0000-00000000005a'
+    )$sql$,
+  'ORB03',
+  null,
+  'a student membership cannot hold a teaching assignment either'
+);
+
+select is(
+  (select count(*) from public.class_teachers
+     where membership_id in (
+       '55500000-0000-0000-0000-000000000555',
+       '66600000-0000-0000-0000-000000000666'
+     )),
+  0::bigint,
+  'the rejected assignments were really not written'
+);
+
+-- Rehberlik ayrı bir sütun ama aynı kapsamı açıyor, dolayısıyla aynı ölçüte
+-- tabi. 12-A'nın rehberi bugün boş; bu güncelleme reddedilmeli.
+select throws_ok(
+  $sql$update public.classes
+      set mentor_membership_id = '66600000-0000-0000-0000-000000000666'
+      where id = 'c1a00000-0000-0000-0000-00000000c1a0'$sql$,
+  'ORB03',
+  null,
+  'a parent membership cannot become a class mentor'
+);
+
+-- Ters yön: atama anını korumak yetmiyor. Rol sonradan çevrilirse atama satırı
+-- yerinde kalır ve kişi kapsamı korur.
+select throws_ok(
+  $sql$update public.organization_memberships
+      set role = 'parent'
+      where id = '22200000-0000-0000-0000-000000000222'$sql$,
+  'ORB03',
+  null,
+  'a role cannot be pulled out from under a live teaching assignment'
+);
+
+-- Rehberlik yolu da engellemeli: 333'ün `class_teachers` satırı yok, yalnızca
+-- 12-B'nin rehberi. İki yol ayrı ayrı ölçülüyor çünkü biri kapatılıp diğeri
+-- açık bırakılabilirdi.
+select throws_ok(
+  $sql$update public.organization_memberships
+      set role = 'student'
+      where id = '33300000-0000-0000-0000-000000000333'$sql$,
+  'ORB03',
+  null,
+  'mentorship blocks a role change on its own, without a class_teachers row'
+);
+
+-- Ve koruma mutlak değil: ataması olmayan bir üyeliğin rolü serbestçe
+-- değişir. Her rol değişikliğini reddeden bir koruma, kurumu yönetilemez
+-- yapardı.
+select lives_ok(
+  $sql$update public.organization_memberships
+      set role = 'parent'
+      where id = '77700000-0000-0000-0000-000000000777'$sql$,
+  'a membership with no assignment can change role freely'
 );
 
 select throws_ok(

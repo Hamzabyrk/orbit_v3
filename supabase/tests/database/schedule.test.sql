@@ -12,7 +12,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(23);
+select plan(25);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -118,6 +118,39 @@ select throws_ok(
   null,
   'a day outside 1..7 is refused'
 );
+
+-- Rol korkuluğu (v1.2-15, K-18) ------------------------------------------------
+--
+-- Bu, üç rol korkuluğunun en dar etkilisi: `schedule_entries.membership_id`
+-- `current_user_teaches_class`'ı BESLEMİYOR, dolayısıyla ders verme kapsamı
+-- açmıyor. Açtığı tek şey `schedule_entries_select_teacher`'ın ikinci dalı —
+-- satır kime yazılmışsa o kişi satırı okuyabiliyor (vekil öğretmen yolu) ve
+-- o dal role bakmıyordu.
+--
+-- Yine de korunuyor: "Pazartesi 09:00 Matematik'i veli X veriyor" satırı,
+-- kimse onu okuyamasa bile yanlış bir kayıttır.
+select throws_ok(
+  $sql$insert into public.schedule_entries
+      (organization_id, class_id, title, membership_id, day_of_week, starts_at)
+    values ('3a000000-0000-0000-0000-00000000003a', 'a1000000-0000-0000-0000-0000000000a1',
+            'Veli Dersi', 'e5500000-0000-0000-0000-0000000055e5', 3, time '15:00')$sql$,
+  'ORB03',
+  null,
+  'a parent membership cannot be written as the person giving a lesson'
+);
+
+select lives_ok(
+  $sql$insert into public.schedule_entries
+      (organization_id, class_id, title, membership_id, day_of_week, starts_at)
+    values ('3a000000-0000-0000-0000-00000000003a', 'a1000000-0000-0000-0000-0000000000a1',
+            'Vekil Ders', 'e6600000-0000-0000-0000-0000000066e6', 3, time '16:00')$sql$,
+  'a teacher who is not assigned to the class can still stand in on the timetable'
+);
+
+-- Yukarıdaki satır fixture'a gerçek bir kayıt ekledi ve dosyanın geri kalanı
+-- **iki** program satırı sayıyor (silme koruması dahil). Geri alınıyor — bir
+-- iddia değil, düzen toplama.
+delete from public.schedule_entries where title = 'Vekil Ders';
 
 -- Hafta sonu: istemcinin bilmediği ama kurumun kullandığı gün.
 select lives_ok(
