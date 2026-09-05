@@ -208,6 +208,8 @@ Aynı düzeltme "**Yazma mimarisi bilinçli ve tek biçimli**" paragrafını da 
 
 **Onuncu düzeltme (2026-09-05, v1.2-11):** Zorunlu şifre değişimi kilidi artık **yalnızca istemcide değil**. 98 RLS politikasının **92'si** koşulu taşıyor; muaf kalan altısı kimlik okumasıdır ve muafiyet kümesi pgTAP ile sabitlenmiştir. `PLATFORM_SETTINGS.md` §5'teki "kilit yalnızca istemcide" değerlendirmesi bu tarihten itibaren geçersizdir.
 
+**On birinci düzeltme (2026-09-05, v1.2-12) — ve v1.2'nin kapanışı:** Kurum denetim kaydı ekranı eklendi (#149). Bu, eğitim panelindeki **ilk gerçek sorgu ekranı**: diğer sayfalar hâlâ `educationData.ts`'ten besleniyor ve üretimde boş, bu sayfa doğrudan veritabanını okuyor. Dolayısıyla "Ne eksik" bölümündeki "40 eğitim bileşeni → 3'ü veritabanına ulaşıyor" ölçümü de artık dörttür. Yükleniyor/hata/boş durumları burada gerçek — v1.2'nin "Loading ve error durumları" maddesinin ilk somut karşılığı.
+
 **Bağlantı matrisi** — hangi varlığın hangi katmanı var:
 
 | Varlık                                                                                     | Tablo  | Servis | Ekran |    Yazma     |
