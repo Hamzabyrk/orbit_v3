@@ -448,6 +448,8 @@ Sessiz kısmi otomasyon **hiç otomasyon olmamasından kötüdür.** Hiç yoksa 
 
 _Kaynak: 2026-09-05 kapsam turu. `main`'e merge Edge Function'ları deploy ediyor — ama yalnızca `config.toml`'da tanımlı olanları. `create-member` o listede yoktu ve 26 Ağustos'ta elle deploy edilmiş v1 sürümünde donmuştu; aynı gün diğer dört fonksiyon yeniden deploy oldu, hiçbir kapı kırmızı dönmedi. Bedeli soyut değil: üç `_shared/*` modülü ortak, dolayısıyla `temporaryPassword.ts` değişse dört fonksiyon yeni sürümü alır, `create-member` eskisiyle çalışmaya devam ederdi._
 
+**Bu kuralın en iyi kanıtı, kuralı yazmadan önce denenmiş olması.** v1.2-13'te ortaya çıktı ki aynı hata **2026-08-24'te bir kez daha** olmuş (`reset-admin-password` hiç oluşturulmamış), teşhis edilmiş, ve karşılığı `config.toml`'a şu cümleyi yazmak olmuş: _"Yeni Edge Function ekleyen herkes buraya da satır ekler."_ **Hatırlatma iki gün dayandı** — 26 Ağustos'ta `create-member` yine unutuldu. Doğru yazılmış, doğru yere konmuş, tarihli ve gerekçeli bir uyarı bile **kapı değildir.**
+
 ## Brifing yazarken
 
 İyi bir brifing şunları içerir:

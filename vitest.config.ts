@@ -13,6 +13,14 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["client/src/**/*.test.ts", "client/src/**/*.spec.ts"],
+    include: [
+      "client/src/**/*.test.ts",
+      "client/src/**/*.spec.ts",
+      // Depo yapısını ölçen testler. İstemci kodu değiller ama `pnpm test`
+      // içinde koşmaları gerekiyor: `quality-gate` dal korumasında zorunlu bir
+      // kontrol ve kapının bu tarafta olması, kuralın ayrı bir CI işi olarak
+      // eklenmeyi beklemeden yürürlüğe girmesi demek (**K-19**).
+      "supabase/tests/deployment/**/*.test.ts",
+    ],
   },
 });
