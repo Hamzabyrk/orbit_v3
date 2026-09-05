@@ -210,6 +210,14 @@ Aynı düzeltme "**Yazma mimarisi bilinçli ve tek biçimli**" paragrafını da 
 
 **On birinci düzeltme (2026-09-05, v1.2-12) — ve v1.2'nin kapanışı:** Kurum denetim kaydı ekranı eklendi (#149). Bu, eğitim panelindeki **ilk gerçek sorgu ekranı**: diğer sayfalar hâlâ `educationData.ts`'ten besleniyor ve üretimde boş, bu sayfa doğrudan veritabanını okuyor. Dolayısıyla "Ne eksik" bölümündeki "40 eğitim bileşeni → 3'ü veritabanına ulaşıyor" ölçümü de artık dörttür. Yükleniyor/hata/boş durumları burada gerçek — v1.2'nin "Loading ve error durumları" maddesinin ilk somut karşılığı.
 
+🔴 **On ikinci düzeltme (2026-09-05, bütünlük denetimi) — sistemin durumu hakkında en önemli tek cümle:** **Kimlik zinciri ile akademik kayıt zinciri birbirine bağlı değil.** `internal_create_membership` tam olarak üç tabloya yazıyor — `profiles`, `organization_memberships`, `audit_events` — ve başka hiçbirine. Yani rolü `student` veya `parent` olan bir üyelik açıldığında ortada bir `students` veya `guardians` satırı **yok**, dolayısıyla o tabloların `auth_user_id` sütunları **hiç dolmuyor**.
+
+Bu, aşağıdaki bağlantı matrisinin okunuşunu değiştirir: **tablo, RLS ve servis sütunları dolu olsa bile öğrenci ve veli için sonuç boş ekrandır.** Kapsam sorgularının tamamı (`current_user_guards_student`, öğrencinin kendi kaydı, yoklama görünürlüğü) tek bir koşula bakıyor — `auth_user_id = (select auth.uid())` — ve o koşul bugün hiçbir satırda sağlanamaz.
+
+Ölçüm yöntemi kayda değer: eksiklik testlerde görünmedi, çünkü **dokuz pgTAP dosyası `auth_user_id`'yi fixture'da kendisi dolduruyor.** Testler doğru soruyu soruyor ("bağlı veli çocuğunu görebilir mi?") ama üretimde o bağı **kimsenin kurmadığını** soramaz — bir birim testinin değil, bir zincir denetiminin işi.
+
+**Canlı ölçüm (2026-09-05):** `organization_memberships`'te rolü `student` veya `parent` olan **2 üyelik** var; `students` **0** satır, `guardians` **0** satır, `student_guardians` **0** satır. Yani üretimde giriş hesabı olan iki kişinin akademik karşılığı bugün **yok**. Boşluk gelecekte açılacak değil, **açılmış** durumda. Sahibi **v1.4-00**; ayrıntı `ROADMAP.md` **§4.7**.
+
 **Bağlantı matrisi** — hangi varlığın hangi katmanı var:
 
 | Varlık                                                                                     | Tablo  | Servis | Ekran |    Yazma     |
