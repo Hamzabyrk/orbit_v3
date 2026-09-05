@@ -399,12 +399,29 @@ deno_version = 2
 #
 # 2026-08-24'te `reset-admin-password` tam olarak bu yüzden çalışmadı; kod
 # merge edildi, `bootstrap-organization` v26'ya güncellendi, yeni fonksiyon
-# hiç oluşturulmadı. Yeni Edge Function ekleyen herkes buraya da satır ekler.
+# hiç oluşturulmadı. O gün buraya "yeni Edge Function ekleyen herkes buraya da
+# satır ekler" diye bir hatırlatma yazıldı.
+#
+# **Hatırlatma iki gün dayandı.** 2026-08-26'da `create-member` yine unutuldu;
+# 2026-09-05'e kadar elle deploy edilmiş v1 sürümünde dondu, o gün diğer dört
+# fonksiyon güncellendi ve hiçbir kapı kırmızı dönmedi.
+#
+# Artık bu listeyi `supabase/tests/deployment/functionsDeclared.test.ts`
+# zorluyor: dizinler ile buradaki tanımlar birebir eşleşmezse `pnpm test`
+# kırmızı döner. Aşağıdaki liste **tek bir blok hâlinde** tutulur — dağılmış
+# bir liste, eksiğin görülmesini zorlaştırır (`reset-member-password` bir süre
+# dosyanın sonuna, `[experimental]` bloklarının arasına düşmüştü).
 
 [functions.bootstrap-organization]
 verify_jwt = true
 
 [functions.reset-admin-password]
+verify_jwt = true
+
+[functions.reset-member-password]
+verify_jwt = true
+
+[functions.create-member]
 verify_jwt = true
 
 [functions.delete-organization]
@@ -440,6 +457,3 @@ enabled = true
 # declarative_schema_path = "./schemas"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
-
-[functions.reset-member-password]
-verify_jwt = true
