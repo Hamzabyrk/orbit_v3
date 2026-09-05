@@ -116,6 +116,10 @@ Deno.serve(async request => {
       member_role: input.role,
       member_full_name: input.fullName.trim(),
       login_number: loginNumber,
+      // v1.2-16: kilit artık bu RPC'nin işleminde yazılıyor. Öncesinde
+      // aşağıda ayrı bir UPDATE vardı ve başarısız olduğunda üye geçici
+      // şifresiyle **süresiz** kalıyordu.
+      password_expires_at: passwordExpiresAt,
     }
   );
   if (membershipError || typeof membershipId !== "string") {
@@ -129,16 +133,16 @@ Deno.serve(async request => {
     return jsonResponse({ error: "member_create_failed" }, 409, origin);
   }
 
-  const { error: lockError } = await adminClient
-    .from("profiles")
-    .update({
-      must_change_password: true,
-      password_expires_at: passwordExpiresAt,
-    })
-    .eq("id", created.user.id);
-  if (lockError) {
-    console.error("[create-member] password lock flag write failed");
-  }
+  // Kilit ve denetim kaydı, üyelikle **aynı işlemde** yazıldı. RPC bir üyelik
+  // kimliği döndürdüyse üçü de vardır; ayrı bir adım kalmadığı için ayrıca
+  // başarısız olabilecek bir şey de yok.
+  //
+  // Alanlar sözleşmede kalıyor: `CredentialsPanel` bunları hâlâ okuyor ve
+  // şifre sıfırlama akışlarında (`reset-*`) hâlâ `false` olabiliyorlar.
+  // Buradaki değerler **sabit yazılmıyor**, RPC'nin gözlenen sonucundan
+  // türetiliyor — daha önce `audit_written` bir olguyu ölçmeden iddia
+  // ediyordu.
+  const membershipCreated = typeof membershipId === "string";
 
   return jsonResponse(
     {
@@ -146,8 +150,8 @@ Deno.serve(async request => {
         login_number: loginNumber,
         temporary_password: temporaryPassword,
         password_expires_at: passwordExpiresAt,
-        password_lock_set: !lockError,
-        audit_written: true,
+        password_lock_set: membershipCreated,
+        audit_written: membershipCreated,
       },
     },
     201,
