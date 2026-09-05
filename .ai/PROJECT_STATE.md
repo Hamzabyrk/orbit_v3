@@ -190,7 +190,7 @@ educationData.ts        →  Supabase import sayısı: 0
 
 **İkinci düzeltme (2026-09-04, v1.2-02):** `classes`, `class_enrollments`, `subjects` ve `class_teachers` de eklendi. Bağlantı matrisinde **Sınıf** satırının "Tablo" ve "Yazma" sütunları da ✅ oldu; Servis ve Ekran ❌ olarak duruyor. Öğretmen ilk kez gerçek bir kapsam kazandı — ama yalnızca veritabanında: ekranlar hâlâ `scopeFilters.ts`'ten besleniyor ve üretimde boş küme dönüyor. Ekranların bu tablolara bağlanması **v1.2-10**'dur.
 
-Aynı düzeltme "**Yazma mimarisi bilinçli ve tek biçimli**" paragrafını da kapsıyor: `authenticated` rolü artık **on altı** tabloya yazabiliyor (biri eskiden beri `profiles`) ve toplam RLS politika sayısı 11'den **84**'e çıktı — 2026-09-05'te v1.2-08 sonrası yerel veritabanından sayıldı. Dört rolün dördünün de kapsamı veritabanında kurulu: yönetici **kurumdan**, öğretmen **atamadan**, öğrenci **kendi kaydından**, veli **bağdan**.
+Aynı düzeltme "**Yazma mimarisi bilinçli ve tek biçimli**" paragrafını da kapsıyor: `authenticated` rolü artık **on dokuz** tabloya yazabiliyor (biri eskiden beri `profiles`) ve toplam RLS politika sayısı 11'den **97**'ye çıktı — 2026-09-05'te v1.2-09 sonrası yerel veritabanından sayıldı. Dört rolün dördünün de kapsamı veritabanında kurulu: yönetici **kurumdan**, öğretmen **atamadan**, öğrenci **kendi kaydından**, veli **bağdan**.
 
 **Üçüncü düzeltme (2026-09-04, v1.2-04):** `attendance_sessions` ve `attendance_records` eklendi; matriste **Yoklama** satırının "Tablo" ve "Yazma" sütunları ✅ oldu. Bu dilimle birlikte **öğretmen ilk kez yazabiliyor** — ve yetkisi rolünden değil sınıf atamasından geliyor. Denetim kaydının veri tarafındaki ilk parçası da burada: `recorded_by_membership_id` trigger ile çağıranın kimliğinden doldurulur, istemci yazamaz. Yetki kararı hâlâ SQL'de yaşıyor — değişen, isteğin oraya hangi yoldan gittiği. Gerekçe: `DECISION_LOG.md` — "İş verisi RLS ile yazılır, kimlik işlemleri Edge Function'da kalır".
 
@@ -201,6 +201,8 @@ Aynı düzeltme "**Yazma mimarisi bilinçli ve tek biçimli**" paragrafını da 
 **Altıncı düzeltme (2026-09-05, v1.2-07):** `schedule_entries` eklendi; matriste **Program** satırının "Tablo" ve "Yazma" sütunları ✅ oldu. Bu dilim ayrıca istemciyi veritabanının gerisinde bıraktı: veritabanı haftanın yedi gününü kabul ediyor, istemcideki `WeekDay` tipi beş gün taşıyor. Kayıt `ROADMAP.md` §4.6'da.
 
 **Yedinci düzeltme (2026-09-05, v1.2-08):** `homework_assignments` eklendi; matriste **Ödev** satırının "Tablo" ve "Yazma" sütunları ✅ oldu. Bu dilimin açılışında `HomeworkCreateDialog`'un üretimde **gerçekleşmemiş bir kaydı başarılı gösterdiği** bulundu ve aynı PR'da düzeltildi; kalıp **K-14** olarak kurallara eklendi.
+
+**Sekizinci düzeltme (2026-09-05, v1.2-09):** `daily_feed_posts`, `tasks` ve `calendar_events` eklendi; matriste **Mesaj** ve **Gün planı** satırlarının "Tablo" ve "Yazma" sütunları ✅ oldu. Bu dilim, **kurum yöneticisinin göremediği ilk tabloları** getirdi: kişisel çalışma alanı kurumun değil kişinindir. Ölçülebilir hâli — `tasks` ve `calendar_events` politikalarında `admin` geçen sıfır ifade var. Böylece **v1.2'nin tablo işi bitti**; kalan üç dilim (10, 11, 12) tablo değil bağlantı, tarama ve ekran işidir.
 
 **Bağlantı matrisi** — hangi varlığın hangi katmanı var:
 

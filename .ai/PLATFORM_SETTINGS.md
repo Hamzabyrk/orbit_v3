@@ -355,10 +355,13 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 | `current_user_can_record_attendance` | WARN   | v1.2-04'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
 | `exam_ranking`                       | WARN   | v1.2-05'te eklendi. Yetkiyi içeride çözer; yetkisiz çağırana boş küme, yetkisiz satırlarda maskelenmiş kimlik döner        |
 | `current_user_can_see_payment_plan`  | WARN   | v1.2-06'da eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
+| `current_user_owns_membership`       | WARN   | v1.2-09'da eklendi. Kişisel kayıtların sahiplik kapısı; yalnızca çağıranın kendi kapsamını döndürür                        |
 | Sızmış şifre koruması kapalı         | WARN   | Pro plan gerektiriyor                                                                                                      |
 
-**Bu on yedinin dışında bir uyarı çıkarsa incelenmelidir.**
+**Bu on sekizin dışında bir uyarı çıkarsa incelenmelidir.**
 
+> ⏳ **v1.2-09 ile beklenen sayı 18** (`current_user_owns_membership`) — **henüz doğrulanmadı**, merge sonrası advisor çalıştırılmalı.
+>
 > ✅ **17 sayısı doğrulandı (2026-09-05, v1.2-06/07/08 merge edildikten sonra).** `current_user_can_see_payment_plan` listede çıktı; v1.2-07 ve v1.2-08 yeni `authenticated` fonksiyonu eklemedi, beklendiği gibi. Ayrıca ölçüldü: `authenticated`'a açık **sıfır** trigger fonksiyonu var — `set_attendance_recorder` ve `set_homework_assigner` üzerindeki revoke'lar tutuyor.
 >
 > ✅ **16 sayısı da doğrulanmıştı (v1.2-05 merge edildikten sonra).**

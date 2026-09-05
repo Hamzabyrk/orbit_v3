@@ -50,6 +50,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Sütun maskeleme RLS'in işi değildir; sıralama bir fonksiyondan gelir
 - Ödeme kurum ile aile arasındadır; öğretmen ve öğrenci görmez
 - Dersin planlanması kurumun, yürütülmesi öğretmenin işidir
+- Kişisel çalışma alanı kurumun değil kişinindir
 
 **Kapsam ve sürüm**
 
@@ -1437,3 +1438,30 @@ Ayrım tek cümleyle: **dersin planlanması kurumun işidir, yürütülmesi öğ
 - **Öğretmen kendi sınıfının programını düzenlesin:** Reddedildi. Paylaşılan kaynak çakışmalarını kurumun göremediği bir yerden üretirdi.
 - **`day_of_week`'i beş günlük enum yapmak:** Reddedildi. Arayüzle birebir örtüşürdü ama hafta sonu kursu veren bir kuruma ürün satılamazdı.
 - **`membership_id`'yi `class_teachers`'a bağlamak:** Reddedildi. Tutarlılığı garanti ederdi ama vekil öğretmeni imkânsız kılardı.
+
+---
+
+### Karar: Kişisel çalışma alanı kurumun değil kişinindir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-05
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.2-09'a kadar kurulan on beş tabloda kurum yöneticisi **her zaman** en geniş kapsama sahipti. Ödemede öğretmen ve öğrenci dışlandı ama yönetici yine görüyordu. Gün Planı (`tasks`, `calendar_events`) bu deseni ilk kez kırıyor.
+
+Soru 5'in onaylı cevabı zaten bunu söylüyordu: _"Kayıtları yalnızca sahibi görebilir ve yönetebilir."_ Karar, o cümlenin **yöneticiyi de kapsadığını** açıkça yazıya dökmek için alındı — çünkü bu noktaya kadarki her desen tersini bekletiyordu.
+
+**Karar:** `tasks` ve `calendar_events` üzerinde **yönetici politikası yoktur.** Kayıtları yalnızca sahibi okur, yazar ve günceller.
+
+**Gerekçe:** Yöneticinin bir öğretmenin kendine yazdığı "veli görüşmesine hazırlan" notunu görmesi için hiçbir işlevsel sebep yok. Ve görebilseydi sonuç erişim değil **davranış** değişikliği olurdu: insanlar bu alanı kullanmayı bırakır, gerçek notlarını başka yere yazar, özellik ölü doğardı. Kişisel alanın değeri tam olarak kişisel olmasından geliyor.
+
+Sınır, kurumun meşru ihtiyacını kesmiyor: kurumsal duyuru zaten ayrı bir tabloda (`daily_feed_posts`) ve orada yönetici en geniş kapsama sahip. Ayrım "kim yazdı" değil, **kayıt kime yönelik**: duyuru başkalarına, görev kendine.
+
+**İki modelin ayrı tablolarda durması bu kararın önkoşulu.** Aynı tabloda birleştirilselerdi, kişisel bir notun duyuru akışına sızması tek bir politika hatası uzağında olurdu. Soru 5'in "ayrı veri modeli" cevabının pratik karşılığı budur.
+
+**Sahiplik sütunu bilinçli olarak trigger'la doldurulmadı.** `attendance_sessions.recorded_by_membership_id` ve `homework_assignments.assigned_by_membership_id` trigger'la dolduruluyor çünkü onlar **denetim iddiası**: yanlış bir değer sessizce yanlış kalır. `owner_membership_id` ise erişimin **anahtarı**: `with check` sahipliği doğruladığı için yanlış değer zaten yazılamaz, yazılabilseydi bile kayıt yazana görünmez olurdu — kendini bozan bir hata. İki sütun aynı şekle sahip ama farklı şeyler; aynı mekanizmayı ikisine de uygulamak, farkı görünmez kılardı.
+
+**Alternatifler:**
+
+- **Yöneticiye okuma yetkisi vermek:** Reddedildi. "Gerekirse bakarım" ihtiyacı gerçek değil; maliyeti özelliğin kullanılmaması.
+- **Tek tabloda `visibility` sütunuyla ayırmak:** Reddedildi. Kişisel ile kurumsal arasındaki sınır bir sütun değerine indirgenirdi ve tek bir politika hatası ikisini karıştırırdı.
