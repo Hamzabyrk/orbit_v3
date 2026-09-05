@@ -227,8 +227,11 @@ Değişiklik gerçekten gerekliyse doğru yol brifingi genişletip yeniden istem
   - bir mimari karar alındı veya değişti → `DECISION_LOG.md` (**indekse de satır ekle**)
   - panelden bir ayar değiştiyse → `PLATFORM_SETTINGS.md`
   - klasör veya servis katmanı değiştiyse → `PROJECT_STATE.md` §5
+- **`PLATFORM_SETTINGS.md` §5'in tetikleyicilerini oku.** Kabul edilmiş açıkların her biri bir _"şu olunca yeniden değerlendir"_ cümlesi taşır; dilim o şartı sağlamış olabilir. **Kayıttaki sayılar da eskir** — açık "altı indekssiz foreign key" diyorsa, bugün altı mı, ölç.
 - **Biten brifingi sil.** Git geçmişi kaydı tutar; çalışma kopyası temiz kalır.
 - Yeni bir hata çıktıysa **aşağıdaki kural listesine ekle.**
+
+> **§5 okuması neden buraya eklendi (2026-09-05):** **K-12** koşullu kararın _sahibini_ yazdırıyordu ama şartı kontrol edecek **anı** vermiyordu. Sonuç ölçüldü: §5'teki "altı indekssiz foreign key" açığının tetikleyicisi _"v1.2 iş tabloları geldiğinde"_ idi; tablolar geldi, kimse §5'e dönmedi ve sayı sessizce **35** oldu. Şart sağlandı, kimse fark etmedi — K-12'nin adıyla tarif ettiği tuzağın kendisi, K-12 yazıldıktan sonra.
 
 > **Neden kapanışta:** Belge güncellemesi uzun süre kimsenin adımı değildi ve sonuç ölçüldü — 28 commit boyunca çalışma günlüğü hiç yazılmadı, `ROADMAP.md` §0 bir gün geride kaldı ve bitmiş üç dilimi "başlanmadı" gösterdi. O tablo, bu belgenin denetleyene gösterdiği tek bağlam çıpasıydı. Ayrı bir "belgeleri güncelleme" işi açmak çözüm değil: açılır, sıraya girer, yapılmaz. Bkz. `DECISION_LOG.md` — "Belge sayısı değil bakım borcu".
 
@@ -415,6 +418,35 @@ Sürüm kapanışında **§4'ün kutucukları ile §4.6'nın dilimleri karşıla
 En tehlikeli hâli, **bir release gate'in dilimi olmayan bir işe dayanmasıdır.** O kapı ya hiç kapanamaz, ya da işin yapılmamış olduğu fark edilmeden "yeterince yakın" bir şeyle kapatılır. Kapı, arkasında iş olmayan bir söz hâline gelir.
 
 _Kaynak: 2026-09-05 bütünlük denetimi. Realtime, §4 v1.3'te bir kutucuktu ve §4.6'da hiç yoktu — oysa v1.4'ün release gate'i tam olarak ona dayanıyordu ("admin değişikliği ilgili ekranda Realtime ile görünür"). Aynı taramada dilimsiz dört madde daha çıktı: ders programı, Günlük Akış, Gün Planı ve Zod+audit._
+
+### K-17 · İki uca bağlanan satırın politikası iki ucu da sorar
+
+Bir satır iki varlığı birbirine bağlıyorsa — oturum+öğrenci, sınav+öğrenci, plan+taksit — politikayı yazarken **iki ayrı soru** vardır ve ikisi de sorulmalıdır:
+
+1. **Bana bu yazma hakkını ne veriyor?** (kapsam sorusu)
+2. **Bağladığım iki uç birbirine ait mi?** (bütünlük sorusu)
+
+Birinciyi cevaplamak doğal ve kolaydır; politika onsuz zaten yazılamaz. İkincisi **sorulmadığında hiçbir yerde hata üretmez** — ne test kırılır, ne hata mesajı çıkar, ne yabancı anahtar itiraz eder. Bileşik yabancı anahtarlar yalnızca **aynı kiracıya** ait olmayı garanti eder; "birbirine ait olmayı" değil.
+
+Pratik kontrol: yazdığın satır iki `..._id` sütunu taşıyorsa, politikanda **ikisinin de adı geçmelidir.** Geçmiyorsa eksik soru oradadır.
+
+_Kaynak: 2026-09-05 kapsam turu, iki ayna örnek. `attendance_records` oturumu soruyor öğrenciyi sormuyordu → 12-A öğretmeni 12-A oturumuna 12-B öğrencisinin kaydını yazabiliyordu. `exam_results` öğrenciyi soruyor sınavı sormuyordu → 12-B öğretmeni kendi öğrencisini 12-A'nın sınavına yazabiliyordu. Tam ayna olmaları, bunun dalgınlık değil eksik bir soru olduğunun kanıtıdır. Üstelik yoklama politikasının başındaki yorum asimetriyi "bilinçli" diye açıklıyordu — gerekçe okumaya aitti, yazma tarafındaki kayıp yan etkiydi._
+
+### K-18 · Yabancı anahtar "var mı" der, "olmalı mı" demez
+
+Yabancı anahtar hedefin **varlığını**, bileşikse **kiracılığını** garanti eder. **Uygunluğunu asla.** Bir sütun bir üyeliğe, role veya kişiye işaret ediyorsa, o hedefin bu iş için uygun olup olmadığı **ayrıca** zorlanmalıdır — FK bunu yapmaz ve yapıyormuş gibi görünür.
+
+Tehlikeli yanı, tenant izolasyonu kusursuz çalışırken kurum **içinde** yetkinin sızabilmesidir: satır doğru kuruma aittir, doğru tabloya işaret eder, her kısıt geçer — ve yine de yanlış kişiye yetki verir.
+
+_Kaynak: 2026-09-05 kapsam turu. Üç sütun (`class_teachers.membership_id`, `classes.mentor_membership_id`, `schedule_entries.membership_id`) bir üyeliğe işaret ediyor ve üçü de rolünü sormuyordu; rolü `parent` olan bir üyelik sınıfa atanırsa o kişi yoklama yazma, ödev verme ve öğrenci okuma yetkisi kazanıyordu. Doğru kısıtın "rol teacher olmalı" **olmadığına** dikkat: tasarım adminin ders vermesine bilinçli izin veriyor, dışlanması gereken `student` ve `parent`._
+
+### K-19 · Kısmi otomasyon kapsamını kendisi bildirir
+
+Bir boru hattı bazı şeyleri otomatik yapıyorsa, **hangilerini yapmadığı ölçülebilir olmalıdır**: bir CI kontrolü, bir liste karşılaştırması, kırmızıya dönen bir kapı.
+
+Sessiz kısmi otomasyon **hiç otomasyon olmamasından kötüdür.** Hiç yoksa herkes elle yapmayı bilir. Varmış gibi görünüp bir istisna bırakırsa, sana güvenmeyi öğretir ve istisnayı unutturur — üstelik unutmanın hiçbir belirtisi olmaz.
+
+_Kaynak: 2026-09-05 kapsam turu. `main`'e merge Edge Function'ları deploy ediyor — ama yalnızca `config.toml`'da tanımlı olanları. `create-member` o listede yoktu ve 26 Ağustos'ta elle deploy edilmiş v1 sürümünde donmuştu; aynı gün diğer dört fonksiyon yeniden deploy oldu, hiçbir kapı kırmızı dönmedi. Bedeli soyut değil: üç `_shared/*` modülü ortak, dolayısıyla `temporaryPassword.ts` değişse dört fonksiyon yeni sürümü alır, `create-member` eskisiyle çalışmaya devam ederdi._
 
 ## Brifing yazarken
 

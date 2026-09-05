@@ -53,6 +53,9 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Kişisel çalışma alanı kurumun değil kişinindir
 - Kapsam istemcide değil veritabanında çözülür
 - Kilit kullanmayı durdurur, tanıtmayı değil
+- İstemci veri katmanı React Query üzerine kurulur
+- Hafta yedi gündür — istemci tipi veritabanına uyar
+- Staging ortamı v1.5'e ertelenir
 
 **Kapsam ve sürüm**
 
@@ -1533,3 +1536,53 @@ Muaf kalan altı politika ve sebepleri:
 - **Beş tabloya da eklemek (maddede yazan):** Reddedildi. Kilitli kullanıcı giriş yapamaz, kilitli olduğunu öğrenemez ve kilitten çıkamazdı.
 - **Kilidi yalnızca istemcide bırakmak:** Zaten reddedilmişti; REST API doğrudan çağrılabiliyor.
 - **`profiles_update_self`'i de kilitlemek:** Reddedildi. İlk giriş akışında kurtarma e-postasının eklenmesi bu politikadan geçiyor olabilir; kapatmak o akışı kırma riski taşıyor ve kazancı yok — kilitli kullanıcının kendi görünen adını değiştirmesi zararsız.
+
+### Karar: İstemci veri katmanı React Query üzerine kurulur
+
+**Durum:** Alındı
+**Tarih:** 2026-09-05
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.3-01 yedi servisi birden getirecek ve 37 ekran aynı desenle yazılacak. Bugün ortada **iki çelişen desen** var ve hangisinin ev kuralı olduğu hiçbir yerde yazılı değil: `@tanstack/react-query` kurulu, `main.tsx`'te `QueryClientProvider` mount edilmiş — ama uygulamada **sıfır** `useQuery` çağrısı var. Tek gerçek sorgu ekranı olan `AuditLogPage` elle `useEffect + useState + Durum` union tipiyle çalışıyor.
+
+Karar ölçütü olarak **"ileride hangisi daha az teknik borç açar"** seçildi (Arda Bülent, 2026-09-05).
+
+**Karar:** React Query. `AuditLogPage` bu desene taşınır ve v1.3-00'da sözleşme yazılır: cache anahtarı biçimi, sayfalama, invalidation ve hata durumu.
+
+**Gerekçe — iki borcun karşılaştırması, "hangisi daha temiz" değil.**
+
+Elle yazılan desenin borcu **dağıtık** olur: 37 dosyada tekrarlanan bir kalıp, her biri kendi yükleme/hata durumunu kurar. Dağıtık borç ödenmesi en zor türdür — düzeltmek 37 dosyaya dokunmayı gerektirir ve o yüzden hiç düzeltilmez.
+
+Belirleyici olan **v1.3-05**: Realtime abonelikleri bu turda dilim aldı. Realtime'ın karşılığı tazelemedir ve React Query'de bu tek satırdır (`invalidateQueries`), elle yazılan desende **her ekranın kendi aboneliğini ve kendi tazelemesini yazması** demektir. Yani elle desenin borcu v1.3-05'te ikiye katlanır.
+
+React Query'nin borcu ise **merkezî ve görünür**: bir bağımlılık, bir sürüm, ve cache anahtarı disiplini. Biri bozulduğunda tek yerde bozulur.
+
+**Taşınabilirlik sınırını bozmuyor** (`DECISION_LOG` — "Taşınabilirlik sınırı"): React Query servis katmanının **üstünde** durur, Supabase'i tanımaz. Sağlayıcı değişse `queryFn`'in içi değişir, deseni değişmez.
+
+**Reddedilen:** "Karar v1.3-00'da ölçülerek verilsin" seçeneği. İki deseni bir ekranda deneyip karşılaştırmak bir hafta alırdı ve v1.3-05 zaten cevabı belirliyordu; ölçüm bilinen bir sonucu doğrulamak için harcanmış olurdu.
+
+### Karar: Hafta yedi gündür — istemci tipi veritabanına uyar
+
+**Durum:** Alındı
+**Tarih:** 2026-09-05
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.2-07 `schedule_entries.day_of_week`'i **ISO 8601 (1–7)** olarak yazdı ve gerekçesini kaydetti: dershanede hafta sonu kursu gerçektir. İstemcideki `WeekDay` tipi ise beş gün (Pazartesi–Cuma). Ayrım bir **K-11 kaydı** olarak bırakılmış, kararı v1.3-01'e çapalanmıştı.
+
+**Karar:** İstemci tipi yediye genişletilir. Uygulama yeri **v1.3-00**, ekranların tabloya bağlanmasından önce.
+
+**Gerekçe:** Beşte kalmak ücretsiz değildi — "kaydedilmiş ama hiçbir ekranda görünmeyen ders satırı" riskini kapatmak için veritabanına ayrıca bir kısıt yazmayı gerektirirdi. Yani dar seçenek **hem gerçeğe aykırı hem de daha çok iş**. Görünmeyen kayıt, kullanıcının veri kaybı sandığı ama aslında yalnızca görüntülenmeyen kayıttır ve teşhisi zordur.
+
+### Karar: Staging ortamı v1.5'e ertelenir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-05
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Preview derlemeleri demo modunda çalışıyor, dolayısıyla Supabase'e hiç istek gitmiyor ve **auth ile RLS davranışının tek doğrulama yeri production.** Bu `PLATFORM_SETTINGS` §5'te kabul edilmiş bir açık olarak zaten kayıtlı ve tetikleyicisi _"panel gerçek kurum verisi yönetmeye başladığında"_ yazıyor. 2026-09-05 kapsam turu bunu yeniden gündeme getirdi: v1.3 yedi servisi canlı sorguya bağlayacak ve risk büyüyor.
+
+**Karar:** Ayrı bir Supabase staging projesi **şimdi kurulmaz**; v1.5'te ele alınır. §5'teki kayıt ve tetikleyicisi geçerliliğini korur.
+
+**Gerekçe ve kabul edilen bedel:** v1.3 boyunca her servis bağlantısı **canlı sistemde ilk kez sınanacak.** Bu bilinerek kabul edildi. Hafifleten iki şey var: v1.3-01 yazma değil **okuma** getiriyor (yazma akışları v1.4'te), ve production'da bugün yalnızca iki test kurumu var, gerçek kurum verisi yok.
+
+**Yeniden değerlendirme:** §5'teki tetikleyici korunuyor. Ek olarak **v1.4-00 açılışında** yeniden bakılmalıdır — orada kimlik ve akademik kayıt bağlanacak, yani yazma akışları başlayacak ve "canlı sistemde ilk kez sınama" bedeli okumadan yazmaya geçecektir.
