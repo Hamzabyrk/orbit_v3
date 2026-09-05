@@ -1,3 +1,15 @@
+-- ALLOW-DESTRUCTIVE: Dosyadaki tek `delete from`, bu migration'ın KENDİ
+-- oluşturduğu `internal_function_calls` tablosunun 7 günden eski satırlarını
+-- ayıklayan ifadedir ve bir FONKSİYON GÖVDESİNİN içindedir — migration
+-- uygulanırken değil, ileride her çağrıda çalışır. Kullanıcı verisine
+-- dokunmaz; sildiği şey bu dilimin kendi defter kaydıdır.
+--
+-- Kontrolün burada durması bir yanlış alarm değil **bilinen bir kör nokta**:
+-- regex, DDL zamanında koşan bir ifadeyle fonksiyon içinde tanımlanan bir
+-- ifadeyi ayırt edemiyor. Kontrolün kendi yorumu da "tam güvence değil"
+-- diyor. Ayrımı yapabilmesi v1.2-20'nin (CI sertleştirme) işi; o gün bu
+-- işaretin kaldırılıp kaldırılamayacağı yeniden bakılmalı.
+
 -- v1.2-17 · Tekrarlanan istek, ikinci bir istek değildir
 --
 -- Kapsam turunun 10 numaralı bulgusu: Edge Function'ların hiçbirinde hız sınırı
