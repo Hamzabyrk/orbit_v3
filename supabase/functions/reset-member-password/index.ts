@@ -9,6 +9,7 @@ import {
   generateTemporaryPassword,
   temporaryPasswordExpiresAt,
 } from "../_shared/temporaryPassword.ts";
+import { setPasswordLock } from "../_shared/passwordLock.ts";
 
 /**
  * Kurum yöneticisi, kendi kurumundaki bir üyeye yeni geçici şifre üretir.
@@ -121,24 +122,25 @@ Deno.serve(async request => {
     return jsonResponse({ error: "password_update_failed" }, 409, origin);
   }
 
-  // Kilit bayrağı şifre değişiminden SONRA set ediliyor: `updateUserById`
-  // şifreyi yazdığı için `on_auth_password_changed` tetikleyicisi çalışıyor.
-  // Önce set etseydik tetikleyici onu hemen silerdi.
   const passwordExpiresAt = temporaryPasswordExpiresAt();
 
-  const { error: lockError } = await adminClient
-    .from("profiles")
-    .update({
-      must_change_password: true,
-      password_expires_at: passwordExpiresAt,
-    })
-    .eq("id", resolved.member_user_id);
-
-  if (lockError) {
-    // Şifre zaten değişti. Bayrak yazılamadıysa kullanıcı yeni geçici
-    // şifresiyle süresiz dolaşabilir; loglanıyor ve yanıtta bildiriliyor.
-    console.error("[reset-member-password] password lock flag write failed");
-  }
+  // Kilit, şifre değişiminden SONRA yazılmak ZORUNDA:
+  // `on_auth_password_changed` tetikleyicisi `auth.users` üzerindeki
+  // şifre güncellemesinde çalışıp bayrağı düşürüyor. Yani sıra bir
+  // tercih değil kısıt ve ters çevrilemez.
+  //
+  // Bu yüzden burada atomiklik mümkün değil: şifre GoTrue'da değişti,
+  // kilit bizim veritabanımızda yazılıyor ve ikisi tek bir işleme
+  // giremiyor. Yazılamazsa geçici şifre süresiz ve değiştirilmesi
+  // zorunlu olmayan bir kimlik bilgisine dönüşür — tek seferlik bir
+  // hatanın bedeli bu olmamalı, o yüzden sınırlı sayıda yeniden
+  // deneniyor (v1.2-16). Sonuç yine dürüstçe bildiriliyor.
+  const lockSet = await setPasswordLock(
+    adminClient,
+    resolved.member_user_id,
+    passwordExpiresAt,
+    "[reset-member-password]"
+  );
 
   // Denetim kaydı KURUMUN kaydına yazılır, platform eksenine değil: bu işlemi
   // yapan kurum yöneticisidir ve hesabını verecek olan da kurumun kendisidir.
@@ -170,7 +172,7 @@ Deno.serve(async request => {
         login_number: resolved.login_number,
         temporary_password: temporaryPassword,
         password_expires_at: passwordExpiresAt,
-        password_lock_set: !lockError,
+        password_lock_set: lockSet,
         audit_written: !auditError,
       },
     },

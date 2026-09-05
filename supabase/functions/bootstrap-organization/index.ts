@@ -10,6 +10,7 @@ import {
   temporaryPasswordExpiresAt,
 } from "../_shared/temporaryPassword.ts";
 import { syntheticEmailFor } from "../_shared/syntheticEmail.ts";
+import { setPasswordLock } from "../_shared/passwordLock.ts";
 
 const requestSchema = z.object({
   organizationName: z.string().trim().min(2).max(120),
@@ -179,29 +180,26 @@ Deno.serve(async request => {
     );
   }
 
-  // Kilit bayrağı kullanıcı oluşturulduktan SONRA set ediliyor.
-  //
-  // `admin.createUser` şifreyi yazdığı için `on_auth_password_changed`
-  // tetikleyicisi çalışır ve bayrağı düşürür. Bayrağı önce set etseydik
-  // tetikleyici onu hemen silerdi ve kilit hiç devreye girmezdi.
+  // Kilit, kullanıcı oluşturulduktan SONRA yazılır. Sebebi
+  // `on_auth_password_changed`: `auth.users` üzerinde bir şifre GÜNCELLEMESİ
+  // olduğunda bayrağı düşürüyor. Bu sıra bir tercih değil kısıttır ve
+  // şifreyi değiştiren bütün akışlar için geçerli.
   const passwordExpiresAt = temporaryPasswordExpiresAt();
 
-  const { error: lockError } = await adminClient
-    .from("profiles")
-    .update({
-      must_change_password: true,
-      password_expires_at: passwordExpiresAt,
-    })
-    .eq("id", created.user.id);
-
-  if (lockError) {
-    // Kurum ve kullanıcı bu noktada oluştu. Bayrak yazılamadıysa kilit devreye
-    // girmez — kullanıcı geçici şifresiyle süresiz dolaşabilir. Sessiz
-    // geçilemez, ama isteği başarısız saymak da doğru değil: kurum var ve
-    // giriş bilgisi operatörün ekranında bir kez görünecek. Loglanıyor ve
-    // yanıtta bildiriliyor.
-    console.error("[bootstrap-organization] password lock flag write failed");
-  }
+  // Kurum ve kullanıcı bu noktada oluştu. Bayrak yazılamadıysa kilit devreye
+  // girmez — kullanıcı geçici şifresiyle **süresiz** dolaşabilir. İsteği
+  // başarısız saymak doğru değil (kurum var ve giriş bilgisi operatörün
+  // ekranında bir kez görünecek), ama tek bir anlık hatanın bedeli de bu
+  // olmamalı: yazma sınırlı sayıda yeniden deneniyor (v1.2-16).
+  //
+  // Yine de başarısız olursa gizlenmiyor — yanıttaki `password_lock_set`
+  // taşıyor ve operatör ekranında görünüyor.
+  const lockSet = await setPasswordLock(
+    adminClient,
+    created.user.id,
+    passwordExpiresAt,
+    "[bootstrap-organization]"
+  );
 
   // `internal_bootstrap_organization` denetim kaydını `audit_events`'e yazar,
   // yani KURUMUN kaydına. Operatör o tabloyu okuyamaz (policy kurum admini
@@ -253,7 +251,7 @@ Deno.serve(async request => {
         ...(bootstrap as Record<string, unknown>),
         temporary_password: temporaryPassword,
         password_expires_at: passwordExpiresAt,
-        password_lock_set: !lockError,
+        password_lock_set: lockSet,
         audit_written: !auditError,
       },
     },

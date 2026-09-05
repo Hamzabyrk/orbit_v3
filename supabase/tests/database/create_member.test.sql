@@ -2,7 +2,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(15);
+select plan(19);
 
 insert into auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at)
 values
@@ -61,7 +61,8 @@ select lives_ok($$select public.internal_create_membership(
   'd3000000-0000-0000-0000-000000000001',
   'd1a00000-0000-0000-0000-000000000001',
   'd1b00000-0000-0000-0000-000000000001',
-  1002, 'teacher', 'Yeni Ogretmen', '81001002'
+  1002, 'teacher', 'Yeni Ogretmen', '81001002',
+  timestamptz '2026-09-13 00:00:00+00'
 )$$, 'active admin can create a membership');
 
 select is(
@@ -76,13 +77,42 @@ select is(
   (select display_name from public.profiles where id = 'd3000000-0000-0000-0000-000000000001'),
   'Yeni Ogretmen', 'successful creation writes profile name'
 );
+
+-- v1.2-16: kilit ARTIK bu işlemin içinde yazılıyor. Öncesinde `create-member`
+-- üyelikten sonra ayrı bir UPDATE atıyordu; o UPDATE başarısız olduğunda üye
+-- geçici şifresiyle süresiz kalıyor ve şifresini değiştirmesi hiç
+-- gerekmiyordu. Ölçülen şey Edge Function'ın ne yaptığı değil, üyelik
+-- oluştuğunda kilidin **zorunlu olarak** var olması.
+select is(
+  (select must_change_password from public.profiles where id = 'd3000000-0000-0000-0000-000000000001'),
+  true, 'the membership and its password lock are written in one transaction'
+);
+select is(
+  (select password_expires_at from public.profiles where id = 'd3000000-0000-0000-0000-000000000001'),
+  timestamptz '2026-09-13 00:00:00+00', 'the expiry travels with the membership, not in a second call'
+);
+
+-- Parametre `default null` ile eklendi: sözleşmeyi genişletirken eski çağrı
+-- biçimi de çözülmeli ve o durumda bile kilit KONULMALI. Süre bilinmiyorsa
+-- boş kalır; "değiştirmek zorunda" kısmı asla kaybolmaz.
+select lives_ok($$select public.internal_create_membership(
+  'd1000000-0000-0000-0000-000000000001',
+  'd4000000-0000-0000-0000-000000000001',
+  'd1a00000-0000-0000-0000-000000000001',
+  'd1b00000-0000-0000-0000-000000000001',
+  1003, 'student', 'Sureli Olmayan', '81001003'
+)$$, 'the older eight-argument call still resolves');
+select is(
+  (select must_change_password from public.profiles where id = 'd4000000-0000-0000-0000-000000000001'),
+  true, 'even without an expiry the account still must change its password'
+);
 select is(
   (select count(*)::int from public.audit_events where action = 'membership.created' and entity_type = 'organization_membership' and metadata->>'login_number' = '81001002' and (metadata ? 'temporary_password') = false),
   1, 'creation writes audit without a password'
 );
 select ok(
-  not has_function_privilege('anon', 'public.internal_create_membership(uuid, uuid, uuid, uuid, integer, public.app_role, text, text)', 'execute')
-  and not has_function_privilege('authenticated', 'public.internal_create_membership(uuid, uuid, uuid, uuid, integer, public.app_role, text, text)', 'execute'),
+  not has_function_privilege('anon', 'public.internal_create_membership(uuid, uuid, uuid, uuid, integer, public.app_role, text, text, timestamptz)', 'execute')
+  and not has_function_privilege('authenticated', 'public.internal_create_membership(uuid, uuid, uuid, uuid, integer, public.app_role, text, text, timestamptz)', 'execute'),
   'client roles cannot execute membership creation'
 );
 select throws_ok(
