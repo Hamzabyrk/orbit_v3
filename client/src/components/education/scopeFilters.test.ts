@@ -20,15 +20,50 @@ import type { Role } from "./types";
 describe("scopeFilters - uretim modu (isDemo = false)", () => {
   const nonAdminRoles: Role[] = ["teacher", "student", "parent"];
 
-  it("ogretmen, ogrenci ve veli icin yedi filtrenin hepsi bos kume doner (K-04)", () => {
+  // v1.2-10: bu blok eskiden yedi filtrenin de BOŞ KÜME döndüğünü doğruluyordu.
+  // O davranış kapsamı çözecek hiçbir şey yokken doğruydu; artık kapsam
+  // veritabanında çözülüyor ve gelen satırlar zaten çağırana ait.
+  //
+  // Boş küme bırakılsaydı, gerçek veri aktığı gün RLS'in doğru getirdiği
+  // satırları ekran yok ederdi — koruma değil, patlamayı bekleyen bir mayın.
+  //
+  // Girdi olarak demo verisi kullanılıyor çünkü test edilen şey İÇERİK değil
+  // **sözleşme**: üretim dalı ne verilirse onu geri verir, filtrelemez.
+  it("uretimde yedi filtre de gelen satirlari oldugu gibi gecirir", () => {
     for (const role of nonAdminRoles) {
-      expect(filterScheduleForTeacher(demoSchedule, false)).toEqual([]);
-      expect(filterStudentsForRole(demoStudents, role, false)).toEqual([]);
-      expect(filterAttendanceStudents(demoStudents, role, false)).toEqual([]);
-      expect(filterClassesForRole(demoClasses, role, false)).toEqual([]);
-      expect(filterHomeworkForRole(demoHomework, role, false)).toEqual([]);
-      expect(filterPaymentsForRole(demoPaymentRows, role, false)).toEqual([]);
-      expect(filterScheduleForRole(demoSchedule, role, false)).toEqual([]);
+      expect(filterScheduleForTeacher(demoSchedule, false)).toEqual(
+        demoSchedule
+      );
+      expect(filterStudentsForRole(demoStudents, role, false)).toEqual(
+        demoStudents
+      );
+      expect(filterAttendanceStudents(demoStudents, role, false)).toEqual(
+        demoStudents
+      );
+      expect(filterClassesForRole(demoClasses, role, false)).toEqual(
+        demoClasses
+      );
+      expect(filterHomeworkForRole(demoHomework, role, false)).toEqual(
+        demoHomework
+      );
+      expect(filterPaymentsForRole(demoPaymentRows, role, false)).toEqual(
+        demoPaymentRows
+      );
+      expect(filterScheduleForRole(demoSchedule, role, false)).toEqual(
+        demoSchedule
+      );
+    }
+  });
+
+  // Üretimde kapsamı bu dosya değil RLS belirlediği için, aynı girdiyle her rol
+  // aynı sonucu almalı. Rolden rola fark çıkması, üretim dalında hâlâ bir
+  // filtre kaldığı anlamına gelirdi.
+  it("uretimde rol degistirmek sonucu degistirmez — kapsam artik burada karar verilmiyor", () => {
+    const sonuclar = nonAdminRoles.map(role =>
+      filterStudentsForRole(demoStudents, role, false)
+    );
+    for (const sonuc of sonuclar) {
+      expect(sonuc).toEqual(sonuclar[0]);
     }
   });
 
@@ -55,6 +90,24 @@ describe("scopeFilters - uretim modu (isDemo = false)", () => {
 });
 
 describe("scopeFilters - demo modu (isDemo = true)", () => {
+  // Bu test v1.2-10'da eklendi ve sebebi somut bir hatadır: üretim dalı boş
+  // kümeden geçirgenliğe çevrilirken, o `return []` satırının İKİ iş birden
+  // yaptığı gözden kaçtı — hem üretimin cevabıydı hem de demo modunda filtresi
+  // olmayan rollerin kapısı. Kapı kalkınca demo modunda öğrenci, yoklama
+  // ekranında bütün öğrencileri görür hâle geldi.
+  //
+  // Mevcut testler bunu yalnızca BİR fonksiyonda yakaladı; üçünde vardı. Bu
+  // test üçünü birden bekliyor.
+  it("demo modunda filtresi olmayan roller icin kapi kapalidir", () => {
+    for (const role of ["student", "parent"] as Role[]) {
+      expect(filterAttendanceStudents(demoStudents, role, true)).toEqual([]);
+      expect(filterClassesForRole(demoClasses, role, true)).toEqual([]);
+    }
+    for (const role of ["teacher", "student"] as Role[]) {
+      expect(filterPaymentsForRole(demoPaymentRows, role, true)).toEqual([]);
+    }
+  });
+
   it("ogretmen programi demo ogretmenlerinin derslerini listeler", () => {
     const teacherSchedule = filterScheduleForTeacher(demoSchedule, true);
     expect(teacherSchedule.length).toBeGreaterThan(0);

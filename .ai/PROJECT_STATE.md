@@ -204,6 +204,8 @@ Aynı düzeltme "**Yazma mimarisi bilinçli ve tek biçimli**" paragrafını da 
 
 **Sekizinci düzeltme (2026-09-05, v1.2-09):** `daily_feed_posts`, `tasks` ve `calendar_events` eklendi; matriste **Mesaj** ve **Gün planı** satırlarının "Tablo" ve "Yazma" sütunları ✅ oldu. Bu dilim, **kurum yöneticisinin göremediği ilk tabloları** getirdi: kişisel çalışma alanı kurumun değil kişinindir. Ölçülebilir hâli — `tasks` ve `calendar_events` politikalarında `admin` geçen sıfır ifade var. Böylece **v1.2'nin tablo işi bitti**; kalan üç dilim (10, 11, 12) tablo değil bağlantı, tarama ve ekran işidir.
 
+**Dokuzuncu düzeltme (2026-09-05, v1.2-10):** Kapsam istemciden veritabanına taşındı. `scopeFilters.ts` artık bir **güvenlik sınırı değil** — sınır RLS; oradaki filtreler yalnızca demo modunda çalışıyor. "Üretimde boş küme" ifadesi bu belgede ve `scopeFilters.ts` başlığında geçtiği her yerde geçersizdir. Bağlantı matrisi değişmedi: **Servis** ve **Ekran** sütunları hâlâ ❌ ve bunlar v1.3-01'in işi.
+
 **Bağlantı matrisi** — hangi varlığın hangi katmanı var:
 
 | Varlık                                                                                     | Tablo  | Servis | Ekran |    Yazma     |

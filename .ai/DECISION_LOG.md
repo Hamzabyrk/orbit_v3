@@ -51,6 +51,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Ödeme kurum ile aile arasındadır; öğretmen ve öğrenci görmez
 - Dersin planlanması kurumun, yürütülmesi öğretmenin işidir
 - Kişisel çalışma alanı kurumun değil kişinindir
+- Kapsam istemcide değil veritabanında çözülür
 
 **Kapsam ve sürüm**
 
@@ -1465,3 +1466,30 @@ Sınır, kurumun meşru ihtiyacını kesmiyor: kurumsal duyuru zaten ayrı bir t
 
 - **Yöneticiye okuma yetkisi vermek:** Reddedildi. "Gerekirse bakarım" ihtiyacı gerçek değil; maliyeti özelliğin kullanılmaması.
 - **Tek tabloda `visibility` sütunuyla ayırmak:** Reddedildi. Kişisel ile kurumsal arasındaki sınır bir sütun değerine indirgenirdi ve tek bir politika hatası ikisini karıştırırdı.
+
+---
+
+### Karar: Kapsam istemcide değil veritabanında çözülür
+
+**Durum:** Alındı
+**Tarih:** 2026-09-05
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `scopeFilters.ts` #136'da yazıldı: kim neyi görür sorusunu istemcide cevaplayan yedi fonksiyon. O gün doğru bir çözümdü — kapsamı çözecek hiçbir şey yoktu ve üretimde **boş küme** dönmek, bilinmeyende dar tarafta kalmaktı (K-04).
+
+v1.2-01…09 bu zemini değiştirdi: on sekiz tablo, 97 RLS politikası, altı kapsam yardımcısı. Kapsam artık **sunucuda**, çağıranın kimliğiyle çözülüyor.
+
+**Karar:** Kapsam yalnızca veritabanında çözülür. `scopeFilters.ts`'in üretim dalı gelen satırları **olduğu gibi geçirir**; ikinci kez filtrelemez.
+
+**Gerekçe — bu bir hazırlık değil, hata düzeltmesiydi.** Boş küme bırakılsaydı, v1.3'te veri aktığı gün sonuç şu olurdu: RLS doğru satırları getirir, istemci onları yok eder, her öğretmen ve veli boş bir panel görür. Ve sebebi hiçbir hata mesajında görünmez; kimse "filtre" aramaz çünkü filtre bir güvenlik önlemi sanılır. Koruma değil, patlamayı bekleyen bir mayındı.
+
+**Sınırın nerede olduğu artık yazılı:** bu dosya güvenlik yapmıyor, RLS yapıyor. `if (isDemo)` dalları yalnızca satış sunumunun tutarlı görünmesi için duruyor — demo verisi RLS'ten geçmediği için kendi filtresine muhtaç.
+
+**Geçirgenliğin tek dayanağı:** üretim dalına yalnızca RLS'ten geçmiş veri ulaşmalı. Bugün yapısal olarak garanti — `isDemoMode` derleme zamanı sabiti ve veri kaynağı aynı sabitle kapılı, yani demo verisiyle üretim dalı bir araya gelemez. **Bu ikisi bir gün ayrışırsa geçirgenlik sızıntıya döner.**
+
+**Değişiklik sırasında yapılan hata da kayda değer:** o `return []` satırı iki iş birden yapıyordu — üretimin cevabı **ve** demo modunda filtresi olmayan rollerin kapısı. Geçirgen yapılınca demo modunda üç fonksiyon sızmaya başladı. Mevcut testler bunu yalnızca birinde yakaladı; üçünde vardı. Ders: **tek bir `return` iki farklı soruya cevap veriyorsa, birini değiştirmek diğerini sessizce bozar.**
+
+**Alternatifler:**
+
+- **Boş kümeyi korumak:** Reddedildi. Yukarıdaki sessiz boş panel senaryosu.
+- **İstemcide de filtrelemeye devam etmek (savunma derinliği):** Reddedildi. RLS'in getirdiği satırı istemcide yeniden filtrelemek savunma değil **çift kaynak**: iki yer aynı soruya cevap verir, biri güncellenir, diğeri unutulur (K-06). Ve yanlış taraf istemci olduğunda sonuç sızıntı değil **görünmez veri** olur — teşhisi çok daha zor.

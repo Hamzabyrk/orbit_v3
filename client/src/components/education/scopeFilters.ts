@@ -1,24 +1,34 @@
 /**
- * Rol bazlı kapsam filtreleri.
+ * Rol bazlı kapsam filtreleri — **artık bir güvenlik sınırı değil.**
  *
- * Kurum yöneticisi (admin) kurumun tamamından sorumludur ve tüm veriyi görür.
- * Öğretmen, öğrenci ve velinin kapsamını (öğretmen-sınıf ataması, veli-öğrenci bağı)
- * belirleyen ilişkisel tablolar v1.2'de veritabanına ekleniyor.
+ * Kapsam v1.2-01…09'da veritabanına taşındı: on sekiz iş tablosu, 97 RLS
+ * politikası ve altı kapsam yardımcısı. Yönetici kurumdan, öğretmen
+ * **atamadan**, öğrenci kendi kaydından, veli **bağdan** görüyor — ve bu karar
+ * artık sunucuda, çağıranın kimliğiyle veriliyor.
  *
- * **Güncelleme (2026-09-04):** `classes`, `class_enrollments`, `class_teachers`
- * ve `subjects` v1.2-02'de eklendi; öğretmen ve öğrenci kapsamı artık
- * **veritabanında** RLS ile çözülüyor. Bu dosya hâlâ eski hâlinde çünkü ekranlar
- * o tablolara henüz bağlı değil — bağlanma işi **v1.2-10 (kapsam çözümleyicisi)**.
- * Kalan tablo `student_guardians` (veli bağı, v1.2-03).
+ * Bu dosyanın üretim dalı bu yüzden **gelen satırları olduğu gibi geçiriyor.**
+ * Kapsamlama zaten yapılmış hâlde geliyor; burada ikinci kez filtrelemek
+ * yanlış olurdu.
  *
- * Not: burada eskiden `course_teachers` adı geçiyordu; tablo `class_teachers`
- * adıyla yazıldı.
+ * **Neden artık boş küme dönmüyor (v1.2-10).** Önceki hâl `return []` idi ve o
+ * gün doğruydu: kapsamı çözecek hiçbir şey yoktu, bilinmeyende dar tarafta
+ * kalınmıştı (K-04). Ama kapsam artık bilinmiyor değil — biliniyor ve
+ * uygulanıyor. Boş küme bırakılsaydı, gerçek veri aktığı gün **RLS'in doğru
+ * getirdiği satırları ekran yok ederdi**: her öğretmen, öğrenci ve veli boş bir
+ * panel görür, sebebi de hiçbir hata mesajında görünmezdi. Bu satırlar bir
+ * koruma değil, patlamayı bekleyen bir mayındı.
  *
- * Tablolar bağlanana kadar:
- * - Demo modunda satış sunumu için örnek filtreleme çalışır.
- * - Üretimde çözülemeyen kapsam için dar tarafta kalınarak boş küme dönülür (K-04).
+ * **Sınırın nerede olduğu önemli:** bu dosya güvenlik yapmıyor, RLS yapıyor.
+ * Buradaki `if (isDemo)` dalları yalnızca satış sunumunun tutarlı görünmesi
+ * için; demo verisi RLS'ten geçmediği için kendi filtresine ihtiyaç duyuyor.
  *
- * Referans: Issue #136, K-03, K-04, K-06.
+ * **Geçirgenliğin tek dayanağı:** üretim dalına yalnızca RLS'ten geçmiş veri
+ * ulaşmalı. Bugün bu yapısal olarak garanti: `isDemoMode` derleme zamanı
+ * sabitidir ve veri kaynağı (`educationData.ts`) aynı sabitle kapılıdır, yani
+ * demo verisiyle üretim dalı bir araya gelemez. Bu ikisi bir gün ayrışırsa
+ * geçirgenlik sızıntıya döner — o yüzden ayrışmamalı.
+ *
+ * Referans: Issue #136, K-04, K-06, K-11.
  */
 
 import {
@@ -52,7 +62,8 @@ export function filterScheduleForTeacher(
       )
     );
   }
-  return [];
+  // Kapsam sunucuda çözüldü; gelen satırlar zaten bu kullanıcıya ait.
+  return schedule;
 }
 
 /**
@@ -77,8 +88,14 @@ export function filterStudentsForRole(
     if (role === "student" || role === "parent") {
       return students.filter(student => student.id === DEMO_STUDENT_ID);
     }
+    // Demo modunda bu rol için tanımlı bir filtre yok; kapı kapalı.
+    // Bu `return` ÜRETİM dalı değil — üretimin cevabı aşağıdaki
+    // geçirgenliktir. İkisi ayrı olmak zorunda: demo verisi RLS'ten
+    // geçmediği için kendi kapısına muhtaç.
+    return [];
   }
-  return [];
+  // Kapsam sunucuda çözüldü; gelen satırlar zaten bu kullanıcıya ait.
+  return students;
 }
 
 /**
@@ -92,14 +109,22 @@ export function filterAttendanceStudents(
   if (role === "admin") {
     return students;
   }
-  if (isDemo && role === "teacher") {
-    return students.filter(student =>
-      DEMO_TEACHER_CLASS_GROUPS.includes(
-        student.group as (typeof DEMO_TEACHER_CLASS_GROUPS)[number]
-      )
-    );
+  if (isDemo) {
+    if (role === "teacher") {
+      return students.filter(student =>
+        DEMO_TEACHER_CLASS_GROUPS.includes(
+          student.group as (typeof DEMO_TEACHER_CLASS_GROUPS)[number]
+        )
+      );
+    }
+    // Demo modunda bu rol için tanımlı bir filtre yok; kapı kapalı.
+    // Bu `return` ÜRETİM dalı değil — üretimin cevabı aşağıdaki
+    // geçirgenliktir. İkisi ayrı olmak zorunda: demo verisi RLS'ten
+    // geçmediği için kendi kapısına muhtaç.
+    return [];
   }
-  return [];
+  // Kapsam sunucuda çözüldü; gelen satırlar zaten bu kullanıcıya ait.
+  return students;
 }
 
 /**
@@ -113,10 +138,18 @@ export function filterClassesForRole(
   if (role === "admin") {
     return classes;
   }
-  if (isDemo && role === "teacher") {
-    return classes.filter(group => group.mentor === DEMO_CLASS_MENTOR);
+  if (isDemo) {
+    if (role === "teacher") {
+      return classes.filter(group => group.mentor === DEMO_CLASS_MENTOR);
+    }
+    // Demo modunda bu rol için tanımlı bir filtre yok; kapı kapalı.
+    // Bu `return` ÜRETİM dalı değil — üretimin cevabı aşağıdaki
+    // geçirgenliktir. İkisi ayrı olmak zorunda: demo verisi RLS'ten
+    // geçmediği için kendi kapısına muhtaç.
+    return [];
   }
-  return [];
+  // Kapsam sunucuda çözüldü; gelen satırlar zaten bu kullanıcıya ait.
+  return classes;
 }
 
 /**
@@ -143,8 +176,14 @@ export function filterHomeworkForRole(
         item => item.classGroup === DEMO_STUDENT_CLASS_GROUP
       );
     }
+    // Demo modunda bu rol için tanımlı bir filtre yok; kapı kapalı.
+    // Bu `return` ÜRETİM dalı değil — üretimin cevabı aşağıdaki
+    // geçirgenliktir. İkisi ayrı olmak zorunda: demo verisi RLS'ten
+    // geçmediği için kendi kapısına muhtaç.
+    return [];
   }
-  return [];
+  // Kapsam sunucuda çözüldü; gelen satırlar zaten bu kullanıcıya ait.
+  return homework;
 }
 
 /**
@@ -158,10 +197,18 @@ export function filterPaymentsForRole(
   if (role === "admin") {
     return paymentRows;
   }
-  if (isDemo && role === "parent") {
-    return paymentRows.filter(item => item.student === DEMO_STUDENT_NAME);
+  if (isDemo) {
+    if (role === "parent") {
+      return paymentRows.filter(item => item.student === DEMO_STUDENT_NAME);
+    }
+    // Demo modunda bu rol için tanımlı bir filtre yok; kapı kapalı.
+    // Bu `return` ÜRETİM dalı değil — üretimin cevabı aşağıdaki
+    // geçirgenliktir. İkisi ayrı olmak zorunda: demo verisi RLS'ten
+    // geçmediği için kendi kapısına muhtaç.
+    return [];
   }
-  return [];
+  // Kapsam sunucuda çözüldü; gelen satırlar zaten bu kullanıcıya ait.
+  return paymentRows;
 }
 
 /**
@@ -190,6 +237,12 @@ export function filterScheduleForRole(
         )
       );
     }
+    // Demo modunda bu rol için tanımlı bir filtre yok; kapı kapalı.
+    // Bu `return` ÜRETİM dalı değil — üretimin cevabı aşağıdaki
+    // geçirgenliktir. İkisi ayrı olmak zorunda: demo verisi RLS'ten
+    // geçmediği için kendi kapısına muhtaç.
+    return [];
   }
-  return [];
+  // Kapsam sunucuda çözüldü; gelen satırlar zaten bu kullanıcıya ait.
+  return schedule;
 }
