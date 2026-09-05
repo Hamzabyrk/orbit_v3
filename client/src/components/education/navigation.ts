@@ -2,6 +2,7 @@ import {
   BarChart3,
   CalendarDays,
   ClipboardCheck,
+  History,
   FileText,
   LayoutDashboard,
   ListTodo,
@@ -78,6 +79,11 @@ export const allNav: {
   {
     label: "Raporlar",
     icon: FileText,
+    group: "Kurum yönetimi",
+  },
+  {
+    label: "Denetim Kaydı",
+    icon: History,
     group: "Kurum yönetimi",
   },
   {

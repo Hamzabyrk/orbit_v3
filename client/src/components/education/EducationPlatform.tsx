@@ -28,6 +28,7 @@ import { CommunicationsPage } from "./pages/CommunicationsPage";
 import { DayPlanPage } from "./pages/DayPlanPage";
 import { HomeworkPage } from "./pages/HomeworkPage";
 import { PaymentsPage } from "./pages/PaymentsPage";
+import { AuditLogPage } from "./pages/AuditLogPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { SchedulePage } from "./pages/SchedulePage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -244,6 +245,7 @@ export function EducationPlatform({
         />
       );
     if (active === "Raporlar") return <ReportsPage role={role} />;
+    if (active === "Denetim Kaydı") return <AuditLogPage />;
     return <SettingsPage role={role} onResetDemoData={resetDemoData} />;
   };
 

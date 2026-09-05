@@ -8,7 +8,8 @@ describe("education role access", () => {
   it("gives the administrator access to the full Faz 1 MVP navigation", () => {
     expect(availableEducationSections("admin")).toContain("Otomasyonlar");
     expect(availableEducationSections("admin")).toContain("Kayıt ve Ödemeler");
-    expect(availableEducationSections("admin")).toHaveLength(13);
+    // v1.2-12'de "Denetim Kaydı" eklendi: 13 -> 14.
+    expect(availableEducationSections("admin")).toHaveLength(14);
   });
 
   it("gives the day-plan workspace to admin and teacher only", () => {
@@ -45,6 +46,19 @@ describe("education role access", () => {
     expect(canAccessEducationSection("teacher", "Ödevler")).toBe(true);
     expect(canAccessEducationSection("student", "Ödevler")).toBe(true);
     expect(canAccessEducationSection("parent", "Ödevler")).toBe(true);
+  });
+
+  // v1.2-12. Denetim kaydı YALNIZCA kurum yöneticisine açıktır ve bunun iki
+  // ayrı kapısı var: bu erişim listesi ve `audit_events_select_admin`
+  // politikası. İkisi de gerekli — istemci kapısı deneyim, RLS güvenliktir.
+  //
+  // Bu test istemci kapısını sabitliyor. Sunucu kapısı
+  // `password_lock_boundary.test.sql` ve `tenant_rls.test.sql`'de.
+  it("keeps the audit log visible to the institution admin only", () => {
+    expect(canAccessEducationSection("admin", "Denetim Kaydı")).toBe(true);
+    expect(canAccessEducationSection("teacher", "Denetim Kaydı")).toBe(false);
+    expect(canAccessEducationSection("student", "Denetim Kaydı")).toBe(false);
+    expect(canAccessEducationSection("parent", "Denetim Kaydı")).toBe(false);
   });
 
   it("gives every role access to Ayarlar, with category visibility handled inside the settings page", () => {
