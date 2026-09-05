@@ -206,6 +206,8 @@ Aynı düzeltme "**Yazma mimarisi bilinçli ve tek biçimli**" paragrafını da 
 
 **Dokuzuncu düzeltme (2026-09-05, v1.2-10):** Kapsam istemciden veritabanına taşındı. `scopeFilters.ts` artık bir **güvenlik sınırı değil** — sınır RLS; oradaki filtreler yalnızca demo modunda çalışıyor. "Üretimde boş küme" ifadesi bu belgede ve `scopeFilters.ts` başlığında geçtiği her yerde geçersizdir. Bağlantı matrisi değişmedi: **Servis** ve **Ekran** sütunları hâlâ ❌ ve bunlar v1.3-01'in işi.
 
+**Onuncu düzeltme (2026-09-05, v1.2-11):** Zorunlu şifre değişimi kilidi artık **yalnızca istemcide değil**. 98 RLS politikasının **92'si** koşulu taşıyor; muaf kalan altısı kimlik okumasıdır ve muafiyet kümesi pgTAP ile sabitlenmiştir. `PLATFORM_SETTINGS.md` §5'teki "kilit yalnızca istemcide" değerlendirmesi bu tarihten itibaren geçersizdir.
+
 **Bağlantı matrisi** — hangi varlığın hangi katmanı var:
 
 | Varlık                                                                                     | Tablo  | Servis | Ekran |    Yazma     |

@@ -52,6 +52,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Dersin planlanması kurumun, yürütülmesi öğretmenin işidir
 - Kişisel çalışma alanı kurumun değil kişinindir
 - Kapsam istemcide değil veritabanında çözülür
+- Kilit kullanmayı durdurur, tanıtmayı değil
 
 **Kapsam ve sürüm**
 
@@ -1493,3 +1494,42 @@ v1.2-01…09 bu zemini değiştirdi: on sekiz tablo, 97 RLS politikası, altı k
 
 - **Boş kümeyi korumak:** Reddedildi. Yukarıdaki sessiz boş panel senaryosu.
 - **İstemcide de filtrelemeye devam etmek (savunma derinliği):** Reddedildi. RLS'in getirdiği satırı istemcide yeniden filtrelemek savunma değil **çift kaynak**: iki yer aynı soruya cevap verir, biri güncellenir, diğeri unutulur (K-06). Ve yanlış taraf istemci olduğunda sonuç sızıntı değil **görünmez veri** olur — teşhisi çok daha zor.
+
+---
+
+### Karar: Kilit kullanmayı durdurur, tanıtmayı değil
+
+**Durum:** Alındı
+**Tarih:** 2026-09-05
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Zorunlu şifre değişimi kilidi (`current_user_must_change_password()`) v1.2-01'den itibaren yazılan her iş tablosunun politikasına kondu. v1.2-11'in işi, daha eski tabloları taramaktı — `ROADMAP.md` beş tablo saymıştı.
+
+Tarama sırasında `client/src/auth/authService.ts` okundu ve **dördünün kilitlenemeyeceği** görüldü.
+
+**Karar:** Kilit, kullanıcının sistemi **kullanmasını** durdurur; kendini **tanıtmasını** durdurmaz. Kimlik katmanı kilitten muaftır.
+
+Muaf kalan altı politika ve sebepleri:
+
+| Politika                             | Neden muaf                                                      |
+| ------------------------------------ | --------------------------------------------------------------- |
+| `profiles_select_self`               | `must_change_password` buradan okunuyor — kilidin kendisi       |
+| `profiles_update_self`               | İlk giriş akışının parçası; kurtarma e-postası burada ekleniyor |
+| `memberships_select_self`            | Kimlik çözümlemesinin ilk adımı                                 |
+| `organizations_select_member`        | Aynı akış, üstelik `.single()` ile                              |
+| `branches_select_member`             | Aynı akış                                                       |
+| `platform_operators_select_operator` | Operatör kimliğinin aynı hikâyesi                               |
+
+**Gerekçe:** Kilit bir kapı, kimlik katmanı ise o kapının anahtarını uzatan el. `profiles` kilitlenseydi kullanıcı "şifreni değiştir" yerine "okunamadı" ekranını görürdü — **K-09'un tarif ettiği hatanın tam olarak kendisi** — ve o ekrandan çıkış yolu olmazdı. `organizations` `.single()` ile okunduğu için sıfır satır sorguyu hataya düşürür ve kullanıcı "kurum bilgisi yüklenemedi" diye **yanlış bir mesajla** oturumdan atılırdı.
+
+**Sınır tablo bazlı değil soru bazlıdır.** Aynı tablo hem kimlik hem iş verisi taşıyabiliyor: `organization_memberships`'te "bu benim üyeliğim mi" kimliktir, "kurumun üye listesi" iş verisidir. Bu yüzden `memberships_select_self_or_admin` **ikiye bölündü**; tek politikada iki farklı soruya cevap verildiği sürece kilidi yalnızca birine uygulamanın yolu yoktu.
+
+(v1.2-10'da aynı ders bir `return` için öğrenilmişti: tek bir ifade iki soruya cevap veriyorsa, birini değiştirmek diğerini bozar. Burada ifade bir politikaydı.)
+
+**Muafiyet listesi testle sabitlendi.** `password_lock_boundary.test.sql`, kilit koşulunu taşımayan politikaların **kümesini** iddia ediyor. Yeni bir politika kilitsiz yazılırsa test kırmızıya döner ve yazarına "bu gerçekten kimlik okuması mı" diye sorar. Liste güncellenebilir — ama bilinçli bir hareketle, unutkanlıkla değil.
+
+**Alternatifler:**
+
+- **Beş tabloya da eklemek (maddede yazan):** Reddedildi. Kilitli kullanıcı giriş yapamaz, kilitli olduğunu öğrenemez ve kilitten çıkamazdı.
+- **Kilidi yalnızca istemcide bırakmak:** Zaten reddedilmişti; REST API doğrudan çağrılabiliyor.
+- **`profiles_update_self`'i de kilitlemek:** Reddedildi. İlk giriş akışında kurtarma e-postasının eklenmesi bu politikadan geçiyor olabilir; kapatmak o akışı kırma riski taşıyor ve kazancı yok — kilitli kullanıcının kendi görünen adını değiştirmesi zararsız.
