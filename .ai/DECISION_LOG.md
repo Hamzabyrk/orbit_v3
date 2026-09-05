@@ -56,6 +56,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - İstemci veri katmanı React Query üzerine kurulur
 - Hafta yedi gündür — istemci tipi veritabanına uyar
 - Staging ortamı v1.5'e ertelenir
+- Yetki RLS'te, bütünlük şemada durur
 
 **Kapsam ve sürüm**
 
@@ -1586,3 +1587,25 @@ React Query'nin borcu ise **merkezî ve görünür**: bir bağımlılık, bir s�
 **Gerekçe ve kabul edilen bedel:** v1.3 boyunca her servis bağlantısı **canlı sistemde ilk kez sınanacak.** Bu bilinerek kabul edildi. Hafifleten iki şey var: v1.3-01 yazma değil **okuma** getiriyor (yazma akışları v1.4'te), ve production'da bugün yalnızca iki test kurumu var, gerçek kurum verisi yok.
 
 **Yeniden değerlendirme:** §5'teki tetikleyici korunuyor. Ek olarak **v1.4-00 açılışında** yeniden bakılmalıdır — orada kimlik ve akademik kayıt bağlanacak, yani yazma akışları başlayacak ve "canlı sistemde ilk kez sınama" bedeli okumadan yazmaya geçecektir.
+
+### Karar: Yetki RLS'te, bütünlük şemada durur
+
+**Durum:** Alındı
+**Tarih:** 2026-09-05
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.2-14, iki tabloda "bir kayıt iki ucuna birden aittir" kuralını uygulayacaktı (**K-17**). Doğal refleks bunu mevcut RLS politikalarına bir koşul daha ekleyerek yapmaktı — sistemdeki bütün kapsam mantığı orada yaşıyor.
+
+**Karar:** Bu tür kurallar RLS politikasına değil **trigger'a** yazılır. Genel biçimiyle: **"kim yazabilir" RLS'in, "yazılan satır tutarlı mı" şemanın işidir.**
+
+**Gerekçe — üç sebep, üçü de tek başına bağlayıcı:**
+
+1. **`service_role` RLS'i atlar.** İş tablolarında `grant all ... to service_role` var ve Edge Function'lar bu rolle yazıyor. Politikaya yazılan bir bütünlük kuralı onlar için **hiç var olmazdı** — yani kuralın en çok güvenilmesi gereken yazma yolunda hiç bulunmazdı.
+2. **Bu bir yetki sorusu değil.** "Yoklama kaydının öğrencisi oturumun sınıfında mı" sorusunun cevabı çağırana göre değişmez. Çağırandan bağımsız bir doğruluk koşulunu çağırana bağlı bir mekanizmaya yazmak, kavramları karıştırmaktır.
+3. **Politikalar `OLD` ile `NEW`'i karşılaştıramaz.** Kuralın tam hâli "ekleme doğru olsun" değil "ebeveyn sonradan taşınıp kuralı bozmasın" — bu ancak trigger'da ifade edilebilir.
+
+**Zaten var olan örnekle tutarlı:** bileşik yabancı anahtarlar tenant sınırını RLS'ten bağımsız olarak veri düzeyinde tutuyor. Bu karar aynı ayrımı bir adım ileri götürüyor.
+
+**Bedeli, bilinerek kabul edildi:** hata artık politika reddi (`42501`) değil özel bir SQLSTATE (`ORB02`). Yani istemci iki farklı ret biçimini ayırt etmek zorunda. Karşılığında ret **sebebini** taşıyor: `detail` hangi öğrenci ve hangi sınıf olduğunu, `hint` ne yapılacağını yazıyor — politika reddinin veremediği bilgi.
+
+**Reddedilen:** aynı koşulu hem politikaya hem trigger'a yazmak. İki yerde tutulan bir olgunun biri eskir (**K-06**) ve burada eskiyen taraf sessizce açık bırakırdı.

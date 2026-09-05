@@ -14,7 +14,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(24);
+select plan(28);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -92,7 +92,12 @@ values
   ('50000000-0000-0000-0000-000000000801', 'aa000000-0000-0000-0000-0000000000aa',
    'aaa00000-0000-0000-0000-000000000aa1', 'a4000000-0000-0000-0000-0000000000a4', 'Birinci Öğrenci'),
   ('50000000-0000-0000-0000-000000000802', 'aa000000-0000-0000-0000-0000000000aa',
-   'aaa00000-0000-0000-0000-000000000aa1', null, 'İkinci Öğrenci');
+   'aaa00000-0000-0000-0000-000000000aa1', null, 'İkinci Öğrenci'),
+  -- 12-A'da, ama fixture'da hiç yoklama kaydı YOK. Öğretmenin meşru yazma
+  -- durumunu göstermek için gerekli: 801'in e1'de zaten kaydı var ve
+  -- benzersizlik kısıtı ikinci bir kaydı reddederdi.
+  ('50000000-0000-0000-0000-000000000803', 'aa000000-0000-0000-0000-0000000000aa',
+   'aaa00000-0000-0000-0000-000000000aa1', null, 'Üçüncü Öğrenci');
 
 insert into public.guardians (id, organization_id, auth_user_id, full_name)
 values ('60000000-0000-0000-0000-000000000901', 'aa000000-0000-0000-0000-0000000000aa',
@@ -107,7 +112,9 @@ values
   ('aa000000-0000-0000-0000-0000000000aa', 'c0000000-0000-0000-0000-0000000000c1',
    '50000000-0000-0000-0000-000000000801'),
   ('aa000000-0000-0000-0000-0000000000aa', 'c0000000-0000-0000-0000-0000000000c2',
-   '50000000-0000-0000-0000-000000000802');
+   '50000000-0000-0000-0000-000000000802'),
+  ('aa000000-0000-0000-0000-0000000000aa', 'c0000000-0000-0000-0000-0000000000c1',
+   '50000000-0000-0000-0000-000000000803');
 
 insert into public.attendance_sessions
   (id, organization_id, class_id, subject_id, session_date, starts_at)
@@ -194,6 +201,39 @@ select throws_ok(
   'a student cannot hold two records in one session'
 );
 
+-- INSERT'i korumak tek başına yetmiyor: oturum sonradan başka bir sınıfa
+-- taşınırsa kural geriye dönük bozulurdu. Bu yol bugün yalnızca `service_role`
+-- ve superuser için açık (`class_id` yazma yetkisinde değil) — testin burada,
+-- rol geçişlerinden ÖNCE olmasının sebebi bu.
+select throws_ok(
+  $sql$update public.attendance_sessions
+      set class_id = 'c0000000-0000-0000-0000-0000000000c2'
+      where id = 'e0000000-0000-0000-0000-0000000000e1'$sql$,
+  'ORB02',
+  null,
+  'a session cannot move to a class that would orphan its existing records'
+);
+
+-- Ve koruma her taşımayı reddetmiyor: kaydı olmayan bir oturum serbestçe
+-- taşınır. Her zaman reddeden bir koruma, hiç reddetmeyen kadar yanlıştır.
+select lives_ok(
+  $sql$update public.attendance_sessions
+      set class_id = 'c0000000-0000-0000-0000-0000000000c2'
+      where session_date = date '2026-09-01'
+        and subject_id is null
+        and class_id = 'c0000000-0000-0000-0000-0000000000c1'$sql$,
+  'a session with no records can move freely'
+);
+
+-- Yukarıdaki taşıma fixture'ı değiştirdi: 12-A bir oturum kaybetti ve dosyanın
+-- sonundaki "veli çocuğunun sınıfının üç oturumunu görür" iddiası bozulurdu.
+-- Geri alınıyor — bir iddia değil, düzen toplama.
+update public.attendance_sessions
+set class_id = 'c0000000-0000-0000-0000-0000000000c1'
+where session_date = date '2026-09-01'
+  and subject_id is null
+  and class_id = 'c0000000-0000-0000-0000-0000000000c2';
+
 create function pg_temp.silmeyi_dene(org uuid, actor uuid)
 returns text
 language plpgsql
@@ -259,7 +299,12 @@ select throws_ok(
   'a teacher cannot open attendance for a class they do not teach'
 );
 
-select lives_ok(
+-- ⛔ Bu iddia 2026-09-05'e kadar `lives_ok` idi ve etiketi
+-- "a teacher can record attendance in a session of their own class" diyordu.
+-- Etiket oturum yarısını anlatıyor, öğrencinin YABANCI olduğunu hiç
+-- söylemiyordu: 802, 12-B'nin öğrencisi; oturum e1 ise 12-A'nın. Yani test
+-- açığı yakalamıyor, **doğru davranış olarak çiviliyordu** (K-17).
+select throws_ok(
   $sql$insert into public.attendance_records (organization_id, session_id, student_id, status)
     values (
       'aa000000-0000-0000-0000-0000000000aa',
@@ -267,7 +312,31 @@ select lives_ok(
       '50000000-0000-0000-0000-000000000802',
       'excused'
     )$sql$,
-  'a teacher can record attendance in a session of their own class'
+  'ORB02',
+  null,
+  'a teacher cannot record a student who is not enrolled in the session class'
+);
+
+-- Ve engellenen şeyin gerçekten OLMADIĞI ayrıca ölçülüyor: hata kodu bizim
+-- seçtiğimiz bir sözleşme, kaydın yokluğu ise olgunun kendisi (K-13).
+select is(
+  (select count(*) from public.attendance_records
+     where session_id = 'e0000000-0000-0000-0000-0000000000e1'
+       and student_id = '50000000-0000-0000-0000-000000000802'),
+  0::bigint,
+  'the rejected record was really not written'
+);
+
+-- Meşru durum: 803 gerçekten 12-A'da ve oturum 12-A'nın.
+select lives_ok(
+  $sql$insert into public.attendance_records (organization_id, session_id, student_id, status)
+    values (
+      'aa000000-0000-0000-0000-0000000000aa',
+      'e0000000-0000-0000-0000-0000000000e1',
+      '50000000-0000-0000-0000-000000000803',
+      'excused'
+    )$sql$,
+  'a teacher can record a student who is enrolled in the session class'
 );
 
 select throws_ok(

@@ -17,7 +17,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(28);
+select plan(33);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -392,6 +392,74 @@ select throws_ok(
   '42501',
   null,
   'nobody deletes an exam result through the API'
+);
+
+-- Sonuç sınavın sınıfına aittir (v1.2-14, K-17) --------------------------------------------
+--
+-- Bu açık 2026-09-05'e kadar **hiç sınanmamıştı** ve sebebi fixture'ın kendisiydi:
+-- buradaki asıl sınav (`e1`) kurum geneli, yani `class_id` boş ve kısıt zaten
+-- işlemiyor. Sınıf bağlı durum hiç koşmuyordu.
+--
+-- Yola YALNIZCA yönetici üzerinden gidilebiliyor ve bu tesadüf değil: öğretmenin
+-- yazma kapsamı `teaches_student`'tan geliyor, o da okuttuğu sınıftan — yani tek
+-- sınıf okutan bir öğretmen için "yazabildiğim öğrenci" ile "sınavın sınıfındaki
+-- öğrenci" kümeleri çakışıyor. Yöneticinin kapsamı ise kurumun tamamı, dolayısıyla
+-- **yönetici yolu tamamen korumasızdı.**
+
+select throws_ok(
+  $sql$insert into public.exam_results (organization_id, exam_id, student_id, score)
+    select
+      '1a000000-0000-0000-0000-00000000001a',
+      sinav.id,
+      '50000000-0000-0000-0000-000000000003',
+      42.00
+    from public.exams as sinav
+    where sinav.name = 'Sınıf İçi Quiz'$sql$,
+  'ORB02',
+  null,
+  'an admin cannot enter a result for a student outside the exam class'
+);
+
+select is(
+  (select count(*) from public.exam_results as sonuc
+     join public.exams as sinav on sinav.id = sonuc.exam_id
+   where sinav.name = 'Sınıf İçi Quiz'
+     and sonuc.student_id = '50000000-0000-0000-0000-000000000003'),
+  0::bigint,
+  'the rejected result was really not written'
+);
+
+select lives_ok(
+  $sql$insert into public.exam_results (organization_id, exam_id, student_id, score)
+    select
+      '1a000000-0000-0000-0000-00000000001a',
+      sinav.id,
+      '50000000-0000-0000-0000-000000000002',
+      88.00
+    from public.exams as sinav
+    where sinav.name = 'Sınıf İçi Quiz'$sql$,
+  'a result for a student enrolled in the exam class is accepted'
+);
+
+-- INSERT'i korumak yetmiyor: `exams.class_id` güncellenebilir, yani kurum geneli
+-- bir sınav herkese sonuç girildikten SONRA sınıfa bağlanabilirdi ve kural
+-- geriye dönük bozulurdu. `e1`'in sonuçları arasında 12-B'den bir öğrenci (003)
+-- var; sınav 12-A'ya taşınamamalı.
+select throws_ok(
+  $sql$update public.exams
+      set class_id = 'c1000000-0000-0000-0000-0000000000c1'
+      where id = 'e0000000-0000-0000-0000-0000000000e1'$sql$,
+  'ORB02',
+  null,
+  'an exam cannot move to a class that would orphan its existing results'
+);
+
+-- Ve koruma her taşımayı reddetmiyor: sınıfın kaldırılması kuralı gevşetir,
+-- dolayısıyla serbest. Her zaman reddeden bir koruma, hiç reddetmeyen kadar
+-- yanlıştır.
+select lives_ok(
+  $sql$update public.exams set class_id = null where name = 'Sınıf İçi Quiz'$sql$,
+  'an exam can always be widened to organization scope'
 );
 
 -- Kilit ve anon ----------------------------------------------------------------------------
