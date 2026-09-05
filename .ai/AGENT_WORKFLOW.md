@@ -372,7 +372,7 @@ Sonucu ölçmek ayrıca daha güçlüdür: kaydın değişmediğini kanıtlayan 
 
 Aynı kural SQL dışında da geçerli: bir arayüz kontrolünün çalıştığını "hata mesajı göründü" ile değil, "istek gitmedi" veya "değer değişmedi" ile doğrula.
 
-## _Kaynak: v1.2-03. Velinin öğrenci kaydını değiştiremediği testi `throws_ok(..., '42501')` olarak yazıldı ve kırmızı döndü. Kırmızı olan politika değil beklentiydi: `UPDATE 0` dönüyordu, kayıt değişmiyordu ve güvenlik tam olarak istendiği gibi çalışıyordu._
+_Kaynak: v1.2-03. Velinin öğrenci kaydını değiştiremediği testi `throws_ok(..., '42501')` olarak yazıldı ve kırmızı döndü. Kırmızı olan politika değil beklentiydi: `UPDATE 0` dönüyordu, kayıt değişmiyordu ve güvenlik tam olarak istendiği gibi çalışıyordu._
 
 ## Görev dosyalarının ömrü
 
@@ -394,7 +394,27 @@ Tehlikeli olan varyant, işlemin **kısmen** çalışmasıdır: kayıt ekrandaki
 
 Pratik kontrol, yeni bir ekran veya düğme yazarken: **bu işlem üretimde gerçekten bir yere yazıyor mu?** Cevap hayırsa mesaj da hayır demeli.
 
-## _Kaynak: aynı hata üç kez çıktı — #131 (yoklama kaydı), #134 (toplu aktarım) ve 2026-09-05'te `HomeworkCreateDialog`. İlk ikisi tek tek düzeltildi ama kalıp kural olarak yazılmadığı için üçüncüsü v1.2-08 açılışına kadar fark edilmedi; üstelik ROADMAP o ekranın **fail-closed çalıştığını** varsayım olarak beyan etmişti._
+_Kaynak: aynı hata üç kez çıktı — #131 (yoklama kaydı), #134 (toplu aktarım) ve 2026-09-05'te `HomeworkCreateDialog`. İlk ikisi tek tek düzeltildi ama kalıp kural olarak yazılmadığı için üçüncüsü v1.2-08 açılışına kadar fark edilmedi; üstelik ROADMAP o ekranın **fail-closed çalıştığını** varsayım olarak beyan etmişti._
+
+### K-15 · Yeni iş yeni numara alır; mevcut numaralar kaydırılmaz
+
+Bir dilim numarası bir **ad**dır, bir **sıra** değil. Araya iş girdiğinde mevcut numaralar kaydırılmaz: yeni iş, çakışmayan yeni bir ad alır (`v1.4-00` "01'den önce koşar", `v1.4-10…14` sona eklenir) ve **işin sırasını tablodaki satır sırası** verir.
+
+Sebebi, tablonun kendisi değil **ona atılan çapalardır.** Dilim numaraları belgenin başka yerlerinden gösterilir — koşullu kararların kontrol noktaları (**K-12**), zemin kayıtları (**K-11**), bağımlılık sütunları. Numara kaydırıldığında bu atıfların hiçbiri hata vermez; sessizce **yanlış dilimi** göstermeye başlarlar. Bozulma görünmezdir ve ancak o dilim açıldığında, yanlış varsayımla, fark edilir.
+
+Aynı sebeple **biten bir dilimin numarası yeniden kullanılmaz.** Kapanmış bir numaraya yapılan atıf, tarihsel bir kaydı gösterdiği için hâlâ doğrudur; o numarayı yeni bir işe vermek, geçmişi geriye dönük olarak yalanlar.
+
+_Kaynak: 2026-09-05 bütünlük denetimi. Şüphe şuydu: "v1.4'ün adını v1.3 yapmış olabilir miyiz?" Ölçüldü — numaralar 2026-08-21'den beri hiç değişmemişti; hissi yaratan şey Faz E'nin sıranın önüne geçmesiydi. Ama denetim yedi yeni dilim açtı ve o an kural gerçek bir seçime dönüştü: `v1.4-01`'e K-12 borcunun kontrol noktasından çapa atılmış durumdaydı, kaydırma o çapayı bozacaktı._
+
+### K-16 · Kapsamı olan her maddenin dilimi olur
+
+Sürüm kapanışında **§4'ün kutucukları ile §4.6'nın dilimleri karşılaştırılır.** Dilimi olmayan bir kutucuk, sürümü kapatmaz: ya bir dilim alır, ya da kapsam dışı olduğu açıkça yazılır.
+
+İki kaydı ayrı tutmanın bedeli budur (**K-06**'nın kabul edilmiş karşılığı): §4 _ne_ yapılacağını, §4.6 _hangi sırayla_ yapılacağını tutar ve ikisi birbirini tekrar etmez. Tekrar etmedikleri için de **birbirlerinden sessizce ayrılabilirler** — bir maddenin kapsamda olup sırada olmaması hiçbir hata üretmez.
+
+En tehlikeli hâli, **bir release gate'in dilimi olmayan bir işe dayanmasıdır.** O kapı ya hiç kapanamaz, ya da işin yapılmamış olduğu fark edilmeden "yeterince yakın" bir şeyle kapatılır. Kapı, arkasında iş olmayan bir söz hâline gelir.
+
+_Kaynak: 2026-09-05 bütünlük denetimi. Realtime, §4 v1.3'te bir kutucuktu ve §4.6'da hiç yoktu — oysa v1.4'ün release gate'i tam olarak ona dayanıyordu ("admin değişikliği ilgili ekranda Realtime ile görünür"). Aynı taramada dilimsiz dört madde daha çıktı: ders programı, Günlük Akış, Gün Planı ve Zod+audit._
 
 ## Brifing yazarken
 

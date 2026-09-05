@@ -6,13 +6,15 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 
 ## 0. Durum Özeti
 
-> Son güncelleme: **2026-08-29**. İşaretler: ✅ tamam · 🟡 kısmen · ⬜ başlanmadı · ⚠️ tamam sanılıyordu, değil.
+> Son güncelleme: **2026-09-05**. İşaretler: ✅ tamam · 🟡 kısmen · ⬜ başlanmadı · ⚠️ tamam sanılıyordu, değil.
 >
 > Ayrıntı için ilgili bölüme bakın; bu tablo yalnızca tek bakışta durum içindir.
 >
 > **Sıradaki işi buradan seçme.** Bu tablo _nerede olduğumuzu_ söyler; _ne yapılacağını_ **§4.6** söyler. Orada kalan bütün sürümler dilimlere bölünmüş ve her dilim **dayandığı varsayımları** yazmıştır — bir dilim, o varsayımlar canlı sistemde doğrulanmadan başlamaz (**K-10**).
 >
 > **Açık bulgular `gh issue list`'tedir.** Sayı buraya yazılmıyor: denetimden bir gün sonra eskidi (**K-06**). Sıradaki sürüm **v1.3** — ekranların canlı sorguya bağlanması. İlk dilim **v1.3-01**: `educationData.ts` yerine gerçek servisler. İki K-11 kaydı orada karşılığını bulacak (istemcinin beş günlük `WeekDay` tipi; kişisel verilerin role göre tutulması). Sistemin bugünkü durumu: `PROJECT_STATE.md` **§6.1**.
+>
+> 🔴 **2026-09-05 bütünlük denetimi: v1.4'ün önüne yeni bir dilim girdi (`v1.4-00`).** Kimlik zinciri ile akademik kayıt zinciri **birbirine bağlı değil** — `create-member` yalnızca `profiles`, `organization_memberships` ve `audit_events` yazıyor; `students.auth_user_id` ile `guardians.auth_user_id`'yi dolduran hiçbir şey yok, oysa öğrenci ve velinin **bütün** kapsamı tam olarak o iki sütuna bakıyor. Bugünkü haliyle açılan bir veli hesabı giriş yapar ve **boş panel** görür; hata da görmez, çünkü hata yoktur. Ayrıntı ve diğer beş bulgu: **§4.7**.
 
 | Sürüm / Dilim | Kapsam                                                                                                                                                                                                                                                                                        | Durum |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
@@ -37,8 +39,8 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 | Faz E · E7.2  | Canlı turdan çıkan çevre ekran bulguları (#131 – #137) — yedisi de kapandı, dört rolle doğrulandı                                                                                                                                                                                             | ✅    |
 | **Denetim**   | **Sistem denetimi (2026-08-29) — bulgular #143 – #151, kurallar K-10/11/12, dilimler §4.6.** #143, #150, #145, #144, #151, #146 ve #147 kapandı. **Açık kalan üçü sonraki sürümlere çapalı:** #149 → v1.2-12 ve v1.4 öncesi · #148 → v1.6-01 açılışı · #118 → v1.5-03. v1.2'nin önünde iş yok | 🟡    |
 | v1.2          | İş tabloları + tenant/rol RLS matrisi — **dilimleri §4.6'da**. **v1.2 TAMAMLANDI** (2026-09-05). On iki dilim, on sekiz iş tablosu, 98 RLS politikası, 382 pgTAP iddiası. Release gate ölçüldü, aşağıda                                                                                       | ✅    |
-| v1.3 (kalan)  | Ekranların canlı sorguya bağlanması, hesaplar arası geçiş ve kişi kaydı — mock temizliği E5'te bitti, **kalanın dilimleri §4.6'da**                                                                                                                                                           | ⬜    |
-| v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları                                                                                                                                                                                                                                          | ⬜    |
+| v1.3 (kalan)  | Ekranların canlı sorguya bağlanması, hesaplar arası geçiş ve kişi kaydı — mock temizliği E5'te bitti, **kalanın dilimleri §4.6'da**. Realtime **v1.3-05** olarak eklendi (2026-09-05)                                                                                                         | ⬜    |
+| v1.4 (kalan)  | Sınıf/program/yoklama/sınav/ödev/ödeme CRUD akışları. 🔴 **v1.4-00 önce gelir:** kayıt ile giriş hesabının bağlanması — bugün yapılmıyor ve öğrenci/veli panelini boş bırakıyor (**§4.7**)                                                                                                    | ⬜    |
 | v1.5          | 4 rol kabul testi, KVKK envanteri ve hukuki hazırlık, pilot geri bildirimi                                                                                                                                                                                                                    | ⬜    |
 | v1.6 – v2.0   | Storage, toplu aktarım, raporlama, ticarileşme kapısı                                                                                                                                                                                                                                         | ⬜    |
 
@@ -295,7 +297,12 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 
 **Hedef:** Dört paneli gerçek oturum ve Supabase verisiyle çalıştırmak, production mock verisini kaldırmak.
 
-- [ ] `mockData.ts`, `isMock: true` tipleri ve `orbit:demo:*` production bağımlılığının kaldırılması.
+- [x] `mockData.ts`, `isMock: true` tipleri ve `orbit:demo:*` production bağımlılığının kaldırılması.
+
+  **Kutucuk 2026-09-05'te işaretlendi; iş çok daha önce bitmişti** (#88 · #90 · #93 · #96, Faz E5). Ölçüm: `isMock` → **sıfır** eşleşme, `mockData.ts` → **dosya yok**, `orbit:demo:` → yalnızca `demoStorage.ts`'te geçmişten kalan anahtarları _temizleyen_ rutin.
+
+  ⚠️ **Aynı olgu v1.2'de de kayıtlı** ("Ön koşul: `isMock` kaldırılsın") ve orada `[x]` idi. İki yerde tutulan bir olgunun biri eskidi — **K-06'nın tarif ettiği şeyin kendisi**, üstelik onu tarif eden belgenin içinde. Sahibi **v1.2'deki kayıttır**; buradaki satır ona atıf verir, gerekçeyi tekrar etmez.
+
 - [ ] React Query tabanlı modüler repository/query/mutation katmanı.
 - [ ] Dashboard, öğrenci, sınıf, program, ödeme, sınav ve rapor değerlerinin canlı sorgulardan türetilmesi.
 - [ ] Tasarım değişmeden loading, error ve boş kurum durumlarının eklenmesi.
@@ -309,7 +316,9 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
   **Bağlayıcı:** şifresiz geçiş iki oturumun birden saklanması demek. Hareketsizlik sayacı **tüm oturumları** kapatacak biçimde genişletilmeli; yalnızca aktif olanı kapatırsa diğeri açık kalır ve sayacın anlamı kalmaz.
 
 - [ ] **Kişi kaydı — hesapların ait olduğu grup.** "Bu kişinin diğer hesapları hangileri" bilgisi; geçiş düğmesi için zaten gerekli, KVKK "verilerimi sil" talebinde tüm kayıtların birlikte bulunabilmesi için de gerekli. **İkili bağ olarak modellenmez** (`linked_account_id` iki hesapta çalışır, üçte kırılır); N hesap aynı kişi kaydına bağlanır. Bkz. `DECISION_LOG.md` — "Rol, atama ve bağlantı üç ayrı kavramdır".
-- [ ] Kurum/sınıf kapsamlı Realtime invalidation ve abonelikleri.
+- [ ] Kurum/sınıf kapsamlı Realtime invalidation ve abonelikleri (**v1.3-05**).
+
+  ⚠️ **2026-09-05'e kadar bu maddenin dilimi yoktu** — kapsamda vardı, §4.6'da karşılığı yoktu. Oysa **v1.4'ün release gate'i buna dayanıyor**: _"admin değişikliği ilgili öğretmen/öğrenci/veli ekranında Realtime ile görünür."_ Bir kapının, kimsenin yapmadığı bir işe bağlı olması, o kapıyı ya imkânsız ya da anlamsız yapar: v1.4 ya kapanamaz, ya da "sayfayı yenileyince görünüyor" denip sessizce kapanır. Dilim **v1.3-05** olarak açıldı (**K-16**).
 
 - [x] İstemci tarafı hareketsizlik sayacı: belirli süre işlem yoksa oturum kapatılır. Supabase'in sunucu tarafı oturum zaman aşımı Pro plan gerektirdiği için ücretsiz karşılığıdır; dershanenin ortak bilgisayarında açık bırakılan tarayıcı senaryosuna karşı etkilidir. Sayaç **#128**'de yazıldı (tarayıcı kapansa da süre işlemeye devam ediyor), **#143**'te tamamlandı: süre dolduğunda yalnızca ekran değil **jeton** da temizleniyor — öncesinde sayfayı yenilemek kilidi aşıyordu.
 
@@ -320,15 +329,20 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 **Hedef:** Görsellerde tanımlanan temel iş kurallarını çalışan formlara bağlamak.
 
 - [ ] Kurum yöneticisi: öğretmen/öğrenci/veli oluşturma ve kayıt yönetimi. **Faz E6'ya çekildi** — davetle değil, giriş numarası ve geçici şifreyle.
+
+  🔴 **E6 bu maddenin yalnızca yarısını yaptı ve bu 2026-09-05'e kadar görülmedi.** `create-member` bir **giriş hesabı** açıyor; bir **öğrenci veya veli kaydı** açmıyor. Ölçüldü: `internal_create_membership` tam olarak `profiles`, `organization_memberships` ve `audit_events` tablolarına yazıyor, başka hiçbir şeye. Sonuç, rolü `student` veya `parent` olan bir üyeliğin karşılığında `students` ya da `guardians` satırı **bulunmaması** — ve o iki tablodaki `auth_user_id` sütunlarının **hiçbir zaman dolmaması**. Kapanışı **v1.4-00**.
+
+- [ ] **Kayıt ile giriş hesabının bağlanması** (**v1.4-00**). Yukarıdaki maddenin ikinci yarısı ve v1.4'ün **ilk** dilimi.
+- [ ] **Veli–öğrenci bağının kurulması** (**v1.4-10**). `student_guardians` tablosu v1.2-03'te geldi ve velinin **bütün** kapsamı ona dayanıyor; satır oluşturan bir ekran ise hiç olmadı. E6'daki "Bağlı veli/öğrenci sütunu" maddesi _"tablo hiç oluşturulmamış"_ gerekçesiyle çıkarılmıştı — **o gerekçe 2026-09-04'te geçersizleşti** ve madde yeniden açılmadı (**K-11** borcu, kaydı düşülmemiş).
 - [ ] Admin: sınıf oluşturma, düzenleme ve arşivleme.
-- [ ] Admin: ders programı ve öğretmen ataması.
+- [ ] Admin: ders programı ve öğretmen ataması (**v1.4-11**).
 - [ ] Admin/öğretmen: sorumlu kapsamda yoklama oluşturma ve düzeltme.
 - [ ] Admin/öğretmen: sınav oluşturma, sonuç girme/düzeltme ve sıralama analizi.
 - [ ] Öğretmen: sorumlu sınıfa ödev oluşturma.
-- [ ] Admin/öğretmen: hedefli Günlük Akış paylaşımı.
-- [ ] Kullanıcı: kendine özel Gün Planı görev ve takvim yönetimi.
+- [ ] Admin/öğretmen: hedefli Günlük Akış paylaşımı (**v1.4-12**). Ekran **hiç yazılmadı** — bu bağlanacak değil, sıfırdan yazılacak tek CRUD akışı.
+- [ ] Kullanıcı: kendine özel Gün Planı görev ve takvim yönetimi (**v1.4-13**).
 - [ ] Admin: ödeme planı/taksit kaydı; veli: yalnızca bağlı öğrencinin tutar/vade görünümü.
-- [ ] Zod doğrulama, kontrollü hata mesajları ve kritik mutasyon audit kayıtları. **Not, yoklama ve ödeme değişiklikleri atlanamaz:** kurum yöneticisi aynı zamanda bir öğrencinin velisi olabilir ve kendi çocuğunun kaydını değiştirebilir. Erişimi kısıtlamak reddedildi (tek yöneticili kurumda sistem kullanılamaz hâle gelir); karşılığı izlenebilirliktir. Bkz. `DECISION_LOG.md` — "Rol, atama ve bağlantı üç ayrı kavramdır".
+- [ ] Zod doğrulama, kontrollü hata mesajları ve kritik mutasyon audit kayıtları (**v1.4-14**). **Not, yoklama ve ödeme değişiklikleri atlanamaz:** kurum yöneticisi aynı zamanda bir öğrencinin velisi olabilir ve kendi çocuğunun kaydını değiştirebilir. Erişimi kısıtlamak reddedildi (tek yöneticili kurumda sistem kullanılamaz hâle gelir); karşılığı izlenebilirliktir. Bkz. `DECISION_LOG.md` — "Rol, atama ve bağlantı üç ayrı kavramdır".
 
 **Release gate:** Yetkisiz CRUD, doğrudan API isteğiyle de RLS tarafından reddedilir; admin değişikliği ilgili öğretmen/öğrenci/veli ekranında Realtime ile görünür.
 
@@ -514,6 +528,8 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] **Satır bazında rol değiştirme ve kurumdan çıkarma.** Henüz açılmadı.
 - [ ] **Bağlı veli/öğrenci sütunu.** Tablodan çıkarıldı: veli ile öğrenciyi bağlayan tablo hiç oluşturulmamış, sütunun veri kaynağı yok. Ayrı bir iş; ilişki modeli kurulmadan yazılamaz.
 
+  ⚠️ **Gerekçe 2026-09-04'te geçersizleşti, madde 2026-09-05'e kadar yeniden açılmadı.** `student_guardians` v1.2-03'te geldi; "veri kaynağı yok" cümlesi o gün doğruluğunu kaybetti ama kimse bu maddeye dönmedi — **K-11'in tam olarak önlemek için yazıldığı hata.** Sahibi artık **v1.4-10**.
+
   Tablo **yalnızca kurum yöneticisinin** panelinde bulunur. Platform paneline konulamaz: operatörün kurum kişi listesini görmesi "operatör kapları yönetir, içeriği görmez" taahhüdünü ihlal eder.
 
   Gerekçe: yönetim işlemleri (silme, yetkilendirme) kişiyi tek tek aramadan, listeye bakarak yapılabilmeli. Dağınık ekranlarda kişi yönetmek, yanlış kişiye işlem uygulama riskini büyütür.
@@ -660,30 +676,37 @@ Bu yüzden v1.2 "tabloları ekle" işi değildir. Her varlık için **dört katm
 
 **Kapsam ve release gate için §4 → "v1.3 - Dinamik Frontend ve Temiz Kurum Görünümü"**. Orada Realtime abonelikleri ve hesaplar arası geçişin tasarım kuralları da yazılıdır.
 
-| Dilim       | Kapsam                                                                             | Dayandığı varsayımlar                                                                                                                                       |
-| ----------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v1.3-01** | `educationData.ts` yerine gerçek servisler                                         | v1.2 tamamı · `components/` Supabase istemcisini import edemez (taşınabilirlik sınırı, ESLint zorluyor)                                                     |
-| **v1.3-02** | Yükleme ve hata durumları                                                          | v1.3-01 · `skeleton.tsx` var ama hiçbir eğitim ekranı kullanmıyor                                                                                           |
-| **v1.3-03** | ✅ Giriş ekranının uydurma verisi + demo verisinin paketten çıkarılması (**#144**) | Bağımsızdı, kapandı                                                                                                                                         |
-| **v1.3-04** | Hesaplar arası geçiş düğmesi ve kişi kaydı                                         | Çoklu hesap kararı (`DECISION_LOG` 2026-08-25) · ⚠️ **zemin notu 2026-08-29**: oturum artık `sessionStorage`'da, kararın iki paragrafı bu dünyada yazılmadı |
+| Dilim       | Kapsam                                                                             | Dayandığı varsayımlar                                                                                                                                                                                                        |
+| ----------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v1.3-01** | `educationData.ts` yerine gerçek servisler                                         | v1.2 tamamı · `components/` Supabase istemcisini import edemez (taşınabilirlik sınırı, ESLint zorluyor)                                                                                                                      |
+| **v1.3-02** | Yükleme ve hata durumları                                                          | v1.3-01 · `skeleton.tsx` var ama hiçbir eğitim ekranı kullanmıyor                                                                                                                                                            |
+| **v1.3-03** | ✅ Giriş ekranının uydurma verisi + demo verisinin paketten çıkarılması (**#144**) | Bağımsızdı, kapandı                                                                                                                                                                                                          |
+| **v1.3-04** | Hesaplar arası geçiş düğmesi ve kişi kaydı                                         | Çoklu hesap kararı (`DECISION_LOG` 2026-08-25) · ⚠️ **zemin notu 2026-08-29**: oturum artık `sessionStorage`'da, kararın iki paragrafı bu dünyada yazılmadı                                                                  |
+| **v1.3-05** | **Kurum/sınıf kapsamlı Realtime abonelikleri ve invalidation**                     | v1.3-01 · **v1.4'ün release gate'i buna dayanıyor** · Kanallar kurum ve gerekli sınıf kapsamıyla sınırlandırılır (§1, 2026-08-21 kararı) · 🔁 Yeni Realtime aboneliği sağlayıcı bağımlılığını büyütür, PR'da belirtilir (§6) |
 
 ### v1.4 · Yetkili CRUD ve operasyon akışları
 
 **Kapsam ve release gate için §4 → "v1.4 - Yetkili CRUD ve Operasyon Akışları"**.
 
-| Dilim       | Kapsam                                                | Dayandığı varsayımlar                                                                                               |
-| ----------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **v1.4-01** | Öğrenci kaydı CRUD                                    | v1.2-01 · v1.3-01 · Öğretmen öğrenci **ekleyemez** (2026-08-29 kararı)                                              |
-| **v1.4-02** | Sınıf yönetimi                                        | v1.2-02                                                                                                             |
-| **v1.4-03** | Yoklama akışı                                         | v1.2-04 · Bugün "Yoklamayı kaydet" hiçbir şey kaydetmiyor ve bunu söylüyor (#131)                                   |
-| **v1.4-04** | Sınav sonucu girişi                                   | v1.2-05                                                                                                             |
-| **v1.4-05** | Ödev akışı                                            | v1.2-08                                                                                                             |
-| **v1.4-06** | Ödeme takibi                                          | v1.2-06                                                                                                             |
-| **v1.4-07** | Üye satır işlemleri: rol değiştirme, kurumdan çıkarma | E6'dan kalan · `CredentialsPanel` `components/credentials/` altında ortak                                           |
-| **v1.4-08** | Kurum yöneticisi devri                                | v1.4-07 · Bugün tek "kaldırma" işlemi kurumu silmek                                                                 |
-| **v1.4-09** | Şube yönetimi (ikinci şube açma)                      | #119 şube seçimini zorunlu kıldı ama **ikinci şube üretilemiyor** — kurulumda gelen varsayılan şube dışında yol yok |
+| Dilim       | Kapsam                                                                                                     | Dayandığı varsayımlar                                                                                                                                                                                              |
+| ----------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **v1.4-00** | 🔴 **Kayıt ile giriş hesabının bağlanması** — `students.auth_user_id` ve `guardians.auth_user_id`          | v1.2-01 · v1.4-01'den **önce** koşar · `create-member` bugün yalnızca üç tabloya yazıyor (ölçüldü) · Sözleşme genişletmek mi, ayrı bir bağlama adımı mı — karar **dilim açılışında** verilir (**K-10**)            |
+| **v1.4-01** | Öğrenci kaydı CRUD                                                                                         | v1.2-01 · v1.3-01 · v1.4-00 · Öğretmen öğrenci **ekleyemez** (2026-08-29 kararı)                                                                                                                                   |
+| **v1.4-02** | Sınıf yönetimi                                                                                             | v1.2-02                                                                                                                                                                                                            |
+| **v1.4-03** | Yoklama akışı                                                                                              | v1.2-04 · Bugün "Yoklamayı kaydet" hiçbir şey kaydetmiyor ve bunu söylüyor (#131)                                                                                                                                  |
+| **v1.4-04** | Sınav sonucu girişi                                                                                        | v1.2-05                                                                                                                                                                                                            |
+| **v1.4-05** | Ödev akışı                                                                                                 | v1.2-08                                                                                                                                                                                                            |
+| **v1.4-06** | Ödeme takibi                                                                                               | v1.2-06                                                                                                                                                                                                            |
+| **v1.4-07** | Üye satır işlemleri: rol değiştirme, kurumdan çıkarma                                                      | E6'dan kalan · `CredentialsPanel` `components/credentials/` altında ortak                                                                                                                                          |
+| **v1.4-08** | Kurum yöneticisi devri                                                                                     | v1.4-07 · Bugün tek "kaldırma" işlemi kurumu silmek                                                                                                                                                                |
+| **v1.4-09** | Şube yönetimi (ikinci şube açma)                                                                           | #119 şube seçimini zorunlu kıldı ama **ikinci şube üretilemiyor** — kurulumda gelen varsayılan şube dışında yol yok                                                                                                |
+| **v1.4-10** | 🔴 **Veli–öğrenci bağının kurulması** (`student_guardians` satırları + üye tablosundaki bağlı kişi sütunu) | v1.2-03 · v1.4-00 · Bir veli aynı öğrencinin **diğer velisini görmez** (v1.2-03 kararı) · E6'nın "veri kaynağı yok" gerekçesi **geçersizleşti**                                                                    |
+| **v1.4-11** | Ders programı ekranı ve öğretmen ataması                                                                   | v1.2-07 · v1.3-01 · ⚠️ İstemcinin `WeekDay` tipi **beş gün**, tablo **yedi** — v1.3-01'in K-11 borcu burada karşılığını bulmuş olmalı                                                                              |
+| **v1.4-12** | Günlük Akış paylaşımı                                                                                      | v1.2-09 · **Ekran hiç yok** (`grep -rn "Akış" client/src` → sıfır); bağlanacak değil **yazılacak**                                                                                                                 |
+| **v1.4-13** | Gün Planı görev ve takvim yönetimi                                                                         | v1.2-09 · ⚠️ `dayPlanTasksByRole` **role göre** kurulu; kullanıcı bazına taşınması v1.3-01'in işi (K-11)                                                                                                           |
+| **v1.4-14** | Zod doğrulama + kritik mutasyon denetim kaydı                                                              | v1.4-01…13 · **Yatay iş** — tek dilimde toplandı çünkü hiçbir CRUD dilimine ait değilken hepsinin sorumluluğuydu · İzlenebilirlik kararının karşılığı (`DECISION_LOG`, "Rol, atama ve bağlantı üç ayrı kavramdır") |
 
-> **v1.4'ün her CRUD dilimi denetim kaydı yazar.** İzlenebilirlik kararı bunu "atlanamaz" diyor; **#149** ekranı v1.4'ten önce gelmelidir, yoksa kayıtlar birikirken kimse göremez.
+> **v1.4'ün her CRUD dilimi denetim kaydı yazar.** İzlenebilirlik kararı bunu "atlanamaz" diyor; **#149** ekranı v1.4'ten önce gelmelidir, yoksa kayıtlar birikirken kimse göremez. ✅ **Şart 2026-09-05'te sağlandı** (v1.2-12). Kaydı **yazma** tarafı hâlâ açık ve sahibi **v1.4-14**'tür.
 
 ### v1.5 · Kabul, hukuk ve pilot hazırlığı
 
@@ -714,6 +737,65 @@ Bu yüzden v1.2 "tabloları ekle" işi değildir. Her varlık için **dört katm
 | **v2.0-03** | Ticarileşme kapısı: tüm gate'ler          | Yukarıdakilerin tamamı                                                                                                                                                                                                                                                                           |
 
 > 🔁 **v1.6-01 taşınabilirliğin ilk gerçek sınavıdır.** Bugüne kadar hiç kullanılmamış tek Supabase bileşeni Storage'dır; dolayısıyla yeni sağlayıcı bağımlılığı yaratabilecek tek yer orasıdır. Şema, RLS ve testler düz Postgres olduğu için zaten taşınabilir — Storage sağlayıcının kendi istemcisine bağlanırsa bu tabloyu bozan ilk parça o olur. Ayrıntı ve ölçümler: `DECISION_LOG.md` — "Sistem taşınabilir kurulur; sağlayıcı bir tercih, bağımlılık değildir".
+
+---
+
+## 4.7 Bütünlük denetimi (2026-09-05)
+
+> **Soru şuydu:** _"Yol haritasının tamamı bittiğinde elimizde uçtan uca çalışan bir sistem olacak mı?"_
+>
+> **Cevap, denetimden önce sanıldığı gibi değildi: hayır.** Eksik olan güvenlik değil — o taraf ölçüldü ve sağlam. Eksik olan, **iki zincirin birbirine bağlanması** ve **kapsamda olup dilimi olmayan işlerdi.**
+
+### Sürüm numaraları hiç değişmedi
+
+Denetimin çıkış noktası bir şüpheydi: _"geçmişte v1.4'ün adını v1.3 yapmış olabilir miyiz?"_ **Ölçüldü, olmamış.** `v1.1`–`v1.8` başlıkları 2026-08-21'de tek commit'te (`571d0c4`) kondu ve o günden beri değişmedi.
+
+Şüpheyi doğuran şey gerçekti ama başkaydı — **üç ayrı olay** aynı hissi veriyor:
+
+1. **Faz E sıranın önüne geçti.** Bölüm başlıkları bunu zaten yazıyor: `E5 — (v1.3'ün tamamı)` ve `E6 — (v1.4'ün ilk maddesi)`. v1.4'ün ilk maddesi, v1.2 daha başlamadan yapıldı.
+2. **E5 üç maddeyi v1.3'ten v1.2'ye taşıdı** — ileriye değil **geriye**.
+3. **§4 ile §4.6 aynı sürüme farklı ad veriyor:** "Dinamik Frontend ve Temiz Kurum Görünümü" ile "Ekranların canlı veriye bağlanması".
+
+**Numaralandırma kuralı (K-15).** Bu denetimin açtığı yedi dilim **yeni numara** aldı; mevcut hiçbir dilim kaydırılmadı. `v1.4-00` "01'den önce koşar" demektir, `v1.4-10…14` ise sona eklenmiştir — tablodaki **satır sırası** işin sırasını verir, numara yalnızca bir **addır**. Sebebi somut: `v1.4-01`'e §4.6'nın başka bir yerinden çapa atılmış durumda (K-12 borcunun kontrol noktası). Numaralar kaydırılsaydı o çapa sessizce yanlış dilimi gösterirdi.
+
+### Bulgular ve nereye kaydedildikleri
+
+| #        | Bulgu                                                                                                                                                                                                                                     | Sahibi               |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| **A** 🔴 | Kimlik zinciri ile akademik kayıt zinciri **birbirine değmiyor**. `create-member` yalnızca `profiles`, `organization_memberships`, `audit_events` yazıyor; `students.auth_user_id` ve `guardians.auth_user_id`'yi dolduran hiçbir şey yok | **v1.4-00**          |
+| **B** 🔴 | `student_guardians` satırı oluşturan ekran yok; E6'daki maddenin çıkarılma gerekçesi 2026-09-04'te geçersizleşti                                                                                                                          | **v1.4-10**          |
+| **C** 🟠 | Realtime kapsamda vardı, **dilimi yoktu** — üstelik v1.4'ün release gate'i ona dayanıyor                                                                                                                                                  | **v1.3-05**          |
+| **D** 🟡 | Ders programı, Günlük Akış, Gün Planı ve Zod+audit: §4'te madde, §4.6'da dilim yok                                                                                                                                                        | **v1.4-11…14**       |
+| **E** 🟡 | Bildirim diye bir şey yok — aşağıdaki açık soru                                                                                                                                                                                           | ⬇️                   |
+| **F** ⚪ | §4 v1.3'ün ilk kutucuğu, ölçülebilir biçimde bitmiş bir iş için işaretsiz duruyordu                                                                                                                                                       | §4 v1.3 (düzeltildi) |
+
+**A'nın pilotta karşılığı, neden en ağırı olduğunu anlatıyor:** yönetici veli hesabı açar, geçici şifreyi kâğıda yazıp veliye verir. Veli girer, şifresini değiştirir ve **bomboş bir panel** görür — çocuğunun yoklaması, notu, borcu yok. Hata mesajı da yoktur, çünkü **hata yoktur**: RLS bağlı olmayan veliye tam olarak sıfır satır döndürmektedir. Kilit kusursuz çalışırken sistem bozuk görünür.
+
+**Ve bu bir öngörü değil, bugünkü durum.** Canlı veritabanı 2026-09-05'te sorgulandı:
+
+|                                                          | satır | `auth_user_id` dolu |
+| -------------------------------------------------------- | ----- | ------------------- |
+| `organization_memberships` (rol `student` veya `parent`) | **2** | —                   |
+| `students`                                               | **0** | 0                   |
+| `guardians`                                              | **0** | 0                   |
+| `student_guardians`                                      | **0** | —                   |
+
+Üretimde **giriş hesabı olan iki kişi var ve ikisinin de akademik karşılığı yok.** Boşluk gelecekte açılacak değil, **çoktan açılmış** durumda.
+
+**Neden testler yakalamadı:** dokuz pgTAP dosyası `students` ve `guardians` satırlarını `auth_user_id` ile birlikte **elle** yazıyor. Testler doğru soruyu soruyor ("bağlı veli çocuğunu görebilir mi?") ve doğru cevaplıyor; soramadıkları şey, üretimde o bağı **kimsenin kurmadığı**. Bu bir birim testinin değil **zincir denetiminin** işidir — ve K-16'nın karşılık geldiği boşluk tam olarak budur.
+
+### Açık kapsam soruları — karar bekliyor
+
+Bunlar bulgu değil **beyan edilmemiş sınırlardır**. Cevapları ürün kararıdır; burada yazılmalarının sebebi, pilotun ilk haftasında sorulacak olmalarıdır.
+
+- **Bildirim yok.** Yol haritasının tamamında "bildirim" yalnızca bir yerde geçiyor (yöneticiye kendi kimlik işlemlerinin haber verilmesi, v1.5-03). Bir dershanede velinin ilk beklediği şey _"çocuğum bugün derse gelmedi"_ mesajıdır. Ne v1.x'te ne Phase 2'de karşılığı var. **Kontrol noktası: v1.5-01** (dört rol kabul testi) — orada ya bir dilim açılır ya da kapsam dışı olduğu açıkça yazılır (**K-12**).
+- **Ödev sınıfa verilir, öğrenciye değil.** Bu v1.2-08'de bilinçli olarak kararlaştırıldı ve kayıtlı. Ama **kişiye özel ödev** ve **teslim etti/etmedi takibi** yol haritasının hiçbir yerinde yok. Kararın "şimdilik" mi "kalıcı" mı olduğu yazılmamış. **Kontrol noktası: v1.4-05** (ödev akışı) açılışı.
+
+### Sağlam olan taraf
+
+Denetim tek yönlü değildi; ölçülen iyi haber de var. **Yetki ve izolasyon katmanı gerçekten sağlam** ve bu iddia değil ölçüm: tenant sınırı **iki bağımsız mekanizmayla** tutuluyor (RLS **ve** bileşik yabancı anahtarlar — başka kurumun öğrencisine bağlanan bir satır RLS hiç devreye girmeden de yazılamıyor), 382 pgTAP iddiasının **114'ü olumsuz senaryo**, ve zorunlu şifre kilidi 98 politikanın 92'sinde olup muaf altısı testle sabitlenmiş durumda.
+
+**Bulguların hiçbiri mimari hata değil.** Hepsi aynı türden: **doğru verilmiş bir kararın dilime dönüşmemesi.** Bu yüzden karşılığı da yeniden tasarım değil, muhasebe — ve K-16 bu muhasebeyi bir daha unutulmayacak bir adıma bağlıyor.
 
 ---
 
