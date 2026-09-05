@@ -10,6 +10,11 @@ import {
   temporaryPasswordExpiresAt,
 } from "../_shared/temporaryPassword.ts";
 import { setPasswordLock } from "../_shared/passwordLock.ts";
+import {
+  beginFunctionCall,
+  finishFunctionCall,
+  idempotencyKeyFrom,
+} from "../_shared/requestGuard.ts";
 
 /**
  * Kurum yöneticisi, kendi kurumundaki bir üyeye yeni geçici şifre üretir.
@@ -79,6 +84,40 @@ Deno.serve(async request => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  const guard = await beginFunctionCall(
+    adminClient,
+    "reset-member-password",
+    userData.user.id,
+    idempotencyKeyFrom(request),
+    "[reset-member-password]"
+  );
+
+  if (guard.kind === "replay") {
+    return jsonResponse(
+      { data: { replayed: true, ...(guard.outcome ?? {}) } },
+      200,
+      origin
+    );
+  }
+
+  if (guard.kind === "in_progress") {
+    return jsonResponse({ error: "request_in_progress" }, 409, origin);
+  }
+
+  if (guard.kind === "rate_limited") {
+    return jsonResponse(
+      { error: "rate_limited", limit: guard.limit },
+      429,
+      origin
+    );
+  }
+
+  if (guard.kind !== "proceed") {
+    // Koruma çalışmıyorken korunan işi yapmak, korumayı hiç yazmamakla aynı
+    // şey (K-04).
+    return jsonResponse({ error: "service_unavailable" }, 503, origin);
+  }
 
   // Yetki kararı SQL'de veriliyor, burada değil. Gerekçe migration'da:
   // `service_role` RLS'i baypas ettiği için bu sınırın hiçbir politikadan
@@ -165,6 +204,13 @@ Deno.serve(async request => {
   if (auditError) {
     console.error("[reset-member-password] audit write failed");
   }
+
+  await finishFunctionCall(
+    adminClient,
+    guard.callId,
+    { login_number: resolved.login_number, password_reset: true },
+    "[reset-member-password]"
+  );
 
   return jsonResponse(
     {

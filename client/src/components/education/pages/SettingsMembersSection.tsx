@@ -66,6 +66,9 @@ export function SettingsMembersSection() {
   );
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
+
+  /** Bkz. `MemberCreateDialog` — tekrar koruması bu `ref`e bağlı. */
+  const resetIdempotencyKeyRef = useRef<string | null>(null);
   const [credentials, setCredentials] = useState<IssuedCredentials | null>(
     null
   );
@@ -160,8 +163,19 @@ export function SettingsMembersSection() {
     setResetSubmitting(true);
     setResetError(null);
 
+    // İlk denemede üretilir, sonraki denemelerde AYNI kalır (v1.2-17).
+    // Değişseydi, hata alıp tekrar basan yönetici ikinci bir şifre üretir ve
+    // az önce kâğıda yazdığı fişi sessizce geçersiz kılardı.
+    if (resetIdempotencyKeyRef.current === null) {
+      resetIdempotencyKeyRef.current = crypto.randomUUID();
+    }
+
     try {
-      const result = await resetMemberPassword(resetTarget.membershipId);
+      const result = await resetMemberPassword(
+        resetTarget.membershipId,
+        resetIdempotencyKeyRef.current ?? undefined
+      );
+      resetIdempotencyKeyRef.current = null;
       setCredentials(result);
       setResetView("credentials");
     } catch (error) {

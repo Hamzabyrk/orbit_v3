@@ -10,6 +10,11 @@ import {
   temporaryPasswordExpiresAt,
 } from "../_shared/temporaryPassword.ts";
 import { setPasswordLock } from "../_shared/passwordLock.ts";
+import {
+  beginFunctionCall,
+  finishFunctionCall,
+  idempotencyKeyFrom,
+} from "../_shared/requestGuard.ts";
 
 /**
  * Kurum yöneticisine yeni geçici şifre üretir.
@@ -70,6 +75,40 @@ Deno.serve(async request => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  const guard = await beginFunctionCall(
+    adminClient,
+    "reset-admin-password",
+    userData.user.id,
+    idempotencyKeyFrom(request),
+    "[reset-admin-password]"
+  );
+
+  if (guard.kind === "replay") {
+    return jsonResponse(
+      { data: { replayed: true, ...(guard.outcome ?? {}) } },
+      200,
+      origin
+    );
+  }
+
+  if (guard.kind === "in_progress") {
+    return jsonResponse({ error: "request_in_progress" }, 409, origin);
+  }
+
+  if (guard.kind === "rate_limited") {
+    return jsonResponse(
+      { error: "rate_limited", limit: guard.limit },
+      429,
+      origin
+    );
+  }
+
+  if (guard.kind !== "proceed") {
+    // Koruma çalışmıyorken korunan işi yapmak, korumayı hiç yazmamakla aynı
+    // şey (K-04).
+    return jsonResponse({ error: "service_unavailable" }, 503, origin);
+  }
 
   const { data: operator, error: operatorError } = await adminClient
     .from("platform_operators")
@@ -187,6 +226,16 @@ Deno.serve(async request => {
     // ize geçmediğini bildirir. Bkz. `PROJECT_STATE.md` bölüm 10.
     console.error("[reset-admin-password] audit write failed");
   }
+
+  await finishFunctionCall(
+    adminClient,
+    guard.callId,
+    {
+      login_number: `${organization.code}${membership.person_code}`,
+      password_reset: true,
+    },
+    "[reset-admin-password]"
+  );
 
   return jsonResponse(
     {

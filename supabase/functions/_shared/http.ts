@@ -53,8 +53,12 @@ export function responseHeaders(origin: string | null): HeadersInit {
 
   if (origin && allowedOrigins.has(origin)) {
     headers["Access-Control-Allow-Origin"] = origin;
+    // `idempotency-key` v1.2-17'de eklendi ve **atlanamaz**: listede olmayan
+    // bir özel başlık preflight'ta reddedilir ve istek hiç gönderilmez. Yani
+    // eksikliği "idempotency çalışmaz" değil, "fonksiyon tarayıcıdan hiç
+    // çağrılamaz" demek olurdu.
     headers["Access-Control-Allow-Headers"] =
-      "authorization, x-client-info, apikey, content-type";
+      "authorization, x-client-info, apikey, content-type, idempotency-key";
     headers["Access-Control-Allow-Methods"] = "POST, OPTIONS";
     headers["Vary"] = "Origin";
   }

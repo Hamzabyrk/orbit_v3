@@ -10,6 +10,11 @@ import {
   temporaryPasswordExpiresAt,
 } from "../_shared/temporaryPassword.ts";
 import { syntheticEmailFor } from "../_shared/syntheticEmail.ts";
+import {
+  beginFunctionCall,
+  finishFunctionCall,
+  idempotencyKeyFrom,
+} from "../_shared/requestGuard.ts";
 
 /**
  * Üye oluşturma akışı bilinçli olarak auth kullanıcısını önce yaratır: giriş
@@ -72,6 +77,46 @@ Deno.serve(async request => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  // Kapı, numara tahsisinden ÖNCE. Sıra önemli: `internal_allocate_member_slot`
+  // advisory lock'la sıradaki kişi numarasını tüketiyor ve reddedilecek bir
+  // çağrının bir numarayı yakmasına gerek yok.
+  const guard = await beginFunctionCall(
+    adminClient,
+    "create-member",
+    userData.user.id,
+    idempotencyKeyFrom(request),
+    "[create-member]"
+  );
+
+  if (guard.kind === "replay") {
+    // Tekrarlanan istek: üye zaten oluşturuldu. Geçici şifre DÖNMÜYOR ve
+    // dönemez — hiçbir yere yazılmadı. Şifre kaybolduysa yol sıfırlamaktır.
+    return jsonResponse(
+      { data: { replayed: true, ...(guard.outcome ?? {}) } },
+      200,
+      origin
+    );
+  }
+
+  if (guard.kind === "in_progress") {
+    return jsonResponse({ error: "request_in_progress" }, 409, origin);
+  }
+
+  if (guard.kind === "rate_limited") {
+    return jsonResponse(
+      { error: "rate_limited", limit: guard.limit },
+      429,
+      origin
+    );
+  }
+
+  if (guard.kind !== "proceed") {
+    // Koruma çalışmıyorken korunan işi yapmak, korumayı hiç yazmamakla aynı
+    // şey (K-04).
+    return jsonResponse({ error: "service_unavailable" }, 503, origin);
+  }
+
   const { data: slot, error: slotError } = await adminClient
     .rpc("internal_allocate_member_slot", {
       caller_user_id: userData.user.id,
@@ -143,6 +188,16 @@ Deno.serve(async request => {
   // türetiliyor — daha önce `audit_written` bir olguyu ölçmeden iddia
   // ediyordu.
   const membershipCreated = typeof membershipId === "string";
+
+  // Tekrarlanan istekte döndürülecek özet. Giriş numarası var, **geçici
+  // şifre yok**: saklamak, şifrenin hiçbir yere yazılmaması kararını
+  // bozmak olurdu.
+  await finishFunctionCall(
+    adminClient,
+    guard.callId,
+    { login_number: loginNumber, member_created: membershipCreated },
+    "[create-member]"
+  );
 
   return jsonResponse(
     {

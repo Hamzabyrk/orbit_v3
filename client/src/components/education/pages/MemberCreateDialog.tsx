@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +43,19 @@ export function MemberCreateDialog({
   const [branchLoading, setBranchLoading] = useState(false);
   const [branchError, setBranchError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  /**
+   * Aynı gönderimin tekrarını sunucuya tanıtan anahtar (v1.2-17).
+   *
+   * **`ref`te durmasının sebebi tam olarak bu:** kullanıcı hata alıp düğmeye
+   * yeniden bastığında anahtar DEĞİŞMEMELİ, yoksa sunucu iki ayrı istek görür
+   * ve aynı kişi için ikinci bir hesap açılır. State olsaydı her render'da
+   * yeniden üretme riski doğardı.
+   *
+   * Başarıda ve diyalog kapanışında sıfırlanıyor: bir sonraki üye gerçekten
+   * yeni bir istektir.
+   */
+  const idempotencyKeyRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<IssuedCredentials | null>(
     null
@@ -92,6 +105,9 @@ export function MemberCreateDialog({
     setBranchError(null);
     setError(null);
     setCredentials(null);
+    // Diyalog kapandı: bundan sonrası yeni bir istektir, eski anahtar
+    // taşınırsa bir sonraki üye "zaten işlenmiş" diye reddedilirdi.
+    idempotencyKeyRef.current = null;
   };
 
   const handleOpenChange = (next: boolean) => {
@@ -127,6 +143,12 @@ export function MemberCreateDialog({
     setSubmitting(true);
     setError(null);
 
+    // İlk denemede üretilir, sonraki denemelerde AYNI kalır. Tekrar korumasının
+    // tamamı bu satırın `ref`te olmasına bağlı.
+    if (idempotencyKeyRef.current === null) {
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
+
     try {
       const result = demoMode
         ? {
@@ -136,12 +158,17 @@ export function MemberCreateDialog({
             passwordLockSet: true,
             auditWritten: true,
           }
-        : await createMember({
-            fullName: fullName.trim(),
-            role,
-            branchId: resolvedBranchId,
-          });
+        : await createMember(
+            {
+              fullName: fullName.trim(),
+              role,
+              branchId: resolvedBranchId,
+            },
+            idempotencyKeyRef.current ?? undefined
+          );
 
+      // İş bitti; sıradaki üye gerçekten yeni bir istektir.
+      idempotencyKeyRef.current = null;
       setCredentials(result);
     } catch (submitError) {
       setError(
