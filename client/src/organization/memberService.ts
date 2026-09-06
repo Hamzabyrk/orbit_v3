@@ -263,17 +263,31 @@ export function resolveBranchSelection(
   return selection;
 }
 
-export async function createMember(input: {
-  fullName: string;
-  role: Exclude<EducationRole, "admin">;
-  branchId: string | null;
-}): Promise<IssuedCredentials> {
+export async function createMember(
+  input: {
+    fullName: string;
+    role: Exclude<EducationRole, "admin">;
+    branchId: string | null;
+  },
+  /**
+   * Aynı işlemin tekrarını sunucuya tanıtan anahtar (v1.2-17).
+   *
+   * **Değeri, çağıranın onu saklamasından geliyor.** Her denemede yeni bir
+   * anahtar üretilirse koruma hiçbir şey yapmaz: sunucu iki farklı istek
+   * görür. Anahtar, kullanıcının *aynı* eylemi tekrar denemesi boyunca sabit
+   * kalmalı — `MemberCreateDialog` bunu bir `ref`te tutuyor.
+   */
+  idempotencyKey?: string
+): Promise<IssuedCredentials> {
   const { data, error } = await supabase.functions.invoke("create-member", {
     body: {
       fullName: input.fullName.trim(),
       role: input.role,
       branchId: input.branchId,
     },
+    ...(idempotencyKey
+      ? { headers: { "Idempotency-Key": idempotencyKey } }
+      : {}),
   });
 
   if (error) {
@@ -296,6 +310,21 @@ export async function createMember(input: {
     typeof payload?.audit_written === "boolean"
       ? payload.audit_written
       : undefined;
+
+  if (payload?.replayed === true) {
+    // Sunucu bu anahtarı daha önce görmüş: iş **yapıldı**, ikinci kez
+    // yapılmadı. Geçici şifre dönmüyor çünkü hiçbir yere yazılmadı — mesaj
+    // bunu saklamak yerine ne yapılacağını söylüyor (K-03, K-14).
+    const numara =
+      typeof payload.login_number === "string"
+        ? ` (giriş no ${payload.login_number})`
+        : "";
+    throw new Error(
+      `Bu istek zaten işlenmişti${numara}. Üye ikinci kez oluşturulmadı ve ` +
+        "geçici şifre yeniden gösterilemez; görmek için üye satırından " +
+        "şifreyi sıfırlayın."
+    );
+  }
 
   if (
     typeof loginNumber !== "string" ||
@@ -339,11 +368,18 @@ export async function loadOrganizationBranches(
  * bu yanıtta bir kez döner.
  */
 export async function resetMemberPassword(
-  membershipId: string
+  membershipId: string,
+  /** Bkz. `createMember` — anahtarın işe yaraması onu saklamaya bağlı. */
+  idempotencyKey?: string
 ): Promise<IssuedCredentials> {
   const { data, error } = await supabase.functions.invoke(
     "reset-member-password",
-    { body: { membershipId } }
+    {
+      body: { membershipId },
+      ...(idempotencyKey
+        ? { headers: { "Idempotency-Key": idempotencyKey } }
+        : {}),
+    }
   );
 
   if (error) {
@@ -367,8 +403,24 @@ export async function resetMemberPassword(
       ? payload.audit_written
       : undefined;
 
-  // Şifre sunucuda zaten değişti. Yanıtı okuyamazsak sessizce başarılı dönmek,
-  // kimsenin bilmediği bir şifreyle hesabı büsbütün kilitlemek olurdu.
+  if (payload?.replayed === true) {
+    // Sunucu bu anahtarı daha önce görmüş: iş **yapıldı**, ikinci kez
+    // yapılmadı. Geçici şifre dönmüyor çünkü hiçbir yere yazılmadı — mesaj
+    // bunu saklamak yerine ne yapılacağını söylüyor (K-03, K-14).
+    const numara =
+      typeof payload.login_number === "string"
+        ? ` (giriş no ${payload.login_number})`
+        : "";
+    throw new Error(
+      `Bu istek zaten işlenmişti${numara}. Şifre ikinci kez sıfırlanmadı; ` +
+        "elinizdeki fiş geçerli. Fişi kaybettiyseniz sıfırlamayı yeniden " +
+        "başlatın."
+    );
+  }
+
+  // Şifre sunucuda zaten değişti. Yanıtı okuyamazsak sessizce başarılı
+  // dönmek, kimsenin bilmediği bir şifreyle hesabı büsbütün kilitlemek
+  // olurdu.
   if (
     typeof loginNumber !== "string" ||
     typeof temporaryPassword !== "string"

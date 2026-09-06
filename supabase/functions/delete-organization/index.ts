@@ -1,6 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { z } from "npm:zod@4.1.12";
 import {
+  beginFunctionCall,
+  finishFunctionCall,
+} from "../_shared/requestGuard.ts";
+import {
   isAllowedOrigin,
   jsonResponse,
   preflightResponse,
@@ -64,6 +68,35 @@ Deno.serve(async request => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  // Bu fonksiyon idempotency anahtarı ALMIYOR ve buna ihtiyacı yok:
+  // ikinci silme kurumu bulamıyor, işlem doğal olarak idempotent.
+  // Hız sınırına ise dahil — kaçak bir döngü yine durdurulmalı.
+  const guard = await beginFunctionCall(
+    adminClient,
+    "delete-organization",
+    userData.user.id,
+    null,
+    "[delete-organization]"
+  );
+
+  if (guard.kind === "in_progress") {
+    return jsonResponse({ error: "request_in_progress" }, 409, origin);
+  }
+
+  if (guard.kind === "rate_limited") {
+    return jsonResponse(
+      { error: "rate_limited", limit: guard.limit },
+      429,
+      origin
+    );
+  }
+
+  if (guard.kind !== "proceed") {
+    // Koruma çalışmıyorken korunan işi yapmak, korumayı hiç yazmamakla aynı
+    // şey (K-04).
+    return jsonResponse({ error: "service_unavailable" }, 503, origin);
+  }
 
   const { data: operator, error: operatorError } = await adminClient
     .from("platform_operators")
@@ -193,6 +226,13 @@ Deno.serve(async request => {
       console.error("[delete-organization] user cleanup failed");
     }
   }
+
+  await finishFunctionCall(
+    adminClient,
+    guard.callId,
+    { completed: true },
+    "[delete-organization]"
+  );
 
   return jsonResponse(
     {

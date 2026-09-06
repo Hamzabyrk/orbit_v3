@@ -11,6 +11,10 @@ import {
 } from "../_shared/temporaryPassword.ts";
 import { syntheticEmailFor } from "../_shared/syntheticEmail.ts";
 import { setPasswordLock } from "../_shared/passwordLock.ts";
+import {
+  beginFunctionCall,
+  finishFunctionCall,
+} from "../_shared/requestGuard.ts";
 
 const requestSchema = z.object({
   organizationName: z.string().trim().min(2).max(120),
@@ -116,6 +120,36 @@ Deno.serve(async request => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  // Bu fonksiyon idempotency anahtarı ALMIYOR ve buna ihtiyacı yok:
+  // `organizations_slug_key` benzersiz, tekrarlanan kurulum zaten
+  // çakışmayla reddediliyor.
+  // Hız sınırına ise dahil — kaçak bir döngü yine durdurulmalı.
+  const guard = await beginFunctionCall(
+    adminClient,
+    "bootstrap-organization",
+    userData.user.id,
+    null,
+    "[bootstrap-organization]"
+  );
+
+  if (guard.kind === "in_progress") {
+    return jsonResponse({ error: "request_in_progress" }, 409, origin);
+  }
+
+  if (guard.kind === "rate_limited") {
+    return jsonResponse(
+      { error: "rate_limited", limit: guard.limit },
+      429,
+      origin
+    );
+  }
+
+  if (guard.kind !== "proceed") {
+    // Koruma çalışmıyorken korunan işi yapmak, korumayı hiç yazmamakla aynı
+    // şey (K-04).
+    return jsonResponse({ error: "service_unavailable" }, 503, origin);
+  }
 
   // Sıra zorunlu: sentetik adres kurum kodunu içeriyor, dolayısıyla kod
   // kullanıcıdan önce; kullanıcı ise üyeliğin foreign key'i olduğu için
@@ -245,6 +279,13 @@ Deno.serve(async request => {
   // Geçici şifre yanıtta BİR KEZ dönüyor ve hiçbir yere yazılmıyor. Operatör
   // ekranda görür, kuruma teslim eder; kaybolursa yenisi üretilir. Düz metin
   // şifre saklamak KVKK açısından savunulamaz ve gereksizdir.
+  await finishFunctionCall(
+    adminClient,
+    guard.callId,
+    { completed: true },
+    "[bootstrap-organization]"
+  );
+
   return jsonResponse(
     {
       data: {
