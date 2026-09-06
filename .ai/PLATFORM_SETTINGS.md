@@ -167,6 +167,25 @@ Proje `orbit-v3`, Hamza'nın sahibi olduğu `ORBİT` Hobby takımında.
 | `CODEOWNERS`              | `* @ardabulent @Hamzabyrk` — her PR'da otomatik review isteği        |
 | Arda'nın repo izni        | `WRITE` (Admin değil) — ayarları değiştiremez, merge kuralını aşamaz |
 
+**Advanced Security (2026-09-07'de açıldı — Hamza).** Uzun süre beşi de kapalıydı; bölüm 5'teki 🔴 kayıt buydu ve artık kapandı.
+
+| Özellik                           | Durum      | Nasıl doğrulandı                                                                                                                              |
+| --------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Dependency graph`                | ✅ Açık    | `dependency-graph/sbom` okunuyor — 447 kayıt (npm + 6 GitHub Action)                                                                          |
+| `Dependabot alerts`               | ✅ Açık    | `dependabot/alerts` → `200` + boş liste (kapalıyken `403` döner)                                                                              |
+| `Dependabot security updates`     | ✅ Açık    | Ekran görüntüsü — uç nokta `admin` istiyor, API'den okunamıyor                                                                                |
+| `Grouped security updates`        | ✅ Açık    | Ekran görüntüsü — aynı sebeple API'den okunamıyor                                                                                             |
+| `Private vulnerability reporting` | ✅ Açık    | `private-vulnerability-reporting` → `{"enabled":true}`                                                                                        |
+| `Secret Protection`               | ✅ Açık    | Ekran görüntüsü                                                                                                                               |
+| `Push protection`                 | ✅ Açık    | Ekran görüntüsü — gizli anahtar içeren commit **push anında** durur                                                                           |
+| `CodeQL` (advanced setup)         | ✅ Koşuyor | `codeql.yml` (v1.2-20); son üç koşum `success`                                                                                                |
+| `Copilot Autofix`                 | ✅ Açık    | Ekran görüntüsü — CodeQL uyarılarına düzeltme **önerir**, PR açmaz                                                                            |
+| `Automatic dependency submission` | ⬜ Kapalı  | **Kasıtlı.** Derleme anında çözülen ekosistemler (Gradle/Maven) için; bizde `pnpm-lock.yaml` var ve graph onu zaten okuyor                    |
+| `AI findings` (Preview)           | ⬜ Kapalı  | **Zaten çalışamaz** — CodeQL'in _default_ kurulumunu şart koşuyor, bizde _advanced_ var                                                       |
+| `Dependabot malware alerts`       | ✅ Açık    | **Hamza açtı (2026-09-07).** API'den okunamıyor — `security_and_analysis` alanı `admin` istiyor ve boş dönüyor; doğrulama Hamza'nın eyleminde |
+
+> ⚠️ **Sayfadaki butonlar durumu değil, tıklayınca olacak eylemi yazar.** `Disable` yazan satır **açık** demektir. Bu okuma hatası bir kez yapıldı; tabloyu güncelleyen kişi butona değil bu sütuna baksın.
+
 ---
 
 ## 4. ⛔ Bilinçli olarak KAPALI bırakılan ayarlar — açmadan önce oku
@@ -236,10 +255,12 @@ Bilinen, kapatılmayan ve **bilinçli olarak kabul edilen** durumlar. Her deneti
 | **Advisor 35 "indekssiz foreign key" (INFO) diyor — altısı gerçekti, kapandı** | 2026-09-06'da **karşılaştırılarak** ölçüldü. Advisor, FK'nin sütun listesiyle **birebir başlayan** bir indeks arıyor; v1.2'nin tenant sınırını tutan bileşik FK'lerinin (`(session_id, organization_id)` gibi) hepsini bu yüzden işaretliyor. Oysa o FK'lerin **öncü sütununda zaten indeks var** (`attendance_records_session_idx`, `class_enrollments_class_idx`, …) ve FK denetiminin yaptığı arama için bu fazlasıyla yeterli — bir oturumun otuz kaydı, bir sınıfın otuz öğrencisi vardır. **29'u eklemek gereksiz indeks yaratacaktı:** her yazmada bakım maliyeti taşır ve advisor'da bu kez `unused_index` olarak geri dönerdi. Gerçekten indekssiz olan **altı** arama v1.2-18'de kapandı ve hiçbiri v1.2 iş tablosu değildi — hepsi v1.1 ve platform ekseninden kalmaydı. | **Kapandı (v1.2-18).** Advisor sayaci **35'te kalmaya devam edecek** ve bu beklenen sonuçtur; sayının düşmesi değil, **öncü sütun indeksinin korunması** izlenmeli. Yeni bir bileşik FK eklenirse öncü sütununda indeks olup olmadığı sorulur |
 | **16 × `multiple_permissive_policies` (WARN) — taban ölçüsü** | Tasarımın doğrudan sonucu: politikalar **rol başına** ayrı yazılıyor (`_select_admin`, `_select_teacher`, `_select_student`, `_select_guardian`) ve Postgres aynı tablo/rol/işlem üçlüsündeki izin veren politikaların **hepsini her satır için** değerlendiriyor; her biri de bir `security definer` yardımcı çağırıyor (**15 yardımcı, satır başına**). Politikaları tek bir `or` zincirinde birleştirmek uyarıyı kaldırırdı ama her tabloda kimin neyi neden gördüğünü okunamaz hale getirirdi — v1.2 boyunca en çok işe yarayan şey bu ayrımn kendisiydi. **Tablolar bugün boş, dolayısıyla yük testi anlamsız**; bu sayılar gerçek veri geldiğinde karşılaştırılacak **tabandır**, kapatılacak bir açık değil. | **Gerçek veri girdikten sonra ölçülür** (v1.5-01 kabul testi). O gün sorgu planları bakılır; yavaşlık ölçülürse çözüm politika birleştirmek değil, yardımcıları `stable` önbelleğinden daha iyi yararlanacak biçimde yeniden yazmaktır |
 | **`khroma@2.1.0` lisans beyan etmiyor** | v1.2-20'nin lisans envanteri ölçtü: üretim bağımlılıkları arasında **bir paketin `package.json`'ında lisans alanı yok** (`pnpm licenses list` çıktısında `Unknown`). Lisanssız bir paket hukuken **en riskli türdür** — lisans yoksa hiç izin verilmemiş demektir. Paket bir renk yardımcısı ve `mermaid` üzerinden dolaylı geliyor. CI kontrolü bunun üzerine **düşmüyor**: bugün kapatmak bütün işi durdurur ve bu bir **karar**, mekanik bir düzeltme değil. Uyarı her CI koşumunda görünür kalıyor. | **v1.5-02** (KVKK ve hukuki hazırlık). Seçenekler: yukarı akışta lisans sorulur, paket değiştirilir, veya bilinçli olarak kabul edilip buraya yazılır |
-| 🔴 **GitHub gelişmiş güvenlik özellikleri KAPALI** | 2026-09-07'de Hamza'nın ekranından doğrulandı: `Settings → Advanced Security` altındaki beş özelliğin **beşi de** "Enable" düğmesi gösteriyor, yani hiçbiri açık değil — `Dependency graph`, `Dependabot alerts`, `Dependabot security updates`, `Grouped security updates`, `Private vulnerability reporting`. **Sonucu:** bir bağımlılıkta bilinen bir güvenlik açığı çıktığında bunu kimse öğrenmiyor. `dependabot.yml` bunu KARŞILAMAZ — o dosya yalnızca "yeni sürüm çıktı" güncellemelerini yönetiyor ve v1.2-20'den beri **aylık**. Yani bugün açıklar için tek mekanizma yok, gecikmeli bile değil. Depo public olduğu için beşi de **ücretsiz**. | **Hamza açacak.** Sıra önemli: `Dependency graph` diğerlerinin ön koşulu. Sonra `alerts` → `security updates` → `grouped security updates`. `Private vulnerability reporting` isteğe bağlı ama önerilir: dışarıdan biri açık bulduğunda **herkese açık bir issue yerine** size özel bildirebilir |
-| **Geliştirme araç zincirinde 16 bilinen açık** | 2026-09-07'de `pnpm audit` ile ölçüldü: **üretim bağımlılıklarında sıfır**, geliştirme bağımlılıklarında **16** (1 kritik, 6 yüksek, 8 orta, 1 düşük). Hepsi derleme ve geliştirme sunucusu araçlarında: `vite` dev sunucusunun `server.fs.deny` atlatmaları, `vitest` UI sunucusu (kullanmıyoruz), `rollup`, `esbuild`, `picomatch`, `@babel/core`. **Kullanıcıya giden pakette hiçbiri yok** — maruziyet, `pnpm dev` çalışırken bir geliştirici makinesinden dosya okunabilmesi. Düzeltme haritası ölçüldü: `vite ≥ 7.3.5` hepsini kapatıyor (**7.x içinde minör**), `vitest ≥ 3.2.6` ise **major** ve 163 testi etkiliyor. | **v1.2-23**: `vite` minör yükseltmesi önce, `vitest` major'ı ayrı karar. Bu açıkların **Dependabot alerts açık olsaydı kendiliğinden bildirilecek olması**, yukarıdaki anahtarın neden önemli olduğunun somut kanıtıdır |
+| ✅ **GitHub gelişmiş güvenlik özellikleri — AÇILDI (2026-09-07)** | **Kapandı.** Beş anahtarın beşi de Hamza tarafından açıldı ve doğru sırayla: `Dependency graph` → `alerts` → `security updates` → `grouped` → `private vulnerability reporting`. Üçü API'den, ikisi ekran görüntüsünden doğrulandı; envanter **bölüm 3.6**'da. Yanında beklenmedik üç kazanç çıktı: `Secret Protection`, `Push protection` ve `CodeQL` de açıkmış. Push protection özellikle değerli — depo public olduğu için "yanlışlıkla anahtar commit'lemek" en pahalı hata sınıfımızdı, artık push **anında** duruyor. **Ölçüm anı önemliydi:** anahtarlar araç zinciri sıfır açığa indikten _sonra_ açıldı, dolayısıyla ilk koşum sessiz geçti ve bundan sonra gelen her uyarı gerçekten yeni sinyal. Ters sırada açılsaydı on altı açık için bir yığın PR dökülürdü — **K-20**'nin Dependabot'ta öğrettiği dersin aynısı. | **Bekleyen yok.** Son eksik olan `Dependabot malware alerts` de aynı gün açıldı. Kapsadığı boşluk gerçekti: normal alerts _"paketinde bilinen açık var"_ der, bu ise _"kullandığın sürüm kötü niyetli çıktı"_ der — npm'de meşru bir paketin ele geçirilip içine zararlı kod konması. Ortada CVE olmadığı için `pnpm audit`'in sıfır demesi o durumda hiçbir şey ifade etmez, dolayısıyla bu ayrı bir sinyal. **Durumu API'den okunamıyor** (`security_and_analysis`, `admin` alanı); bir sonraki denetim bunu ölçmeye çalışıp 404'e takılmasın diye yazıldı — doğrulama yolu ekran görüntüsüdür |
+| **Geliştirme araç zincirinde 16 bilinen açık** | 2026-09-07'de `pnpm audit` ile ölçüldü: **üretim bağımlılıklarında sıfır**, geliştirme bağımlılıklarında **16** (1 kritik, 6 yüksek, 8 orta, 1 düşük). Hepsi derleme ve geliştirme sunucusu araçlarında: `vite` dev sunucusunun `server.fs.deny` atlatmaları, `vitest` UI sunucusu (kullanmıyoruz), `rollup`, `esbuild`, `picomatch`, `@babel/core`. **Kullanıcıya giden pakette hiçbiri yok** — maruziyet, `pnpm dev` çalışırken bir geliştirici makinesinden dosya okunabilmesi. Düzeltme haritası ölçüldü: `vite ≥ 7.3.5` hepsini kapatıyor (**7.x içinde minör**), `vitest ≥ 3.2.6` ise **major** ve 163 testi etkiliyor. | ✅ **Kapandı (v1.2-23, 2026-09-07): 16 → 0.** Üç ölçülmüş adımda: `vite 7.1.9 → 7.3.6` (16→8), `pnpm.overrides` ile `rollup ≥ 4.59.0` ve `@babel/core ≥ 7.29.6` (8→6), `vitest 2.1.9 → 3.2.6` (6→0). **Tahminim yanlış çıktı ve kayda geçiyor:** vitest major'ını "163 testi etkiler, ayrı karar" diye ayırmıştım; ölçüldüğünde yerine geçen bir yükseltme oldu — 163/163 test değişmeden geçti, süre 7s → 2.2s. Üretim bağımlılıkları öncesinde de sonrasında da sıfırdı. Bu açıkların **elle arayarak** bulunmuş olması, `Dependabot alerts` anahtarının somut karşılığıydı; anahtar artık açık |
 | **`internal_function_calls` kurum silmede temizlenmiyor** | v1.2-17'de eklenen kapı defteri `organization_id` **taşımıyor** — çünkü kavramsal olarak tenant kaydı değil, çağıran başına bir çağrı günlüğü (platform operatörünün çağrısının kurumu yoktur). Sonucu: `internal_delete_organization` onu **görmüyor**, dolayısıyla silinen bir kurumun üyelerine ait satırlar kalıyor ve `outcome` alanında **giriş numarası** taşıyorlar. 2026-09-07'de ölçüldü: tablo **boş** (0 satır), yani bugün somut bir kalıntı yok. Giriş numarası bir kimlik belirteci, kimlik bilgisi değil — şifre asla saklanmıyor. | **v1.4-00 açılışında.** O dilim kimlik ile akademik kaydı bağlıyor ve `create-member` ilk kez hacimli çalışacak. Seçenekler: silme fonksiyonuna hedefli bir temizlik adımı eklemek, veya `outcome`'dan giriş numarasını çıkarıp yalnızca "yapıldı" bayrağı bırakmak |
 | **eslint-plugin-react-hooks v7'nin bulduğu on sinyal** | Yükseltme (#196) denendi ve `quality-gate`'i kırdı. Sebep yapılandırma değil: v7 **üç yeni kural** getiriyor ve mevcut kod on yerde ihlal ediyor — `set-state-in-effect` (8), `refs` (1), `purity` (1). İhlaller **hata değil**: kod çalışıyor, kural fazladan render ve türetilebilir state gibi kalıpları işaret ediyor. Ama düzeltmesi satır değil **efekt yeniden yazımı** ve ikisi kimlik katmanında (`AuthProvider`, `useIdleTimeout`). | **Kontrol noktası v1.3-02.** Sebep çift işten kaçınmak: v1.3-01 `educationData.ts`'i gerçek servislere çeviriyor, v1.3-02 yükleme/hata durumlarını ekliyor — yani bu efektlerin çoğu **zaten yeniden yazılacak**. Şimdi düzeltip v1.3'te bir daha dokunmak aynı işi iki kez yapmak olur. #196 o güne kadar **açık bırakılıyor**; efektler yeni kurallara göre yazıldıktan sonra yükseltme tek seferde geçer |
+| **CodeQL zorunlu kontrol DEĞİL** | Ruleset'in zorunlu kontrolleri: `quality-gate`, `Yıkıcı Migration Kontrolü`, `Tenant RLS`. CodeQL her push'ta koşuyor ve Security sekmesine yazıyor ama **merge'ü engellemiyor** — sayfadaki "Security alert severity level: High or higher" eşiği de bu yüzden bugün işlevsiz, o eşik ancak CodeQL zorunlu kontrol olursa devreye girer. **Bilinçli:** aracın bugüne kadarki tüm bulgusu iki taneydi ve **ikisi de yanlış alarmdı** (aşağıdaki satır). Zorunlu olsaydı #204'ü gerçek bir sebep olmadan kilitlerdi. Sık sık haksız kilitleyen bir kapı, insanlara kapıyı baypas etmeyi öğretir ve `quality-gate`'in anlamını da aşındırır. | **Yanlış alarm oranı düşünce yeniden konuşulur.** Somut ölçüt: art arda gelen bulguların çoğunluğu gerçek çıkmaya başlarsa. Değişiklik ruleset'te olduğu için **Hamza'da** |
+| **İki CodeQL `high` uyarısı — kaynağında kapatıldı** | `js/insecure-randomness`, iki dosyada: `MemberCreateDialog.tsx` ve `SettingsMembersSection.tsx`. `Math.random()` bir `temporaryPassword` alanına akıyordu. **Uyarı doğruydu, sömürülebilir değildi** ve bu ayrım ölçülerek kuruldu: satırlar `demoMode` dalında, üretim derlemesi alındı ve pakette bayrağın `Ob=!1` olarak sabitlendiği, `demoMode:Ob` ile context'e o değerin girdiği görüldü — dal pakette **var ama ulaşılamaz**. (Rollup dalı eleyemiyor çünkü değer React context'inden geçiyor; `__ORBIT_DEMO_MODE__` sabiti yalnızca `runtime.ts`'te katlanıyor.) Yine de "false positive" diye **susturulmadı**, kaynağı silindi: rastgeleliğin hiçbir faydası yoktu — değer ekrana basılıp atılıyor, hiçbir şeyin kimliğini doğrulamıyor. Ortak sabit `DEMO_TEMPORARY_PASSWORD` (**K-06**). Gerçek şifre sunucuda, `crypto.getRandomValues` ile üretiliyor. | **Kapandı (v1.2-24).** Bir sonraki denetim aynı yolu baştan yürümesin diye sabitin başına gerekçe yazıldı. ⚙️ Yan bulgu: pakette `Math.random`'lu 56 karakterlik bir üreteç daha var — **bizim değil**, Supabase auth istemcisinin PKCE yedeği ve yalnız `crypto` hiç yoksa devreye giriyor; CodeQL de onu işaretlememiş |
 | `set_updated_at` `anon`'a açık | SECURITY DEFINER değil ve `trigger` tipi döndürdüğü için trigger bağlamı dışında çağrılamıyor; risk oluşturmuyor. Acil bir güvenlik düzeltmesinde gereksiz yüzey değiştirmemek için Issue #18 kapsamı dışında bırakıldı. | — |
 
 ---
@@ -288,6 +309,42 @@ for p in / /sifre-sifirla /sifre-belirle; do
 " "$p" "$(curl -s -o /dev/null -w '%{http_code}' https://orbit-v3-topaz.vercel.app$p)"
 done
 ```
+
+### GitHub güvenlik anahtarları — `admin` olmadan doğrulama (2026-09-07)
+
+Uzun süre "doğrulanamadı" yazıyordu ve sebebi yanlış uç noktaydı. `vulnerability-alerts`
+**açıkken de kapalıyken de `404`** döndürür eğer çağıran `admin` değilse; yani hiçbir
+şey ayırt etmez. Aşağıdakiler `push` yetkisiyle çalışır ve **durumu gerçekten söyler.**
+
+```bash
+R=Hamzabyrk/orbit_v3
+
+# 1) Dependabot alerts ACIK mi?  200 + liste = acik.  403 = kapali.
+gh api "repos/$R/dependabot/alerts?state=all&per_page=1"
+
+# 2) Dependency graph ACIK mi?  Paket sayisi donuyorsa acik.
+gh api "repos/$R/dependency-graph/sbom" -q '.sbom.packages | length'
+
+# 3) Private vulnerability reporting
+gh api "repos/$R/private-vulnerability-reporting"        # {"enabled":true}
+
+# 4) CodeQL bulgulari (Security sekmesindekilerle ayni)
+gh api "repos/$R/code-scanning/alerts?state=open" \
+  -q '.[] | "\(.rule.security_severity_level) \(.rule.id) \(.most_recent_instance.location.path)"'
+
+# 5) main uzerinde ZORUNLU olan kontroller gercekte hangileri?
+gh api "repos/$R/rulesets" -q '.[] | "\(.id) \(.name)"'
+gh api "repos/$R/rulesets/<ID>" \
+  -q '.rules[] | select(.type=="required_status_checks")
+      | .parameters.required_status_checks[].context'
+
+# 6) Kendi yetkimiz (404'lerin sebebini ayirt etmek icin)
+gh api "repos/$R" -q '.permissions'
+```
+
+> `security updates`, `grouped security updates` ve `secret-scanning/alerts`
+> **`admin` gerektirir**; bunlar bu komutlarla ölçülemez, ekran görüntüsüyle
+> doğrulanır. Hangi satırın nasıl doğrulandığı **bölüm 3.6** tablosunda yazılı.
 
 ### `main` korumasının gerçekte neye dayandığı (2026-09-05'te ölçüldü)
 
