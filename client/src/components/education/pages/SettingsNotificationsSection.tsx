@@ -2,10 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
 type NotificationKey =
-  | "attendance"
-  | "homeworkDue"
-  | "parentContact"
-  | "weeklyDigest";
+  "attendance" | "homeworkDue" | "parentContact" | "weeklyDigest";
 
 const ROWS: {
   key: NotificationKey;
