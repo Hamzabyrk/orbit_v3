@@ -73,8 +73,17 @@ updates:
 # bildirildiğinde açılan PR'lar **Dependabot security updates** adlı ayrı bir
 # anahtara bağlı ve o anahtar depo ayarlarında duruyor.
 #
-# Aylık takvime geçmek rutin gürültüyü azaltıyor ama o anahtar KAPALIYSA bir
-# güvenlik açığı bir ay bekleyebilir. Anahtarın durumu `admin` yetkisi
-# gerektirdiği için bu oturumdan doğrulanamadı (`vulnerability-alerts` uç
-# noktası 404 döndü — "kapalı" da olabilir "yetki yok" da). **Hamza'nın
-# doğrulaması gerekiyor.**
+# Aylık takvime geçmek rutin gürültüyü azaltıyor ve bu ancak o anahtar AÇIKSA
+# güvenli: kapalı olsaydı bir güvenlik açığı buradaki takvime düşer ve bir ay
+# bekleyebilirdi.
+#
+# **2026-09-07: anahtar açıldı** (Hamza). Yani güvenlik açıkları artık bu
+# dosyanın takviminden bağımsız, bildirildikleri gün ele alınıyor; buradaki
+# "aylık" yalnızca rutin sürüm güncellemelerini yavaşlatıyor. Envanter ve
+# doğrulama komutları: `.ai/PLATFORM_SETTINGS.md` bölüm 3.6 ve 6.
+#
+# Önceki not "doğrulanamadı, `vulnerability-alerts` 404 döndü" diyordu. Sorun
+# anahtarda değil **sorduğumuz uç noktadaydı**: o uç nokta `admin` olmayan bir
+# çağırana, anahtar açık da olsa kapalı da olsa 404 verir. Doğru soru
+# `dependabot/alerts` — kapalıyken 403, açıkken 200 döner ve `push` yetkisi
+# yeter.

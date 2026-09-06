@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { CredentialsPanel } from "@/components/credentials/CredentialsPanel";
 import type { IssuedCredentials } from "@/components/credentials/IssuedCredentials";
+import { DEMO_TEMPORARY_PASSWORD } from "@/components/credentials/IssuedCredentials";
 import { MemberCreateDialog } from "./MemberCreateDialog";
 import {
   loadOrganizationMembers,
@@ -152,7 +153,7 @@ export function SettingsMembersSection() {
       }
       setCredentials({
         loginNumber: resetTarget.loginNumber,
-        temporaryPassword: "demo-" + Math.random().toString(36).substring(2, 8),
+        temporaryPassword: DEMO_TEMPORARY_PASSWORD,
         passwordLockSet: true,
         auditWritten: true,
       });

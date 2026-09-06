@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CredentialsPanel } from "@/components/credentials/CredentialsPanel";
 import type { IssuedCredentials } from "@/components/credentials/IssuedCredentials";
+import { DEMO_TEMPORARY_PASSWORD } from "@/components/credentials/IssuedCredentials";
 import { useAuth } from "@/auth/useAuth";
 import {
   createMember,
@@ -153,8 +154,7 @@ export function MemberCreateDialog({
       const result = demoMode
         ? {
             loginNumber: "demo-" + Date.now().toString().slice(-4),
-            temporaryPassword:
-              "demo-" + Math.random().toString(36).substring(2, 8),
+            temporaryPassword: DEMO_TEMPORARY_PASSWORD,
             passwordLockSet: true,
             auditWritten: true,
           }
