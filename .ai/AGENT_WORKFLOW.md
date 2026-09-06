@@ -450,6 +450,20 @@ _Kaynak: 2026-09-05 kapsam turu. `main`'e merge Edge Function'ları deploy ediyo
 
 **Bu kuralın en iyi kanıtı, kuralı yazmadan önce denenmiş olması.** v1.2-13'te ortaya çıktı ki aynı hata **2026-08-24'te bir kez daha** olmuş (`reset-admin-password` hiç oluşturulmamış), teşhis edilmiş, ve karşılığı `config.toml`'a şu cümleyi yazmak olmuş: _"Yeni Edge Function ekleyen herkes buraya da satır ekler."_ **Hatırlatma iki gün dayandı** — 26 Ağustos'ta `create-member` yine unutuldu. Doğru yazılmış, doğru yere konmuş, tarihli ve gerekçeli bir uyarı bile **kapı değildir.**
 
+### K-20 · Kendi başına iş yapan bir şeyi açmadan önce anlat ve onay al
+
+Bir dilimin onayı, o dilimin içindeki **bota** verilmiş onay değildir.
+
+Dilim bittikten sonra da çalışmaya devam eden ya da oturum dışındaki insanların gördüğünü değiştiren her şey — bot, zamanlanmış iş, webhook, bildirim, herkese açık çıktı, durum rozeti — açılmadan önce **ne yapacağı, neye ve hangi sıklıkta** günlük dille anlatılır ve **açıkça onaylanır.**
+
+**İlk koşum ayrıca söylenir.** Bu tür araçların çoğu kararlı durumda sakindir ama ilk çalıştıklarında biriken bütün geri kalmışlığı bir anda döker. "Haftada bir iki PR" doğru bir cümledir ve ilk gün on PR açılmasını hiç anlatmaz.
+
+**Riskli olan iş yapmak değil, otonom bir aktörü açmaktır.** İşi geri alabilirsiniz; açtığınız aktör siz uyurken de karar vermeye devam eder.
+
+Şaşkınlıkla karşılaşılırsa savunulacak şey yapılandırma değildir: yapılandırma zaten istendiği gibi çalışmış olabilir. Söylenecek şey, onu kimin ve nerede devreye soktuğudur.
+
+_Kaynak: v1.2-20. Dilim "SHA pinning, CodeQL, **bağımlılık otomasyonu**, lisans envanteri" olarak onaylanmıştı ve Dependabot brifingde tek satırdı. Merge edildiği dakika, herkese açık depoda **on PR** açıldı. Ayar tam yazıldığı gibi çalışmıştı (ekosistem başına beş) — sorun ayarda değil, "bağımlılık otomasyonu" ifadesinin **kendi başına PR açan bir bot** anlamına geldiğinin hiç söylenmemiş olmasındaydı. Arda'nın değerlendirmesi: "profesyonelliği bozmuş"._
+
 ## Brifing yazarken
 
 İyi bir brifing şunları içerir:
