@@ -31,7 +31,7 @@ jobs:
     if: github.event_name == 'pull_request'
 
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 · 2026-09-06'da çözüldü
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4 · 2026-09-06'da çözüldü
         with:
           # Base ile head arasında diff alabilmek için tam geçmiş gerekiyor.
           fetch-depth: 0
@@ -124,7 +124,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 · 2026-09-06'da çözüldü
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4 · 2026-09-06'da çözüldü
         with:
           # Değişen dosyaları tespit edebilmek için geçmiş gerekiyor.
           fetch-depth: 0
