@@ -31,7 +31,7 @@ jobs:
     if: github.event_name == 'pull_request'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 · 2026-09-06'da çözüldü
         with:
           # Base ile head arasında diff alabilmek için tam geçmiş gerekiyor.
           fetch-depth: 0
@@ -124,7 +124,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4 · 2026-09-06'da çözüldü
         with:
           # Değişen dosyaları tespit edebilmek için geçmiş gerekiyor.
           fetch-depth: 0
@@ -172,7 +172,7 @@ jobs:
 
       - name: Supabase CLI kurulumu
         if: steps.degisiklik.outputs.gerekli == 'true'
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1 # v1.7.1 (v1 dalının ucu) · 2026-09-06'da çözüldü
         with:
           version: 2.115.0
 

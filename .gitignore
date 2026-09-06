@@ -108,3 +108,7 @@ temp/
 # Görev brifingleri — çalışma dosyasıdır, geçmişe girmez.
 # Gerekçe: .ai/AGENT_WORKFLOW.md — "Görev dosyalarının ömrü".
 .ai/tasks/
+
+# CI lisans envanteri çıktısı
+licenses.json
+
