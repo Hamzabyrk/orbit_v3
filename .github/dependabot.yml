@@ -1,18 +1,64 @@
+# Dependabot — bağımlılık ve action sürüm güncellemeleri.
+#
+# ⚠️ **Bu dosya kendi başına PR açan bir botu yönetiyor.** Değiştiren kişi,
+# değişikliğin ilk koşumda ne üreteceğini bilerek değiştirmeli — bkz.
+# `.ai/AGENT_WORKFLOW.md` **K-20**.
+#
+# =========================================================================
+# İlk koşumun dersi (2026-09-06)
+# =========================================================================
+#
+# İlk yapılandırma merge edildiği dakika **on PR** açıldı. Ayar tam yazıldığı
+# gibi çalışmıştı — `open-pull-requests-limit` **ekosistem başına** uygulanıyor,
+# yani beş artı beş. Sorun sayının kendisinde değil, ikisinde birdendi:
+#
+#   1. **`github-actions` gruplanmamıştı.** Beş action için beş ayrı PR açıldı.
+#      Oysa action güncellemeleri neredeyse her zaman mekanik ve birlikte
+#      incelenebilir.
+#   2. **İlk koşum birikmiş her şeyi döker.** "Haftada bir iki PR" doğru bir
+#      cümledir ve ilk gün ne olacağını hiç anlatmaz.
+#
+# Herkese açık bir depoda on bot PR'ı, deponun bakımsız görünmesine yol açıyor.
+#
+# =========================================================================
+# Bu yapılandırmanın hedefi
+# =========================================================================
+#
+# Normal bir ayda **iki PR**: bir gruplu action PR'ı, bir gruplu npm PR'ı.
+# Major güncellemeler ayrı kalıyor ve bu bilinçli — bir major'ı grubun içine
+# saklamak, onu incelemeden geçirmenin en kolay yolu olurdu.
+
 version: 2
 updates:
+  # --- GitHub Actions -------------------------------------------------------
+  #
+  # Tek grupta toplanıyor. Depoda beş action var; hepsi tek PR'da gelirse
+  # inceleme yükü artmıyor ama PR sayısı beşte bire iniyor.
+  #
+  # Major'lar da bu gruba dahil: action major'ları genelde mekanik oluyor
+  # (`checkout@v4` → `@v7` gibi) ve CI zaten kırılırsa söylüyor.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
+      interval: "monthly"
+    open-pull-requests-limit: 3
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      actions:
+        patterns:
+          - "*"
 
+  # --- npm ------------------------------------------------------------------
+  #
+  # `patch` ve `minor` tek grupta; `major` ayrı PR'da. Sebep: major bir
+  # güncelleme davranış değiştirebilir ve elli paketlik bir grubun içinde
+  # fark edilmeden geçebilir. Ayrı geldiğinde adı başlıkta okunuyor.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
+      interval: "monthly"
+    open-pull-requests-limit: 3
     commit-message:
       prefix: "chore(deps)"
     groups:
@@ -22,3 +68,13 @@ updates:
         update-types:
           - "patch"
           - "minor"
+# ⚠️ **Güvenlik güncellemeleri bu dosyanın konusu DEĞİL.** Buradaki ayarlar
+# rutin sürüm güncellemelerini yönetiyor; bir pakette güvenlik açığı
+# bildirildiğinde açılan PR'lar **Dependabot security updates** adlı ayrı bir
+# anahtara bağlı ve o anahtar depo ayarlarında duruyor.
+#
+# Aylık takvime geçmek rutin gürültüyü azaltıyor ama o anahtar KAPALIYSA bir
+# güvenlik açığı bir ay bekleyebilir. Anahtarın durumu `admin` yetkisi
+# gerektirdiği için bu oturumdan doğrulanamadı (`vulnerability-alerts` uç
+# noktası 404 döndü — "kapalı" da olabilir "yetki yok" da). **Hamza'nın
+# doğrulaması gerekiyor.**
