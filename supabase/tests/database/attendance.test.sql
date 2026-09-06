@@ -14,7 +14,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(28);
+select plan(31);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -456,6 +456,64 @@ select is(
   3::bigint,
   'a guardian sees the sessions of their child class and no other class'
 );
+
+-- Arşivleme asimetrisi (v1.2-19) ------------------------------------------------
+--
+-- İki fonksiyon `archived_at`'a farklı davranıyor ve bu **tutarsızlık değil
+-- tasarım**. Buradaki iki iddia o tasarımı çiviliyor: ileride biri
+-- "tutarlılık" adına `owns_student_record`'a `archived_at` eklerse ilk iddia
+-- kırmızıya döner ve sessizce insanları kendi verilerinden kesmez.
+
+reset role;
+update public.students
+set archived_at = now()
+where id = '50000000-0000-0000-0000-000000000801';
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a4000000-0000-0000-0000-0000000000a4', true);
+
+-- Öğrenci kurumdan ayrıldı; geçmişi hâlâ onun. Kendi verisine erişim hakkı
+-- kayıtla birlikte arşivlenmez.
+select is(
+  (select count(*) from public.attendance_records),
+  1::bigint,
+  'an archived student still reads their own attendance history'
+);
+
+-- Velinin bağı, öğrencinin arşivlenmesinden BAĞIMSIZ: `guards_student` bağa ve
+-- veli kaydına bakar, öğrencinin durumuna değil.
+select set_config('request.jwt.claim.sub', 'a5000000-0000-0000-0000-0000000000a5', true);
+
+select is(
+  (select count(*) from public.attendance_records),
+  1::bigint,
+  'archiving the student does not by itself end the guardian link'
+);
+
+reset role;
+update public.student_guardians
+set archived_at = now()
+where student_id = '50000000-0000-0000-0000-000000000801';
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'a5000000-0000-0000-0000-0000000000a5', true);
+
+-- Velilik devredilebilir bir ilişkidir; bağ bitince erişim de biter.
+select is(
+  (select count(*) from public.attendance_records),
+  0::bigint,
+  'an archived guardian link ends the guardian access immediately'
+);
+
+-- Fixture geri alınıyor: sonraki bölüm kilitli yöneticiyi ölçüyor ve bu
+-- değişiklikler oraya taşınmamalı.
+reset role;
+update public.students set archived_at = null
+where id = '50000000-0000-0000-0000-000000000801';
+update public.student_guardians set archived_at = null
+where student_id = '50000000-0000-0000-0000-000000000801';
+
+set local role authenticated;
 
 -- Kilit ve anon ------------------------------------------------------------------------------
 
