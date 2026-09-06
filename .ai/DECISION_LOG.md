@@ -57,6 +57,8 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Hafta yedi gündür — istemci tipi veritabanına uyar
 - Staging ortamı v1.5'e ertelenir
 - Yetki RLS'te, bütünlük şemada durur
+- Kendi verisine erişim arşivlenmez; devredilen erişim arşivlenir
+- Ders, sınıfa bağlanmaz — çünkü sınıfın ders listesi diye bir model yok
 
 **Kapsam ve sürüm**
 
@@ -1609,3 +1611,39 @@ React Query'nin borcu ise **merkezî ve görünür**: bir bağımlılık, bir s�
 **Bedeli, bilinerek kabul edildi:** hata artık politika reddi (`42501`) değil özel bir SQLSTATE (`ORB02`). Yani istemci iki farklı ret biçimini ayırt etmek zorunda. Karşılığında ret **sebebini** taşıyor: `detail` hangi öğrenci ve hangi sınıf olduğunu, `hint` ne yapılacağını yazıyor — politika reddinin veremediği bilgi.
 
 **Reddedilen:** aynı koşulu hem politikaya hem trigger'a yazmak. İki yerde tutulan bir olgunun biri eskir (**K-06**) ve burada eskiyen taraf sessizce açık bırakırdı.
+
+### Karar: Kendi verisine erişim arşivlenmez; devredilen erişim arşivlenir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-06
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Kapsam turu bir tutarsızlık buldu: `current_user_guards_student` hem bağın hem veli kaydının `archived_at`'ine bakıyor, `current_user_owns_student_record` ise hiçbirine bakmıyor. İlk bakışta "biri unutulmuş" gibi duruyordu.
+
+**Karar:** Asimetri **kasıtlıdır ve korunur.** İki fonksiyon farklı bir soruyu soruyor:
+
+- **Veli erişimi devredilmiş bir erişimdir.** Velilik bağı sona erebilir — velayet değişikliği, ayrılık, kurumun bağı kaldırması. Sona erdiğinde erişimin de bitmesi gerekir; `archived_at` kontrolü v1.2-03'ün "veli yalnızca kendi bağını görür" kararının uygulanma yeridir.
+- **Öğrencinin erişimi kendi kaydınadır.** Arşivlenme "kurumdan ayrıldı" demektir, "geçmiş yoklaması artık ona ait değil" demek değildir.
+
+**Gerekçe — simetri burada bir erdem değil hata olurdu.** `owns_student_record`'a `archived_at` eklemek, ayrılan bir öğrenciyi kendi devamsızlık ve sınav geçmişinden keserdi. KVKK açısından da savunulamaz: kişinin **kendi verisine** erişim hakkı kurumdan ayrılmasıyla bitmez.
+
+**Karar testle çivilendi ve çivinin tuttuğu ölçüldü.** `attendance.test.sql`'e "arşivlenmiş öğrenci kendi geçmişini okur" iddiası eklendi; sonra fonksiyona geçici olarak `archived_at is null` eklenip süit koşuldu ve **yalnızca o test kırmızıya döndü**. Yani ileride biri "tutarlılık" adına aynı düzeltmeyi yaparsa sessizce geçemez.
+
+### Karar: Ders, sınıfa bağlanmaz — çünkü sınıfın ders listesi diye bir model yok
+
+**Durum:** Alındı
+**Tarih:** 2026-09-06
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Kapsam turu, `attendance_sessions.subject_id` ve `exams.subject_id`'nin o sınıfta okutulan bir derse ait olduğunun kontrol edilmediğini buldu. Bileşik yabancı anahtarlar dersin **aynı kuruma** ait olmasını garanti ediyor, "bu sınıfın dersi" olmasını değil.
+
+**Karar:** Kısıtlanmaz. Kontrol noktası **v1.4-02** (sınıf yönetimi).
+
+**Gerekçe — kısıtlamak var olmayan bir modeli icat etmek olurdu.** Şemada `class_subjects` diye bir tablo yok; sınıf ile ders arasındaki tek bağ `class_teachers (class_id, subject_id)`, yani _"bir öğretmen bu sınıfta bu dersi veriyor"_. Onu "sınıfın ders listesi" saymak iki şeyi birden yapardı:
+
+1. **Karar verilmemiş bir modeli sessizce benimsemek.** Bir sınıfın ders listesi olup olmadığı hiçbir yerde konuşulmadı.
+2. **Meşru bir sırayı kırmak.** Öğretmen atanmadan o sınıfa yoklama oturumu açmak veya sınav tanımlamak imkânsız hale gelirdi; dershanede deneme sınavı öğretmen atamasından önce planlanır.
+
+**Orantı:** yanlış ders seçmenin bugünkü bedeli ekranda görünen bir veri giriş hatasıdır — yetki sızıntısı değil. Kısıtın bedeli ise gerçek bir akışı kapatmak olurdu.
+
+Gerekçe `comment on column` ile şemaya da yazıldı: tutarsızlığı orada gören bir sonraki kişi, kararın kendisini de orada görür.
