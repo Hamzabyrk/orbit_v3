@@ -167,7 +167,7 @@ Eski listedeki "sınıf/öğrenci CRUD" ve "yoklama güncellemeleri" maddeleri v
 | Sütun yetkileri            | `recovery_email`, `must_change_password`, `password_expires_at` → kullanıcı **okur, yazamaz** |
 | Sır taraması               | Depo, git geçmişi ve **canlı paket** temiz                                                    |
 | pgTAP                      | 13 dosya, **135 iddia**, beşi kurumlar arası negatif test                                     |
-| Depo ↔ production         | 18/18 migration, 5/5 fonksiyon — **sıfır ayrışma**                                            |
+| Depo ↔ production          | 18/18 migration, 5/5 fonksiyon — **sıfır ayrışma**                                            |
 
 **Sızma, ihlal veya yetki yükseltme yolu bulunmadı.** v1.1.1 denetiminde tespit edilen yükseltme yolu iki bacağından da ölü.
 

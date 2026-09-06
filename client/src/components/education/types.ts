@@ -68,12 +68,7 @@ export type DayPlanTaskStatus = "Planla" | "Bugün" | "Odaklan" | "Tamamlandı";
 export type DayPlanTaskPriority = "Düşük" | "Orta" | "Yüksek";
 
 export type DayPlanTaskCategory =
-  | "Yoklama"
-  | "Veli İletişimi"
-  | "Sınav"
-  | "Rapor"
-  | "Kayıt"
-  | "Ders Programı";
+  "Yoklama" | "Veli İletişimi" | "Sınav" | "Rapor" | "Kayıt" | "Ders Programı";
 
 export type DayPlanTask = {
   id: string;
@@ -109,12 +104,7 @@ export type DayPlanEvent = {
 export type HomeworkStatus = "Aktif" | "Süresi Doldu" | "Tamamlandı";
 
 export type HomeworkSubject =
-  | "Matematik"
-  | "Türkçe"
-  | "Fizik"
-  | "Kimya"
-  | "Biyoloji"
-  | "Geometri";
+  "Matematik" | "Türkçe" | "Fizik" | "Kimya" | "Biyoloji" | "Geometri";
 
 export type Homework = {
   id: string;
