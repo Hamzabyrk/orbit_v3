@@ -194,6 +194,16 @@ jobs:
         if: steps.degisiklik.outputs.gerekli == 'true'
         run: bash supabase/tests/auth/synthetic_email.sh
 
+      # pgTAP SQL yetkisini ölçüyor, bu adım ZİNCİRİ ölçüyor: HTTP → JWT
+      # doğrulaması → Edge Function TypeScript'i → RPC → SQL. Aradaki uyumsuzluk
+      # (yanlış parametre adı, değişen imza, bozulan kapı) ne `tsc`'de ne
+      # ESLint'te ne pgTAP'te görünüyor — `supabase/functions/` üçünün de
+      # kapsamı dışında. İlk kez production'da bir yönetici üye eklemeye
+      # çalıştığında ortaya çıkardı.
+      - name: Edge Function zincir kanıtı
+        if: steps.degisiklik.outputs.gerekli == 'true'
+        run: bash supabase/tests/functions/create_member_chain.sh
+
       - name: Test ortamını kapat
         if: always() && steps.degisiklik.outputs.gerekli == 'true'
         run: supabase stop --no-backup
