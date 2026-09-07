@@ -21,6 +21,31 @@
 # Herkese açık bir depoda on bot PR'ı, deponun bakımsız görünmesine yol açıyor.
 #
 # =========================================================================
+# Botu ne tetikliyor (2026-09-07)
+# =========================================================================
+#
+# "Aylık" takvim, ayda bir kez PR gelir demek DEĞİL. Bot üç ayrı sebeple
+# koşuyor ve ikisinin takvimle ilgisi yok:
+#
+#   1. **Takvim.** Ayda bir, planlanmış koşum.
+#   2. **BU DOSYAYA DOKUNMAK.** `.github/dependabot.yml` varsayılan dala
+#      merge edildiği an bot yeniden koşar, takvimi beklemez. 2026-09-07
+#      gecesi #206 ve #207'nin 02:17'de birden belirmesinin sebebi buydu:
+#      #205'in son commit'i (`b157600`) bu dosyaya dokunmuştu ve 02:15'te
+#      merge edilmişti. Yani **bu dosyayı düzenlemek, düzenlemenin kendisini
+#      test eden bir koşum başlatır.**
+#   3. **Boşalan yer.** `open-pull-requests-limit` bir tavan değil, bir
+#      **kuyruk**. Açık PR sayısı limitin altına düştüğünde bir sonraki koşum
+#      boşalan yerleri kuyruktaki güncellemelerle doldurur. O gece npm tarafı
+#      #192 ve #193 merge edilerek iki yer boşaldığı için tam iki PR geldi.
+#
+# Pratik sonucu: **açık PR'ları bitirmek "sustu" demek değildir.** Kuyruk
+# ancak güncellemelerin kendisi tükendiğinde susar; limit yalnızca aynı anda
+# kaç tanesini göreceğini belirler.
+#
+# Güvenlik PR'ları bu üçünün de dışında — bkz. dosyanın sonundaki not.
+#
+# =========================================================================
 # Bu yapılandırmanın hedefi
 # =========================================================================
 #
