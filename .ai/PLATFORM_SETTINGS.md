@@ -362,12 +362,12 @@ Bu bölüm bir ayarı tarif etmiyor, bir **kırılganlığı** kayda geçiriyor.
 
 `gh api repos/Hamzabyrk/orbit_v3/rulesets/21804350` çıktısı:
 
-| Parametre                                         | Değer                                                     |
-| ------------------------------------------------- | --------------------------------------------------------- |
-| `required_approving_review_count`                 | **0**                                                     |
-| `require_extra_approval_for_unattributed_changes` | **true**                                                  |
-| `required_status_checks`                          | `quality-gate`, `Yıkıcı Migration Kontrolü`, `Tenant RLS` |
-| `bypass_actors`                                   | **yok** — kural Hamza'ya da aynen uygulanıyor             |
+| Parametre                                         | Değer                                                                |
+| ------------------------------------------------- | -------------------------------------------------------------------- |
+| `required_approving_review_count`                 | **1** _(2026-09-05'te 0'dan çekildi; 2026-09-07'de yeniden ölçüldü)_ |
+| `require_extra_approval_for_unattributed_changes` | **true**                                                             |
+| `required_status_checks`                          | `quality-gate`, `Yıkıcı Migration Kontrolü`, `Tenant RLS`            |
+| `bypass_actors`                                   | **yok** — kural Hamza'ya da aynen uygulanıyor                        |
 
 Klasik `branches/main/protection` uç noktası **404** döner; bu repoda koruma bir **ruleset**'tir ve o uç nokta ruleset'leri görmez. Koruma yok sanmak buradan doğar.
 
@@ -380,6 +380,27 @@ Klasik `branches/main/protection` uç noktası **404** döner; bu repoda koruma 
 - **Bedeli — bilinerek yazılıyor:** sayı 1 olduğunda kural **simetrik** hâle gelir. GitHub bir kişinin kendi PR'ını onaylamasına izin vermediği için, iki kişilik ekipte bu "biri yoksa hiçbir şey merge edilemez" demektir. Bugün Arda için zaten böyle; değişecek olan, **Hamza'nın da kendi PR'ını tek başına merge edememesi.** Karşılığı `DECISION_LOG.md` — "Stabilizasyon fazında tek kişilik merge'e sınırlı izin" kaydıyla birlikte değerlendirilmeli.
 
 **Neden bu satır yazıldı:** 2026-09-04'te `required_approving_review_count: 0` görülüp "iki kişi kuralı fiilen yok" sonucuna varıldı ve bu **yanlıştı** — kural işliyordu, sadece başka bir parametreden. Tek bir alana bakıp bitmiş saymanın maliyeti buydu. Doğru sonuç ölçümle değil, kuralı günlük olarak yaşayan kişinin itirazıyla ortaya çıktı.
+
+### Onay tazeliği — iki ayar kapalı (2026-09-07'de ölçüldü)
+
+`gh api repos/Hamzabyrk/orbit_v3/rulesets/21804350` çıktısından, yukarıdaki tablonun sormadığı iki parametre:
+
+| Parametre                              | Değer     | Ne demek                                                 |
+| -------------------------------------- | --------- | -------------------------------------------------------- |
+| `dismiss_stale_reviews_on_push`        | **false** | Onay alındıktan sonra atılan commit'ler onayı düşürmüyor |
+| `require_last_push_approval`           | **false** | Son push'un ayrıca onaylanması gerekmiyor                |
+| `strict_required_status_checks_policy` | **false** | PR, merge'den önce `main` ile güncel olmak zorunda değil |
+
+**Pratikte:** küçük bir değişiklik için onay alınır, sonra aynı PR'a başka commit'ler eklenir ve **eski onayla** merge edilir. Kimse kural ihlal etmez; kural bunu zaten kabul ediyor.
+
+Bu repoda ağırlığı normalden fazla, çünkü `main`'e merge yalnızca kod yayımlamıyor: Supabase entegrasyonu **migration'ları production veritabanına uyguluyor.** Onaylanan diff ile uygulanan diff aynı olmak zorunda değil.
+
+- **Şart:** iki kişilik gözden geçirmenin _onaylanan şeyi_ garanti etmesi istenirse.
+- **Kontrol noktası:** `dismiss_stale_reviews_on_push` ve `require_last_push_approval` **true** yapılır. Yalnızca repo admini (Hamza) yapabilir.
+- **Bedeli — bilinerek yazılıyor:** onay sonrası her düzeltme yeni bir onay turu demek. İki kişilik ekipte bu gecikme üretir; küçük bir yazım düzeltmesi bile karşı tarafı bekletir. Bugünkü hız ile teslim kapısının (`ROADMAP.md` §6) verdiği söz arasında bir tercih; şimdilik **hız seçilmiş durumda ve bu kayıt onu bilinçli hale getiriyor** (**K-12**).
+- **`strict_required_status_checks_policy` ayrı değerlendirilir:** açılması her PR'ı merge öncesi rebase'e zorlar ve Dependabot PR'larında bu sürekli yeniden koşum demektir. Bugünkü akışta bedeli faydasından büyük görünüyor; ölçülmedi.
+
+Kaynak: 2026-09-07 otomasyon turu, `ROADMAP.md` §4.9.
 
 ### Yurt dışına aktarım — bugünkü mekanizmalar (2026-09-04'te güncellendi)
 

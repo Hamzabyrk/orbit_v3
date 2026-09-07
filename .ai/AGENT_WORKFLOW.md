@@ -464,6 +464,20 @@ Dilim bittikten sonra da çalışmaya devam eden ya da oturum dışındaki insan
 
 _Kaynak: v1.2-20. Dilim "SHA pinning, CodeQL, **bağımlılık otomasyonu**, lisans envanteri" olarak onaylanmıştı ve Dependabot brifingde tek satırdı. Merge edildiği dakika, herkese açık depoda **on PR** açıldı. Ayar tam yazıldığı gibi çalışmıştı (ekosistem başına beş) — sorun ayarda değil, "bağımlılık otomasyonu" ifadesinin **kendi başına PR açan bir bot** anlamına geldiğinin hiç söylenmemiş olmasındaydı. Arda'nın değerlendirmesi: "profesyonelliği bozmuş"._
 
+### K-21 · Botun güncellediği alana insan notu yazılmaz
+
+Bir satırın bir yarısını otomasyon, diğer yarısını insan yazıyorsa o satır er ya da geç kendi kendisiyle çelişir.
+
+Otomasyon kendi yarısını günceller; insanın yarısını **tanımadığı için** olduğu gibi bırakır. Ortaya çıkan şey bozuk bir satır değil — okunabilir, biçimi düzgün, ve **yanlış** bir satırdır. Hata vermez, kapıyı kırmızıya döndürmez; yalnızca ona bakan herkesi yanıltır.
+
+Bu K-06'nın ("aynı olgu iki yerde tutulursa biri eskir") bir çeşidi değil, **daha sinsi hali**: olgu iki yerde değil, tek satırda tutulur. K-06 iki nüshayı karşılaştırmayı öğütler; burada karşılaştırılacak ikinci bir nüsha yoktur.
+
+**Kural:** otomasyonun yazdığı alana insan açıklaması eklenmez. Açıklama gerekiyorsa **ayrı bir satıra** çıkarılır. Bir aracın belirli bir biçimi güncellediğini biliyorsak — sürüm yorumu, sürüm alanı, oluşturulmuş blok — o biçim **aracın olduğu gibi** bırakılır.
+
+**Kontrol:** bir aracın dokunduğu dosyada, aracın koşmasından sonra o satırların hâlâ doğru olduğu **okunarak** doğrulanır. "Bot yalnızca SHA'yı değiştirir" bir varsayımdır; ne değiştirdiği çıktıya bakılarak bilinir (**K-13**).
+
+_Kaynak: v1.2-20 action'ları SHA ile sabitledi ve her satıra `# v4 · 2026-09-06'da çözüldü` biçiminde bir not düştü. Dependabot #201'de SHA'ları yükseltti ama yorumları güncelleyemedi, çünkü yorum sürümden ibaret değildi. 2026-09-07'de ölçüldüğünde **beş sabitlemenin beşinde de yorum yanlıştı** ve hepsi major kaymıştı: yorum `v4` derken `actions/checkout` v7.0.1, `supabase/setup-cli` ise `v1.7.1` derken v3.0.0'daydı. Sabitlemenin tek maliyeti okunabilirlik kaybıdır ve yorum tam olarak onu ödemek için vardır; yalan söylediğinde sabitleme hem okunmaz hem yanıltıcı olur. Ayrıntı: `ROADMAP.md` §4.9, #214._
+
 ## Brifing yazarken
 
 İyi bir brifing şunları içerir:

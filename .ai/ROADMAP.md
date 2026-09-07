@@ -6,15 +6,17 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 
 ## 0. Durum Özeti
 
-> Son güncelleme: **2026-09-05**. İşaretler: ✅ tamam · 🟡 kısmen · ⬜ başlanmadı · ⚠️ tamam sanılıyordu, değil.
+> Son güncelleme: **2026-09-07**. İşaretler: ✅ tamam · 🟡 kısmen · ⬜ başlanmadı · ⚠️ tamam sanılıyordu, değil.
 >
 > Ayrıntı için ilgili bölüme bakın; bu tablo yalnızca tek bakışta durum içindir.
 >
 > **Sıradaki işi buradan seçme.** Bu tablo _nerede olduğumuzu_ söyler; _ne yapılacağını_ **§4.6** söyler. Orada kalan bütün sürümler dilimlere bölünmüş ve her dilim **dayandığı varsayımları** yazmıştır — bir dilim, o varsayımlar canlı sistemde doğrulanmadan başlamaz (**K-10**).
 >
-> **Açık bulgular `gh issue list`'tedir.** Sayı buraya yazılmıyor: denetimden bir gün sonra eskidi (**K-06**). Sıradaki sürüm **v1.3** — ekranların canlı sorguya bağlanması. İlk dilim **v1.3-01**: `educationData.ts` yerine gerçek servisler. İki K-11 kaydı orada karşılığını bulacak (istemcinin beş günlük `WeekDay` tipi; kişisel verilerin role göre tutulması). Sistemin bugünkü durumu: `PROJECT_STATE.md` **§6.1**.
+> **Açık bulgular `gh issue list`'tedir.** Sayı buraya yazılmıyor: denetimden bir gün sonra eskidi (**K-06**). Sıradaki sürüm **v1.3** — ekranların canlı sorguya bağlanması. İlk dilim **v1.3-00**: mimari kararlar; ekran bağlayan ilk dilim ondan sonra gelen **v1.3-01**'dir. İki K-11 kaydı da v1.3-00'da karşılığını buluyor (istemcinin beş günlük `WeekDay` tipi; kişisel verilerin role göre tutulması) — 2026-09-07 turu ikisini de orada topladı (**§4.9**). Sistemin bugünkü durumu: `PROJECT_STATE.md` **§6.1**.
 >
 > 🔴 **2026-09-05 bütünlük denetimi: v1.4'ün önüne yeni bir dilim girdi (`v1.4-00`).** Kimlik zinciri ile akademik kayıt zinciri **birbirine bağlı değil** — `create-member` yalnızca `profiles`, `organization_memberships` ve `audit_events` yazıyor; `students.auth_user_id` ile `guardians.auth_user_id`'yi dolduran hiçbir şey yok, oysa öğrenci ve velinin **bütün** kapsamı tam olarak o iki sütuna bakıyor. Bugünkü haliyle açılan bir veli hesabı giriş yapar ve **boş panel** görür; hata da görmez, çünkü hata yoktur. Ayrıntı ve diğer beş bulgu: **§4.7**.
+>
+> 🟠 **2026-09-07 otomasyon turu: v1.3-00 bağımsız olarak doğrulandı ve beş bulgu issue'ya bağlandı (§4.9).** Son değişiklik dalgası (v1.2-13…24) ile v1.3 hazırlığı on açıdan tarandı. Otomasyonun kendisi doğru kurulmuş — kapılar koşuyor, `pnpm audit` sıfır — ama **kapsamı üç yerde beyan edilenden dar**: SHA sabitlemelerinin beş sürüm yorumunun beşi de yanlış (#214), Edge Function bağımlılıkları hiçbir kapının kapsamında değil (#215), ve belgelenmemiş bir `wouter` yaması üretime kod gönderiyor (#212). Ayrıca kimlik katmanında bir yarış (#213) ve CI yüzeyinde dört ayrışma (#216). **v1.3 dilimlerine düşen yedi bulgunun yedisi de v1.3-00'a düştü.**
 
 | Sürüm / Dilim | Kapsam                                                                                                                                                                                                                                                                                                                         | Durum |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
@@ -896,6 +898,118 @@ Aynı taramadan çıkan ikinci ölçü: **16 × `multiple_permissive_policies` (
 - **Yedekten dönüş provası** gerçek veri gerektirir → v1.5'te kalır.
 - **Yük testi** boş tabloda anlamsızdır → yerine yukarıdaki taban ölçüsü kaydedildi.
 - **Staging ortamı** → **2026-09-05 kararı: şimdilik hayır, v1.5.** v1.3 boyunca doğrulama production'da yapılacak; bedeli her servis bağlantısının canlı sistemde ilk kez sınanmasıdır ve bu bilinerek kabul edildi. `PLATFORM_SETTINGS` §5'teki kayıt geçerliliğini korur.
+
+---
+
+## 4.9 Otomasyon turu (2026-09-07)
+
+> **Soru şuydu:** _"Son dalgada çok şey açtık — otomasyon gerçekten sandığımız yeri kapsıyor mu, ve v1.3'e başlanabilir mi?"_
+>
+> **Cevap iki parçalı.** Otomasyonun kendisi doğru kurulmuş: kapılar koşuyor, `pnpm audit` hem üretim hem geliştirme tarafında sıfır, v1.2-24'te açılan anahtarların hepsi açık. **Kapsamı ise üç yerde beyan edilenden dar** — ve turun asıl bulgusu tek tek hatalar değil, hepsinin işaret ettiği **yön**: otomasyonun dokunduğu her yerde insanın bıraktığı not eskiyor ve bunu kimse bildirmiyor.
+
+### Yöntem
+
+On ayrı açıdan geçildi: yapı envanteri, kapıların canlı koşumu, workflow yapılandırması, `main` ruleset'i, tedarik zinciri, beyan-kod karşılaştırması, veri biçimi (v1.3 hazırlığı), kimlik katmanında eşzamanlılık, ortam değişkenleri, sır ve başlık taraması. Her bulgu gerçek dosyada `dosya:satır` ile doğrulandı.
+
+**Temize çıkanlar da yazıldı.** Bir denetim ne bulduğu kadar neyi arayıp bulamadığıyla da okunur; yalnız bulguları yazmak, aranmamış olanla temize çıkanı ayırt edilemez kılar.
+
+**Kapsam bilerek dardı:** son değişiklik dalgası (v1.2-13…24), tedarik zinciri otomasyonu ve v1.3 hazırlığı. **v1.2'nin RLS matrisi yeniden denetlenmedi** — v1.2-22 onu 421 iddiayla okumuştu; aynı işi iki kez yapmak K-06'nın tarif ettiği israftır. Yakınsama da bu kapsamla sınırlıdır: son iki geçiş yeni bulgu üretmedi, ama bu "başka bir şey yok" demek değil, **"bu açılardan görünen bitti"** demektir.
+
+### Aile 1 — Otomasyon insanın notunu eskitiyor (#214)
+
+v1.2-20 action'ları SHA ile sabitledi ve okunabilirlik kaybını telafi etmek için her satıra sürüm notu düştü. Dependabot #201'de SHA'ları yükseltti; yorumları **güncelleyemedi**, çünkü yorum sade `# v4` değil `# v4 · 2026-09-06'da çözüldü` biçimindeydi. SHA'lar GitHub API'sinden etiketlerine çözüldü:
+
+| Sabitleme              | Yorum diyor | SHA gerçekte |
+| ---------------------- | ----------- | ------------ |
+| `actions/checkout`     | `v4`        | **v7.0.1**   |
+| `actions/setup-node`   | `v4`        | **v7.0.0**   |
+| `pnpm/action-setup`    | `v4`        | **v6.0.10**  |
+| `github/codeql-action` | `v3`        | **v4.37.9**  |
+| `supabase/setup-cli`   | `v1.7.1`    | **v3.0.0**   |
+
+**Beşinin beşi de yanlış ve hepsi major kaymış.** `supabase/setup-cli` iki major atladı ve kimse fark etmedi.
+
+Bu, K-06'nın tanıdık biçimi değil. Orada bir olgu iki yerde tutulur ve biri eskir; burada olgu **tek satırda** tutuluyor — ve o satırın yarısını bot, yarısını insan yazıyor. Bot kendi yarısını güncelliyor, insanınkine dokunamıyor; geriye kendi içinde çelişen tek bir satır kalıyor. Karşılığı **K-21**.
+
+### Aile 2 — Otomasyonun hiç görmediği kod (#215)
+
+Beş Edge Function bağımlılıklarını satır içi sabitliyor (`npm:@supabase/supabase-js@2.45.4`, `npm:zod@4.1.12`). Bu satırları **hiçbir kapı görmüyor**: Dependabot'un bu kodu kapsayan ekosistem tanımı yok, `pnpm audit` `package.json` ağacına bakıyor, lisans envanteri `--prod` istemci ağacını sayıyor, CodeQL kodu tarıyor ama bağımlılık sürümünü değil.
+
+| Paket                   | İstemci | Edge Function | Fark     |
+| ----------------------- | ------- | ------------- | -------- |
+| `@supabase/supabase-js` | 2.115.0 | **2.45.4**    | 70 minor |
+| `zod`                   | 4.5.4   | **4.1.12**    | 4 minor  |
+
+Yani sistemin tek **ayrıcalıklı** tarafı — `service_role` ile çalışan, hesap açan, geçici şifre üreten kod — güncelleme ve güvenlik otomasyonunun tamamen dışında. `zod` sürüklenmesi `68ac85c`'de zaten raporlanmıştı; kapanmadı ve yanına ikincisi eklendi.
+
+**Bu, K-19'un ikinci yüzüdür.** K-19 kısmi **dağıtımı** anlatıyordu: `config.toml`'da olmayan fonksiyon deploy edilmiyordu _(o taraf kapandı — bugün beş fonksiyonun beşi de listede)_. Bu ise kısmi **denetim**. İkisi de aynı cümleyi söylüyor: otomasyon, kapsamadığı yeri kendisi bildirmez.
+
+### Aile 3 — Otomasyonun önündeki sahipsiz yama (#212)
+
+`patches/wouter@3.7.1.patch`, kurulumda `wouter`'ın dağıttığı ESM'e kod enjekte ediyor: `Switch` bileşeni render edilirken uygulamanın bütün rota yollarını `window.__WOUTER_ROUTES__` dizisine topluyor.
+
+| Soru                    | Ölçüm                                              |
+| ----------------------- | -------------------------------------------------- |
+| Depoda kullanan var mı  | **yok**                                            |
+| Üretim paketinde var mı | **var** (`dist/assets/index-*.js`)                 |
+| `DECISION_LOG`'da kaydı | **yok** — "wouter" ve "patch" dosyada hiç geçmiyor |
+| Geliştirme koruması     | **yok** (`typeof window` dışında koşul yok)        |
+
+Rota listesi sır değil; `vercel.json` zaten yayınlıyor. Mesele bilgi sızması değil, **sahipsiz ve hiçbir kapının okumadığı bir tedarik zinciri değişikliğinin üretime gitmesi.** CodeQL `patches/` taramıyor, `pnpm audit` yamayı bilmiyor, lisans kapısı ilgilenmiyor — bağımlılığın dağıttığı koda yapılan değişiklik, depodaki tek gözden geçirilmemiş yüzey.
+
+Üstelik bir mayın: yama anahtarı `wouter@3.7.1`'e sabit, bağımlılık aralığı `^3.3.5`, mevcut sürüm **3.11.0** — yani bir **minor**. Bir sonraki aylık gruplu npm PR'ı onu yükseltecek ve yama tutmayacak.
+
+### Aile 4 — v1.3'ün önündeki biçim boşlukları
+
+Bunların issue'su yok, çünkü **v1.3 dilimlerinin kapsamıdır**; buraya yazılmalarının sebebi dilimler kesilirken kaynaklarının bilinmesi.
+
+| Bulgu                                                                                                                                                                                     | Yer                                                             | Dilim       |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ----------- |
+| `WeekDay` beş Türkçe metin, `schedule_entries.day_of_week` ISO 1–7 smallint; **depoda tek bir dönüşüm yok** (`day_of_week` istemcide hiç geçmiyor)                                        | `components/education/types.ts:34`                              | **v1.3-00** |
+| Hafta sonu `null` dönüp Pazartesi'ye düşülüyor; veritabanının bilerek kabul ettiği hafta sonu dersleri hiçbir ekranda görünmeyecek                                                        | `pages/scheduleHelpers.ts:15`                                   | **v1.3-00** |
+| Listeler `.limit()` ile sessizce kesiliyor; imleç yok, toplam yok, arayüzde kesildiğine dair işaret yok — denetim kaydı bir uyum yüzeyidir ve en yeni 50 satırdan ötesine yol yok         | `audit/auditService.ts:165` · `platform/platformService.ts:190` | **v1.3-00** |
+| `<StrictMode>` yok; efekt saflığı hataları geliştirmede hiç yüzeye çıkmıyor                                                                                                               | `main.tsx:14`                                                   | **v1.3-00** |
+| Taşınabilirlik kuralı yalnızca `components/` ve `pages/` kapsıyor; `hooks/` ve `contexts/` Supabase istemcisini serbestçe import edebiliyor — **v1.3'ün sorgu hook'ları oraya yazılacak** | `eslint.config.js:70`                                           | **v1.3-00** |
+| `new QueryClient()` varsayılansız; `staleTime`, `retry` ve hata politikası tanımsız ve her ekran bunu miras alacak                                                                        | `main.tsx:11`                                                   | **v1.3-00** |
+| Env eksikse `placeholder.supabase.co`'ya düşülüyor; yanlış yapılandırılmış dağıtım yalnızca `console.warn` ile ölü uygulama yayınlıyor                                                    | `lib/supabaseClient.ts:29`                                      | **v1.3-00** |
+
+Dikkat çeken şey listenin **tamamının v1.3-00'a düşmesi**: yedisi de "ekran yazmadan önce kararı verilmemiş" cinsinden. Bu, v1.3-00'ın var olma sebebini bağımsız olarak doğruluyor.
+
+### Ailesiz — kimlik çözümü sürerken yapılan çıkış geri alınıyor (#213)
+
+`AuthProvider.tsx:82`, `applyIdentity` içinde `await`'ten sonra bayatlık kontrolü yapmıyor. Kimlik çözümü ~300 ms sürüyor; bu pencerede çıkış yapılırsa `clearIdentity()` senkron çalışıyor, ardından uçuştaki sonuç dönüp **çıkmış kullanıcının kimliğini geri yazıyor.**
+
+Veri sızmıyor — Supabase oturumu gitmiştir, sorgular boş döner. Kırılan **kabuk**: ad, rol ve kurum ekranda kalır, menü ona göre çizilir. Tehdit modeli bunu önemli kılıyor; oturum zaten **paylaşılan dershane bilgisayarı** için `sessionStorage`'a taşınmıştı (#132).
+
+**Neden bugüne kadar görünmedi:** `<StrictMode>` kapalı (Aile 4) ve `eslint-plugin-react-hooks` v7 henüz alınmadı (#196). Bu sınıfı yüzeye çıkaran iki araç da kapalıydı.
+
+### Aile 5 — CI yüzeyinde dört küçük ayrışma (#216)
+
+CodeQL yığılı PR'larda hiç koşmuyor (`codeql.yml:6` dal filtresini koruyor, oysa diğer iki workflow onu gerekçesiyle kaldırmıştı) · `ci.yml`'da `permissions` bloğu yok, diğer ikisinde var · üç workflow'un hiçbirinde `concurrency` yok · Node sürümü yalnız workflow'da sabit, `engines` ve `.nvmrc` yok.
+
+Dördü de aynı aileden: **bir kararın workflow'ların hepsine uygulanmamış olması.**
+
+### Platform tarafına düşenler
+
+İki ayar `PLATFORM_SETTINGS`'e yazıldı, çünkü kod değil panel işi ve ikisi de `admin` yetkisi istiyor: onay alınmış bir PR'a sonradan commit atılıp **eski onayla** merge edilebiliyor (`dismiss_stale_reviews_on_push` ve `require_last_push_approval` ikisi de `false`) — ve bu repoda `main`'e merge, migration'ları production veritabanına uygular.
+
+### Doğrulanan iyi haberler — arandı, sorun çıkmadı
+
+- **Sır yok:** `.env` dosyalarının hiçbiri takip edilmiyor ve **git geçmişinde de hiç bulunmuyor**; yalnız `.env.example` izleniyor.
+- **`pnpm audit` sıfır** — hem `--prod` hem tam ağaç. v1.2-23'ün "16 → 0" iddiası bugün de geçerli.
+- **Güvenlik başlıkları canlıda ölçüldü:** CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy yerinde; **HSTS** `vercel.json`'da yazılı değil ama Vercel `max-age=63072000; includeSubDomains; preload` ile gönderiyor.
+- **Kök `ErrorBoundary` var** (`App.tsx:59`) — v1.3-02 sıfırdan başlamıyor.
+- **K-18 korkuluğu gerçekten inmiş:** `20260905060000_a_reference_does_not_confer_eligibility.sql` `student`/`parent` dışlamasını uyguluyor.
+- **K-19 kapanmış:** `config.toml` artık beş fonksiyonun beşini de listeliyor, `create-member` dahil.
+- **`AuthProvider`'daki `setTimeout` korunmuş** — `active` bayrağı unmount sonrası yazımı engelliyor. Yarış oradan değil, `applyIdentity`'den geliyor.
+- **`lodash: ">=4.18.1"` override'ı geçerli** — 4.18.1 paketin gerçekten en son sürümü; ilk bakışta uydurma gibi duruyordu, ölçüldü, doğru çıktı.
+- **CodeQL'in zorunlu kontrol olmaması eksik değil**, v1.2-24'te yazılı karardır ve gerekçesi kayıtlıdır.
+
+### Kapsam dışı bırakılanlar — sebepleriyle
+
+- **v1.2 RLS matrisi** yeniden denetlenmedi; v1.2-22 onu 421 iddiayla okudu.
+- **Yük ve performans ölçümü** yapılmadı; tablolar hâlâ boş, §4.8'in taban ölçüsü geçerli.
+- **#196 alınmadı;** kontrol noktası v1.3-02, gerekçe `PLATFORM_SETTINGS`'te ve PR'ın kendisinde yazılı.
 
 ---
 
