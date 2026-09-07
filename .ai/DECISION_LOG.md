@@ -1749,7 +1749,22 @@ Sorgu hook'ları servisi çağırır, Supabase'i değil. Supabase'i tanıyan tek
 
 `guardians` yalnız `_select_admin` ve `_select_self` politikalarına sahipti; `profiles` ise self, platform operatörü ve kurum admini. Yani öğretmen, öğrettiği çocuğun velisinin adını göremiyordu; öğrenci de kendi sınıfının öğretmeninin adını.
 
-**Bunun bilinçli olduğuna dair hiçbir kayıt yoktu** — sorulmamış bir sorunun yan etkisiydi.
+⚠️ **Düzeltme (2026-09-08).** Bu kayıt ilk yazıldığında _"bunun bilinçli olduğuna dair hiçbir kayıt yoktu"_ diyordu. **Yanlıştı ve kaydı aramak için yeterince derine bakılmamıştı.** Kayıt `DECISION_LOG`'da değil, **testte**:
+
+```sql
+-- supabase/tests/database/student_guardians.test.sql:275
+'a teacher sees no guardian links — that is not their business'
+```
+
+Yani öğretmenin veliyi görmemesi bir boşluk değil, **gerekçesi yazılmış ve teste sabitlenmiş bir sınırdı.** Karar kaydı seviyesinde değildi — migration yorumunda da gerekçe yoktu — ama açık bir niyet beyanıydı.
+
+**Bu kayıt, o sınırın bilerek geri alınmasıdır.** Arda Bülent önceki sınır kendisine gösterildikten sonra kararını sürdürdü (2026-09-08).
+
+**Neden geri alınıyor:** _"bu onun işi değil"_ cümlesi bir dershanenin işleyişini yanlış tarif ediyor. Öğretmenin veliyle konuşması istisna değil, işin kendisi — devamsızlık, ödev, sınav sonucu. Adını bilmediği bir veliyle iletişim kuramaz.
+
+**Ve açılan şey dar:** `guardians` tablosunda telefon ve e-posta **yok** (2026-09-04, "İş tabloları asgari kişisel veriyle açılır"). Öğretmenin öğrendiği tek şey **velinin adı**. Sınır kaldırılmıyor, daraltılmış haliyle yeniden çiziliyor: kurumdaki her veli değil, **kendi öğrencilerinin** velisi.
+
+**Eski test iddiası silinmiyor, tersine çevriliyor ve sebebi yanına yazılıyor.** Silinen bir iddia, o iddianın hiç var olmadığı izlenimi bırakır.
 
 **Karar:** İkisi de görülebilir. Veli adı, çocuğu okutan öğretmene açıktır; ders veren öğretmenin adı, o dersi gören öğrenciye ve velisine açıktır. Bunlar özel bilgi değil, kurumun günlük işleyişinin gerektirdiği bilgidir — bir öğretmenin veliyle konuşabilmesi ve bir öğrencinin öğretmeninin adını bilmesi olağandır.
 
