@@ -1,10 +1,21 @@
 name: CodeQL
 
 on:
+  # Hedef dal filtresi PR tarafında bilinçli olarak yok; bkz. ci.yml'deki aynı
+  # not. `branches: [main]` yazıldığında, base'i main olmayan bir PR (yığılı
+  # çalışma) hiç taranmıyordu — ci.yml ve supabase-ci.yml bu filtreyi zaten
+  # kaldırmıştı, bu dosya o düzeltmeden payını almamıştı (#216).
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+
+# Aynı dala arka arkaya push edildiğinde eskimiş koşumlar sonuna kadar
+# çalışıyordu. `main` üzerinde iptal ETMİYORUZ: zorunlu bir kontrolün merge
+# edilmiş bir commit'te iptal edilmiş görünmesi, kapıyı "bekliyor" durumunda
+# bırakır.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   analyze:
@@ -17,12 +28,12 @@ jobs:
 
     steps:
       - name: Depoyu Getir
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4 · 2026-09-06'da çözüldü
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: CodeQL Başlat
-        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v3 · 2026-09-06'da çözüldü
+        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           languages: javascript-typescript
 
       - name: CodeQL Analizi
-        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v3 · 2026-09-06'da çözüldü
+        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
