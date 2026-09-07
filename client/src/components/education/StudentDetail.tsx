@@ -43,54 +43,72 @@ export function StudentDetail({
             <h2 className="mt-1 font-display text-[22px] font-extrabold tracking-[-.04em] text-slate-900">
               {student.name}
             </h2>
-            <p className="mt-1 text-[11px] text-slate-500">
-              {student.group} · {student.code}
-            </p>
+            {student.group || student.code ? (
+              <p className="mt-1 text-[11px] text-slate-500">
+                {[student.group, student.code].filter(Boolean).join(" · ")}
+              </p>
+            ) : null}
           </div>
         </div>
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <StatCard
-            label="Devam"
-            value={`%${student.attendance}`}
-            detail="Bu dönem"
-            icon={ClipboardCheck}
-            tone={student.attendance < 90 ? "amber" : "green"}
-          />
-          <StatCard
-            label="Son sınav"
-            value={String(student.score)}
-            detail="TYT Deneme 06"
-            icon={BarChart3}
-            tone="violet"
-          />
-        </div>
+        {student.attendance !== undefined || student.score !== undefined ? (
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            {student.attendance !== undefined ? (
+              <StatCard
+                label="Devam"
+                value={`%${student.attendance}`}
+                detail="Bu dönem"
+                icon={ClipboardCheck}
+                tone={student.attendance < 90 ? "amber" : "green"}
+              />
+            ) : null}
+            {student.score !== undefined ? (
+              <StatCard
+                label="Son sınav"
+                value={String(student.score)}
+                detail="TYT Deneme 06"
+                icon={BarChart3}
+                tone="violet"
+              />
+            ) : null}
+          </div>
+        ) : null}
         <section className="mt-6 rounded-xl border border-slate-200 p-4">
           <h3 className="text-[12px] font-extrabold text-slate-800">
             Takip özeti
           </h3>
           <div className="mt-3 space-y-3 text-[11px]">
-            <div className="flex justify-between">
-              <span className="text-slate-400">Veli</span>
-              <span className="font-bold text-slate-700">{student.parent}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Ödev tamamlama</span>
-              <span className="font-bold text-slate-700">
-                {student.homework}/9
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Ödeme durumu</span>
-              <Badge tone={student.payment === "Güncel" ? "green" : "amber"}>
-                {student.payment}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Akademik sinyal</span>
-              <Badge tone={student.risk === "Dengeli" ? "green" : "amber"}>
-                {student.risk}
-              </Badge>
-            </div>
+            {student.parent ? (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Veli</span>
+                <span className="font-bold text-slate-700">
+                  {student.parent}
+                </span>
+              </div>
+            ) : null}
+            {student.homework !== undefined ? (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Ödev tamamlama</span>
+                <span className="font-bold text-slate-700">
+                  {student.homework}/9
+                </span>
+              </div>
+            ) : null}
+            {student.payment ? (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Ödeme durumu</span>
+                <Badge tone={student.payment === "Güncel" ? "green" : "amber"}>
+                  {student.payment}
+                </Badge>
+              </div>
+            ) : null}
+            {student.risk ? (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Akademik sinyal</span>
+                <Badge tone={student.risk === "Dengeli" ? "green" : "amber"}>
+                  {student.risk}
+                </Badge>
+              </div>
+            ) : null}
           </div>
         </section>
         <section className="mt-4 rounded-xl border border-blue-100 bg-blue-50/55 p-4">

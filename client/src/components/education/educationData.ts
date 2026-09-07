@@ -80,9 +80,9 @@ export type {
 /**
  * Eğitim ekranlarının veri kaynağı.
  *
- * Production'da gerçek veri katmanı henüz bağlanmadığı için güvenli varsayılan
- * boştur. Demo ve preview ortamları ise ekranların çalıştırılabilmesi için
- * yalnızca demo verisini kullanır.
+ * v1.3-01 (A parçası) ile `classes` ve `students` gerçek servislere bağlandı
+ * (`studentService`, `classService`). Bu ihraçlar demo modu ve henüz servise
+ * bağlanmamış bileşenler için geriye dönük uyumluluk sağlar.
  */
 export const classes = isDemoMode ? demoClasses : [];
 export const dayPlanEventsByRole = isDemoMode

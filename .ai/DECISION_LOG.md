@@ -1731,3 +1731,37 @@ v1.3-01 otuz üç eğitim ekranını veriye bağlayacak ve sorgu hook'larının 
 **Bağlayıcı sonuç — ESLint kuralı genişletilir.** Taşınabilirlik sınırı (`DECISION_LOG` — "Taşınabilirlik sınırı") bugün yalnız `components/` ve `pages/` için koşuyor. `hooks/` ve `contexts/` Supabase istemcisini serbestçe import edebiliyor — **ve v1.3'ün sorgu hook'ları tam oraya yazılacak.** Kural genişletilmezse taşınabilirlik sınırı, onu ilk kez zorladığımız gün sessizce delinir.
 
 Sorgu hook'ları servisi çağırır, Supabase'i değil. Supabase'i tanıyan tek katman servis modülleridir ve bu kararla o katmanın nerede yaşadığı da yazılı hale gelir.
+
+### Karar: Veli adı ve ders veren öğretmenin adı kurum içinde görülebilir bilgidir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-07
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.3-01/A incelemesinde canlıda ölçüldü (#228). Geçici bir öğrenci, sınıf, veli ve bağ yazılıp dört rolün kimliğiyle sorgulandı, sonra silindi:
+
+| Rol     | öğrenci | veli  | bağ   | sınıf | profil           |
+| ------- | ------- | ----- | ----- | ----- | ---------------- |
+| admin   | 1       | 1     | 1     | 1     | **4**            |
+| teacher | 1       | **0** | **0** | 1     | 1 (yalnız kendi) |
+| student | 1       | **0** | **0** | 1     | 1 (yalnız kendi) |
+| parent  | 1       | 1     | 1     | 1     | 1 (yalnız kendi) |
+
+`guardians` yalnız `_select_admin` ve `_select_self` politikalarına sahipti; `profiles` ise self, platform operatörü ve kurum admini. Yani öğretmen, öğrettiği çocuğun velisinin adını göremiyordu; öğrenci de kendi sınıfının öğretmeninin adını.
+
+**Bunun bilinçli olduğuna dair hiçbir kayıt yoktu** — sorulmamış bir sorunun yan etkisiydi.
+
+**Karar:** İkisi de görülebilir. Veli adı, çocuğu okutan öğretmene açıktır; ders veren öğretmenin adı, o dersi gören öğrenciye ve velisine açıktır. Bunlar özel bilgi değil, kurumun günlük işleyişinin gerektirdiği bilgidir — bir öğretmenin veliyle konuşabilmesi ve bir öğrencinin öğretmeninin adını bilmesi olağandır.
+
+**Kapsam dar tutulur, "görülebilir" ile "herkese açık" aynı şey değildir.** Öğretmen kurumdaki her velinin değil, **kendi öğrencilerinin** velisini görür. Öğrenci kurumdaki her üyenin değil, **gördüğü sınıfın** öğretmenini görür. Ölçüt yine öğretim ilişkisidir; rol değil (`DECISION_LOG` — "Öğretmenin yazma yetkisi rolünden değil atamasından gelir").
+
+**Uygulama iki farklı araç istiyor ve sebebi sütunlar.**
+
+- **Veli adı → RLS politikası.** `guardians` tablosu ad, kurum bağı, opsiyonel giriş hesabı ve arşiv damgasından ibaret. Hassas sütun yok; satır düzeyinde açmak yeterli. `student_guardians` bağ satırları da açılır, aksi halde bağ görünmediği için veli de görünmez.
+- **Öğretmen adı → fonksiyon, politika DEĞİL.** `display_name` hassas değil, ama `profiles` onunla aynı satırda `recovery_email`, `phone`, `must_change_password` ve `password_expires_at` taşıyor. RLS **satır** düzeyinde çalışır; tabloyu ada erişim için açmak, kurtarma e-postasını ve telefonu da açar. Karşılığı `DECISION_LOG` — "Sütun maskeleme RLS'in işi değildir; sıralama bir fonksiyondan gelir": `exam_ranking` aynı sebeple fonksiyondur.
+
+**Reddedilen: `profiles` için "üyeler birbirini okuyabilir" politikası.** En kısa yol buydu ve yanlış olurdu. Bir kurumda herkesin kurtarma e-postasını ve telefonunu meslektaşlarına açardı; üstelik bunu yaparken **hiçbir hata vermezdi** — açılan şey istenen şeyden fazla olduğunda kimse fark etmez.
+
+**Reddedilen: kurum geneli ad görünürlüğü.** "Aynı kurumdaki herkes birbirinin adını görsün" de basit olurdu, ama `organization_memberships` velileri ve öğrencileri de kapsıyor: her öğrenci her velinin adını görürdü. Soru "öğretmenimin adı" idi, cevabı "kurumdaki herkes" değil.
+
+**Bedeli — bilinerek yazılıyor:** iki yeni kapsam yolu, iki yeni test yükü ve `guardians` üzerinde bugüne kadar olmayan bir okuma yolu. Yanlış yazılırsa bir kurumun velileri başka bir öğretmene görünür. Bu yüzden pgTAP tarafında **olumsuz senaryo** zorunludur: öğretmediği öğrencinin velisini **göremediği** ayrıca sınanır.

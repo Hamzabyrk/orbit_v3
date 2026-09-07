@@ -1,19 +1,29 @@
 import { ChevronRight, School } from "lucide-react";
 import { toast } from "sonner";
 import { isDemoMode } from "@/auth/runtime";
-import { classes } from "../educationData";
 import { filterClassesForRole } from "../scopeFilters";
 import { Badge, EmptyState, PageHeader } from "../shared";
-import type { Role, Section } from "../types";
+import type { ClassGroup, Role, Section } from "../types";
 
 export function ClassesPage({
   role,
+  classes: classList,
+  isLoading = false,
+  error = null,
+  truncated = false,
+  limit,
   onNavigate,
 }: {
   role: Role;
+  classes: ClassGroup[];
+  isLoading?: boolean;
+  error?: Error | null;
+  truncated?: boolean;
+  /** Üst sınırın tek kaynağı servistedir; bant onu tekrar etmez, gösterir (K-06). */
+  limit?: number;
   onNavigate: (section: Section) => void;
 }) {
-  const shown = filterClassesForRole(classes, role, isDemoMode);
+  const shown = filterClassesForRole(classList, role, isDemoMode);
   return (
     <>
       <PageHeader
@@ -31,54 +41,87 @@ export function ClassesPage({
             : undefined
         }
       />
-      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {shown.length === 0 ? (
-          <EmptyState title="Henüz sınıf kaydı yok" />
-        ) : null}
-        {shown.map(group => (
-          <article
-            key={group.id}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]"
-          >
-            <div className="flex items-start justify-between">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600">
-                <School className="h-5 w-5" />
-              </span>
-              <Badge tone={group.attendance < 90 ? "amber" : "green"}>
-                Devam %{group.attendance}
-              </Badge>
-            </div>
-            <h2 className="mt-5 font-display text-[18px] font-extrabold tracking-[-.035em] text-slate-900">
-              {group.name}
-            </h2>
-            <p className="mt-1 text-[11px] text-slate-500">{group.program}</p>
-            <div className="mt-5 space-y-2.5 text-[11px]">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Mentor</span>
-                <span className="font-bold text-slate-700">{group.mentor}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Öğrenci</span>
-                <span className="font-bold text-slate-700">
-                  {group.studentCount} kayıt
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Sıradaki ders</span>
-                <span className="font-bold text-slate-700">
-                  {group.nextLesson}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={() => onNavigate("Öğrenciler")}
-              className="mt-5 flex items-center gap-1.5 text-[11px] font-bold text-blue-600"
+      {truncated ? (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[11px] font-semibold text-amber-800">
+          Liste üst sınıra ({limit} kayıt) ulaştı. Kalan kayıtları görmek için
+          filtreleri kullanın.
+        </div>
+      ) : null}
+      {isLoading ? (
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-10 text-center">
+          <p className="text-[12px] font-extrabold text-slate-700">
+            Sınıflar yükleniyor…
+          </p>
+        </div>
+      ) : error ? (
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-8">
+          <EmptyState
+            title="Sınıflar görüntülenemedi"
+            description={`${error.message} Sayfayı yenilemeyi deneyin.`}
+          />
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {shown.length === 0 ? (
+            <EmptyState title="Henüz sınıf kaydı yok" />
+          ) : null}
+          {shown.map(group => (
+            <article
+              key={group.id}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]"
             >
-              Öğrencileri görüntüle <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-          </article>
-        ))}
-      </div>
+              <div className="flex items-start justify-between">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600">
+                  <School className="h-5 w-5" />
+                </span>
+                {group.attendance !== undefined ? (
+                  <Badge tone={group.attendance < 90 ? "amber" : "green"}>
+                    Devam %{group.attendance}
+                  </Badge>
+                ) : null}
+              </div>
+              <h2 className="mt-5 font-display text-[18px] font-extrabold tracking-[-.035em] text-slate-900">
+                {group.name}
+              </h2>
+              {group.program ? (
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {group.program}
+                </p>
+              ) : null}
+              <div className="mt-5 space-y-2.5 text-[11px]">
+                {group.mentor ? (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Mentor</span>
+                    <span className="font-bold text-slate-700">
+                      {group.mentor}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Öğrenci</span>
+                  <span className="font-bold text-slate-700">
+                    {group.studentCount} kayıt
+                  </span>
+                </div>
+                {group.nextLesson ? (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Sıradaki ders</span>
+                    <span className="font-bold text-slate-700">
+                      {group.nextLesson}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+              <button
+                onClick={() => onNavigate("Öğrenciler")}
+                className="mt-5 flex items-center gap-1.5 text-[11px] font-bold text-blue-600"
+              >
+                Öğrencileri görüntüle <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            </article>
+          ))}
+        </div>
+      )}
     </>
   );
 }

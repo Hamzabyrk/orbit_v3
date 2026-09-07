@@ -9,6 +9,10 @@ export function StudentsPage({
   onQuery,
   onSelect,
   onAdd,
+  isLoading = false,
+  error = null,
+  truncated = false,
+  limit,
 }: {
   // Zorunlu: bir rol kapısının varsayılanı olmaz. Opsiyonel olsaydı
   // varsayılanı en geniş yetki olurdu ve prop'u geçmeyi unutan bir çağrı
@@ -19,6 +23,11 @@ export function StudentsPage({
   onQuery: (value: string) => void;
   onSelect: (student: Student) => void;
   onAdd: () => void;
+  isLoading?: boolean;
+  error?: Error | null;
+  truncated?: boolean;
+  /** Üst sınırın tek kaynağı servistedir; bant onu tekrar etmez, gösterir (K-06). */
+  limit?: number;
 }) {
   return (
     <>
@@ -40,8 +49,27 @@ export function StudentsPage({
           />
         </div>
       </div>
+      {truncated ? (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[11px] font-semibold text-amber-800">
+          Liste üst sınıra ({limit} kayıt) ulaştı. Kalan kayıtları görmek için
+          filtreleri kullanın.
+        </div>
+      ) : null}
       <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-        {visibleStudents.length === 0 ? (
+        {isLoading ? (
+          <div className="px-5 py-10 text-center">
+            <p className="text-[12px] font-extrabold text-slate-700">
+              Öğrenciler yükleniyor…
+            </p>
+          </div>
+        ) : error ? (
+          <div className="px-5 py-8">
+            <EmptyState
+              title="Öğrenciler görüntülenemedi"
+              description={`${error.message} Sayfayı yenilemeyi deneyin.`}
+            />
+          </div>
+        ) : visibleStudents.length === 0 ? (
           <EmptyState
             title="Gösterilecek öğrenci yok"
             description={
@@ -81,9 +109,18 @@ export function StudentsPage({
                           <p className="font-extrabold text-slate-800">
                             {student.name}
                           </p>
-                          <p className="mt-0.5 text-[10px] text-slate-400">
-                            {student.code} · Veli: {student.parent}
-                          </p>
+                          {student.code || student.parent ? (
+                            <p className="mt-0.5 text-[10px] text-slate-400">
+                              {[
+                                student.code,
+                                student.parent
+                                  ? `Veli: ${student.parent}`
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
                     </td>
@@ -91,21 +128,29 @@ export function StudentsPage({
                       {student.group}
                     </td>
                     <td className="px-5 py-4">
-                      <Badge tone={student.attendance < 90 ? "amber" : "green"}>
-                        %{student.attendance}
-                      </Badge>
+                      {student.attendance !== undefined ? (
+                        <Badge
+                          tone={student.attendance < 90 ? "amber" : "green"}
+                        >
+                          %{student.attendance}
+                        </Badge>
+                      ) : null}
                     </td>
                     <td className="px-5 py-4 font-extrabold text-slate-800">
-                      {student.score} puan
+                      {student.score !== undefined
+                        ? `${student.score} puan`
+                        : null}
                     </td>
                     <td className="px-5 py-4">
-                      <Badge
-                        tone={
-                          student.risk === "Takip gerekli" ? "amber" : "green"
-                        }
-                      >
-                        {student.risk}
-                      </Badge>
+                      {student.risk ? (
+                        <Badge
+                          tone={
+                            student.risk === "Takip gerekli" ? "amber" : "green"
+                          }
+                        >
+                          {student.risk}
+                        </Badge>
+                      ) : null}
                     </td>
                     <td className="px-5 py-4 text-right">
                       <button

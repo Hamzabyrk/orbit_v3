@@ -481,6 +481,24 @@ Bu K-06'nın ("aynı olgu iki yerde tutulursa biri eskir") bir çeşidi değil, 
 
 _Kaynak: v1.2-20 action'ları SHA ile sabitledi ve her satıra `# v4 · 2026-09-06'da çözüldü` biçiminde bir not düştü. Dependabot #201'de SHA'ları yükseltti ama yorumları güncelleyemedi, çünkü yorum sürümden ibaret değildi. 2026-09-07'de ölçüldüğünde **beş sabitlemenin beşinde de yorum yanlıştı** ve hepsi major kaymıştı: yorum `v4` derken `actions/checkout` v7.0.1, `supabase/setup-cli` ise `v1.7.1` derken v3.0.0'daydı. Sabitlemenin tek maliyeti okunabilirlik kaybıdır ve yorum tam olarak onu ödemek için vardır; yalan söylediğinde sabitleme hem okunmaz hem yanıltıcı olur. Ayrıntı: `ROADMAP.md` §4.9, #214._
 
+### K-22 · Yokluk etiketi de bir iddiadır
+
+`—`, `N/A`, `bilinmiyor` gibi bir işaret basmak, bilgiyi göstermemek değildir: **olmadığını söylemektir.** Ve o cümle çoğu zaman yanlıştır.
+
+Bir alanın boş gelmesinin en az üç sebebi olur ve ekran üçünü ayırt edemez:
+
+1. **Gerçekten yok** — kayıtlı veli yok.
+2. **Görme yetkin yok** — veli var, RLS satırı sana vermedi.
+3. **Henüz türetilmedi** — hesaplayacak dilim gelmedi.
+
+`—` üçünü birden **birinci** anlama indirir. K-03 uydurulmuş bir **değeri** yasaklar (`attendance: 0`); bu kural uydurulmuş bir **iddiayı** yasaklar. İkincisi daha sinsidir, çünkü `—` dürüst görünür.
+
+**Kural:** değer yoksa o bilgi bloğu, satırı, rozeti veya çubuğu **hiç çizilmez.** Olmayan bir öğe hiçbir şey iddia etmez; bu, elimizdeki tek dürüst seçenektir.
+
+**Nerede uygulanır:** sunum kararıdır, ekranda verilir. **Servis katmanı yokluk etiketi üretmez** — servis `null` döner, ne göstereceğine ekran karar verir. Servis `—` döndürdüğünde arayüz üç durumu bir daha asla ayıramaz, çünkü ayrım servis sınırında kaybolmuştur.
+
+_Kaynak: v1.3-01/A. Servisler `extractGuardianName` gibi yardımcılarda `"—"` üretiyordu. Denetleyen canlıda ölçtü: `guardians` tablosunun yalnız `_select_admin` ve `_select_self` politikası vardı, öğretmen için politika yoktu. Yani öğretmen, velisi kayıtlı her çocuk için `Veli: —` görecekti — ekran ona "bu çocuğun velisi yok" diyecekti. Ölçüm dört rolle yapıldı ve ayrıca #228'i doğurdu: görünürlüğün kendisi de bir ürün kararıymış ve hiç sorulmamıştı. Kuralı yazan da bu görevi yürüten ajandı._
+
 ## Brifing yazarken
 
 İyi bir brifing şunları içerir:
