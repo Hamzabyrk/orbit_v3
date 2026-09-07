@@ -18,6 +18,14 @@ on:
 permissions:
   contents: read
 
+# Aynı dala arka arkaya push edildiğinde eskimiş koşumlar sonuna kadar
+# çalışıyordu. `main` üzerinde iptal ETMİYORUZ: zorunlu bir kontrolün merge
+# edilmiş bir commit'te iptal edilmiş görünmesi, kapıyı "bekliyor" durumunda
+# bırakır.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   # Supabase GitHub entegrasyonu, main'e merge edilen her migration'ı production
   # veritabanına otomatik uygular. Geçerli ama yıkıcı bir SQL ifadesi gözden
@@ -31,7 +39,7 @@ jobs:
     if: github.event_name == 'pull_request'
 
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4 · 2026-09-06'da çözüldü
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Base ile head arasında diff alabilmek için tam geçmiş gerekiyor.
           fetch-depth: 0
@@ -124,7 +132,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4 · 2026-09-06'da çözüldü
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Değişen dosyaları tespit edebilmek için geçmiş gerekiyor.
           fetch-depth: 0
@@ -172,7 +180,7 @@ jobs:
 
       - name: Supabase CLI kurulumu
         if: steps.degisiklik.outputs.gerekli == 'true'
-        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v1.7.1 (v1 dalının ucu) · 2026-09-06'da çözüldü
+        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
         with:
           version: 2.115.0
 
