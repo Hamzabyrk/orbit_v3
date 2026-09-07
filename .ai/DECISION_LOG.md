@@ -1647,3 +1647,87 @@ React Query'nin borcu ise **merkezî ve görünür**: bir bağımlılık, bir s�
 **Orantı:** yanlış ders seçmenin bugünkü bedeli ekranda görünen bir veri giriş hatasıdır — yetki sızıntısı değil. Kısıtın bedeli ise gerçek bir akışı kapatmak olurdu.
 
 Gerekçe `comment on column` ile şemaya da yazıldı: tutarsızlığı orada gören bir sonraki kişi, kararın kendisini de orada görür.
+
+### Karar: Cache anahtarı kurumu taşır; sayfalama imleçlidir; sessiz kesme yoktur
+
+**Durum:** Alındı
+**Tarih:** 2026-09-07
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** _"İstemci veri katmanı React Query üzerine kurulur"_ kaydı (2026-09-05) sözleşmenin **v1.3-00'da** yazılacağını söylemişti: cache anahtarı biçimi, sayfalama, invalidation ve hata durumu. Bu kayıt o borcu ödüyor.
+
+Ölçülen bugünkü durum (2026-09-07 otomasyon turu, `ROADMAP.md` §4.9): `new QueryClient()` **varsayılansız** kurulmuş, ve yayında olan iki liste — `audit/auditService.ts:165` ile `platform/platformService.ts:190` — `.limit()` ile **sessizce** kesiliyor. İmleç yok, toplam yok, arayüzde kesildiğine dair hiçbir işaret yok.
+
+---
+
+**Karar 1 — cache anahtarı sonucu değiştiren her girdiyi taşır; `organization_id` istisnasız.**
+
+Anahtar biçimi `[alan, kaynak, kapsam]`. Kapsamın içinde **her zaman** aktif kurum bulunur.
+
+Bu bir düzen tercihi değil, bir **izolasyon kuralıdır.** Kurum kimliği anahtarda yoksa, iki kuruma da erişimi olan bir platform operatörü kurum değiştirdiğinde React Query önceki kurumun satırlarını cache'ten servis eder. RLS bunu engelleyemez — çünkü sunucuya hiç gidilmez. **Tenant sınırı bu depoda iki bağımsız mekanizmayla tutuluyor (RLS ve bileşik yabancı anahtarlar); cache üçüncü bir sınırdır ve tek koruması bu kuraldır.**
+
+Aynı sebeple oturum kapandığında cache **temizlenir**; bir sonraki kullanıcı öncekinin verisini görmemelidir. Paylaşılan dershane bilgisayarı senaryosu (#132) bunu zorunlu kılar.
+
+---
+
+**Karar 2 — zamana göre sıralı listeler imleçle, sınırlı listeler tek sorguyla.**
+
+| Liste türü                           | Yöntem                                         | Örnek                                       |
+| ------------------------------------ | ---------------------------------------------- | ------------------------------------------- |
+| Zamana göre sıralı, sınırsız büyüyen | **İmleç** — `.lt(sıra_sütunu, imleç).limit(n)` | denetim kaydı, günlük akış                  |
+| Doğal olarak sınırlı ve kapsanmış    | **Tek sorgu**, makul üst sınırla               | bir sınıfın öğrencileri, bir günün programı |
+
+**Offset reddedildi ve sebebi somut:** denetim kaydı `created_at desc` sıralı ve **büyüyen** bir tablo. Offset ile ikinci sayfaya bakarken yeni bir olay eklenirse bir satır iki kez görünür ya da bir satır hiç görünmez. Denetim kaydı bir **uyum yüzeyidir**; orada atlanan satır kabul edilemez. Derin sayfalarda Postgres'in yavaşlaması ikincil bir sebep.
+
+Offset'in tek gerçek üstünlüğü — "3. sayfaya git" ve toplam sayfa sayısı — bu iki liste için kimsenin ihtiyacı olmayan şeydir.
+
+---
+
+**Karar 3 — kesildiği söylenmeden hiçbir liste kesilmez.**
+
+Bir listenin sonu, ya **gerçek sonudur** ya da devamının olduğu **kullanıcıya görünür**. Üçüncü bir seçenek yok.
+
+Bu **K-03**'ün ("çözümlenemeyen veri uydurulmuş değerle gösterilmez") liste hâlidir: eksik bir liste, eksik olduğunu söylemediği sürece **tam bir liste olduğunu iddia eder.** Bugünkü denetim kaydı yöneticiye en yeni 50 olayı gösterip "hepsi bu" diyor; oysa bilmiyor.
+
+**Gerekçe — neden kural sayfalama değil de görünürlük üzerine yazıldı.** Sayfalama bir uygulama detayıdır ve ekrandan ekrana değişebilir; değişmemesi gereken şey, kullanıcının gördüğüne güvenebilmesidir. Kuralı "her liste sayfalanacak" diye yazsaydık, sayfalamaya ihtiyacı olmayan ekranlarda gereksiz iş üretir ve asıl meseleyi — sessizliği — yakalamazdı.
+
+**Karşılığı ölçülebilir bir release gate maddesidir** (`ROADMAP.md` §4 v1.3): sayfa boyundan fazla satır üretilir, ekranda ya devamı ya da kesildiği görünür.
+
+---
+
+**Karar 4 — `QueryClient` varsayılanları açıkça yazılır.**
+
+Varsayılanı varsayılan bırakmak da bir karardır, ama **kaydedilmemiş** bir karardır: v1.3'te bağlanacak 33 ekranın hepsi onu miras alır ve kimse ne miras aldığını bilmez.
+
+Yeniden deneme, izin hatalarında yapılmaz. RLS'in reddettiği bir sorgu üç kez daha reddedilir; tek kazancı kullanıcının hatayı üç kat geç görmesidir.
+
+Hata **ekranın kendisine** ulaşır. Genel bir bildirim, hangi ekranın başarısız olduğunu gizler ve v1.3-02'nin yazacağı hata durumlarını anlamsız kılar.
+
+Kesin değerler `v1.3-00`'ın uygulamasında yazılır ve `main.tsx`'te yorumuyla birlikte durur.
+
+**Reddedilen:** varsayılanları React Query'nin kendi seçimine bırakmak. Bugünkü `refetchOnWindowFocus` varsayılanı `true`; paylaşılan bir dershane bilgisayarında sekme değiştikçe sorgu üretir ve ücretsiz katmanda bu bedeli ölçmeden kabul etmiş oluruz.
+
+### Karar: Servis ve sorgu hook'ları alan klasöründe, bileşenler `components/` altında
+
+**Durum:** Alındı
+**Tarih:** 2026-09-07
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Depoda iki yerleşim bir arada duruyor ve hangisinin kural olduğu yazılı değil (2026-09-07 turu, `ROADMAP.md` §4.9):
+
+| Klasör                    | İçeriği                                                          |
+| ------------------------- | ---------------------------------------------------------------- |
+| `platform/`               | bileşen + servis + test bir arada — 11 dosya                     |
+| `audit/`, `organization/` | yalnız servis; bileşenleri `components/education/pages/` altında |
+
+v1.3-01 otuz üç eğitim ekranını veriye bağlayacak ve sorgu hook'larının nerede yaşayacağı bugün **hiçbir yerde** yazılı değil.
+
+**Karar:** Servisler ve sorgu hook'ları **alan klasöründe** (`audit/`, `organization/`, `education/` …); bileşenler `components/` altında. `platform/` **belirlenmiş bir istisnadır**.
+
+**Gerekçe — istisna neden istisna kalıyor.** `platform/` bir alan değil, **ayrı bir yüzeydir**: kendi rotası (`/platform`), kendi kabuğu (`PlatformShell`) ve kurum kullanıcılarının hiç görmediği bir izleyici kitlesi var. Bir özellik klasörü olarak durması tesadüf değil, o yüzden bozulmuyor.
+
+**Reddedilen: her şeyi özellik klasörüne taşımak.** Tek bir tutarlı kural üretirdi, ama bedeli 33 bileşenin taşınması — v1.3-01'in önüne konan, davranış değiştirmeyen büyük bir diff ve ESLint kuralının yolla eşleşen mantığının yeniden yazılması. **Tutarlılık için ödenen bu bedel, tutarsızlığın bugüne kadar yol açtığı bir soruna karşılık gelmiyor.** Kararın asıl işi taşımak değil, **yazmaktı**.
+
+**Bağlayıcı sonuç — ESLint kuralı genişletilir.** Taşınabilirlik sınırı (`DECISION_LOG` — "Taşınabilirlik sınırı") bugün yalnız `components/` ve `pages/` için koşuyor. `hooks/` ve `contexts/` Supabase istemcisini serbestçe import edebiliyor — **ve v1.3'ün sorgu hook'ları tam oraya yazılacak.** Kural genişletilmezse taşınabilirlik sınırı, onu ilk kez zorladığımız gün sessizce delinir.
+
+Sorgu hook'ları servisi çağırır, Supabase'i değil. Supabase'i tanıyan tek katman servis modülleridir ve bu kararla o katmanın nerede yaşadığı da yazılı hale gelir.
