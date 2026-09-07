@@ -1,5 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import { z } from "npm:zod@4.1.12";
+import { createClient, z } from "../_shared/deps.ts";
 import {
   beginFunctionCall,
   finishFunctionCall,

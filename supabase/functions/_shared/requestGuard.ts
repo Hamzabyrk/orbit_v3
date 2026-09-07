@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.4";
+import type { SupabaseClient } from "./deps.ts";
 
 /**
  * Hız sınırı ve idempotency kapısı — tek kaynak (v1.2-17).
