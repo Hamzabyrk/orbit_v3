@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Session } from "@supabase/supabase-js";
 import type { EducationRole } from "@/components/educationAccess";
 import { demoRoleNames } from "@/components/education/roleMeta";
@@ -100,6 +101,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     []
   );
 
+  const queryClient = useQueryClient();
+
   const clearIdentity = useCallback(() => {
     // Çıkış yapıldığında sayacı ilerletiyoruz; aksi halde uçuştaki sorgu
     // döndüğünde kendisini hâlâ en güncel istek sanıp çıkmış kullanıcının
@@ -107,7 +110,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     identityRequestIdRef.current++;
     resolvedTokenRef.current = null;
     setIdentity(null);
-  }, []);
+
+    // Oturum kapandığında veya kimlik sıfırlandığında paylaşılan dershane
+    // bilgisayarında bir sonraki kullanıcının önceki kullanıcının verilerini
+    // görmemesi için React Query önbelleği tamamen temizlenir (#132, v1.3-00).
+    // useQueryClient() sağlayıcı yoksa fırlatır; sessiz bozulma önlenir (K-04).
+    queryClient.clear();
+  }, [queryClient]);
 
   useEffect(() => {
     if (isDemoMode) {

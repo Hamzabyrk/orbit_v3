@@ -60,8 +60,15 @@ jobs:
       - name: Lisans Kontrolü
         run: pnpm licenses list --prod --json > licenses.json && node .github/scripts/check-licenses.mjs licenses.json
 
+      # CI derlemesi bir dağıtım değil, bir derleme kontrolüdür ve üretilen paket hiçbir
+      # zaman bir yerde servis edilmez. Üretim ortamında değişkenlerin eksik olması build'i
+      # düşürdüğü için (K-04), CI ortamında derlemenin geçebilmesi amacıyla açıkça yer tutucu
+      # (dummy/placeholder) ortam değişkenleri verilir.
       - name: Build Kontrolü
         run: pnpm build
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-anon-key
 
       # Kapı yalnızca production bağımlılıklarına uygulanır. ORBIT bir Vite
       # SPA'dır; kullanıcının tarayıcısına ulaşan kod yalnızca production

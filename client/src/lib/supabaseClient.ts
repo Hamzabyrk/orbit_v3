@@ -26,9 +26,10 @@ export const arrivedWithRecoveryLink =
   typeof window !== "undefined" &&
   window.location.hash.includes("type=recovery");
 
-// Fall back to a syntactically valid placeholder so a missing config doesn't
-// crash the whole app at import time — calls will just fail until the real
-// env vars are set, instead of taking down every page that imports this module.
+// Geliştirme ve demo ortamında yapılandırma eksikken modülün içe aktarılması sırasında
+// uygulamanın çökmemesi için sözdizimsel olarak geçerli bir yer tutucu (placeholder).
+// Üretim derlemesinde (production build) bu iki değişkenin varlığı vite.config.ts
+// tarafından zorunlu kılındığı için üretimde buraya düşmek imkânsızdır (K-04, v1.3-00).
 //
 // Paylaşılan dershane bilgisayarında ikinci sekme açıldığında önceki
 // kullanıcının oturumunun devralınmasını engellemek için oturum jetonu

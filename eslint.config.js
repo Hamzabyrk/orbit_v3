@@ -54,7 +54,12 @@ export default tseslint.config(
     //
     // Bir bileşenin gerçekten doğrudan erişmesi gerekiyorsa yapılacak şey
     // kuralı susturmak değil, o erişimi bir servis modülüne taşımaktır.
-    files: ["client/src/components/**/*.{ts,tsx}", "client/src/pages/**/*.tsx"],
+    files: [
+      "client/src/components/**/*.{ts,tsx}",
+      "client/src/pages/**/*.tsx",
+      "client/src/hooks/**/*.{ts,tsx}",
+      "client/src/contexts/**/*.{ts,tsx}",
+    ],
     rules: {
       "no-restricted-imports": [
         "error",
