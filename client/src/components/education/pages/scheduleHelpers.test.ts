@@ -18,11 +18,13 @@ describe("scheduleHelpers", () => {
       expect(getTodayWeekDay(new Date("2026-08-28T10:00:00"))).toBe("Cuma");
     });
 
-    it("hafta sonunda (Cumartesi ve Pazar) null döner", () => {
+    it("hafta sonunda (Cumartesi ve Pazar) günün adını döner", () => {
       // 2026-08-29 Cumartesi
-      expect(getTodayWeekDay(new Date("2026-08-29T10:00:00"))).toBeNull();
+      expect(getTodayWeekDay(new Date("2026-08-29T10:00:00"))).toBe(
+        "Cumartesi"
+      );
       // 2026-08-30 Pazar
-      expect(getTodayWeekDay(new Date("2026-08-30T10:00:00"))).toBeNull();
+      expect(getTodayWeekDay(new Date("2026-08-30T10:00:00"))).toBe("Pazar");
     });
   });
 
@@ -33,12 +35,12 @@ describe("scheduleHelpers", () => {
       );
     });
 
-    it("hafta sonu Pazartesi gününü varsayılan olarak seçer", () => {
+    it("hafta sonu bugünün gününü varsayılan olarak seçer", () => {
       expect(getDefaultScheduleDay(new Date("2026-08-29T10:00:00"))).toBe(
-        "Pazartesi"
+        "Cumartesi"
       );
       expect(getDefaultScheduleDay(new Date("2026-08-30T10:00:00"))).toBe(
-        "Pazartesi"
+        "Pazar"
       );
     });
   });

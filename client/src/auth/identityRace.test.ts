@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import React, { useContext } from "react";
 import ReactDOM from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Session, User } from "@supabase/supabase-js";
 import { AuthContext } from "./AuthContext";
 import type { AuthContextType } from "./types";
@@ -225,9 +226,13 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
     await React.act(async () => {
       root.render(
         React.createElement(
-          AuthProvider,
-          null,
-          React.createElement(TestConsumer)
+          QueryClientProvider,
+          { client: new QueryClient() },
+          React.createElement(
+            AuthProvider,
+            null,
+            React.createElement(TestConsumer)
+          )
         )
       );
     });
@@ -353,9 +358,13 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
     await React.act(async () => {
       root.render(
         React.createElement(
-          AuthProvider,
-          null,
-          React.createElement(TestConsumer)
+          QueryClientProvider,
+          { client: new QueryClient() },
+          React.createElement(
+            AuthProvider,
+            null,
+            React.createElement(TestConsumer)
+          )
         )
       );
     });
@@ -426,9 +435,13 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
     await React.act(async () => {
       root.render(
         React.createElement(
-          AuthProvider,
-          null,
-          React.createElement(TestConsumer)
+          QueryClientProvider,
+          { client: new QueryClient() },
+          React.createElement(
+            AuthProvider,
+            null,
+            React.createElement(TestConsumer)
+          )
         )
       );
     });
@@ -545,9 +558,13 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
     await React.act(async () => {
       root.render(
         React.createElement(
-          AuthProvider,
-          null,
-          React.createElement(TestConsumer)
+          QueryClientProvider,
+          { client: new QueryClient() },
+          React.createElement(
+            AuthProvider,
+            null,
+            React.createElement(TestConsumer)
+          )
         )
       );
     });
@@ -579,5 +596,91 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
 
     // Ve kullanıcıyı dışarı atmak için signOut çağrılmış olmalı
     expect(signOutMock).toHaveBeenCalled();
+  });
+
+  it("Test 5 — oturum kapandığında (SIGNED_OUT) React Query önbelleği temizlenir (#132, v1.3-00)", async () => {
+    let latestContext: AuthContextType | null = null;
+
+    function TestConsumer() {
+      latestContext = useContext(AuthContext);
+      return null;
+    }
+
+    const testQueryClient = new QueryClient();
+
+    // 1. Önbelleğe aktif kuruma ait hassas veri koy (ör. denetim kayıtları)
+    const queryKey = ["audit", "events", { organizationId: "org-1" }];
+    testQueryClient.setQueryData(queryKey, [{ id: 1, action: "test" }]);
+    expect(testQueryClient.getQueryData(queryKey)).toBeDefined();
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === "organization_memberships") {
+        return chainReturning(
+          ok({
+            id: "m-1",
+            organization_id: "org-1",
+            branch_id: null,
+            role: "admin",
+          })
+        );
+      }
+      if (table === "organizations") {
+        return chainReturning(ok({ name: "Pilot Dershane", code: 1042 }));
+      }
+      if (table === "branches") {
+        return chainReturning(ok({ id: "b1", name: "Merkez" }));
+      }
+      if (table === "profiles") {
+        return chainReturning(
+          ok({
+            display_name: "Pilot Kullanıcı",
+            must_change_password: false,
+            password_expires_at: null,
+            recovery_email: null,
+          })
+        );
+      }
+      return chainReturning(empty);
+    });
+
+    const rootDiv = mockDoc.createElement("div");
+    mockDoc.body.appendChild(rootDiv);
+    const root = ReactDOM.createRoot(rootDiv as unknown as HTMLElement);
+
+    await React.act(async () => {
+      root.render(
+        React.createElement(
+          QueryClientProvider,
+          { client: testQueryClient },
+          React.createElement(
+            AuthProvider,
+            null,
+            React.createElement(TestConsumer)
+          )
+        )
+      );
+    });
+
+    // Oturum açık başlasın
+    await React.act(async () => {
+      authChangeListener!("SIGNED_IN", testSession);
+      await new Promise(r => setTimeout(r, 20));
+    });
+
+    expect(latestContext?.identity).not.toBeNull();
+    expect(testQueryClient.getQueryData(queryKey)).toBeDefined();
+
+    // 2. SIGNED_OUT olayı tetiklenir
+    await React.act(async () => {
+      authChangeListener!("SIGNED_OUT", null);
+      await new Promise(r => setTimeout(r, 20));
+    });
+
+    // 3. Kimlik null'a çekilmiş olmalı
+    expect(latestContext?.identity).toBeNull();
+
+    // 4. Paylaşılan dershane bilgisayarında verinin kalmaması için önbellek tamamen temizlenmiş olmalı (#132)
+    expect(testQueryClient.getQueryData(queryKey)).toBeUndefined();
+    expect(testQueryClient.getQueryCache().getAll().length).toBe(0);
   });
 });

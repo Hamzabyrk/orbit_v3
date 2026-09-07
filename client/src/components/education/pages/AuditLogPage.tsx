@@ -1,12 +1,10 @@
-import { useEffect, useState } from "react";
 import {
   describeAuditAction,
   describeAuditEntity,
   formatAuditMoment,
-  loadOrganizationAuditEvents,
   type AuditActor,
-  type OrganizationAuditEvent,
 } from "@/audit/auditService";
+import { useOrganizationAuditEvents } from "@/audit/auditQueries";
 import { Badge, EmptyState, PageHeader } from "../shared";
 
 /**
@@ -25,11 +23,6 @@ import { Badge, EmptyState, PageHeader } from "../shared";
  * varlık. `metadata` gösterilmiyor; bugün içinde `login_number` taşıyor ve
  * kişinin giriş numarasını yeni bir ekrana taşımak için sebep yok.
  */
-
-type Durum =
-  | { asama: "yukleniyor" }
-  | { asama: "hata"; mesaj: string }
-  | { asama: "hazir"; kayitlar: OrganizationAuditEvent[] };
 
 /**
  * Aktörün nasıl görüneceği. Dört durumun dördü de farklı bir cümle kuruyor —
@@ -71,39 +64,15 @@ function aktorGorunumu(actor: AuditActor): {
 }
 
 export function AuditLogPage() {
-  const [durum, setDurum] = useState<Durum>({ asama: "yukleniyor" });
+  const {
+    data: kayitlar,
+    isLoading,
+    isError,
+    error,
+  } = useOrganizationAuditEvents();
 
-  useEffect(() => {
-    // Bileşen sökülürse gelen cevabın state'e yazılmaması için. Kullanıcı
-    // yükleme bitmeden başka bir bölüme geçebiliyor.
-    let gecerli = true;
-
-    loadOrganizationAuditEvents()
-      .then(kayitlar => {
-        if (gecerli) {
-          setDurum({ asama: "hazir", kayitlar });
-        }
-      })
-      .catch((error: unknown) => {
-        if (!gecerli) {
-          return;
-        }
-
-        // Hata yutulmuyor: sebebi bilinmiyorsa bile kullanıcıya bir şey
-        // olduğunu söylemek, sessizce boş liste göstermekten dürüst.
-        setDurum({
-          asama: "hata",
-          mesaj:
-            error instanceof Error
-              ? error.message
-              : "Denetim kaydı yüklenemedi.",
-        });
-      });
-
-    return () => {
-      gecerli = false;
-    };
-  }, []);
+  const hataMesaji =
+    error instanceof Error ? error.message : "Denetim kaydı yüklenemedi.";
 
   return (
     <>
@@ -114,7 +83,7 @@ export function AuditLogPage() {
       />
 
       <section className="mt-6 rounded-2xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-        {durum.asama === "yukleniyor" ? (
+        {isLoading ? (
           <div className="px-5 py-10 text-center">
             <p className="text-[12px] font-extrabold text-slate-700">
               Denetim kaydı yükleniyor…
@@ -122,16 +91,16 @@ export function AuditLogPage() {
           </div>
         ) : null}
 
-        {durum.asama === "hata" ? (
+        {isError ? (
           <div className="px-5 py-8">
             <EmptyState
               title="Denetim kaydı görüntülenemedi"
-              description={`${durum.mesaj} Sayfayı yenilemeyi deneyin; sorun sürerse kaydın kendisi yerinde, görüntüleme başarısız oldu.`}
+              description={`${hataMesaji} Sayfayı yenilemeyi deneyin; sorun sürerse kaydın kendisi yerinde, görüntüleme başarısız oldu.`}
             />
           </div>
         ) : null}
 
-        {durum.asama === "hazir" && durum.kayitlar.length === 0 ? (
+        {!isLoading && !isError && kayitlar && kayitlar.length === 0 ? (
           <div className="px-5 py-8">
             <EmptyState
               title="Henüz kayıt yok"
@@ -140,7 +109,7 @@ export function AuditLogPage() {
           </div>
         ) : null}
 
-        {durum.asama === "hazir" && durum.kayitlar.length > 0 ? (
+        {!isLoading && !isError && kayitlar && kayitlar.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse text-left">
               <thead>
@@ -160,7 +129,7 @@ export function AuditLogPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {durum.kayitlar.map(kayit => {
+                {kayitlar.map(kayit => {
                   const aktor = aktorGorunumu(kayit.actor);
                   const an = formatAuditMoment(kayit.createdAt);
 

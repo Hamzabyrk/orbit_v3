@@ -23,6 +23,27 @@ export default defineConfig(({ mode }) => {
     mode !== "production"
   );
 
+  const supabaseUrl =
+    (process.env.VITE_SUPABASE_URL !== undefined
+      ? process.env.VITE_SUPABASE_URL
+      : localEnv.VITE_SUPABASE_URL) || undefined;
+  const supabaseAnonKey =
+    (process.env.VITE_SUPABASE_ANON_KEY !== undefined
+      ? process.env.VITE_SUPABASE_ANON_KEY
+      : localEnv.VITE_SUPABASE_ANON_KEY) || undefined;
+
+  // Üretim derlemesinde (production build) Supabase URL ve anon anahtarı zorunludur.
+  // Eksik veya boş yapılandırmayla sessizce yer tutucuya düşüp ölü bir uygulamanın
+  // yayınlanmasını önlemek amacıyla derleme açık bir hatayla durdurulur (K-04, v1.3-00).
+  if (deploymentEnvironment === "production") {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error(
+        "[vite.config.ts] Üretim derlemesi için VITE_SUPABASE_URL ve VITE_SUPABASE_ANON_KEY ortam değişkenleri tanımlı olmalıdır. " +
+          "Eksik yapılandırmayla ölü bir uygulamanın yayınlanmasını önlemek için build durduruldu (K-04, v1.3-00)."
+      );
+    }
+  }
+
   return {
     plugins,
     define: {

@@ -31,7 +31,8 @@ export type ClassGroup = {
   nextLesson: string;
 };
 
-export type WeekDay = "Pazartesi" | "Salı" | "Çarşamba" | "Perşembe" | "Cuma";
+import type { WeekDay } from "@/education/weekDays";
+export type { WeekDay };
 
 export type ScheduleItem = {
   day: WeekDay;
