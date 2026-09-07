@@ -12,12 +12,16 @@ import { ParentDashboard } from "./dashboards/ParentDashboard";
 import { StudentDashboard } from "./dashboards/StudentDashboard";
 import { TeacherDashboard } from "./dashboards/TeacherDashboard";
 import {
+  classes,
   dayPlanTasksByRole,
   initialAttendances,
   initialAutomations,
   initialHomework,
   students,
 } from "./educationData";
+import { useClasses, useStudents } from "@/education/educationQueries";
+import { DEFAULT_STUDENT_LIMIT } from "@/education/studentService";
+import { DEFAULT_CLASS_LIMIT } from "@/education/classService";
 import { allNav } from "./navigation";
 import { roleMeta } from "./roleMeta";
 import { AssessmentsPage } from "./pages/AssessmentsPage";
@@ -103,14 +107,38 @@ export function EducationPlatform({
   const navItems = allNav.filter(item =>
     availableEducationSections(role).includes(item.label)
   );
+
+  const studentsQuery = useStudents({ enabled: !isDemoMode });
+  const classesQuery = useClasses({ enabled: !isDemoMode });
+
+  const activeStudents = useMemo(() => {
+    if (isDemoMode) {
+      return students;
+    }
+    return studentsQuery.data?.rows ?? [];
+  }, [studentsQuery.data?.rows]);
+
+  const activeClasses = useMemo(() => {
+    if (isDemoMode) {
+      return classes;
+    }
+    return classesQuery.data?.rows ?? [];
+  }, [classesQuery.data?.rows]);
+
   const visibleStudents = useMemo(() => {
-    const roleStudents = filterStudentsForRole(students, role, isDemoMode);
-    return roleStudents.filter(student =>
-      `${student.name} ${student.code} ${student.group}`
-        .toLocaleLowerCase("tr")
-        .includes(query.toLocaleLowerCase("tr"))
+    const roleStudents = filterStudentsForRole(
+      activeStudents,
+      role,
+      isDemoMode
     );
-  }, [role, query]);
+    return roleStudents.filter(student => {
+      const searchTarget = [student.name, student.code, student.group]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase("tr");
+      return searchTarget.includes(query.toLocaleLowerCase("tr"));
+    });
+  }, [activeStudents, role, query]);
 
   useEffect(() => {
     writeDemoData("attendances", attendances);
@@ -199,6 +227,10 @@ export function EducationPlatform({
           query={query}
           onQuery={setQuery}
           onSelect={setSelectedStudent}
+          isLoading={!isDemoMode && studentsQuery.isLoading}
+          error={!isDemoMode ? studentsQuery.error : null}
+          truncated={!isDemoMode && Boolean(studentsQuery.data?.truncated)}
+          limit={DEFAULT_STUDENT_LIMIT}
           onAdd={() =>
             toast.info("Yeni öğrenci", {
               description:
@@ -208,7 +240,17 @@ export function EducationPlatform({
         />
       );
     if (active === "Sınıflar")
-      return <ClassesPage role={role} onNavigate={navigate} />;
+      return (
+        <ClassesPage
+          role={role}
+          classes={activeClasses}
+          isLoading={!isDemoMode && classesQuery.isLoading}
+          error={!isDemoMode ? classesQuery.error : null}
+          truncated={!isDemoMode && Boolean(classesQuery.data?.truncated)}
+          limit={DEFAULT_CLASS_LIMIT}
+          onNavigate={navigate}
+        />
+      );
     if (active === "Ders Programı") return <SchedulePage role={role} />;
     if (active === "Yoklama")
       return (

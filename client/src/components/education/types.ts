@@ -10,25 +10,25 @@ export type AttendanceState = "Katıldı" | "Geç kaldı" | "Gelmedi" | "İzinli
 export type Student = {
   id: string;
   name: string;
-  code: string;
-  group: string;
-  branch: string;
-  parent: string;
-  attendance: number;
-  score: number;
-  homework: number;
-  payment: "Güncel" | "Takip gerekli";
-  risk: "Dengeli" | "Takip gerekli";
+  code?: string;
+  group: string | null;
+  branch: string | null;
+  parent: string | null;
+  attendance?: number;
+  score?: number;
+  homework?: number;
+  payment?: "Güncel" | "Takip gerekli";
+  risk?: "Dengeli" | "Takip gerekli";
 };
 
 export type ClassGroup = {
   id: string;
   name: string;
-  program: string;
-  mentor: string;
+  program: string | null;
+  mentor: string | null;
   studentCount: number;
-  attendance: number;
-  nextLesson: string;
+  attendance?: number;
+  nextLesson?: string;
 };
 
 import type { WeekDay } from "@/education/weekDays";

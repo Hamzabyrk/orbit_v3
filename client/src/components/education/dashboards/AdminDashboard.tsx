@@ -172,19 +172,25 @@ export function AdminDashboard({
                       {group.name}
                     </p>
                     <p className="mt-0.5 text-[10px] text-slate-500">
-                      {group.program} · {group.studentCount} öğrenci
+                      {[group.program, `${group.studentCount} öğrenci`]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   </div>
-                  <Badge tone={group.attendance < 90 ? "amber" : "green"}>
-                    Devam %{group.attendance}
-                  </Badge>
+                  {group.attendance !== undefined ? (
+                    <Badge tone={group.attendance < 90 ? "amber" : "green"}>
+                      Devam %{group.attendance}
+                    </Badge>
+                  ) : null}
                 </div>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                  <span
-                    style={{ width: `${group.attendance}%` }}
-                    className={`block h-full rounded-full ${group.attendance < 90 ? "bg-amber-400" : "bg-emerald-500"}`}
-                  />
-                </div>
+                {group.attendance !== undefined ? (
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <span
+                      style={{ width: `${group.attendance}%` }}
+                      className={`block h-full rounded-full ${group.attendance < 90 ? "bg-amber-400" : "bg-emerald-500"}`}
+                    />
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
