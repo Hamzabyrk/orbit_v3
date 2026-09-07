@@ -15,9 +15,15 @@
  * kilidini ona bağlamak ekranı asılı bırakmaz.
  *
  * Karar mantığı bileşenden ayrı duruyor çünkü `AuthProvider` bir React
- * bileşeni ve bu depoda bileşen testi altyapısı yok. `idleTimeout.ts`'teki
+ * bileşeni ve bu depoda bileşen testi altyapısı yoktu. `idleTimeout.ts`'teki
  * `resolveIdleTracking` ile aynı desen: kararı saf bir fonksiyon verir,
  * bileşen yalnızca uygular, test kararı sınar.
+ *
+ * Sonradan düzeltme (2026-09-07 · v1.3-07 / #213): React 19 ve hafif DOM
+ * taklidiyle `AuthProvider` için bileşen seviyesinde entegrasyon testi
+ * altyapısı kuruldu (`identityRace.test.ts`). Saf karar fonksiyonu deseni
+ * mimari değerini korur; ancak "bileşen testi altyapısı yok" kısıtı artık
+ * bir engel değildir (**K-11**).
  */
 
 /** Olay karşısında yapılacak iş. */

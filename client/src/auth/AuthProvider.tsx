@@ -78,12 +78,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // eksik bırakırdı ve hiçbir olay onu tazeleyemezdi.
   const resolvedTokenRef = useRef<string | null>(null);
 
-  const applyIdentity = useCallback(async (session: Session) => {
-    setIdentity(await loadAuthenticatedIdentity(session.user));
-    resolvedTokenRef.current = session.access_token;
-  }, []);
+  // Çözüm isteklerinin sayacı. Kimlik çözümü asenkron sürerken araya yeni bir
+  // oturum veya çıkış girdiğinde bayat sonucun yazılmasını engeller (#213).
+  const identityRequestIdRef = useRef(0);
+
+  const applyIdentity = useCallback(
+    async (session: Session, forcedRequestId?: number) => {
+      const requestId = forcedRequestId ?? ++identityRequestIdRef.current;
+      const nextIdentity = await loadAuthenticatedIdentity(session.user);
+
+      // Çözüm sürerken kullanıcı çıkış yapmış veya yeni bir oturum başlamışsa
+      // sonuç bayattır. İkisi birden atlanmalı: `resolvedTokenRef` yazılırsa
+      // sonraki gerçek olay `skip-resolved` olarak yutulurdu (#213).
+      if (requestId !== identityRequestIdRef.current) {
+        return;
+      }
+
+      setIdentity(nextIdentity);
+      resolvedTokenRef.current = session.access_token;
+    },
+    []
+  );
 
   const clearIdentity = useCallback(() => {
+    // Çıkış yapıldığında sayacı ilerletiyoruz; aksi halde uçuştaki sorgu
+    // döndüğünde kendisini hâlâ en güncel istek sanıp çıkmış kullanıcının
+    // kimliğini geri yazardı (#213).
+    identityRequestIdRef.current++;
     resolvedTokenRef.current = null;
     setIdentity(null);
   }, []);
@@ -146,7 +167,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
 
           if (session) {
-            void applyIdentity(session).catch(() => clearIdentity());
+            // Olay yolu: kimlik okuması hata verirse, YALNIZCA bu istek hâlâ
+            // en güncel istekse kimliği sıfırla. Araya çıkış veya yeni bir
+            // oturum girmişse bayat hata yeni oturumu sıfırlamamalı (#213 revizyon 1).
+            const requestId = ++identityRequestIdRef.current;
+            void applyIdentity(session, requestId).catch(() => {
+              if (requestId === identityRequestIdRef.current) {
+                clearIdentity();
+              }
+            });
           }
         }, 0);
       }
