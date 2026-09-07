@@ -1,6 +1,10 @@
 ## 🎯 Bu PR Ne İşe Yarıyor?
 
 - Closes #[Issue Numarası]
+  <!-- Anahtar kelime İNGİLİZCE olmak zorunda: Closes / Fixes / Resolves.
+       "Kapatır: #123" yazılırsa GitHub bunu sıradan metin sayar, issue merge
+       edildiğinde KAPANMAZ ve kimse fark etmez. Bir kez oldu (2026-09-07,
+       beş issue). Merge sonrası issue'nun gerçekten kapandığı kontrol edilir. -->
 - [Yapılan değişikliğin kısa özeti]
 
 ## 🧠 Yapay Zekâ & Mimari Notları

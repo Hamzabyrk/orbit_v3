@@ -31,9 +31,12 @@ Her devredilen iş aynı yedi adımdan geçer. Adım atlanmaz.
 6. KAPANIŞ    Denetleyen commit, PR, belgeyi günceller, brifingi siler
                 (brifing izlenmiyor — silmek commit gerektirmez)
                 └─ merge sonrası: commit'ler main'e GERÇEKTEN girdi mi?
+                                 issue'lar GERÇEKTEN kapandı mı?
 ```
 
 Döngü tamamlanmadan sıradaki iş başlamaz.
+
+**6. adımdaki iki soru ayrı ayrı sorulur.** Commit'in girmesi, issue'nun kapandığı anlamına gelmez. 2026-09-07'de beş issue merge edilmiş PR'lara rağmen açık kaldı: PR açıklamalarında `Kapatır: #212` yazıyordu ve **GitHub yalnız İngilizce anahtar kelimeleri tanıyor** (`Closes`, `Fixes`, `Resolves`). PR şablonu zaten doğrusunu yazıyordu; hata onu görmezden gelmekti. Bedeli, `ROADMAP.md` §0'ın _"açık bulgular `gh issue list`'tedir"_ cümlesinin bir gün boyunca yanlış olmasıydı — beş kapanmış bulgu açık görünüyordu.
 
 **4. adım 5. adımdan önce gelir ve atlanmaz.** Kapsam ihlali varken koda bakmak, kötü bir alışkanlığı ödüllendirir: kod iyiyse ihlal görmezden gelinir ve sınır aşınır. Önce sınır, sonra içerik.
 
