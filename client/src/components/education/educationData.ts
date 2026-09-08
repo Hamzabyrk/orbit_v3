@@ -80,8 +80,8 @@ export type {
 /**
  * Eğitim ekranlarının veri kaynağı.
  *
- * v1.3-01 (A ve B parçaları) ile `classes`, `students` ve `schedule` gerçek servislere bağlandı
- * (`studentService`, `classService`, `scheduleService`). Bu ihraçlar demo modu ve henüz servise
+ * v1.3-01 (A, B ve C parçaları) ile `classes`, `students`, `schedule` ve `attendance` gerçek servislere bağlandı
+ * (`studentService`, `classService`, `scheduleService`, `attendanceService`). Bu ihraçlar demo modu ve henüz servise
  * bağlanmamış bileşenler için geriye dönük uyumluluk sağlar.
  */
 export const classes = isDemoMode ? demoClasses : [];

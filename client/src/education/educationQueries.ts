@@ -15,9 +15,13 @@ import {
   loadSchedule,
   type ScheduleListResult,
 } from "./scheduleService";
+import {
+  loadLatestAttendanceSession,
+  type LatestAttendanceSessionResult,
+} from "./attendanceService";
 
 /**
- * Eğitim alanı sorgu anahtarları (v1.3-01 · A ve B parçaları, **K-19** / mimari kararlar).
+ * Eğitim alanı sorgu anahtarları (v1.3-01 · A, B ve C parçaları, **K-19** / mimari kararlar).
  *
  * **Anahtar sözleşmesi:** `[alan, kaynak, kapsam]`
  *
@@ -38,6 +42,8 @@ export const educationKeys = {
     ["education", "classes", { organizationId }] as const,
   schedule: (organizationId: string) =>
     ["education", "schedule", { organizationId }] as const,
+  attendance: (organizationId: string) =>
+    ["education", "attendance", { organizationId }] as const,
 };
 
 export type UseStudentsOptions = {
@@ -120,6 +126,34 @@ export function useSchedule(options?: UseScheduleOptions) {
       ? educationKeys.schedule(organizationId)
       : (["education", "schedule", { organizationId: "" }] as const),
     queryFn: () => loadSchedule(limit),
+    enabled: isEnabled,
+  });
+}
+
+export type UseLatestAttendanceSessionOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Aktif kurumun en son yoklama oturumunu getiren React Query hook'u (v1.3-01 · C parçası).
+ *
+ * Aktif kurum kimliği `useAuth` üzerinden sağlanır; kurum kimliği henüz
+ * çözümlenmemişse veya kullanıcı bir kuruma ait değilse sorgu çalıştırılmaz (`enabled: false`).
+ */
+export function useLatestAttendanceSession(
+  options?: UseLatestAttendanceSessionOptions
+) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<LatestAttendanceSessionResult, Error>({
+    queryKey: organizationId
+      ? educationKeys.attendance(organizationId)
+      : (["education", "attendance", { organizationId: "" }] as const),
+    queryFn: () => loadLatestAttendanceSession(),
     enabled: isEnabled,
   });
 }

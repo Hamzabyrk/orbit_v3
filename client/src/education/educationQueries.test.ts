@@ -33,6 +33,15 @@ describe("educationKeys (K-19 ve Cache İzolasyonu)", () => {
     ]);
   });
 
+  it("yoklama anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu taşır (v1.3-01c)", () => {
+    const key = educationKeys.attendance("org-att-1");
+    expect(key).toEqual([
+      "education",
+      "attendance",
+      { organizationId: "org-att-1" },
+    ]);
+  });
+
   it("farklı kurumlar için farklı sorgu anahtarları üretir (önbellek karışması önlenir)", () => {
     const key1 = educationKeys.students("org-a");
     const key2 = educationKeys.students("org-b");
@@ -45,5 +54,9 @@ describe("educationKeys (K-19 ve Cache İzolasyonu)", () => {
     const scheduleKey1 = educationKeys.schedule("org-a");
     const scheduleKey2 = educationKeys.schedule("org-b");
     expect(scheduleKey1).not.toEqual(scheduleKey2);
+
+    const attKey1 = educationKeys.attendance("org-a");
+    const attKey2 = educationKeys.attendance("org-b");
+    expect(attKey1).not.toEqual(attKey2);
   });
 });

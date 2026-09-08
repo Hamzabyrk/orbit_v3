@@ -9,10 +9,12 @@ import {
 } from "./studentService";
 
 const fromMock = vi.fn();
+const rpcMock = vi.fn();
 
 vi.mock("@/lib/supabaseClient", () => ({
   supabase: {
     from: (table: string) => fromMock(table),
+    rpc: (fn: string, args: unknown) => rpcMock(fn, args),
   },
 }));
 
@@ -24,12 +26,17 @@ function createQueryChain(
     isArgs?: [string, unknown];
     orderArgs?: [string, { ascending?: boolean }];
     limitArg?: number;
+    inArgs?: [string, unknown[]];
   }
 ) {
   const chain: Record<string, unknown> = {};
   chain.select = vi.fn().mockReturnValue(chain);
   chain.is = vi.fn((col: string, val: unknown) => {
     if (spy) spy.isArgs = [col, val];
+    return chain;
+  });
+  chain.in = vi.fn((col: string, vals: unknown[]) => {
+    if (spy) spy.inArgs = [col, vals];
     return chain;
   });
   chain.order = vi.fn((col: string, opts: { ascending?: boolean }) => {
@@ -44,6 +51,10 @@ function createQueryChain(
 }
 
 describe("studentService", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe("extractBranchName", () => {
     it("nesne olarak gelen şube adını ayıklar", () => {
       expect(extractBranchName({ name: "Kadıköy Şubesi" })).toBe(
@@ -161,8 +172,41 @@ describe("studentService", () => {
     });
   });
 
-  describe("mapStudentRow (Tip Dürüstlüğü & K-03)", () => {
-    it("kaynağı olmayan ve türetilmiş alanları kesinlikle uydurmaz (undefined bırakır)", () => {
+  describe("mapStudentRow (Tip Dürüstlüğü & K-03 & Devam Türetimi)", () => {
+    it("devam yüzdesi verildiğinde nesneye yazar", () => {
+      const mapped = mapStudentRow(
+        {
+          id: "stu-1",
+          full_name: "Zeynep Kaya",
+          branches: { name: "Merkez" },
+          class_enrollments: [
+            { archived_at: null, classes: { name: "11-B", archived_at: null } },
+          ],
+          student_guardians: [],
+        },
+        85
+      );
+
+      expect(mapped.id).toBe("stu-1");
+      expect(mapped.attendance).toBe(85);
+    });
+
+    it("devam yüzdesi undefined ise alana undefined yazar, sıfır uydurmaz (K-22)", () => {
+      const mapped = mapStudentRow(
+        {
+          id: "stu-2",
+          full_name: "Ahmet Demir",
+          branches: null,
+          class_enrollments: [],
+          student_guardians: [],
+        },
+        undefined
+      );
+
+      expect(mapped.attendance).toBeUndefined();
+    });
+
+    it("kaynağı olmayan alanları kesinlikle uydurmaz (undefined bırakır)", () => {
       const mapped = mapStudentRow({
         id: "stu-1",
         full_name: "Zeynep Kaya",
@@ -194,46 +238,85 @@ describe("studentService", () => {
     });
   });
 
-  describe("loadStudents (Sorgu ve Kesilme Sözleşmesi)", () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
+  describe("loadStudents (Sorgu ve Devam Yüzdesi Entegrasyonu)", () => {
+    it("öğrencileri ada göre artan sırada çeker ve devam yüzdelerini bağlar", async () => {
+      const studentRows = [
+        {
+          id: "stu-1",
+          full_name: "Ali Can",
+          branches: { name: "Şube 1" },
+          class_enrollments: [],
+          student_guardians: [],
+        },
+      ];
 
-    it("öğrencileri ada göre artan sırada ve arşiv filtresiyle çeker", async () => {
-      const spy: {
-        isArgs?: [string, unknown];
-        orderArgs?: [string, { ascending?: boolean }];
-        limitArg?: number;
-      } = {};
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({ data: studentRows, error: null });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
 
-      fromMock.mockReturnValue(
-        createQueryChain(
-          {
+      rpcMock.mockImplementation((fn: string) => {
+        if (fn === "student_attendance_counts") {
+          return Promise.resolve({
             data: [
               {
-                id: "stu-1",
-                full_name: "Ali Can",
-                branches: { name: "Şube 1" },
+                student_id: "stu-1",
+                present_count: 5,
+                late_count: 0,
+                absent_count: 0,
+              },
+            ],
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: null, error: null });
+      });
+
+      const result = await loadStudents(50);
+
+      expect(fromMock).toHaveBeenCalledWith("students");
+      expect(fromMock).not.toHaveBeenCalledWith("attendance_records");
+      expect(rpcMock).toHaveBeenCalledWith("student_attendance_counts", {
+        target_student_ids: ["stu-1"],
+      });
+
+      expect(result.rows).toHaveLength(1);
+      expect(result.rows[0].name).toBe("Ali Can");
+      expect(result.rows[0].attendance).toBe(100);
+      expect(result.truncated).toBe(false);
+    });
+
+    it("yoklama kaydı olmayan öğrencinin devamı undefined kalır (K-22: %0 gösterilmez)", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({
+            data: [
+              {
+                id: "stu-no-att",
+                full_name: "Yeni Öğrenci",
+                branches: null,
                 class_enrollments: [],
                 student_guardians: [],
               },
             ],
             error: null,
-          },
-          spy
-        )
-      );
+          });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
 
-      const result = await loadStudents(50);
+      rpcMock.mockImplementation((fn: string) => {
+        if (fn === "student_attendance_counts") {
+          return Promise.resolve({ data: [], error: null });
+        }
+        return Promise.resolve({ data: null, error: null });
+      });
 
-      expect(fromMock).toHaveBeenCalledWith("students");
-      expect(spy.isArgs).toEqual(["archived_at", null]);
-      expect(spy.orderArgs).toEqual(["full_name", { ascending: true }]);
-      expect(spy.limitArg).toBe(50);
-
-      expect(result.rows).toHaveLength(1);
-      expect(result.rows[0].name).toBe("Ali Can");
-      expect(result.truncated).toBe(false);
+      const result = await loadStudents();
+      expect(fromMock).not.toHaveBeenCalledWith("attendance_records");
+      expect(result.rows[0].attendance).toBeUndefined();
     });
 
     it("satır sayısı limite eşitse truncated bayrağı true döner (K-03)", async () => {
@@ -245,12 +328,13 @@ describe("studentService", () => {
         student_guardians: [],
       }));
 
-      fromMock.mockReturnValue(
-        createQueryChain({
-          data: mockRows,
-          error: null,
-        })
-      );
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({ data: mockRows, error: null });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+      rpcMock.mockResolvedValue({ data: [], error: null });
 
       const result = await loadStudents(5);
 
@@ -260,15 +344,13 @@ describe("studentService", () => {
 
     it("varsayılan üst sınır 100'dür", async () => {
       const spy: { limitArg?: number } = {};
-      fromMock.mockReturnValue(
-        createQueryChain(
-          {
-            data: [],
-            error: null,
-          },
-          spy
-        )
-      );
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({ data: [], error: null }, spy);
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+      rpcMock.mockResolvedValue({ data: [], error: null });
 
       await loadStudents();
 
@@ -276,12 +358,16 @@ describe("studentService", () => {
     });
 
     it("veritabanı hatasında anlamlı Türkçe hata fırlatır (K-04)", async () => {
-      fromMock.mockReturnValue(
-        createQueryChain({
-          data: null,
-          error: { message: "connection refused" },
-        })
-      );
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({
+            data: null,
+            error: { message: "connection refused" },
+          });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+      rpcMock.mockResolvedValue({ data: [], error: null });
 
       await expect(loadStudents()).rejects.toThrow(
         "Öğrenci listesi yüklenemedi."
