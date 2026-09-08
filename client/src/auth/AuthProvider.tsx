@@ -52,7 +52,10 @@ function passwordRecoveryRedirectUrl(): string {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [identity, setIdentity] = useState<AuthIdentity | null>(null);
-  const [loading, setLoading] = useState(!isDemoMode);
+  // Başlangıç değeri burada TÜRETİLİYOR, efekt içinde düzeltilmiyor.
+  // Supabase yapılandırılmamışsa beklenecek bir şey yok; bunu efektte
+  // `setLoading(false)` ile söylemek bir render turu daha üretiyordu.
+  const [loading, setLoading] = useState(!isDemoMode && supabaseConfigured);
   // Sayfaya bir kurtarma bağlantısıyla gelindiyse bayrak baştan açılır;
   // PASSWORD_RECOVERY olayı beklenirken ekranın "bağlantı geçersiz" gösterip
   // sonra forma dönmesini engeller.
@@ -79,6 +82,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // eksik bırakırdı ve hiçbir olay onu tazeleyemezdi.
   const resolvedTokenRef = useRef<string | null>(null);
 
+  // Okuması ŞU AN süren jeton. `resolvedTokenRef` tek başına yetmiyordu ve
+  // bu ölçüldü (#221): o değer `await`'ten sonra yazılıyor, oysa `signIn`
+  // sırasında `SIGNED_IN` olayı okuma bitmeden geliyor ve kimlik ikinci kez
+  // okunuyordu. Bu ref okumanın BAŞINDA yazılır, sonunda — başarılı da olsa
+  // başarısız da olsa — temizlenir.
+  const pendingTokenRef = useRef<string | null>(null);
+
   // Çözüm isteklerinin sayacı. Kimlik çözümü asenkron sürerken araya yeni bir
   // oturum veya çıkış girdiğinde bayat sonucun yazılmasını engeller (#213).
   const identityRequestIdRef = useRef(0);
@@ -86,17 +96,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const applyIdentity = useCallback(
     async (session: Session, forcedRequestId?: number) => {
       const requestId = forcedRequestId ?? ++identityRequestIdRef.current;
-      const nextIdentity = await loadAuthenticatedIdentity(session.user);
+      pendingTokenRef.current = session.access_token;
 
-      // Çözüm sürerken kullanıcı çıkış yapmış veya yeni bir oturum başlamışsa
-      // sonuç bayattır. İkisi birden atlanmalı: `resolvedTokenRef` yazılırsa
-      // sonraki gerçek olay `skip-resolved` olarak yutulurdu (#213).
-      if (requestId !== identityRequestIdRef.current) {
-        return;
+      try {
+        const nextIdentity = await loadAuthenticatedIdentity(session.user);
+
+        // Çözüm sürerken kullanıcı çıkış yapmış veya yeni bir oturum başlamışsa
+        // sonuç bayattır. İkisi birden atlanmalı: `resolvedTokenRef` yazılırsa
+        // sonraki gerçek olay `skip-resolved` olarak yutulurdu (#213).
+        if (requestId !== identityRequestIdRef.current) {
+          return;
+        }
+
+        setIdentity(nextIdentity);
+        resolvedTokenRef.current = session.access_token;
+      } finally {
+        // Hata halinde de temizleniyor ve bu bilinçli: başarısız bir okuma
+        // jetonu "çözülmüş" saymaz, dolayısıyla sonraki olay yeniden dener.
+        // Temizlemeseydik tek bir ağ hatası o jetonu kalıcı olarak sessize
+        // alırdı. Karşılaştırma, araya yeni bir oturum girmişse yeni sahibin
+        // işaretini silmemek için.
+        if (pendingTokenRef.current === session.access_token) {
+          pendingTokenRef.current = null;
+        }
       }
-
-      setIdentity(nextIdentity);
-      resolvedTokenRef.current = session.access_token;
     },
     []
   );
@@ -109,6 +132,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // kimliğini geri yazardı (#213).
     identityRequestIdRef.current++;
     resolvedTokenRef.current = null;
+    pendingTokenRef.current = null;
     setIdentity(null);
 
     // Oturum kapandığında veya kimlik sıfırlandığında paylaşılan dershane
@@ -126,7 +150,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     let active = true;
 
     if (!supabaseConfigured) {
-      setLoading(false);
+      // `loading` zaten `false` başlıyor (yukarıdaki türetme); burada
+      // yapılacak bir şey yok, yalnızca aboneliği kurmadan çıkılıyor.
       return;
     }
 
@@ -149,6 +174,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             event,
             accessToken: session?.access_token ?? null,
             resolvedToken: resolvedTokenRef.current,
+            pendingToken: pendingTokenRef.current,
             recovering: recoveringRef.current,
           });
 
@@ -166,7 +192,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
             return;
           }
 
-          if (action === "ignore" || action === "skip-resolved") {
+          if (
+            action === "ignore" ||
+            action === "skip-resolved" ||
+            action === "skip-pending"
+          ) {
             return;
           }
 
@@ -225,8 +255,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Kimlik burada okunuyor, `SIGNED_IN` olayının gelmesi beklenmiyor:
       // okuma başarısız olursa kullanıcı dışarı alınmalı ve hata çağırana
       // ulaşmalı. Olay yolu bunu yapamaz — orada fırlatılan hata kimseye
-      // ulaşmaz. `applyIdentity` jetonu işaretlediği için hemen ardından
-      // gelen `SIGNED_IN` aynı işi tekrar etmez (#145).
+      // ulaşmaz.
+      //
+      // Hemen ardından gelen `SIGNED_IN` aynı işi tekrar ETMEZ, çünkü
+      // `applyIdentity` jetonu okumaya BAŞLARKEN işaretliyor. Bu yorum
+      // 2026-09-09'a kadar aynı şeyi iddia ediyordu ama doğru değildi:
+      // işaret `await`'ten sonra konuyordu ve olay okuma bitmeden geldiği
+      // için her girişte kimlik iki kez okunuyordu (#221, ölçüldü).
       try {
         await applyIdentity(data.session);
       } catch (identityError) {

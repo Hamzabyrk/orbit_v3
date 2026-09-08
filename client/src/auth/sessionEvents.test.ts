@@ -6,12 +6,60 @@ function input(overrides: Partial<SessionEventInput> = {}): SessionEventInput {
     event: "INITIAL_SESSION",
     accessToken: "jeton-1",
     resolvedToken: null,
+    pendingToken: null,
     recovering: false,
     ...overrides,
   };
 }
 
 describe("resolveSessionEvent", () => {
+  // #221 — `resolvedToken` tek başına yetmiyordu. `signIn` sırasında
+  // `SIGNED_IN` olayı kimlik okuması BİTMEDEN geliyor; o anda `resolvedToken`
+  // hâlâ `null` olduğu için olay `resolve` alıyor ve kimlik ikinci kez
+  // okunuyordu. Ölçülmüştü: tek girişte iki üyelik sorgusu.
+  describe("okuma sürerken gelen olay (#221)", () => {
+    it("okuması süren jeton için ikinci okuma başlatılmaz", () => {
+      const decision = resolveSessionEvent(
+        input({
+          event: "SIGNED_IN",
+          accessToken: "jeton-1",
+          resolvedToken: null,
+          pendingToken: "jeton-1",
+        })
+      );
+
+      expect(decision.action).toBe("skip-pending");
+    });
+
+    // ⛔ İki dal ayrı isimlerle dönüyor: sebepleri farklı ve biri değişirse
+    // diğeri değişmemeli. Aynı ada indirilirse bu test düşer.
+    it("çözülmüş jeton ile süren jeton ayrı kararlar döndürür", () => {
+      const resolved = resolveSessionEvent(
+        input({ event: "SIGNED_IN", resolvedToken: "jeton-1" })
+      );
+      const pending = resolveSessionEvent(
+        input({ event: "SIGNED_IN", pendingToken: "jeton-1" })
+      );
+
+      expect(resolved.action).toBe("skip-resolved");
+      expect(pending.action).toBe("skip-pending");
+    });
+
+    // ⛔ BAŞKA bir jetonun okuması sürerken gelen olay atlanmamalı: yeni
+    // oturum eskisinin okumasını beklemek zorunda değil.
+    it("başka bir jetonun okuması sürüyorken yeni jeton yine çözülür", () => {
+      const decision = resolveSessionEvent(
+        input({
+          event: "SIGNED_IN",
+          accessToken: "jeton-2",
+          pendingToken: "jeton-1",
+        })
+      );
+
+      expect(decision.action).toBe("resolve");
+    });
+  });
+
   describe("ilk boyamanın kilidi", () => {
     // #145'in düzeltmesi `getSession()`'ı kaldırıyor; `loading` artık yalnızca
     // bu olayla düşüyor. Kilidin düşmediği bir yol kalırsa ekran asılı kalır.

@@ -34,6 +34,8 @@ export type SessionAction =
   | "ignore"
   /** Bu jeton için kimlik zaten okundu; tekrar okuma. */
   | "skip-resolved"
+  /** Bu jeton için okuma ŞU AN sürüyor; ikinci kez başlatma. */
+  | "skip-pending"
   /** Oturum yok: kimliği sıfırla. */
   | "clear"
   /** Kimliği oku. */
@@ -46,6 +48,20 @@ export interface SessionEventInput {
   accessToken: string | null;
   /** En son **başarıyla** çözülmüş jeton; hiç çözülmediyse `null`. */
   resolvedToken: string | null;
+  /**
+   * Okuması **şu anda süren** jeton; hiçbir okuma sürmüyorsa `null`.
+   *
+   * `resolvedToken` tek başına yetmiyordu ve bu ölçüldü (#221): o değer
+   * `await`'ten **sonra** yazılıyor, oysa `signIn` sırasında `SIGNED_IN`
+   * olayı okuma daha bitmeden geliyor. O anda `resolvedToken` hâlâ `null`
+   * olduğu için olay `resolve` alıyor ve kimlik ikinci kez okunuyordu.
+   *
+   * İki ölçüt ayrı duruyor çünkü **başarısızlık cevapları farklı**: okuma
+   * bitmeden gelen olay atlanmalı, ama okuma **hata verirse** jeton çözülmüş
+   * sayılmamalı — aksi halde tek bir ağ hatası kimliği o oturum boyunca
+   * kalıcı olarak eksik bırakırdı.
+   */
+  pendingToken: string | null;
   /** Şifre kurtarma akışı sürüyor mu. */
   recovering: boolean;
 }
@@ -79,6 +95,7 @@ export function resolveSessionEvent({
   event,
   accessToken,
   resolvedToken,
+  pendingToken,
   recovering,
 }: SessionEventInput): SessionEventDecision {
   const releasesLoading =
@@ -103,6 +120,12 @@ export function resolveSessionEvent({
 
   if (accessToken === resolvedToken) {
     return { action: "skip-resolved", releasesLoading };
+  }
+
+  // Okuma sürüyorsa ikincisini başlatma. İki dal ayrı isimlerle dönüyor
+  // çünkü sebepleri farklı ve bir gün biri değişirse diğeri değişmemeli.
+  if (accessToken === pendingToken) {
+    return { action: "skip-pending", releasesLoading };
   }
 
   return { action: "resolve", releasesLoading };
