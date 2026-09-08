@@ -17,7 +17,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(13);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -34,7 +34,9 @@ values
   ('15000000-0000-0000-0000-000000000015', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'ogrenci-bir@example.test', '', now(), now()),
   ('16000000-0000-0000-0000-000000000016', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'diger-kurum-yoneticisi@example.test', '', now(), now());
+   'authenticated', 'authenticated', 'diger-kurum-yoneticisi@example.test', '', now(), now()),
+  ('17000000-0000-0000-0000-000000000017', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'vekil-ogretmen@example.test', '', now(), now());
 
 insert into public.organizations (id, name, slug, code)
 values
@@ -60,7 +62,11 @@ values
   ('1c500000-0000-0000-0000-0000000c5005', '1a000000-0000-0000-0000-00000000001a',
    '1aa00000-0000-0000-0000-00000000aa11', '15000000-0000-0000-0000-000000000015', 'student', 'active', 1104),
   ('1c600000-0000-0000-0000-0000000c6006', '1b000000-0000-0000-0000-00000000001b', null,
-   '16000000-0000-0000-0000-000000000016', 'admin', 'active', 1105);
+   '16000000-0000-0000-0000-000000000016', 'admin', 'active', 1105),
+  -- Vekil: öğretmen rolünde ama `class_teachers`'a ATANMIYOR. Kasıtlı —
+  -- vekilin adının yalnızca program satırından çözülebildiğini kanıtlar.
+  ('1c700000-0000-0000-0000-0000000c7007', '1a000000-0000-0000-0000-00000000001a',
+   '1aa00000-0000-0000-0000-00000000aa11', '17000000-0000-0000-0000-000000000017', 'teacher', 'active', 1106);
 
 insert into public.subjects (id, organization_id, name)
 values ('1d000000-0000-0000-0000-00000000001d', '1a000000-0000-0000-0000-00000000001a', 'Matematik');
@@ -86,6 +92,13 @@ values
    '1aa00000-0000-0000-0000-00000000aa11', '15000000-0000-0000-0000-000000000015', 'Birinci Öğrenci'),
   ('1f200000-0000-0000-0000-0000000f2002', '1a000000-0000-0000-0000-00000000001a',
    '1aa00000-0000-0000-0000-00000000aa11', null, 'İkinci Öğrenci');
+
+-- 12-A'nın bir saatini vekil dolduruyor: atama tablosunda yok, programda var.
+insert into public.schedule_entries
+  (organization_id, class_id, membership_id, title, day_of_week, starts_at)
+values
+  ('1a000000-0000-0000-0000-00000000001a', '1e100000-0000-0000-0000-0000000e1001',
+   '1c700000-0000-0000-0000-0000000c7007', 'Etüt', 3, '10:00');
 
 insert into public.class_enrollments (organization_id, class_id, student_id)
 values
@@ -162,8 +175,19 @@ select is(
 select is(
   (select count(*) from public.class_staff_names(
      array['1e100000-0000-0000-0000-0000000e1001']::uuid[])),
+  2::bigint,
+  'the function returns both the mentor and the substitute who actually fills an hour'
+);
+
+-- ⛔ Vekilin adı YALNIZCA program satırından çözülebilir: `class_teachers`'a
+-- atanmamış. Fonksiyon yalnız mentor ve atamalara baksaydı bu 0 dönerdi ve
+-- ekran dersi gerçekten veren öğretmeni adsız gösterirdi (K-22).
+select is(
+  (select count(*) from public.class_staff_names(
+     array['1e100000-0000-0000-0000-0000000e1001']::uuid[])
+   where display_name = 'vekil-ogretmen'),
   1::bigint,
-  'a teacher reads the staff name of their own class through the function'
+  'a substitute with no class_teachers row is still named — the schedule row is enough'
 );
 
 -- ⛔ İkinci olumsuz: göremediğin sınıfın öğretmenini de göremezsin.
