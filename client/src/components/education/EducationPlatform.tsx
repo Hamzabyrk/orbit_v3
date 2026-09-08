@@ -17,11 +17,17 @@ import {
   initialAttendances,
   initialAutomations,
   initialHomework,
+  schedule,
   students,
 } from "./educationData";
-import { useClasses, useStudents } from "@/education/educationQueries";
+import {
+  useClasses,
+  useSchedule,
+  useStudents,
+} from "@/education/educationQueries";
 import { DEFAULT_STUDENT_LIMIT } from "@/education/studentService";
 import { DEFAULT_CLASS_LIMIT } from "@/education/classService";
+import { DEFAULT_SCHEDULE_LIMIT } from "@/education/scheduleService";
 import { allNav } from "./navigation";
 import { roleMeta } from "./roleMeta";
 import { AssessmentsPage } from "./pages/AssessmentsPage";
@@ -110,6 +116,7 @@ export function EducationPlatform({
 
   const studentsQuery = useStudents({ enabled: !isDemoMode });
   const classesQuery = useClasses({ enabled: !isDemoMode });
+  const scheduleQuery = useSchedule({ enabled: !isDemoMode });
 
   const activeStudents = useMemo(() => {
     if (isDemoMode) {
@@ -124,6 +131,13 @@ export function EducationPlatform({
     }
     return classesQuery.data?.rows ?? [];
   }, [classesQuery.data?.rows]);
+
+  const activeSchedule = useMemo(() => {
+    if (isDemoMode) {
+      return schedule;
+    }
+    return scheduleQuery.data?.rows ?? [];
+  }, [scheduleQuery.data?.rows]);
 
   const visibleStudents = useMemo(() => {
     const roleStudents = filterStudentsForRole(
@@ -251,7 +265,17 @@ export function EducationPlatform({
           onNavigate={navigate}
         />
       );
-    if (active === "Ders Programı") return <SchedulePage role={role} />;
+    if (active === "Ders Programı")
+      return (
+        <SchedulePage
+          role={role}
+          schedule={activeSchedule}
+          isLoading={!isDemoMode && scheduleQuery.isLoading}
+          error={!isDemoMode ? scheduleQuery.error : null}
+          truncated={!isDemoMode && Boolean(scheduleQuery.data?.truncated)}
+          limit={DEFAULT_SCHEDULE_LIMIT}
+        />
+      );
     if (active === "Yoklama")
       return (
         <AttendancePage

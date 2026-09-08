@@ -35,13 +35,15 @@ import type { WeekDay } from "@/education/weekDays";
 export type { WeekDay };
 
 export type ScheduleItem = {
+  id?: string;
   day: WeekDay;
   time: string;
   title: string;
-  group: string;
-  teacher: string;
-  room: string;
-  tone: string;
+  group?: string | null;
+  teacher?: string | null;
+  room?: string | null;
+  tone?: string;
+  duration?: string | null;
 };
 
 export type Automation = {

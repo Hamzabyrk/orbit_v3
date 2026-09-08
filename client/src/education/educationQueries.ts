@@ -10,9 +10,14 @@ import {
   loadClasses,
   type ClassListResult,
 } from "./classService";
+import {
+  DEFAULT_SCHEDULE_LIMIT,
+  loadSchedule,
+  type ScheduleListResult,
+} from "./scheduleService";
 
 /**
- * Eğitim alanı sorgu anahtarları (v1.3-01 · A parçası, **K-19** / mimari kararlar).
+ * Eğitim alanı sorgu anahtarları (v1.3-01 · A ve B parçaları, **K-19** / mimari kararlar).
  *
  * **Anahtar sözleşmesi:** `[alan, kaynak, kapsam]`
  *
@@ -31,6 +36,8 @@ export const educationKeys = {
     ["education", "students", { organizationId }] as const,
   classes: (organizationId: string) =>
     ["education", "classes", { organizationId }] as const,
+  schedule: (organizationId: string) =>
+    ["education", "schedule", { organizationId }] as const,
 };
 
 export type UseStudentsOptions = {
@@ -85,6 +92,34 @@ export function useClasses(options?: UseClassesOptions) {
       ? educationKeys.classes(organizationId)
       : (["education", "classes", { organizationId: "" }] as const),
     queryFn: () => loadClasses(limit),
+    enabled: isEnabled,
+  });
+}
+
+export type UseScheduleOptions = {
+  organizationId?: string;
+  limit?: number;
+  enabled?: boolean;
+};
+
+/**
+ * Aktif kurumun ders programını getiren React Query hook'u (v1.3-01 · B parçası).
+ *
+ * Aktif kurum kimliği `useAuth` üzerinden sağlanır; kurum kimliği henüz
+ * çözümlenmemişse veya kullanıcı bir kuruma ait değilse sorgu çalıştırılmaz (`enabled: false`).
+ */
+export function useSchedule(options?: UseScheduleOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const limit = options?.limit ?? DEFAULT_SCHEDULE_LIMIT;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<ScheduleListResult, Error>({
+    queryKey: organizationId
+      ? educationKeys.schedule(organizationId)
+      : (["education", "schedule", { organizationId: "" }] as const),
+    queryFn: () => loadSchedule(limit),
     enabled: isEnabled,
   });
 }

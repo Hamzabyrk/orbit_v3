@@ -24,6 +24,15 @@ describe("educationKeys (K-19 ve Cache İzolasyonu)", () => {
     ]);
   });
 
+  it("ders programı anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu taşır", () => {
+    const key = educationKeys.schedule("org-789");
+    expect(key).toEqual([
+      "education",
+      "schedule",
+      { organizationId: "org-789" },
+    ]);
+  });
+
   it("farklı kurumlar için farklı sorgu anahtarları üretir (önbellek karışması önlenir)", () => {
     const key1 = educationKeys.students("org-a");
     const key2 = educationKeys.students("org-b");
@@ -32,5 +41,9 @@ describe("educationKeys (K-19 ve Cache İzolasyonu)", () => {
     const classKey1 = educationKeys.classes("org-a");
     const classKey2 = educationKeys.classes("org-b");
     expect(classKey1).not.toEqual(classKey2);
+
+    const scheduleKey1 = educationKeys.schedule("org-a");
+    const scheduleKey2 = educationKeys.schedule("org-b");
+    expect(scheduleKey1).not.toEqual(scheduleKey2);
   });
 });
