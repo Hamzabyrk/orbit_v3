@@ -13,6 +13,10 @@ import {
 } from "lucide-react";
 import { isDemoMode } from "@/auth/runtime";
 import {
+  formatCurrency,
+  type PaymentOverviewCounts,
+} from "@/education/paymentService";
+import {
   adminAutomationActivities as demoAdminAutomationActivities,
   adminFollowUpNote as demoAdminFollowUpNote,
   adminOverviewHeader as demoAdminOverviewHeader,
@@ -363,7 +367,7 @@ function getLastFourMonths(referenceDate: Date = new Date()): string[] {
   ];
 }
 
-function buildStatCards(
+export function buildStatCards(
   templates: OverviewStatTemplate[],
   demoValues: Record<string, OverviewStatValue> | null
 ): OverviewStat[] {
@@ -374,6 +378,39 @@ function buildStatCards(
       value: demo ? demo.value : tmpl.emptyValue,
       detail:
         demo && demo.detail !== undefined ? demo.detail : tmpl.emptyDetail,
+      icon: tmpl.icon,
+      tone: tmpl.tone,
+    };
+  });
+}
+
+/**
+ * Ödeme genel bakış sayılarını şablonlarla eşleyerek yönetici kartlarına dönüştürür (v1.3-01e · 3.E).
+ *
+ * counts null ise (yetkisiz çağırana satır dönmemesi veya taksit olmaması) boş dizi döner ve kartlar çizilmez (K-22).
+ * Üretimde "Planlanan tahsilatın %82'si" gibi tanımsız alt metinler üretilmez, şablonun emptyDetail'i kullanılır (#239, K-03).
+ */
+export function buildPaymentStats(
+  counts: PaymentOverviewCounts | null
+): OverviewStat[] {
+  if (!counts) {
+    return [];
+  }
+
+  return paymentOverviewStatTemplates.map(tmpl => {
+    let value = tmpl.emptyValue;
+    if (tmpl.key === "monthly-collection") {
+      value = formatCurrency(counts.collectedThisMonth);
+    } else if (tmpl.key === "upcoming-installments") {
+      value = String(counts.upcomingCount);
+    } else if (tmpl.key === "follow-up-payments") {
+      value = String(counts.overdueCount);
+    }
+
+    return {
+      label: tmpl.label,
+      value,
+      detail: tmpl.emptyDetail,
       icon: tmpl.icon,
       tone: tmpl.tone,
     };

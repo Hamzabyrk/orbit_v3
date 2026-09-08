@@ -20,9 +20,16 @@ import {
   type LatestAttendanceSessionResult,
 } from "./attendanceService";
 import { loadLatestExam, type LatestExamResult } from "./examService";
+import {
+  DEFAULT_PAYMENT_LIMIT,
+  loadPaymentOverviewCounts,
+  loadPayments,
+  type PaymentListResult,
+  type PaymentOverviewCounts,
+} from "./paymentService";
 
 /**
- * Eğitim alanı sorgu anahtarları (v1.3-01 · A, B, C ve D parçaları, **K-19** / mimari kararlar).
+ * Eğitim alanı sorgu anahtarları (v1.3-01 · A, B, C, D ve E parçaları, **K-19** / mimari kararlar).
  *
  * **Anahtar sözleşmesi:** `[alan, kaynak, kapsam]`
  *
@@ -47,6 +54,10 @@ export const educationKeys = {
     ["education", "attendance", { organizationId }] as const,
   exam: (organizationId: string) =>
     ["education", "exam", { organizationId }] as const,
+  payments: (organizationId: string) =>
+    ["education", "payments", { organizationId }] as const,
+  paymentOverview: (organizationId: string) =>
+    ["education", "paymentOverview", { organizationId }] as const,
 };
 
 export type UseStudentsOptions = {
@@ -183,6 +194,60 @@ export function useLatestExam(options?: UseLatestExamOptions) {
       ? educationKeys.exam(organizationId)
       : (["education", "exam", { organizationId: "" }] as const),
     queryFn: () => loadLatestExam(),
+    enabled: isEnabled,
+  });
+}
+
+export type UsePaymentsOptions = {
+  organizationId?: string;
+  limit?: number;
+  enabled?: boolean;
+};
+
+/**
+ * Aktif kurumun ödeme planlarını getiren React Query hook'u (v1.3-01 · E parçası).
+ *
+ * Aktif kurum kimliği `useAuth` üzerinden sağlanır; kurum kimliği henüz
+ * çözümlenmemişse veya kullanıcı bir kuruma ait değilse sorgu çalıştırılmaz (`enabled: false`).
+ */
+export function usePayments(options?: UsePaymentsOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const limit = options?.limit ?? DEFAULT_PAYMENT_LIMIT;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<PaymentListResult, Error>({
+    queryKey: organizationId
+      ? educationKeys.payments(organizationId)
+      : (["education", "payments", { organizationId: "" }] as const),
+    queryFn: () => loadPayments(limit),
+    enabled: isEnabled,
+  });
+}
+
+export type UsePaymentOverviewOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Aktif kurumun ödeme genel bakış sayılarını getiren React Query hook'u (v1.3-01 · E parçası).
+ *
+ * Aktif kurum kimliği `useAuth` üzerinden sağlanır; kurum kimliği henüz
+ * çözümlenmemişse veya kullanıcı bir kuruma ait değilse sorgu çalıştırılmaz (`enabled: false`).
+ */
+export function usePaymentOverview(options?: UsePaymentOverviewOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<PaymentOverviewCounts | null, Error>({
+    queryKey: organizationId
+      ? educationKeys.paymentOverview(organizationId)
+      : (["education", "paymentOverview", { organizationId: "" }] as const),
+    queryFn: () => loadPaymentOverviewCounts(),
     enabled: isEnabled,
   });
 }

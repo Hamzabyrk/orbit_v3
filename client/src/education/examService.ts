@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { formatTrDate } from "./trDate";
 
 /**
  * Sınav servis katmanı (v1.3-01 · D parçası).
@@ -75,37 +76,6 @@ export type LatestExamResult = {
   exam: LatestExamDetail | null;
 };
 
-const TR_MONTHS = [
-  "Ocak",
-  "Şubat",
-  "Mart",
-  "Nisan",
-  "Mayıs",
-  "Haziran",
-  "Temmuz",
-  "Ağustos",
-  "Eylül",
-  "Ekim",
-  "Kasım",
-  "Aralık",
-];
-
-/**
- * Sınav tarihini Türkçe arayüz formatına çevirir (ör. "14 Ağustos 2026").
- */
-export function formatExamDate(dateStr: string): string {
-  if (!dateStr) return "";
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return dateStr;
-
-  const year = parts[0];
-  const monthIdx = parseInt(parts[1], 10) - 1;
-  const day = parseInt(parts[2], 10);
-
-  const monthName = TR_MONTHS[monthIdx] || parts[1];
-  return `${day} ${monthName} ${year}`;
-}
-
 /**
  * Sınav başlık alt metnini oluşturur (v1.3-01d · 2.E).
  *
@@ -119,7 +89,7 @@ export function formatExamDate(dateStr: string): string {
  */
 export function formatExamSummary(exam: LatestExamDetail): string {
   const parts: string[] = [];
-  const dt = formatExamDate(exam.examDate);
+  const dt = formatTrDate(exam.examDate);
   if (dt) {
     parts.push(dt);
   }
