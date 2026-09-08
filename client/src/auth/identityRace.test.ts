@@ -683,4 +683,111 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
     expect(testQueryClient.getQueryData(queryKey)).toBeUndefined();
     expect(testQueryClient.getQueryCache().getAll().length).toBe(0);
   });
+  // #221 — Bu testin ölçtüğü şey bir sayı: tek girişte kaç kez kimlik okunuyor.
+  //
+  // Eskiden iki. Sebebi `resolvedTokenRef`'in `await`'ten SONRA yazılmasıydı:
+  // `signIn` okumayı başlatıyor, Supabase `SIGNED_IN` yayıyor, olay işlendiğinde
+  // okuma daha bitmediği için işaret hâlâ `null` oluyor ve ikinci okuma
+  // başlıyordu. `AuthProvider`'ın yorumu 2026-09-09'a kadar bunun olmadığını
+  // iddia ediyordu.
+  it("Test 6 — tek girişte kimlik YALNIZCA BİR KEZ okunur (#221)", async () => {
+    let latestContext: AuthContextType | null = null;
+
+    function TestConsumer() {
+      latestContext = useContext(AuthContext);
+      return null;
+    }
+
+    signInWithPasswordMock.mockImplementation(async () => ({
+      data: { user: testUser, session: testSession },
+      error: null,
+    }));
+
+    let resolveMembershipQuery: (result: QueryResult) => void;
+    const delayedMembershipPromise = new Promise<QueryResult>(resolve => {
+      resolveMembershipQuery = resolve;
+    });
+
+    let membershipCalls = 0;
+    fromMock.mockImplementation((table: string) => {
+      if (table === "organization_memberships") {
+        membershipCalls++;
+        return chainReturning(delayedMembershipPromise);
+      }
+      if (table === "organizations") {
+        return chainReturning(ok({ name: "Pilot Dershane", code: 1042 }));
+      }
+      if (table === "branches") {
+        return chainReturning(ok({ id: "b1", name: "Merkez" }));
+      }
+      if (table === "profiles") {
+        return chainReturning(
+          ok({
+            display_name: "Pilot Kullanıcı",
+            must_change_password: false,
+            password_expires_at: null,
+            recovery_email: null,
+          })
+        );
+      }
+      return chainReturning(empty);
+    });
+
+    const rootDiv = mockDoc.createElement("div");
+    mockDoc.body.appendChild(rootDiv);
+    const root = ReactDOM.createRoot(rootDiv as unknown as HTMLElement);
+
+    await React.act(async () => {
+      root.render(
+        React.createElement(
+          QueryClientProvider,
+          { client: new QueryClient() },
+          React.createElement(
+            AuthProvider,
+            null,
+            React.createElement(TestConsumer)
+          )
+        )
+      );
+    });
+
+    // 1. Giriş başlar; üyelik sorgusu uçuşta kalır.
+    let signInPromise: Promise<void>;
+    await React.act(async () => {
+      signInPromise = latestContext!.signIn({
+        email: "pilot@dershane.com",
+        password: "password123",
+      });
+      await new Promise(r => setTimeout(r, 10));
+    });
+
+    // 2. Tam bu sırada Supabase SIGNED_IN yayar — gerçek akışın kendisi.
+    await React.act(async () => {
+      authChangeListener!("SIGNED_IN", testSession);
+      await new Promise(r => setTimeout(r, 10));
+    });
+
+    // 3. Uçuştaki sorgu şimdi döner.
+    await React.act(async () => {
+      resolveMembershipQuery!(
+        ok({
+          id: "m-6",
+          organization_id: "org-1",
+          branch_id: null,
+          role: "teacher",
+        })
+      );
+      await new Promise(r => setTimeout(r, 20));
+    });
+
+    await signInPromise!;
+
+    // ⛔ Ölçüm: iki değil bir.
+    expect(membershipCalls).toBe(1);
+
+    // Ve dedup kimliği kaybettirmedi — atlanan olay yerine geçmedi, sadece
+    // aynı işi tekrarlamadı.
+    expect(latestContext?.identity).not.toBeNull();
+    expect(latestContext?.identity?.membership?.role).toBe("teacher");
+  });
 });
