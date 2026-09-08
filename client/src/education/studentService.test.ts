@@ -172,8 +172,8 @@ describe("studentService", () => {
     });
   });
 
-  describe("mapStudentRow (Tip Dürüstlüğü & K-03 & Devam Türetimi)", () => {
-    it("devam yüzdesi verildiğinde nesneye yazar", () => {
+  describe("mapStudentRow (Tip Dürüstlüğü & K-03 & Devam ve Sınav Türetimi)", () => {
+    it("devam yüzdesi ve sınav puanı verildiğinde nesneye yazar", () => {
       const mapped = mapStudentRow(
         {
           id: "stu-1",
@@ -184,14 +184,16 @@ describe("studentService", () => {
           ],
           student_guardians: [],
         },
-        85
+        85,
+        92
       );
 
       expect(mapped.id).toBe("stu-1");
       expect(mapped.attendance).toBe(85);
+      expect(mapped.score).toBe(92);
     });
 
-    it("devam yüzdesi undefined ise alana undefined yazar, sıfır uydurmaz (K-22)", () => {
+    it("devam yüzdesi veya sınav puanı undefined ise alanlara undefined yazar, sıfır uydurmaz (K-22)", () => {
       const mapped = mapStudentRow(
         {
           id: "stu-2",
@@ -200,10 +202,12 @@ describe("studentService", () => {
           class_enrollments: [],
           student_guardians: [],
         },
+        undefined,
         undefined
       );
 
       expect(mapped.attendance).toBeUndefined();
+      expect(mapped.score).toBeUndefined();
     });
 
     it("kaynağı olmayan alanları kesinlikle uydurmaz (undefined bırakır)", () => {
@@ -238,8 +242,8 @@ describe("studentService", () => {
     });
   });
 
-  describe("loadStudents (Sorgu ve Devam Yüzdesi Entegrasyonu)", () => {
-    it("öğrencileri ada göre artan sırada çeker ve devam yüzdelerini bağlar", async () => {
+  describe("loadStudents (Sorgu, Devam Yüzdesi ve Sınav Puanı Entegrasyonu)", () => {
+    it("öğrencileri ada göre artan sırada çeker, devam yüzdesi ve sınav puanını bağlar", async () => {
       const studentRows = [
         {
           id: "stu-1",
@@ -271,6 +275,17 @@ describe("studentService", () => {
             error: null,
           });
         }
+        if (fn === "student_latest_exam_scores") {
+          return Promise.resolve({
+            data: [
+              {
+                student_id: "stu-1",
+                score: "88.00",
+              },
+            ],
+            error: null,
+          });
+        }
         return Promise.resolve({ data: null, error: null });
       });
 
@@ -278,17 +293,27 @@ describe("studentService", () => {
 
       expect(fromMock).toHaveBeenCalledWith("students");
       expect(fromMock).not.toHaveBeenCalledWith("attendance_records");
+      expect(fromMock).not.toHaveBeenCalledWith("exam_results");
+      expect(rpcMock).not.toHaveBeenCalledWith(
+        "exam_ranking",
+        expect.anything()
+      );
+
       expect(rpcMock).toHaveBeenCalledWith("student_attendance_counts", {
+        target_student_ids: ["stu-1"],
+      });
+      expect(rpcMock).toHaveBeenCalledWith("student_latest_exam_scores", {
         target_student_ids: ["stu-1"],
       });
 
       expect(result.rows).toHaveLength(1);
       expect(result.rows[0].name).toBe("Ali Can");
       expect(result.rows[0].attendance).toBe(100);
+      expect(result.rows[0].score).toBe(88);
       expect(result.truncated).toBe(false);
     });
 
-    it("yoklama kaydı olmayan öğrencinin devamı undefined kalır (K-22: %0 gösterilmez)", async () => {
+    it("yoklama kaydı veya sınavı olmayan öğrencinin devamı ve puanı undefined kalır (K-22: %0 veya 0 gösterilmez)", async () => {
       fromMock.mockImplementation((table: string) => {
         if (table === "students") {
           return createQueryChain({
@@ -308,7 +333,10 @@ describe("studentService", () => {
       });
 
       rpcMock.mockImplementation((fn: string) => {
-        if (fn === "student_attendance_counts") {
+        if (
+          fn === "student_attendance_counts" ||
+          fn === "student_latest_exam_scores"
+        ) {
           return Promise.resolve({ data: [], error: null });
         }
         return Promise.resolve({ data: null, error: null });
@@ -316,7 +344,14 @@ describe("studentService", () => {
 
       const result = await loadStudents();
       expect(fromMock).not.toHaveBeenCalledWith("attendance_records");
+      expect(fromMock).not.toHaveBeenCalledWith("exam_results");
+      expect(rpcMock).not.toHaveBeenCalledWith(
+        "exam_ranking",
+        expect.anything()
+      );
+
       expect(result.rows[0].attendance).toBeUndefined();
+      expect(result.rows[0].score).toBeUndefined();
     });
 
     it("satır sayısı limite eşitse truncated bayrağı true döner (K-03)", async () => {

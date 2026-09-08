@@ -1,9 +1,10 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { Student } from "@/components/education/types";
 import { loadStudentAttendancePercentages } from "./attendanceService";
+import { loadStudentLatestExamScores } from "./examService";
 
 /**
- * Öğrenci listesi servis katmanı (v1.3-01 · A ve C parçaları).
+ * Öğrenci listesi servis katmanı (v1.3-01 · A, C ve D parçaları).
  *
  * `students` tablosunu gerçek Supabase sorgusuna bağlar.
  *
@@ -20,8 +21,13 @@ import { loadStudentAttendancePercentages } from "./attendanceService";
  * (`loadStudentAttendancePercentages`) ile doldurulur. Öğrenci başına tekil sorgu atılmaz (N+1 engellenir).
  * Payda sıfır ise veya hiç kayıt yoksa değer `undefined` bırakılır (K-22).
  *
+ * **Sınav puanı türetimi (v1.3-01d · 2.D & K-06):**
+ * `Student.score` alanı `examService`'ten çağrılan toplu yardımcı
+ * (`loadStudentLatestExamScores`) ile doldurulur. Öğrenci başına tekil sorgu atılmaz (N+1 engellenir).
+ * Sınavı olmayan öğrencinin puanı `undefined` bırakılır, kesinlikle `0` verilmez (K-22).
+ *
  * **Tip dürüstlüğü (K-03):** Kaynağı olmayan veya henüz hesaplanmayan alanlar
- * (`code`, `score`, `homework`, `payment`, `risk`) `undefined` bırakılır,
+ * (`code`, `homework`, `payment`, `risk`) `undefined` bırakılır,
  * kesinlikle `0` veya uydurulmuş dizelerle doldurulmaz.
  */
 
@@ -121,7 +127,8 @@ export function extractGuardianName(links: unknown): string | null {
 
 export function mapStudentRow(
   row: RawStudentRow,
-  attendancePercentage?: number
+  attendancePercentage?: number,
+  latestExamScore?: number
 ): Student {
   return {
     id: row.id,
@@ -130,9 +137,11 @@ export function mapStudentRow(
     branch: extractBranchName(row.branches),
     parent: extractGuardianName(row.student_guardians),
     attendance: attendancePercentage,
+    score: latestExamScore,
     // Kaynağı olmayan ve henüz türetilmeyen alanlar dürüstçe undefined bırakılır:
     // code: v1.4-01'de gelecek (K-12 gereği asgari veri politikası)
-    // score, homework, payment, risk: D, E parçalarında bağlanacak
+    // homework: teslim tablosu yok; türetilemez (#237, ROADMAP §4.7)
+    // payment, risk: E parçasında bağlanacak
   };
 }
 
@@ -167,11 +176,13 @@ export async function loadStudents(
 
   const rawRows = (data ?? []) as RawStudentRow[];
   const studentIds = rawRows.map(r => r.id);
-  const attendancePercentages =
-    await loadStudentAttendancePercentages(studentIds);
+  const [attendancePercentages, latestScores] = await Promise.all([
+    loadStudentAttendancePercentages(studentIds),
+    loadStudentLatestExamScores(studentIds),
+  ]);
 
   const rows = rawRows.map(r =>
-    mapStudentRow(r, attendancePercentages.get(r.id))
+    mapStudentRow(r, attendancePercentages.get(r.id), latestScores.get(r.id))
   );
 
   return {

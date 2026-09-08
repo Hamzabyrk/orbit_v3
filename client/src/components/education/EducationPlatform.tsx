@@ -23,6 +23,7 @@ import {
 import {
   useClasses,
   useLatestAttendanceSession,
+  useLatestExam,
   useSchedule,
   useStudents,
 } from "@/education/educationQueries";
@@ -119,6 +120,7 @@ export function EducationPlatform({
   const classesQuery = useClasses({ enabled: !isDemoMode });
   const scheduleQuery = useSchedule({ enabled: !isDemoMode });
   const attendanceQuery = useLatestAttendanceSession({ enabled: !isDemoMode });
+  const examQuery = useLatestExam({ enabled: !isDemoMode });
 
   const activeStudents = useMemo(() => {
     if (isDemoMode) {
@@ -293,7 +295,15 @@ export function EducationPlatform({
         />
       );
     if (active === "Sınavlar")
-      return <AssessmentsPage role={role} onNavigate={navigate} />;
+      return (
+        <AssessmentsPage
+          role={role}
+          onNavigate={navigate}
+          exam={!isDemoMode ? (examQuery.data?.exam ?? null) : undefined}
+          isLoading={!isDemoMode && examQuery.isLoading}
+          error={!isDemoMode ? examQuery.error : null}
+        />
+      );
     if (active === "Ödevler")
       return (
         <HomeworkPage
