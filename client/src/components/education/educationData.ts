@@ -286,7 +286,7 @@ export const assessmentOverviewStatTemplates = {
       icon: BarChart3,
       tone: "violet" as const,
       emptyValue: "—",
-      emptyDetail: "100 üzerinden",
+      emptyDetail: "",
     },
     {
       key: "progress",
@@ -312,7 +312,7 @@ export const assessmentOverviewStatTemplates = {
       icon: BarChart3,
       tone: "violet" as const,
       emptyValue: "—",
-      emptyDetail: "100 üzerinden",
+      emptyDetail: "",
     },
     {
       key: "progress",

@@ -19,9 +19,10 @@ import {
   loadLatestAttendanceSession,
   type LatestAttendanceSessionResult,
 } from "./attendanceService";
+import { loadLatestExam, type LatestExamResult } from "./examService";
 
 /**
- * Eğitim alanı sorgu anahtarları (v1.3-01 · A, B ve C parçaları, **K-19** / mimari kararlar).
+ * Eğitim alanı sorgu anahtarları (v1.3-01 · A, B, C ve D parçaları, **K-19** / mimari kararlar).
  *
  * **Anahtar sözleşmesi:** `[alan, kaynak, kapsam]`
  *
@@ -44,6 +45,8 @@ export const educationKeys = {
     ["education", "schedule", { organizationId }] as const,
   attendance: (organizationId: string) =>
     ["education", "attendance", { organizationId }] as const,
+  exam: (organizationId: string) =>
+    ["education", "exam", { organizationId }] as const,
 };
 
 export type UseStudentsOptions = {
@@ -154,6 +157,32 @@ export function useLatestAttendanceSession(
       ? educationKeys.attendance(organizationId)
       : (["education", "attendance", { organizationId: "" }] as const),
     queryFn: () => loadLatestAttendanceSession(),
+    enabled: isEnabled,
+  });
+}
+
+export type UseLatestExamOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Aktif kurumun en son aktif sınavını getiren React Query hook'u (v1.3-01 · D parçası).
+ *
+ * Aktif kurum kimliği `useAuth` üzerinden sağlanır; kurum kimliği henüz
+ * çözümlenmemişse veya kullanıcı bir kuruma ait değilse sorgu çalıştırılmaz (`enabled: false`).
+ */
+export function useLatestExam(options?: UseLatestExamOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<LatestExamResult, Error>({
+    queryKey: organizationId
+      ? educationKeys.exam(organizationId)
+      : (["education", "exam", { organizationId: "" }] as const),
+    queryFn: () => loadLatestExam(),
     enabled: isEnabled,
   });
 }
