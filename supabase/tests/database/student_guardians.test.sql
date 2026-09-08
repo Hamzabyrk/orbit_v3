@@ -269,10 +269,23 @@ select is(
 
 select set_config('request.jwt.claim.sub', 'e2000000-0000-0000-0000-0000000000e2', true);
 
+-- ⚠️ Bu iddianın GEREKÇESİ 2026-09-08'de değişti (#228), sonucu değil.
+--
+-- Eskiden mesajı 'that is not their business' diyordu: öğretmenin veliyi
+-- görmemesi bir politika tercihiydi. O tercih geri alındı — öğretmen artık
+-- KENDİ ÖĞRENCİLERİNİN velisini görüyor (`guardians_select_teacher`).
+--
+-- İddia yine de 0 döndürüyor ve doğru: bu kurgudaki öğretmenin hiçbir sınıf
+-- ataması yok (`class_teachers` boş), dolayısıyla hiçbir öğrenciye ders
+-- vermiyor. Kapsam atamadan gelir, rolden değil.
+--
+-- Yani burada ölçülen şey artık "öğretmen veliyi görmez" değil, "ataması
+-- olmayan öğretmenin kapsamı boştur". Öğretmenin ataması OLDUĞUNDA ne
+-- gördüğü `guardian_and_staff_names.test.sql`'de sınanır.
 select is(
   (select count(*) from public.student_guardians),
   0::bigint,
-  'a teacher sees no guardian links — that is not their business'
+  'a teacher with no class assignment sees no guardian links — scope comes from assignment'
 );
 
 select set_config('request.jwt.claim.sub', 'e5000000-0000-0000-0000-0000000000e5', true);
