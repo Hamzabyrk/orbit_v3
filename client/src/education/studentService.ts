@@ -1,8 +1,9 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { Student } from "@/components/education/types";
+import { loadStudentAttendancePercentages } from "./attendanceService";
 
 /**
- * Öğrenci listesi servis katmanı (v1.3-01 · A parçası).
+ * Öğrenci listesi servis katmanı (v1.3-01 · A ve C parçaları).
  *
  * `students` tablosunu gerçek Supabase sorgusuna bağlar.
  *
@@ -14,8 +15,13 @@ import type { Student } from "@/components/education/types";
  * **Arşiv filtresi zorunludur:** `archived_at is null` filtresi uygulanır. Bu sistemde
  * silme yerine arşivleme kullanılır; arşivlenmiş satırı getirmek silinen kaydı canlandırmaktır.
  *
+ * **Devam yüzdesi türetimi (v1.3-01c · 2.D & K-06):**
+ * `Student.attendance` alanı `attendanceService`'ten çağrılan toplu yardımcı
+ * (`loadStudentAttendancePercentages`) ile doldurulur. Öğrenci başına tekil sorgu atılmaz (N+1 engellenir).
+ * Payda sıfır ise veya hiç kayıt yoksa değer `undefined` bırakılır (K-22).
+ *
  * **Tip dürüstlüğü (K-03):** Kaynağı olmayan veya henüz hesaplanmayan alanlar
- * (`code`, `attendance`, `score`, `homework`, `payment`, `risk`) `undefined` bırakılır,
+ * (`code`, `score`, `homework`, `payment`, `risk`) `undefined` bırakılır,
  * kesinlikle `0` veya uydurulmuş dizelerle doldurulmaz.
  */
 
@@ -113,16 +119,20 @@ export function extractGuardianName(links: unknown): string | null {
   return activeGuardians.length > 0 ? activeGuardians.join(", ") : null;
 }
 
-export function mapStudentRow(row: RawStudentRow): Student {
+export function mapStudentRow(
+  row: RawStudentRow,
+  attendancePercentage?: number
+): Student {
   return {
     id: row.id,
     name: row.full_name,
     group: extractClassName(row.class_enrollments),
     branch: extractBranchName(row.branches),
     parent: extractGuardianName(row.student_guardians),
+    attendance: attendancePercentage,
     // Kaynağı olmayan ve henüz türetilmeyen alanlar dürüstçe undefined bırakılır:
     // code: v1.4-01'de gelecek (K-12 gereği asgari veri politikası)
-    // attendance, score, homework, payment, risk: C, D, E parçalarında bağlanacak
+    // score, homework, payment, risk: D, E parçalarında bağlanacak
   };
 }
 
@@ -156,7 +166,13 @@ export async function loadStudents(
   }
 
   const rawRows = (data ?? []) as RawStudentRow[];
-  const rows = rawRows.map(mapStudentRow);
+  const studentIds = rawRows.map(r => r.id);
+  const attendancePercentages =
+    await loadStudentAttendancePercentages(studentIds);
+
+  const rows = rawRows.map(r =>
+    mapStudentRow(r, attendancePercentages.get(r.id))
+  );
 
   return {
     rows,

@@ -22,6 +22,7 @@ import {
 } from "./educationData";
 import {
   useClasses,
+  useLatestAttendanceSession,
   useSchedule,
   useStudents,
 } from "@/education/educationQueries";
@@ -117,6 +118,7 @@ export function EducationPlatform({
   const studentsQuery = useStudents({ enabled: !isDemoMode });
   const classesQuery = useClasses({ enabled: !isDemoMode });
   const scheduleQuery = useSchedule({ enabled: !isDemoMode });
+  const attendanceQuery = useLatestAttendanceSession({ enabled: !isDemoMode });
 
   const activeStudents = useMemo(() => {
     if (isDemoMode) {
@@ -280,8 +282,14 @@ export function EducationPlatform({
       return (
         <AttendancePage
           role={role}
+          students={activeStudents}
           attendances={attendances}
           setAttendances={setAttendances}
+          session={
+            !isDemoMode ? (attendanceQuery.data?.session ?? null) : undefined
+          }
+          isLoading={!isDemoMode && attendanceQuery.isLoading}
+          error={!isDemoMode ? attendanceQuery.error : null}
         />
       );
     if (active === "Sınavlar")
