@@ -51,6 +51,24 @@ describe("educationKeys (K-19 ve Cache İzolasyonu)", () => {
     ]);
   });
 
+  it("ödeme listesi anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu taşır (v1.3-01e)", () => {
+    const key = educationKeys.payments("org-pay-1");
+    expect(key).toEqual([
+      "education",
+      "payments",
+      { organizationId: "org-pay-1" },
+    ]);
+  });
+
+  it("ödeme özet anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu taşır (v1.3-01e)", () => {
+    const key = educationKeys.paymentOverview("org-pay-1");
+    expect(key).toEqual([
+      "education",
+      "paymentOverview",
+      { organizationId: "org-pay-1" },
+    ]);
+  });
+
   it("farklı kurumlar için farklı sorgu anahtarları üretir (önbellek karışması önlenir)", () => {
     const key1 = educationKeys.students("org-a");
     const key2 = educationKeys.students("org-b");
@@ -71,5 +89,13 @@ describe("educationKeys (K-19 ve Cache İzolasyonu)", () => {
     const examKey1 = educationKeys.exam("org-a");
     const examKey2 = educationKeys.exam("org-b");
     expect(examKey1).not.toEqual(examKey2);
+
+    const payKey1 = educationKeys.payments("org-a");
+    const payKey2 = educationKeys.payments("org-b");
+    expect(payKey1).not.toEqual(payKey2);
+
+    const overKey1 = educationKeys.paymentOverview("org-a");
+    const overKey2 = educationKeys.paymentOverview("org-b");
+    expect(overKey1).not.toEqual(overKey2);
   });
 });

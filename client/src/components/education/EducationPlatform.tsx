@@ -17,19 +17,25 @@ import {
   initialAttendances,
   initialAutomations,
   initialHomework,
+  paymentOverviewStats,
+  paymentRows,
   schedule,
   students,
+  buildPaymentStats,
 } from "./educationData";
 import {
   useClasses,
   useLatestAttendanceSession,
   useLatestExam,
+  usePaymentOverview,
+  usePayments,
   useSchedule,
   useStudents,
 } from "@/education/educationQueries";
 import { DEFAULT_STUDENT_LIMIT } from "@/education/studentService";
 import { DEFAULT_CLASS_LIMIT } from "@/education/classService";
 import { DEFAULT_SCHEDULE_LIMIT } from "@/education/scheduleService";
+import { DEFAULT_PAYMENT_LIMIT } from "@/education/paymentService";
 import { allNav } from "./navigation";
 import { roleMeta } from "./roleMeta";
 import { AssessmentsPage } from "./pages/AssessmentsPage";
@@ -121,6 +127,8 @@ export function EducationPlatform({
   const scheduleQuery = useSchedule({ enabled: !isDemoMode });
   const attendanceQuery = useLatestAttendanceSession({ enabled: !isDemoMode });
   const examQuery = useLatestExam({ enabled: !isDemoMode });
+  const paymentsQuery = usePayments({ enabled: !isDemoMode });
+  const paymentOverviewQuery = usePaymentOverview({ enabled: !isDemoMode });
 
   const activeStudents = useMemo(() => {
     if (isDemoMode) {
@@ -142,6 +150,20 @@ export function EducationPlatform({
     }
     return scheduleQuery.data?.rows ?? [];
   }, [scheduleQuery.data?.rows]);
+
+  const activePayments = useMemo(() => {
+    if (isDemoMode) {
+      return paymentRows;
+    }
+    return paymentsQuery.data?.rows ?? [];
+  }, [paymentsQuery.data?.rows]);
+
+  const activePaymentOverviewStats = useMemo(() => {
+    if (isDemoMode) {
+      return paymentOverviewStats;
+    }
+    return buildPaymentStats(paymentOverviewQuery.data ?? null);
+  }, [paymentOverviewQuery.data]);
 
   const visibleStudents = useMemo(() => {
     const roleStudents = filterStudentsForRole(
@@ -320,7 +342,25 @@ export function EducationPlatform({
           setMessage={setMessage}
         />
       );
-    if (active === "Kayıt ve Ödemeler") return <PaymentsPage role={role} />;
+    if (active === "Kayıt ve Ödemeler")
+      return (
+        <PaymentsPage
+          role={role}
+          paymentRows={activePayments}
+          overviewStats={activePaymentOverviewStats}
+          isLoading={
+            !isDemoMode &&
+            (paymentsQuery.isLoading || paymentOverviewQuery.isLoading)
+          }
+          error={
+            !isDemoMode
+              ? paymentsQuery.error || paymentOverviewQuery.error
+              : null
+          }
+          truncated={!isDemoMode && Boolean(paymentsQuery.data?.truncated)}
+          limit={DEFAULT_PAYMENT_LIMIT}
+        />
+      );
     if (active === "Otomasyonlar")
       return (
         <AutomationsPage

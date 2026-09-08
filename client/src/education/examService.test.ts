@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  formatExamDate,
   formatExamSummary,
   loadExamParticipantCount,
   loadLatestExam,
@@ -68,13 +67,9 @@ describe("examService", () => {
     vi.clearAllMocks();
   });
 
-  describe("formatExamDate & formatExamSummary (K-22 & max_score Kuralı)", () => {
-    it("sınav tarihini Türkçe arayüz formatına çevirir", () => {
-      expect(formatExamDate("2026-08-14")).toBe("14 Ağustos 2026");
-      expect(formatExamDate("2026-01-05")).toBe("5 Ocak 2026");
-      expect(formatExamDate("")).toBe("");
-    });
-
+  // Tarih biçimlendiricinin kendi testleri `trDate.test.ts`'te; burada
+  // tekrarlanmıyor — aynı olgu iki yerde sınanırsa biri eskir (K-06).
+  describe("formatExamSummary (K-22 & max_score Kuralı)", () => {
     it("max_score dolu olduğunda 'N üzerinden' ibaresini ekler", () => {
       const exam: LatestExamDetail = {
         id: "exam-1",

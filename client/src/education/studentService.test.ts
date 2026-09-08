@@ -286,6 +286,17 @@ describe("studentService", () => {
             error: null,
           });
         }
+        if (fn === "student_payment_summaries") {
+          return Promise.resolve({
+            data: [
+              {
+                student_id: "stu-1",
+                overdue_count: "0",
+              },
+            ],
+            error: null,
+          });
+        }
         return Promise.resolve({ data: null, error: null });
       });
 
@@ -294,6 +305,7 @@ describe("studentService", () => {
       expect(fromMock).toHaveBeenCalledWith("students");
       expect(fromMock).not.toHaveBeenCalledWith("attendance_records");
       expect(fromMock).not.toHaveBeenCalledWith("exam_results");
+      expect(fromMock).not.toHaveBeenCalledWith("installments");
       expect(rpcMock).not.toHaveBeenCalledWith(
         "exam_ranking",
         expect.anything()
@@ -305,15 +317,19 @@ describe("studentService", () => {
       expect(rpcMock).toHaveBeenCalledWith("student_latest_exam_scores", {
         target_student_ids: ["stu-1"],
       });
+      expect(rpcMock).toHaveBeenCalledWith("student_payment_summaries", {
+        target_student_ids: ["stu-1"],
+      });
 
       expect(result.rows).toHaveLength(1);
       expect(result.rows[0].name).toBe("Ali Can");
       expect(result.rows[0].attendance).toBe(100);
       expect(result.rows[0].score).toBe(88);
+      expect(result.rows[0].payment).toBe("Güncel");
       expect(result.truncated).toBe(false);
     });
 
-    it("yoklama kaydı veya sınavı olmayan öğrencinin devamı ve puanı undefined kalır (K-22: %0 veya 0 gösterilmez)", async () => {
+    it("yoklama kaydı, sınavı veya ödeme planı olmayan öğrencinin alanları undefined kalır (K-22)", async () => {
       fromMock.mockImplementation((table: string) => {
         if (table === "students") {
           return createQueryChain({
@@ -335,7 +351,8 @@ describe("studentService", () => {
       rpcMock.mockImplementation((fn: string) => {
         if (
           fn === "student_attendance_counts" ||
-          fn === "student_latest_exam_scores"
+          fn === "student_latest_exam_scores" ||
+          fn === "student_payment_summaries"
         ) {
           return Promise.resolve({ data: [], error: null });
         }
@@ -345,6 +362,7 @@ describe("studentService", () => {
       const result = await loadStudents();
       expect(fromMock).not.toHaveBeenCalledWith("attendance_records");
       expect(fromMock).not.toHaveBeenCalledWith("exam_results");
+      expect(fromMock).not.toHaveBeenCalledWith("installments");
       expect(rpcMock).not.toHaveBeenCalledWith(
         "exam_ranking",
         expect.anything()
@@ -352,6 +370,78 @@ describe("studentService", () => {
 
       expect(result.rows[0].attendance).toBeUndefined();
       expect(result.rows[0].score).toBeUndefined();
+      // ⛔ Ödeme planı olmayan veya yetkisi olmayana "Güncel" denmez (K-22)
+      expect(result.rows[0].payment).toBeUndefined();
+    });
+
+    it("vadesi geçmiş taksiti olan öğrencinin payment alanı 'Takip gerekli' olur", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({
+            data: [
+              {
+                id: "stu-debtor",
+                full_name: "Borçlu Öğrenci",
+                branches: null,
+                class_enrollments: [],
+                student_guardians: [],
+              },
+            ],
+            error: null,
+          });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+
+      rpcMock.mockImplementation((fn: string) => {
+        if (fn === "student_payment_summaries") {
+          return Promise.resolve({
+            data: [
+              {
+                student_id: "stu-debtor",
+                overdue_count: "2", // PostgREST dizge döner
+              },
+            ],
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: [], error: null });
+      });
+
+      const result = await loadStudents();
+      expect(fromMock).not.toHaveBeenCalledWith("installments");
+      expect(result.rows[0].payment).toBe("Takip gerekli");
+    });
+
+    it("yetkisiz çağıran (öğretmen/öğrenci) boş küme aldığında payment undefined kalır, 'Güncel' uydurulmaz (K-22)", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({
+            data: [
+              {
+                id: "stu-1",
+                full_name: "Öğrenci 1",
+                branches: null,
+                class_enrollments: [],
+                student_guardians: [],
+              },
+            ],
+            error: null,
+          });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+
+      // Öğretmen ve öğrenci RLS gereği boş dizi alır
+      rpcMock.mockImplementation((fn: string) => {
+        if (fn === "student_payment_summaries") {
+          return Promise.resolve({ data: [], error: null });
+        }
+        return Promise.resolve({ data: [], error: null });
+      });
+
+      const result = await loadStudents();
+      expect(result.rows[0].payment).toBeUndefined();
     });
 
     it("satır sayısı limite eşitse truncated bayrağı true döner (K-03)", async () => {

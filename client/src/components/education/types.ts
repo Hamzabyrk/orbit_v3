@@ -61,7 +61,7 @@ export type PaymentRow = {
   plan: string;
   due: string;
   amount: string;
-  status: "Güncel" | "Hatırlatma gerekli" | "Gecikme riski";
+  status?: "Güncel" | "Hatırlatma gerekli" | "Gecikme riski" | "Takip gerekli";
 };
 
 export type DayPlanRole = Extract<Role, "admin" | "teacher">;
