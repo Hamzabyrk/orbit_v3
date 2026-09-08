@@ -60,6 +60,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Kendi verisine erişim arşivlenmez; devredilen erişim arşivlenir
 - Ders, sınıfa bağlanmaz — çünkü sınıfın ders listesi diye bir model yok
 - Katılımcı sayısı sınavın sayısıdır, okuyanın gördüğü satırların değil
+- Ödeme durumu iki değerlidir; planı olmayan "Güncel" değildir
 
 **Kapsam ve sürüm**
 
@@ -1850,3 +1851,35 @@ Yani öğrenci ve veli için ekranda **her zaman "1 katılımcı"**, sınava gir
 **Reddedilen: sayıyı hiç göstermemek.** Yanlış olmazdı ama bilinen bir şeyi saklardı. Susmak, ancak cevap bilinmiyorken doğru cevaptır.
 
 **Bu, C parçasındaki sessiz tavanla aynı ailedendir.** Orada devam yüzdesi eksik bir satır kümesinden hesaplanıyordu; burada katılımcı sayısı süzülmüş bir satır kümesinden sayılıyordu. İkisinde de ekran, sistemin bilmediği bir şeyi biliyormuş gibi gösteriyordu.
+
+---
+
+### Karar: Ödeme durumu iki değerlidir; planı olmayan "Güncel" değildir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-09
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Şema durumu bilerek saklamıyor. `installments` tablosunun kendi yorumu şunu yazıyor: _"Ödendi, gecikti, yaklaşıyor gibi durumlar `paid_at` ve `due_date`'ten TÜRETİLİR, saklanmaz"_ — çünkü saklanan bir durum, tarih geçtiği gün sessizce yanlışa döner.
+
+Türetileceği yazılıydı; **hangi kuralla türetileceği hiçbir yerde yazılı değildi** (#239). Arayüz de kendi içinde tutarsızdı: `Student.payment` iki değerli (`"Güncel" | "Takip gerekli"`), ödeme ekranının `PaymentRow.status`'ü üç değerli (`"Güncel" | "Hatırlatma gerekli" | "Gecikme riski"`). Demo verisi üçüncü bir şey söylüyordu: iki satır da vadesi geçmiş, biri "Hatırlatma gerekli" biri "Gecikme riski" — yani ayrım gecikmenin **süresi** gibi duruyor ama eşik hiçbir yerde yok.
+
+**Karar:**
+
+```
+vadesi geçmiş ödenmemiş taksit var  →  "Takip gerekli"
+yok                                 →  "Güncel"
+görülebilir ödeme planı yok         →  hiçbir şey (rozet çizilmez)
+```
+
+**Üçüncü satır kuralın yarısıdır.** Ödeme planı olmayan öğrenci "Güncel" **değildir** — güncel olunacak bir şey yoktur. Aynı yere ödemeyi görmeye yetkisi olmayan çağıran da düşer: öğretmen ve öğrenci boş küme alır ve boş küme "Güncel"e çevrilmez. Yetkisi olmayana "Güncel" demek, ona ödeme hakkında bir şey söylemektir (**K-22**).
+
+**İki ekran aynı kelimeyi kullanır.** `PaymentRow.status` union'ına `"Takip gerekli"` eklendi. İki ekranın aynı olguya iki farklı ad vermesi, aynı olgunun iki yerde tutulmasının en sinsi biçimidir (**K-06**).
+
+**Reddedilen: üç durum, "yaklaşan / geçmiş" ayrımıyla.** `"Hatırlatma gerekli"` = önümüzdeki yedi gün içinde vadesi gelen, `"Gecikme riski"` = vadesi geçmiş. Okunaklıydı ve yedi günlük pencere `educationData.ts`'te zaten yazılı. Ama demo verisiyle çelişiyordu ve asıl mesele şu: bu bir **yeni kural yazmak** olurdu, mevcut bir kuralı uygulamak değil.
+
+**Reddedilen: üç durum, gecikme eşiğiyle.** Demo'nun ima ettiği okuma (`N günden az` / `N günden çok`). Eşiği kimse yazmamış; uydurulan bir eşik, veliye gönderilen hatırlatmanın zamanlamasını belirlerdi.
+
+**Demo değişmedi.** Üç durum demoda eskisi gibi görünüyor. Üretim onları çizmiyor çünkü kuralları yok — eksik değil, **kuralı yazılana kadar kapsam dışı**.
+
+**Vade karşılaştırması istemcide yapılmaz.** "Bugün" kurum saatine (`Europe/Istanbul`) göre veritabanında hesaplanır. Tarayıcının saat dilimine bırakılsaydı aynı taksit iki veliye iki farklı gün gecikmiş görünürdü (**K-06**). Ayrıntı: v1.3-15 migration'ı.
