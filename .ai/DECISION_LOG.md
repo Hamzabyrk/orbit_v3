@@ -1780,3 +1780,35 @@ Yani öğretmenin veliyi görmemesi bir boşluk değil, **gerekçesi yazılmış
 **Reddedilen: kurum geneli ad görünürlüğü.** "Aynı kurumdaki herkes birbirinin adını görsün" de basit olurdu, ama `organization_memberships` velileri ve öğrencileri de kapsıyor: her öğrenci her velinin adını görürdü. Soru "öğretmenimin adı" idi, cevabı "kurumdaki herkes" değil.
 
 **Bedeli — bilinerek yazılıyor:** iki yeni kapsam yolu, iki yeni test yükü ve `guardians` üzerinde bugüne kadar olmayan bir okuma yolu. Yanlış yazılırsa bir kurumun velileri başka bir öğretmene görünür. Bu yüzden pgTAP tarafında **olumsuz senaryo** zorunludur: öğretmediği öğrencinin velisini **göremediği** ayrıca sınanır.
+
+### Karar: Devam yüzdesinde izinli ders hiç sayılmaz; geç kalma devamdır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-08
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `Student.attendance` (arayüzde "Devam %") v1.3-01/A'da opsiyonel bırakıldı, çünkü kaynağı yoktu: `students` tablosunda böyle bir sütun yok, değer `attendance_records`'tan **türetilmeli**. C parçası bunu türetecek — ama hangi kuralla türeteceği **hiçbir yerde yazılı değildi.**
+
+Veritabanı dört durum tutuyor: `present`, `late`, `absent`, `excused` (arayüzde Katıldı / Geç kaldı / Gelmedi / İzinli).
+
+**Karar:**
+
+```
+Devam % = (Katıldı + Geç kaldı) / (Katıldı + Geç kaldı + Gelmedi)
+```
+
+**İzinli ne payda ne paydadadır** — o ders, o öğrenci için hiç olmamış gibi ele alınır.
+
+**Gerekçe — izinli neden iki tarafta da yok.** İki uç da yanlış bir şey söylüyor. İzinliyi **devamsız** saymak, raporlu ya da kurumdan izinli bir çocuğu cezalandırır ve velisine düşük bir yüzde gösterir. İzinliyi **devam** saymak ise hiç derse gelmemiş bir öğrenciyi %100 devam gibi gösterebilir. Üçüncü seçenek — dersi hiç saymamak — ikisinin de yalanını söylemez: izin verilmiş bir yokluk, ölçülen şeyin dışındadır.
+
+**Geç kalma neden devam sayılıyor.** Öğrenci derste. Dakiklik ayrı bir mesele ve arayüzde zaten ayrı bir sinyal olarak görünüyor; onu devam yüzdesine katmak iki farklı olguyu tek sayıya sıkıştırır ve ikisini birden okunamaz kılar.
+
+**Payda sıfır olabilir ve bunun cevabı var.** Bütün kayıtları izinli olan bir öğrencide payda sıfırdır. O durumda yüzde **hesaplanmaz** — `undefined` kalır ve **K-22** gereği rozet hiç çizilmez. Sıfıra bölmenin sonucu `0` değildir; "bu öğrencinin devamı ölçülemedi" demektir ve ekran bunu bir sayı uydurarak söyleyemez.
+
+**Kaydı olmayan öğrenci de aynı yere düşer.** Hiç yoklama kaydı olmayan bir öğrencinin devamı `%0` değildir; **bilinmiyordur**.
+
+**Reddedilen: `Katıldı / tüm kayıtlar`.** Tek ve tartışmasız bir tanım olurdu, ama derste bulunan bir öğrenciyi devamsız sayarak öğretmenin gözlemiyle çelişirdi; ayrıca izinli öğrenciyi de devamsız gösterirdi.
+
+**Reddedilen: izinliyi devam saymak.** Payda hiç sıfır olmazdı ve her öğrencinin bir yüzdesi olurdu — ama hiç derse gelmemiş bir öğrencinin %100 görünmesi, sayının anlamını yok eder.
+
+**Bu bir sunum kuralı değil, iş kuralıdır.** Bu yüzden türetme servis katmanında yapılır ve ekran yalnız gösterir; iki ekran aynı öğrenci için farklı yüzde hesaplamamalıdır (**K-06**).
