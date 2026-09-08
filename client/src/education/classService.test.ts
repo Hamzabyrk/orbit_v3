@@ -7,10 +7,12 @@ import {
 } from "./classService";
 
 const fromMock = vi.fn();
+const rpcMock = vi.fn();
 
 vi.mock("@/lib/supabaseClient", () => ({
   supabase: {
     from: (table: string) => fromMock(table),
+    rpc: (fn: string, args: unknown) => rpcMock(fn, args),
   },
 }));
 
@@ -88,7 +90,7 @@ describe("classService", () => {
     });
   });
 
-  describe("loadMentorNames (İsim Çözümleme)", () => {
+  describe("loadMentorNames (İsim Çözümleme - class_staff_names RPC)", () => {
     beforeEach(() => {
       vi.clearAllMocks();
     });
@@ -96,42 +98,72 @@ describe("classService", () => {
     it("boş liste verildiğinde veritabanına gitmeden boş harita döner", async () => {
       const result = await loadMentorNames([]);
       expect(result.size).toBe(0);
+      expect(rpcMock).not.toHaveBeenCalled();
       expect(fromMock).not.toHaveBeenCalled();
     });
 
-    it("üyelik ve profil tablolarını sorgulayarak isimleri haritaya bağlar", async () => {
-      fromMock.mockImplementation((table: string) => {
-        if (table === "organization_memberships") {
-          return createClassQueryChain({
-            data: [
-              { id: "mem-1", user_id: "user-1" },
-              { id: "mem-2", user_id: "user-2" },
-            ],
-            error: null,
-          });
-        }
-        if (table === "profiles") {
-          return createClassQueryChain({
-            data: [
-              { id: "user-1", display_name: "Bahar Aydın" },
-              { id: "user-2", display_name: "Kemal Demir" },
-            ],
-            error: null,
-          });
-        }
-        return createClassQueryChain({ data: null, error: null });
+    it("class_staff_names RPC'sini tek seferde çağırır ve isimleri haritaya bağlar (N+1 yok)", async () => {
+      rpcMock.mockResolvedValue({
+        data: [
+          {
+            class_id: "cls-1",
+            membership_id: "mem-1",
+            display_name: "Bahar Aydın",
+          },
+          {
+            class_id: "cls-2",
+            membership_id: "mem-2",
+            display_name: "Kemal Demir",
+          },
+        ],
+        error: null,
       });
 
-      const names = await loadMentorNames(["mem-1", "mem-2"]);
+      const names = await loadMentorNames(["cls-1", "cls-2"]);
 
+      expect(rpcMock).toHaveBeenCalledTimes(1);
+      expect(rpcMock).toHaveBeenCalledWith("class_staff_names", {
+        target_class_ids: ["cls-1", "cls-2"],
+      });
       expect(names.get("mem-1")).toBe("Bahar Aydın");
       expect(names.get("mem-2")).toBe("Kemal Demir");
+    });
+
+    it("⛔ profiles veya organization_memberships tablolarına doğrudan sorgu gitmez (#228)", async () => {
+      rpcMock.mockResolvedValue({
+        data: [
+          {
+            class_id: "cls-1",
+            membership_id: "mem-1",
+            display_name: "Bahar Aydın",
+          },
+        ],
+        error: null,
+      });
+
+      await loadMentorNames(["cls-1"]);
+
+      expect(fromMock).not.toHaveBeenCalledWith("profiles");
+      expect(fromMock).not.toHaveBeenCalledWith("organization_memberships");
+    });
+
+    it("RPC hatasında veya adı çözülemeyen mentor için uydurulmuş değer dönmez (K-22)", async () => {
+      rpcMock.mockResolvedValue({
+        data: null,
+        error: { message: "RPC error" },
+      });
+
+      const names = await loadMentorNames(["cls-1"]);
+
+      expect(names.size).toBe(0);
+      expect(names.get("mem-unresolved")).toBeUndefined();
     });
   });
 
   describe("loadClasses (Sorgu ve Kesilme Sözleşmesi)", () => {
     beforeEach(() => {
       vi.clearAllMocks();
+      rpcMock.mockResolvedValue({ data: [], error: null });
     });
 
     it("sınıfları ada göre artan sırada ve arşiv filtresiyle çeker", async () => {
@@ -162,6 +194,9 @@ describe("classService", () => {
       const result = await loadClasses(50);
 
       expect(fromMock).toHaveBeenCalledWith("classes");
+      expect(rpcMock).toHaveBeenCalledWith("class_staff_names", {
+        target_class_ids: ["cls-1"],
+      });
       expect(spy.isArgs).toEqual(["archived_at", null]);
       expect(spy.orderArgs).toEqual(["name", { ascending: true }]);
       expect(spy.limitArg).toBe(50);

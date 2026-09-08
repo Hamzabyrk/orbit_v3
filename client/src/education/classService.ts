@@ -12,10 +12,11 @@ import type { ClassGroup } from "@/components/education/types";
  *
  * **Arşiv filtresi zorunludur:** `archived_at is null` filtresi uygulanır.
  *
- * **Mentor isim çözümü:** `classes.mentor_membership_id` `organization_memberships`
- * tablosuna gider; üyelik ise `auth.users` üzerinden `public.profiles` tablosuna
- * bağlanır. PostgREST doğrudan gömülü join yapamaz; bu nedenle mentor adları
- * `auditService.ts` ve `platformService.ts`'te olduğu gibi ayrı bir sorguyla çözümlenir.
+ * **Mentor isim çözümü:** `class_staff_names` veritabanı fonksiyonu üzerinden yapılır (#231).
+ * `profiles` tablosuna doğrudan sorgu atılmaz; çünkü `profiles` aynı satırda `recovery_email`,
+ * `phone` ve şifre kilidi durumunu taşır ve RLS sütun gizleyemez (#228).
+ *
+ * Fonksiyon çağrıyı yapanın görebildiği sınıfların personel adlarını döndürür.
  *
  * **Tip dürüstlüğü (K-03):** Kaynağı olmayan veya henüz hesaplanmayan alanlar
  * (`attendance`, `nextLesson`) `undefined` bırakılır, kesinlikle `0` veya uydurulmuş
@@ -39,50 +40,31 @@ type RawClassRow = {
 };
 
 export async function loadMentorNames(
-  membershipIds: string[]
+  classIds: string[]
 ): Promise<Map<string, string>> {
-  const unique = membershipIds.filter(
-    (id, index) => Boolean(id) && membershipIds.indexOf(id) === index
+  const unique = classIds.filter(
+    (id, index) => Boolean(id) && classIds.indexOf(id) === index
   );
   if (unique.length === 0) {
     return new Map();
   }
 
-  const { data: memberships, error: memError } = await supabase
-    .from("organization_memberships")
-    .select("id, user_id")
-    .in("id", unique);
+  const { data, error } = await supabase.rpc("class_staff_names", {
+    target_class_ids: unique,
+  });
 
-  if (memError || !memberships) {
+  if (error || !data) {
     return new Map();
   }
 
-  const userIds = memberships
-    .map(m => m.user_id)
-    .filter((id): id is string => Boolean(id));
-
-  const uniqueUserIds = userIds.filter(
-    (id, index) => userIds.indexOf(id) === index
-  );
-
-  if (uniqueUserIds.length === 0) {
-    return new Map();
-  }
-
-  const { data: profiles, error: profError } = await supabase
-    .from("profiles")
-    .select("id, display_name")
-    .in("id", uniqueUserIds);
-
-  if (profError || !profiles) {
-    return new Map();
-  }
-
-  const profileMap = new Map(profiles.map(p => [p.id, p.display_name]));
   const result = new Map<string, string>();
-  for (const mem of memberships) {
-    if (mem.user_id && profileMap.has(mem.user_id)) {
-      result.set(mem.id, profileMap.get(mem.user_id)!);
+  for (const row of data as {
+    class_id: string;
+    membership_id: string;
+    display_name: string;
+  }[]) {
+    if (row.membership_id && row.display_name) {
+      result.set(row.membership_id, row.display_name);
     }
   }
   return result;
@@ -140,11 +122,9 @@ export async function loadClasses(
   }
 
   const rawRows = (data ?? []) as RawClassRow[];
-  const mentorMembershipIds = rawRows
-    .map(row => row.mentor_membership_id)
-    .filter((id): id is string => Boolean(id));
+  const classIds = rawRows.map(row => row.id).filter(Boolean);
 
-  const mentorNames = await loadMentorNames(mentorMembershipIds);
+  const mentorNames = await loadMentorNames(classIds);
   const rows = rawRows.map(row => mapClassRow(row, mentorNames));
 
   return {
