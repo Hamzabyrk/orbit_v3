@@ -59,6 +59,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Yetki RLS'te, bütünlük şemada durur
 - Kendi verisine erişim arşivlenmez; devredilen erişim arşivlenir
 - Ders, sınıfa bağlanmaz — çünkü sınıfın ders listesi diye bir model yok
+- Katılımcı sayısı sınavın sayısıdır, okuyanın gördüğü satırların değil
 
 **Kapsam ve sürüm**
 
@@ -1812,3 +1813,40 @@ Devam % = (Katıldı + Geç kaldı) / (Katıldı + Geç kaldı + Gelmedi)
 **Reddedilen: izinliyi devam saymak.** Payda hiç sıfır olmazdı ve her öğrencinin bir yüzdesi olurdu — ama hiç derse gelmemiş bir öğrencinin %100 görünmesi, sayının anlamını yok eder.
 
 **Bu bir sunum kuralı değil, iş kuralıdır.** Bu yüzden türetme servis katmanında yapılır ve ekran yalnız gösterir; iki ekran aynı öğrenci için farklı yüzde hesaplamamalıdır (**K-06**).
+
+---
+
+### Karar: Katılımcı sayısı sınavın sayısıdır, okuyanın gördüğü satırların değil
+
+**Durum:** Alındı
+**Tarih:** 2026-09-08
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.3-01/D sınav başlığını canlıya bağlarken "54 katılımcı" ibaresini `exams` sorgusuna gömülen `exam_results` dizisinin **uzunluğunu sayarak** üretiyordu. `exam_results` üzerindeki RLS satır bazlıdır: yönetici kurumun hepsini, öğretmen yalnız okuttuğu öğrencilerin satırını, öğrenci ve veli yalnız kendisininkini görür.
+
+Canlıda ölçüldü (`begin; … rollback;`, kalıcı satır yazılmadı). Üç kişinin girdiği bir kurum geneli denemede:
+
+```
+gerçek katılımcı : 3
+yönetici görür   : 3   ✅
+öğretmen görür   : 2   ❌
+öğrenci görür    : 1   ❌
+```
+
+Yani öğrenci ve veli için ekranda **her zaman "1 katılımcı"**, sınava girmemiş biri için **her zaman "0 katılımcı"** yazacaktı. Sabit, yetkili görünen ve yanlış bir sayı.
+
+**Karar:** Bir sınava kaç kişinin girdiği **sınavın kendi olgusudur**, okuyanın yetkisinin değil. Sayı `exam_participant_count(uuid)` fonksiyonundan gelir; fonksiyon `security definer`'dır ve sayımı sınavın tamamı üzerinde yapar.
+
+**Yetki koşulu uydurulmadı, `exam_ranking`'inkinin aynısıdır:** çağıran sınavda **en az bir öğrenciyi görebiliyorsa** sayı döner. Aynı olgunun iki yerde iki farklı kurala bağlanması, birinin sessizce eskimesi demekti (**K-06**).
+
+**Yeni bir yetki açılmıyor ve bu ölçüldü.** `exam_ranking` bugün sınavdaki **her sonuç için bir satır** döndürüyor — isimler maskeli ama satır sayısı gerçek. Aynı ölçümde yönetici, öğretmen ve öğrenci üçü de o fonksiyondan **3 satır** aldı; sınavla ilgisi olmayan üye boş küme aldı. Yani katılımcı sayısı aynı çağırana zaten türetilebilirdi; yeni fonksiyon onu ucuza veriyor.
+
+**Yetkisize `0` değil `null` döner.** `0`, "bu sınava kimse girmedi" demektir ve bu bir iddiadır (**K-22**). `null` bir şey söylemez; istemci de o ibareyi hiç çizmez. Sonucu henüz girilmemiş bir sınav da `null` döner: "kimse girmedi" ile "sana gösterecek bir şey yok" ayrımını yapmak, ilgisiz bir üyeye "bu sınavın sonuçları girilmiş" bilgisini sızdıracak yeni bir kanal açardı.
+
+**Reddedilen: sayıyı `exam_ranking`'ten satır sayarak almak.** Doğru sayıyı verirdi, ama 500 kişilik bir denemede başlıktaki tek sayı için 500 satır taşınırdı — ve LİSTE ekranı SIRALAMA yoluna bağlanmış olurdu. Bu günlüğün kendi cümlesi: _"İki yol birbirinin yerine geçmez."_
+
+**Reddedilen: sayıyı yalnız yöneticiye göstermek.** Yönetici için doğru olurdu, ama istemci "yönetici her satırı görür" varsayımını kendi içinde yeniden kurardı; o varsayım RLS'in işidir ve iki yerde tutulan her olgu gibi eskirdi (**K-06**).
+
+**Reddedilen: sayıyı hiç göstermemek.** Yanlış olmazdı ama bilinen bir şeyi saklardı. Susmak, ancak cevap bilinmiyorken doğru cevaptır.
+
+**Bu, C parçasındaki sessiz tavanla aynı ailedendir.** Orada devam yüzdesi eksik bir satır kümesinden hesaplanıyordu; burada katılımcı sayısı süzülmüş bir satır kümesinden sayılıyordu. İkisinde de ekran, sistemin bilmediği bir şeyi biliyormuş gibi gösteriyordu.
