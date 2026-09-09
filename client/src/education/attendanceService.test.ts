@@ -420,30 +420,36 @@ describe("attendanceService", () => {
     });
   });
 
+  type MaybeElement = {
+    type?: unknown;
+    props?: { children?: unknown; [key: string]: unknown };
+  };
+  type ElementNode = MaybeElement & {
+    props: { children?: unknown; [key: string]: unknown };
+  };
+
+  function isElementNode(el: MaybeElement): el is ElementNode {
+    return typeof el.props === "object" && el.props !== null;
+  }
+
   function findElements(
     node: unknown,
-    predicate: (el: {
-      type?: unknown;
-      props?: { children?: unknown; [key: string]: unknown };
-    }) => boolean
-  ): {
-    type?: unknown;
-    props: { children?: unknown; [key: string]: unknown };
-  }[] {
+    predicate: (el: MaybeElement) => boolean
+  ): ElementNode[] {
     if (!node) return [];
     if (Array.isArray(node)) {
       return node.flatMap(item => findElements(item, predicate));
     }
     if (typeof node !== "object") return [];
-    const results: {
-      type?: unknown;
-      props: { children?: unknown; [key: string]: unknown };
-    }[] = [];
-    const el = node as {
-      type?: unknown;
-      props?: { children?: unknown; [key: string]: unknown };
-    };
-    if (predicate(el)) {
+    const results: ElementNode[] = [];
+    const el = node as MaybeElement;
+    // ⛔ `predicate` tek başına yetmiyor: gezinti ağacındaki her düğüm React
+    // öğesi değil, `children` dizge ya da sayı olabilir ve o düğümlerde
+    // `props` yok. Eskiden `el` doğrudan itiliyordu ve dönen dizinin tipi
+    // `props`'u ZORUNLU sayıyordu — yani `props`'suz bir düğüm geçseydi
+    // çağıran taraf çalışma zamanında patlardı. Tip yalanını `pnpm check`
+    // görmüyordu (#243); artık daraltma gerçekten yapılıyor.
+    if (predicate(el) && isElementNode(el)) {
       results.push(el);
     }
     if (el.props && el.props.children) {
