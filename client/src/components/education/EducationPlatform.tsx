@@ -32,6 +32,7 @@ import {
   useSchedule,
   useStudents,
 } from "@/education/educationQueries";
+import { useOrganizationChannel } from "@/realtime";
 import { DEFAULT_STUDENT_LIMIT } from "@/education/studentService";
 import { DEFAULT_CLASS_LIMIT } from "@/education/classService";
 import { DEFAULT_SCHEDULE_LIMIT } from "@/education/scheduleService";
@@ -129,6 +130,10 @@ export function EducationPlatform({
   const examQuery = useLatestExam({ enabled: !isDemoMode });
   const paymentsQuery = usePayments({ enabled: !isDemoMode });
   const paymentOverviewQuery = usePaymentOverview({ enabled: !isDemoMode });
+
+  // Aktif kurumun Realtime kanalına tekil abonelik (v1.3-05).
+  // Demo modunda devre dışıdır; canlı modda arka plandaki veri değişikliklerini dinler.
+  useOrganizationChannel();
 
   const activeStudents = useMemo(() => {
     if (isDemoMode) {
