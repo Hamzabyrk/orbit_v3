@@ -7,7 +7,13 @@ import {
   students as defaultStudents,
 } from "../educationData";
 import { filterAttendanceStudents } from "../scopeFilters";
-import { Badge, EmptyState, PageHeader } from "../shared";
+import {
+  Badge,
+  CardSkeleton,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+} from "../shared";
 import type { AttendanceState, Role, Student } from "../types";
 import {
   ATTENDANCE_STATES,
@@ -24,6 +30,7 @@ export function AttendancePage({
   session,
   isLoading = false,
   error = null,
+  onRetry,
   isDemo = isDemoMode,
 }: {
   role: Role;
@@ -35,6 +42,7 @@ export function AttendancePage({
   session?: AttendanceSessionDetail | null;
   isLoading?: boolean;
   error?: Error | null;
+  onRetry?: () => void;
   isDemo?: boolean;
 }) {
   // Güvenlik kapısı (Bulgu 2): isDemo prop'u üretimde (isDemoMode === false) demoyu AÇAMAZ.
@@ -86,13 +94,16 @@ export function AttendancePage({
       ) : null}
 
       {isLoading ? (
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-          Yoklama oturumu yükleniyor...
-        </div>
+        <CardSkeleton className="mt-6" />
       ) : error ? (
-        <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/80 p-6 text-sm text-rose-800 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-          {error.message || "Yoklama bilgileri yüklenirken bir hata oluştu."}
-        </div>
+        <ErrorState
+          className="mt-6"
+          title="Yoklama bilgileri görüntülenemedi"
+          message={
+            error.message || "Yoklama bilgileri yüklenirken bir hata oluştu."
+          }
+          onRetry={onRetry}
+        />
       ) : !activeDemo && !session ? (
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
           <EmptyState

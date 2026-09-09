@@ -8,7 +8,14 @@ import {
   type OverviewStat,
 } from "../educationData";
 import { filterPaymentsForRole } from "../scopeFilters";
-import { Badge, EmptyState, PageHeader, StatCard } from "../shared";
+import {
+  Badge,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  StatCard,
+  TableSkeleton,
+} from "../shared";
 import type { PaymentRow, Role } from "../types";
 
 export function PaymentsPage({
@@ -17,6 +24,7 @@ export function PaymentsPage({
   overviewStats: propOverviewStats,
   isLoading = false,
   error = null,
+  onRetry,
   truncated = false,
   limit = DEFAULT_PAYMENT_LIMIT,
   isDemo = isDemoMode,
@@ -26,6 +34,7 @@ export function PaymentsPage({
   overviewStats?: OverviewStat[];
   isLoading?: boolean;
   error?: Error | null;
+  onRetry?: () => void;
   truncated?: boolean;
   limit?: number;
   isDemo?: boolean;
@@ -87,13 +96,16 @@ export function PaymentsPage({
       ) : null}
 
       {isLoading ? (
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-          Ödeme bilgileri yükleniyor...
-        </div>
+        <TableSkeleton rows={5} columns={5} className="mt-6" />
       ) : error ? (
-        <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/80 p-6 text-sm text-rose-800 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-          {error.message || "Ödeme bilgileri yüklenirken bir hata oluştu."}
-        </div>
+        <ErrorState
+          className="mt-6"
+          title="Ödeme bilgileri görüntülenemedi"
+          message={
+            error.message || "Ödeme bilgileri yüklenirken bir hata oluştu."
+          }
+          onRetry={onRetry}
+        />
       ) : (
         <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,.025)]">
           <div className="overflow-x-auto">
@@ -112,7 +124,7 @@ export function PaymentsPage({
                 {visible.length === 0 ? (
                   <tr key="empty-payments">
                     <td colSpan={6} className="p-4">
-                      <EmptyState title="Henüz ödeme kaydı yok" />
+                      <EmptyState title="Gösterilecek ödeme kaydı yok" />
                     </td>
                   </tr>
                 ) : null}

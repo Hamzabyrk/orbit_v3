@@ -13,7 +13,14 @@ import {
   assessmentStatsByRole,
   assessmentSubjects,
 } from "../educationData";
-import { Badge, EmptyState, PageHeader, StatCard } from "../shared";
+import {
+  Badge,
+  CardSkeleton,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  StatCard,
+} from "../shared";
 import type { Role, Section } from "../types";
 
 export function AssessmentsPage({
@@ -22,6 +29,7 @@ export function AssessmentsPage({
   exam,
   isLoading = false,
   error = null,
+  onRetry,
   isDemo = isDemoMode,
 }: {
   role: Role;
@@ -29,6 +37,7 @@ export function AssessmentsPage({
   exam?: LatestExamDetail | null;
   isLoading?: boolean;
   error?: Error | null;
+  onRetry?: () => void;
   isDemo?: boolean;
 }) {
   const { identity } = useAuth();
@@ -88,13 +97,16 @@ export function AssessmentsPage({
       ) : null}
 
       {isLoading ? (
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-          Sınav bilgileri yükleniyor...
-        </div>
+        <CardSkeleton className="mt-6" />
       ) : error ? (
-        <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/80 p-6 text-sm text-rose-800 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-          {error.message || "Sınav bilgileri yüklenirken bir hata oluştu."}
-        </div>
+        <ErrorState
+          className="mt-6"
+          title="Sınav bilgileri görüntülenemedi"
+          message={
+            error.message || "Sınav bilgileri yüklenirken bir hata oluştu."
+          }
+          onRetry={onRetry}
+        />
       ) : !activeDemo && !exam ? (
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
           <EmptyState
