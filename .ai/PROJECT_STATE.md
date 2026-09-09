@@ -68,8 +68,9 @@ client/src/
 ├── components/
 │   ├── ui/                 # 53 adet Radix/shadcn UI bileşeni
 │   ├── education/          # ORBIT Eğitim Çekirdek Ekranları (rol/sayfa bazlı bölünmüş)
-│   │   ├── types.ts          # Student/ClassGroup/ScheduleItem/Automation/PaymentRow (isMock: true)
-│   │   ├── mockData.ts       # Tüm mock veri + roleMeta/roleEmail/allNav
+│   │   ├── types.ts          # Student/ClassGroup/ScheduleItem/Automation/PaymentRow
+│   │   ├── demoData.ts       # YALNIZ demo verisi — üretim paketinde elenir (#144)
+│   │   ├── educationData.ts  # Demo/üretim ayrımının tek kapısı: üretimde boş döner
 │   │   ├── shared.tsx        # Badge, StatCard, PageHeader vb. paylaşılan UI parçaları
 │   │   ├── LoginScreen.tsx   # EducationLoginScreen
 │   │   ├── StudentDetail.tsx # Öğrenci profil çekmecesi
@@ -94,6 +95,22 @@ client/src/
 │   ├── passwordPolicy.ts   # Şifre kuralları, Türkçe harflerle uyumlu
 │   ├── idleTimeout.ts / useIdleTimeout.ts  # 30 dk hareketsizlik sayacı
 │   └── runtime.ts          # isDemoMode — preview derlemeleri demo modundadır
+├── education/              # Eğitim alanının veri katmanı (v1.3-01) — bileşen değil
+│   ├── studentService.ts   # Öğrenci listesi; Student nesnesinin kurulduğu TEK yer (K-06)
+│   ├── classService.ts / scheduleService.ts / attendanceService.ts
+│   ├── examService.ts / paymentService.ts
+│   ├── educationQueries.ts # React Query anahtarları ve hook'ları — [alan, kaynak, kapsam]
+│   ├── weekDays.ts         # Hafta yedi gün; ISO 1–7 ↔ etiket dönüşümünün tek kaynağı
+│   ├── trDate.ts           # Türkçe tarih biçimlendirici (sınav ve ödeme ortak kullanır)
+│   └── attendanceStatus.ts # Yoklama durumu eşlemesi
+├── audit/                  # Kurum denetim kaydı
+│   ├── auditService.ts     # İmleçli sayfalama; sıra sütunu `id`, `created_at` DEĞİL
+│   └── auditQueries.ts     # useInfiniteQuery
+├── realtime/               # Kurum kanalı aboneliği (v1.3-05)
+│   ├── useOrganizationChannel.ts  # `org:<id>` özel kanalı; tek abonelik, tek yer
+│   └── realtimeMapping.ts  # Tablo → sorgu anahtarı eşlemesi (K-06)
+├── settings/               # Ayar ekranlarının sorgu katmanı
+│   └── settingsQueries.ts  # Üyeler, şubeler, kişi iletişim bilgisi
 ├── organization/           # Dershane tarafının veri katmanı — kurum yöneticisinin gördüğü
 │   └── memberService.ts    # Kurum üyeleri: listeleme, şifre sıfırlama, üye oluşturma, şubeler.
 │                           #   Giriş numarası kurulumu ve sıralama saf fonksiyonlarda
@@ -101,6 +118,7 @@ client/src/
 │   ├── PlatformShell.tsx   # Kabuk, sekmeler, boş durum
 │   ├── tabs.ts             # Sekme tanımları
 │   ├── platformService.ts  # Panelin veri katmanı; service_role KULLANMAZ
+│   ├── platformQueries.ts  # React Query; platform kapsamı `{ scope: "platform" }`
 │   ├── organizationSlug.ts # Kurum adından slug (Türkçe harf çevirisi)
 │   ├── PlatformOrganizations.tsx / OrganizationCreateDialog.tsx
 │   ├── OrganizationProfileDialog.tsx # Kurum profili ve şifre sıfırlama

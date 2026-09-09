@@ -1096,6 +1096,54 @@ Kök neden `AGENT_WORKFLOW.md`'nin kapanış adımındaydı: _"bir dilim bittiys
 - **`LoginInput.demoRole` zorunlu** oysa `signIn` onu yalnız demo modunda okuyor. Üretim girişinde anlamı olmayan bir alan her çağrıda zorunlu.
 - **#237 ve #239** açık: kaynağı ya da kuralı olmayan alanlar. v1.4'e girerken karara bağlanmalı.
 
+## 4.11 v1.4 öncesi kapsamlı tarama (2026-09-09)
+
+§4.10 sürümün kapısını ölçmüştü; bu tur **yapılan işin kendisini** doğruladı. v1.3 22 PR, 8 migration ve 65 istemci dosyası üretti.
+
+### Doğrulanan — ölçüldü, iddiaya bakılmadı
+
+| Ne                               | Nasıl ölçüldü                                                               | Sonuç                                                                                   |
+| -------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| v1.3'ün 12 fonksiyonu            | Canlı şema: varlık, `security definer` bayrağı, yorum, yetki, `search_path` | ✅ on ikisi de doğru                                                                    |
+| **Kurumlar arası izolasyon**     | A kurumunun öğretmeni, B kurumunun 7 fonksiyonunu birden sorguladı          | ✅ **hepsi boş** — personel adı 0, katılımcı NULL, puan/devam/ödeme 0, kartlar satırsız |
+| `class_staff_names` yetkisi      | Vekil dalı dahil okundu: her dal `visible` CTE'sine bağlı                   | ✅ dört meşru ilişkiden biri olmadan hiçbir sınıf görünmüyor                            |
+| Servis katmanı demo bağımsızlığı | `education/`, `audit/`, `platform/`, `realtime/` tarandı                    | ✅ demo verisi hiç okunmuyor                                                            |
+| Uydurulmuş değer                 | `?? 0` / `                                                                  |                                                                                         | 0` kalıpları tek tek incelendi | ✅ devam yüzdesindeki ` |     | 0`payda sıfırken`undefined` guard'ıyla korunuyor |
+| Test kalitesi                    | Atlanan, totolojik ve iddiasız test taraması                                | ✅ hiçbiri yok                                                                          |
+| Bağımlılıklar                    | `pnpm audit`, açık Dependabot PR'ları                                       | ✅ bilinen açık yok, açık PR yok                                                        |
+
+### Bulgu — üç fonksiyon giriş yapmadan çağrılabiliyordu
+
+Supabase güvenlik danışmanı üç `SECURITY DEFINER` fonksiyonun `anon` rolüne açık olduğunu gösterdi: `broadcast_organization_change`, `class_staff_names`, `current_user_teaches_guardian`.
+
+Sebep, Postgres'in her yeni fonksiyona verdiği varsayılan `PUBLIC` EXECUTE yetkisi. `grant ... to authenticated` onu kaldırmıyor; önce `revoke` gerekiyor.
+
+**Bu depo bu hatayı #18'de yaşamış ve dersini bir migration yorumuna yazmıştı.** Ölçüldü: v1.3'ün sekiz migration'ından **yalnız biri** `revoke` satırını taşıyordu — `exam_ranking`'in deseninin bilerek kopyalandığı tek migration. Kalan yedisi atlamıştı.
+
+**Sızıntı olmadı ve bu da ölçüldü:** `anon` ile çağrıldığında `class_staff_names` 0 satır, `current_user_teaches_guardian` `false` döndü — guard'lar `auth.uid()`'e dayandığı için kapalı kapıya çarpıyorlar. Yani sertleştirme açığı, ihlal değil.
+
+**Kalıcı düzeltme yorumla değil testle yapıldı.** Ders zaten yazılıydı ve yedi kez atlandı; unutulan bir kural değil bir satırdı. `supabase/tests/database/function_grants.test.sql` artık zorunlu `Tenant RLS` kontrolünün içinde iki şey ölçüyor: `public` şemasında `anon`'un çalıştırabildiği fonksiyon **yok**, ve her `security definer` fonksiyonun `search_path`'i **sabit**. Test bugünkü kod üzerinde koşturulunca 12 fonksiyon sayıyordu; migration sonrası sıfır.
+
+`set_updated_at` de kapsama alındı — v1.3'ten değil ama aynı varsayılan yetkiyi taşıyordu ve kuralın tek istisnası olurdu. Yetkiyi almanın tetikleyicileri kırmadığı ayrıca ölçüldü: `authenticated` bir UPDATE hata almadan koştu, yayın gitti ve `updated_at` ezildi.
+
+### Bulgu — klasör ağacı E5 öncesi bir depoyu anlatıyordu
+
+`PROJECT_STATE.md` §5 yapının **tek kaynağı** olarak belirlenmiş (2026-08-25 kararı). Ölçüldü:
+
+- **`client/src/education/` hiç yoktu** — v1.3-01'in tüm servis katmanı, yani sürümün ana çıktısı.
+- `audit/`, `realtime/`, `settings/` de yoktu.
+- **Silinmiş `mockData.ts`'i canlı gösteriyordu** ve `types.ts` için `(isMock: true)` diyordu; `isMock` depoda 0 kez geçiyor.
+
+Ağaç düzeltildi ve iki yönlü doğrulandı: her gerçek dizin ağaçta, ağacın adını verdiği her dosya diskte.
+
+### Kaydedilen, bu turda yapılmayan
+
+- `attendanceService.loadAttendanceSessions` uygulamada hiç çağrılmıyor (§4.10, #148 ailesi).
+- **`subjects` Realtime kapsamında değil** — ders adı `scheduleService`'te gömülü okunuyor; ders yeniden adlandırılırsa program bir sonraki tazelemeye kadar bayat kalır. Ders CRUD'u v1.4'ün işi, tetikleyici de o zaman eklenmeli.
+- **`LoginInput.demoRole` zorunlu** oysa `signIn` onu yalnız demo modunda okuyor.
+- **#237 ve #239** açık: kaynağı ya da kuralı olmayan alanlar. v1.4 CRUD getiriyor, yani bir kısmı doldurulabilir hale gelecek — hangilerinin kural kazanıp hangilerinin çizilmemeye devam edeceği v1.4-00 açılışında karara bağlanmalı.
+- **`PLATFORM_SETTINGS` §5 tetikleyicisi ateşlendi:** _"Auth, RLS ve platform paneli preview'da doğrulanamıyor"_ açığının yeniden değerlendirme noktası **v1.4-00 açılışı** olarak yazılmıştı. O nokta geldi.
+
 ## 5. Phase 2 - Operational Depth ve Core Product
 
 ### v1.6 - Supabase Storage ile Dosya Yönetimi
