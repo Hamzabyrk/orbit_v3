@@ -8,10 +8,25 @@ import {
   resolveDeploymentEnvironment,
 } from "./client/src/auth/deploymentEnvironment";
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin()];
-
 export default defineConfig(({ mode }) => {
   const localEnv = loadEnv(mode, import.meta.dirname, "VITE_");
+
+  // `jsxLocPlugin` her JSX öğesine kaynak dosya yolunu ve satır numarasını
+  // `data-loc` niteliği olarak ekliyor. Geliştirmede bir öğenin hangi dosyadan
+  // geldiğini görmek için değerli; üretimde karşılığı yok.
+  //
+  // Eklenti eskiden KOŞULSUZ ekleniyordu çünkü `plugins` dizisi
+  // `defineConfig`'in dışında, `mode`'a erişimin olmadığı yerde tanımlıydı.
+  // Bedeli ölçüldü (2026-09-09 kapanış taraması): üretim paketinde **1436**
+  // `data-loc` niteliği, **106 kB** — 990 kB'lik paketin ~%10'u. Ayrıca
+  // `client\src\componentsuth\ForgotPasswordScreen.tsx:45` gibi kaynak
+  // yolları yayınlanan uygulamanın DOM'una giriyordu. Depo public olduğu için
+  // bu bir sır sızıntısı değil; ama üretime taşınmasının hiçbir sebebi de yok.
+  const plugins = [
+    react(),
+    tailwindcss(),
+    ...(mode !== "production" ? [jsxLocPlugin()] : []),
+  ];
 
   // Ortam kararı BURADA, bir kez veriliyor ve define olarak gömülüyor.
   // Çalışma zamanında yeniden çözülseydi Rollup `isDemoMode`'u katlayamaz ve

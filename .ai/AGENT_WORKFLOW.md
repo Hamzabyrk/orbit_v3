@@ -226,13 +226,17 @@ Değişiklik gerçekten gerekliyse doğru yol brifingi genişletip yeniden istem
 - Commit, PR ve production **yalnızca denetleyene** aittir.
 - PR açıklaması **neyin neden yapıldığını** anlatır; değişiklik listesi yetmez.
 - **Belgeyi aynı PR'da güncelle.** Bu adım isteğe bağlı değildir:
-  - bir dilim bittiyse → `ROADMAP.md` §0 tablosu **ve** §4.5'teki kutucuk
+  - bir dilim bittiyse → `ROADMAP.md` §0 tablosu, **o sürümün §4 kapsam kutucuğu** ve **§4.6'daki dilim satırı**. Üçü ayrı yerde ve üçü de güncellenir.
   - bir mimari karar alındı veya değişti → `DECISION_LOG.md` (**indekse de satır ekle**)
   - panelden bir ayar değiştiyse → `PLATFORM_SETTINGS.md`
   - klasör veya servis katmanı değiştiyse → `PROJECT_STATE.md` §5
 - **`PLATFORM_SETTINGS.md` §5'in tetikleyicilerini oku.** Kabul edilmiş açıkların her biri bir _"şu olunca yeniden değerlendir"_ cümlesi taşır; dilim o şartı sağlamış olabilir. **Kayıttaki sayılar da eskir** — açık "altı indekssiz foreign key" diyorsa, bugün altı mı, ölç.
 - **Biten brifingi sil.** Git geçmişi kaydı tutar; çalışma kopyası temiz kalır.
 - Yeni bir hata çıktıysa **aşağıdaki kural listesine ekle.**
+
+> **Adres neden düzeltildi (2026-09-09 kapanış taraması):** Kural eskiden "§0 tablosu **ve** §4.5'teki kutucuk" diyordu. **§4.5 "Faz E — Kimlik Zinciri"dir** — sürümlerin kapsam listeleri orada değil, `## 4` altındaki sürüm başlıklarında yaşıyor; dilim satırı ise §4.6'da. Yani kuralı harfiyen uygulayan kişi yanlış bölüme bakıyordu.
+>
+> Sonuç ölçüldü: v1.3 kapanırken §4'teki **sekiz kutucuk** bayattı — React Query katmanı, veri deseni, servis yerleşimi, sayfalama sözleşmesi, gün gösterimi, env doğrulaması, yükleme/hata durumları ve Realtime. Hepsi bitmiş, hepsi işaretsiz. 2026-09-07 turu aynı kalıbı zaten görmüş ve _"bir şey Faz E'de yapılıp §4'te işaretlenmiyor"_ diye yazmıştı; **not düşmek düzeltmedi, çünkü sorun unutkanlık değil yanlış adresti.**
 
 > **§5 okuması neden buraya eklendi (2026-09-05):** **K-12** koşullu kararın _sahibini_ yazdırıyordu ama şartı kontrol edecek **anı** vermiyordu. Sonuç ölçüldü: §5'teki "altı indekssiz foreign key" açığının tetikleyicisi _"v1.2 iş tabloları geldiğinde"_ idi; tablolar geldi, kimse §5'e dönmedi ve sayı sessizce **35** oldu. Şart sağlandı, kimse fark etmedi — K-12'nin adıyla tarif ettiği tuzağın kendisi, K-12 yazıldıktan sonra.
 
