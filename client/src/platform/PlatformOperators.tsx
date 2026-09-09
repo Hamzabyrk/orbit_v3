@@ -22,14 +22,24 @@ function formatDate(value: string): string {
  */
 export function PlatformOperators({
   operators,
+  truncated = false,
+  limit = 50,
 }: {
   operators: PlatformOperatorRow[];
+  truncated?: boolean;
+  limit?: number;
 }) {
   return (
     <PlatformSection
       title="Operatörler"
       description="Platform yetkisi olan geliştirme ekibi üyeleri. Bu liste salt okunurdur."
     >
+      {truncated ? (
+        <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-[11px] font-semibold text-amber-300">
+          Liste üst sınıra ({limit} kayıt) ulaştı.
+        </div>
+      ) : null}
+
       {operators.length === 0 ? (
         <PlatformEmptyState
           title="Operatör kaydı görünmüyor"

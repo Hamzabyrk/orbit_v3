@@ -1,4 +1,13 @@
+import * as React from "react";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+(globalThis as unknown as { React: typeof React }).React = React;
+
+import { PlatformAuditLog } from "./PlatformAuditLog";
+import { PlatformOperators } from "./PlatformOperators";
+import { PlatformOrganizations } from "./PlatformOrganizations";
 import {
   platformKeys,
   useOrganizationStats,
@@ -7,11 +16,15 @@ import {
   usePlatformOrganizations,
 } from "./platformQueries";
 
-const mockUseQuery = vi.fn();
+const mockUseQuery = vi
+  .fn()
+  .mockReturnValue({ data: null, isLoading: false, isError: false });
+const mockUseInfiniteQuery = vi.fn();
 const mockUseAuth = vi.fn();
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: unknown) => mockUseQuery(options),
+  useInfiniteQuery: (options: unknown) => mockUseInfiniteQuery(options),
 }));
 
 vi.mock("@/auth/useAuth", () => ({
@@ -82,10 +95,11 @@ describe("platformQueries enabled kapıları", () => {
     );
 
     usePlatformAuditEvents();
-    expect(mockUseQuery).toHaveBeenLastCalledWith(
+    expect(mockUseInfiniteQuery).toHaveBeenLastCalledWith(
       expect.objectContaining({
         queryKey: platformKeys.auditEvents(),
         enabled: false,
+        initialPageParam: null,
       })
     );
   });
@@ -113,12 +127,20 @@ describe("platformQueries enabled kapıları", () => {
     );
 
     usePlatformAuditEvents();
-    expect(mockUseQuery).toHaveBeenLastCalledWith(
+    expect(mockUseInfiniteQuery).toHaveBeenLastCalledWith(
       expect.objectContaining({
         queryKey: platformKeys.auditEvents(),
         enabled: true,
+        initialPageParam: null,
+        getNextPageParam: expect.any(Function),
       })
     );
+
+    const callArgs = mockUseInfiniteQuery.mock.calls[0][0];
+    expect(callArgs.getNextPageParam({ rows: [], nextCursor: 888 })).toBe(888);
+    expect(
+      callArgs.getNextPageParam({ rows: [], nextCursor: null })
+    ).toBeNull();
   });
 
   it("options.enabled: false verildiğinde sorgu durdurulur", () => {
@@ -172,5 +194,140 @@ describe("platformQueries enabled kapıları", () => {
         enabled: true,
       })
     );
+  });
+});
+
+describe("PlatformAuditLog UI pagination", () => {
+  const dummyEvents = [
+    {
+      id: 10,
+      actorUserId: "u-1",
+      actorName: "Hamza Bayrak",
+      action: "platform.organization_created",
+      entityType: "organization",
+      entityId: "org-1",
+      organizationId: "org-1",
+      organizationName: "Boğaziçi Eğitim",
+      createdAt: "2026-09-09T10:00:00Z",
+    },
+  ];
+
+  it("hasNextPage true iken 'Daha fazla yükle' düğmesi çizilir", () => {
+    const html = renderToStaticMarkup(
+      createElement(PlatformAuditLog, {
+        events: dummyEvents,
+        hasNextPage: true,
+      })
+    );
+    expect(html).toContain("Daha fazla yükle");
+    expect(html).not.toContain("Liste üst sınıra");
+  });
+
+  it("⛔ hasNextPage false iken 'Daha fazla yükle' çizilmez ve kesilme bandı da çizilmez", () => {
+    const html = renderToStaticMarkup(
+      createElement(PlatformAuditLog, {
+        events: dummyEvents,
+        hasNextPage: false,
+      })
+    );
+    expect(html).not.toContain("Daha fazla yükle");
+    expect(html).not.toContain("Liste üst sınıra");
+  });
+
+  it("isFetchingNextPage true iken düğme 'Yükleniyor…' olur ve mevcut satırlar ekranda kalır", () => {
+    const html = renderToStaticMarkup(
+      createElement(PlatformAuditLog, {
+        events: dummyEvents,
+        hasNextPage: true,
+        isFetchingNextPage: true,
+      })
+    );
+    expect(html).toContain("Boğaziçi Eğitim");
+    expect(html).toContain("Yükleniyor…");
+    expect(html).toContain("disabled");
+  });
+});
+
+describe("PlatformOrganizations UI (3.E bounded list)", () => {
+  it("truncated true iken amber bant (100 kayıt) çizilir", () => {
+    const html = renderToStaticMarkup(
+      createElement(PlatformOrganizations, {
+        organizations: [
+          {
+            id: "org-1",
+            name: "Dershane A",
+            slug: "dershane-a",
+            code: 1001,
+            archivedAt: null,
+            createdAt: "2026-09-09T10:00:00Z",
+          },
+        ],
+        onCreated: vi.fn(),
+        truncated: true,
+        limit: 100,
+      })
+    );
+    expect(html).toContain("Liste üst sınıra (100 kayıt) ulaştı.");
+  });
+
+  it("truncated false iken kesilme bandı çizilmez", () => {
+    const html = renderToStaticMarkup(
+      createElement(PlatformOrganizations, {
+        organizations: [
+          {
+            id: "org-1",
+            name: "Dershane A",
+            slug: "dershane-a",
+            code: 1001,
+            archivedAt: null,
+            createdAt: "2026-09-09T10:00:00Z",
+          },
+        ],
+        onCreated: vi.fn(),
+        truncated: false,
+      })
+    );
+    expect(html).not.toContain("Liste üst sınıra");
+  });
+});
+
+describe("PlatformOperators UI (3.E bounded list)", () => {
+  it("truncated true iken amber bant (50 kayıt) çizilir", () => {
+    const html = renderToStaticMarkup(
+      createElement(PlatformOperators, {
+        operators: [
+          {
+            userId: "u-1",
+            displayName: "Hamza Bayrak",
+            role: "owner",
+            status: "active",
+            note: null,
+            createdAt: "2026-09-09T10:00:00Z",
+          },
+        ],
+        truncated: true,
+        limit: 50,
+      })
+    );
+    expect(html).toContain("Liste üst sınıra (50 kayıt) ulaştı.");
+  });
+
+  it("truncated false iken kesilme bandı çizilmez", () => {
+    const html = renderToStaticMarkup(
+      createElement(PlatformOperators, {
+        operators: [
+          {
+            userId: "u-1",
+            displayName: "Hamza Bayrak",
+            role: "owner",
+            status: "active",
+            note: null,
+            createdAt: "2026-09-09T10:00:00Z",
+          },
+        ],
+        truncated: false,
+      })
+    );
+    expect(html).not.toContain("Liste üst sınıra");
   });
 });

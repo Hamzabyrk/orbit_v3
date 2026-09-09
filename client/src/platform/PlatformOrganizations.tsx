@@ -15,9 +15,13 @@ function formatDate(value: string): string {
 export function PlatformOrganizations({
   organizations,
   onCreated,
+  truncated = false,
+  limit = 100,
 }: {
   organizations: PlatformOrganization[];
   onCreated: () => void;
+  truncated?: boolean;
+  limit?: number;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   // Doluysa o kurumun profil diyaloğu açılır: şifre üretme ve silme oradadır.
@@ -38,6 +42,12 @@ export function PlatformOrganizations({
         </button>
       }
     >
+      {truncated ? (
+        <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-[11px] font-semibold text-amber-300">
+          Liste üst sınıra ({limit} kayıt) ulaştı.
+        </div>
+      ) : null}
+
       {organizations.length === 0 ? (
         <PlatformEmptyState
           title="Henüz kurum yok"

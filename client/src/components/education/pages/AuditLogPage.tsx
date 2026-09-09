@@ -1,3 +1,4 @@
+import React, { useMemo } from "react";
 import {
   describeAuditAction,
   describeAuditEntity,
@@ -71,12 +72,20 @@ function aktorGorunumu(actor: AuditActor): {
 
 export function AuditLogPage() {
   const {
-    data: kayitlar,
+    data,
     isLoading,
     isError,
     error,
     refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   } = useOrganizationAuditEvents();
+
+  const kayitlar = useMemo(
+    () => data?.pages.flatMap(page => page.rows) ?? [],
+    [data]
+  );
 
   const hataMesaji =
     error instanceof Error ? error.message : "Denetim kaydı yüklenemedi.";
@@ -100,7 +109,7 @@ export function AuditLogPage() {
         />
       ) : (
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-          {kayitlar && kayitlar.length === 0 ? (
+          {kayitlar.length === 0 ? (
             <div className="px-5 py-8">
               <EmptyState
                 title="Henüz kayıt yok"
@@ -109,65 +118,79 @@ export function AuditLogPage() {
             </div>
           ) : null}
 
-          {kayitlar && kayitlar.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
-                      Ne zaman
-                    </th>
-                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
-                      Kim
-                    </th>
-                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
-                      İşlem
-                    </th>
-                    <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
-                      Varlık
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {kayitlar.map(kayit => {
-                    const aktor = aktorGorunumu(kayit.actor);
-                    const an = formatAuditMoment(kayit.createdAt);
+          {kayitlar.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
+                        Ne zaman
+                      </th>
+                      <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
+                        Kim
+                      </th>
+                      <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
+                        İşlem
+                      </th>
+                      <th className="px-5 py-3 text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
+                        Varlık
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {kayitlar.map(kayit => {
+                      const aktor = aktorGorunumu(kayit.actor);
+                      const an = formatAuditMoment(kayit.createdAt);
 
-                    return (
-                      <tr key={kayit.id}>
-                        <td className="px-5 py-3 align-top text-[12px] text-slate-700">
-                          {an ?? (
-                            <span className="text-slate-400">
-                              Tarih okunamadı
+                      return (
+                        <tr key={kayit.id}>
+                          <td className="px-5 py-3 align-top text-[12px] text-slate-700">
+                            {an ?? (
+                              <span className="text-slate-400">
+                                Tarih okunamadı
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3 align-top">
+                            <span className="text-[12px] font-bold text-slate-800">
+                              {aktor.metin}
                             </span>
-                          )}
-                        </td>
-                        <td className="px-5 py-3 align-top">
-                          <span className="text-[12px] font-bold text-slate-800">
-                            {aktor.metin}
-                          </span>
-                          {aktor.aciklama ? (
-                            <p className="mt-1 max-w-xs text-[10px] leading-4 text-slate-500">
-                              {aktor.aciklama}
-                            </p>
-                          ) : null}
-                        </td>
-                        <td className="px-5 py-3 align-top">
-                          <Badge
-                            tone={aktor.ton === "amber" ? "amber" : "blue"}
-                          >
-                            {describeAuditAction(kayit.action)}
-                          </Badge>
-                        </td>
-                        <td className="px-5 py-3 align-top text-[12px] text-slate-700">
-                          {describeAuditEntity(kayit.entityType)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                            {aktor.aciklama ? (
+                              <p className="mt-1 max-w-xs text-[10px] leading-4 text-slate-500">
+                                {aktor.aciklama}
+                              </p>
+                            ) : null}
+                          </td>
+                          <td className="px-5 py-3 align-top">
+                            <Badge
+                              tone={aktor.ton === "amber" ? "amber" : "blue"}
+                            >
+                              {describeAuditAction(kayit.action)}
+                            </Badge>
+                          </td>
+                          <td className="px-5 py-3 align-top text-[12px] text-slate-700">
+                            {describeAuditEntity(kayit.entityType)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {hasNextPage ? (
+                <div className="border-t border-slate-100 p-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => void fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[12px] font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    {isFetchingNextPage ? "Yükleniyor…" : "Daha fazla yükle"}
+                  </button>
+                </div>
+              ) : null}
+            </>
           ) : null}
         </section>
       )}

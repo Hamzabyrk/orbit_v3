@@ -1,5 +1,8 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { IssuedCredentials } from "@/components/credentials/IssuedCredentials";
+import type { AuditPage } from "@/audit/auditService";
+
+export type { AuditPage };
 
 /**
  * Platform panelinin veri katmanı.
@@ -135,17 +138,27 @@ export function organizationNotEmptyMessage(blockingContent: unknown): string {
   return `${base} Engelleyen kayıtlar: ${parts.join(", ")}.`;
 }
 
-export async function loadOrganizations(): Promise<PlatformOrganization[]> {
+export const DEFAULT_ORGANIZATION_LIMIT = 100;
+
+export type OrganizationListResult = {
+  rows: PlatformOrganization[];
+  truncated: boolean;
+};
+
+export async function loadOrganizations(
+  limit = DEFAULT_ORGANIZATION_LIMIT
+): Promise<OrganizationListResult> {
   const { data, error } = await supabase
     .from("organizations")
     .select("id, name, slug, code, archived_at, created_at")
-    .order("code", { ascending: true });
+    .order("code", { ascending: true })
+    .limit(limit);
 
   if (error) {
     throw new Error("Kurum listesi yüklenemedi.");
   }
 
-  return (data ?? []).map(row => ({
+  const rows = (data ?? []).map(row => ({
     id: row.id,
     name: row.name,
     slug: row.slug,
@@ -153,22 +166,37 @@ export async function loadOrganizations(): Promise<PlatformOrganization[]> {
     archivedAt: row.archived_at,
     createdAt: row.created_at,
   }));
+
+  return {
+    rows,
+    truncated: rows.length === limit,
+  };
 }
 
-export async function loadOperators(): Promise<PlatformOperatorRow[]> {
+export const DEFAULT_OPERATOR_LIMIT = 50;
+
+export type OperatorListResult = {
+  rows: PlatformOperatorRow[];
+  truncated: boolean;
+};
+
+export async function loadOperators(
+  limit = DEFAULT_OPERATOR_LIMIT
+): Promise<OperatorListResult> {
   const { data, error } = await supabase
     .from("platform_operators")
     .select("user_id, role, status, note, created_at")
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .limit(limit);
 
   if (error) {
     throw new Error("Operatör listesi yüklenemedi.");
   }
 
-  const rows = data ?? [];
-  const names = await loadDisplayNames(rows.map(row => row.user_id));
+  const rawRows = data ?? [];
+  const names = await loadDisplayNames(rawRows.map(row => row.user_id));
 
-  return rows.map(row => ({
+  const rows = rawRows.map(row => ({
     userId: row.user_id,
     displayName: names.get(row.user_id) ?? null,
     role: row.role,
@@ -176,25 +204,45 @@ export async function loadOperators(): Promise<PlatformOperatorRow[]> {
     note: row.note,
     createdAt: row.created_at,
   }));
+
+  return {
+    rows,
+    truncated: rows.length === limit,
+  };
 }
 
+export const DEFAULT_PLATFORM_AUDIT_LIMIT = 50;
+
 export async function loadAuditEvents(
-  limit = 50
-): Promise<PlatformAuditEvent[]> {
-  const { data, error } = await supabase
+  limit = DEFAULT_PLATFORM_AUDIT_LIMIT,
+  cursor?: number | null
+): Promise<AuditPage<PlatformAuditEvent>> {
+  let query = supabase
     .from("platform_audit_events")
     .select(
       "id, actor_user_id, action, entity_type, entity_id, organization_id, created_at"
     )
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .order("id", { ascending: false });
+
+  if (cursor !== undefined && cursor !== null) {
+    query = query.lt("id", cursor);
+  }
+
+  const { data, error } = await query.limit(limit + 1);
 
   if (error) {
     throw new Error("Denetim kaydı yüklenemedi.");
   }
 
-  const rows = data ?? [];
-  const actorIds = rows
+  const rawRows = data ?? [];
+  const hasMore = rawRows.length > limit;
+  const slicedRows = hasMore ? rawRows.slice(0, limit) : rawRows;
+  const nextCursor =
+    hasMore && slicedRows.length > 0
+      ? slicedRows[slicedRows.length - 1].id
+      : null;
+
+  const actorIds = slicedRows
     .map(row => row.actor_user_id)
     .filter((value): value is string => Boolean(value));
 
@@ -206,7 +254,7 @@ export async function loadAuditEvents(
     loadOrganizationNames(),
   ]);
 
-  return rows.map(row => ({
+  const rows = slicedRows.map(row => ({
     id: row.id,
     actorUserId: row.actor_user_id,
     actorName: row.actor_user_id
@@ -221,6 +269,11 @@ export async function loadAuditEvents(
       : null,
     createdAt: row.created_at,
   }));
+
+  return {
+    rows,
+    nextCursor,
+  };
 }
 
 async function loadDisplayNames(
