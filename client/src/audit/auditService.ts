@@ -155,27 +155,75 @@ async function loadMemberNames(
   return new Map((data ?? []).map(row => [row.id, row.display_name]));
 }
 
+export type AuditPage<T> = {
+  rows: T[];
+  /** Sonraki sayfanın imleci. `null` ise liste GERÇEKTEN bitti. */
+  nextCursor: number | null;
+};
+
+export const DEFAULT_AUDIT_LIMIT = 50;
+
+/**
+ * Kurumun denetim kaydından bir sayfa okur (v1.3-06).
+ *
+ * **İmleç `id` üzerindedir, `created_at` değil.** `created_at` varsayılanı
+ * `now()` ve `now()` işlem başlangıç zamanıdır; aynı işlemde yazılan olaylar
+ * birebir aynı damgayı taşır ve zaman damgası imleci onları sessizce atlardı
+ * (`DECISION_LOG` — "Denetim kaydının imleci saat değil sıra numarasıdır").
+ *
+ * ⚠️ **`organization_id` süzmesi RLS'e ek olarak AÇIKÇA yazılıyor** ve bu bir
+ * güvenlik önlemi değil, bir **indeks** meselesi. Kapsam zaten RLS'ten geliyor;
+ * ama RLS koşulu `current_user_has_membership(...)` bir **fonksiyon çağrısıdır**,
+ * sabit üzerinde bir eşitlik değil. Planlayıcı onu indeks koşuluna çeviremiyor.
+ *
+ * Canlıda ölçüldü (2026-09-09, `enable_seqscan = off` ile zorlanarak):
+ *
+ *     süzme YOKken → Index Scan Backward using audit_events_pkey
+ *                    Filter: current_user_has_membership(...)
+ *     süzme VARken → Index Scan using audit_events_org_id_desc_idx
+ *                    Index Cond: (organization_id = ... AND id < ...)
+ *
+ * Yani açık süzme olmadan `(organization_id, id desc)` indeksi hiç
+ * kullanılmıyor; sorgu birincil anahtarı geriye tarayıp RLS fonksiyonunu
+ * **her satırda** çalıştırıyor. Tablo kurumlar arası büyüdükçe küçük bir
+ * kurumun 51 satırını bulmak sınırsız sayıda satır taramak demek.
+ */
 export async function loadOrganizationAuditEvents(
-  limit = 50
-): Promise<OrganizationAuditEvent[]> {
-  const { data, error } = await supabase
+  organizationId: string,
+  limit = DEFAULT_AUDIT_LIMIT,
+  cursor?: number | null
+): Promise<AuditPage<OrganizationAuditEvent>> {
+  let query = supabase
     .from("audit_events")
     .select("id, actor_user_id, action, entity_type, entity_id, created_at")
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .eq("organization_id", organizationId)
+    .order("id", { ascending: false });
+
+  if (cursor !== undefined && cursor !== null) {
+    query = query.lt("id", cursor);
+  }
+
+  const { data, error } = await query.limit(limit + 1);
 
   if (error) {
     throw new Error("Denetim kaydı yüklenemedi.");
   }
 
-  const rows = (data ?? []) as AuditRow[];
-  const actorIds = rows
+  const rawRows = (data ?? []) as AuditRow[];
+  const hasMore = rawRows.length > limit;
+  const slicedRows = hasMore ? rawRows.slice(0, limit) : rawRows;
+  const nextCursor =
+    hasMore && slicedRows.length > 0
+      ? slicedRows[slicedRows.length - 1].id
+      : null;
+
+  const actorIds = slicedRows
     .map(row => row.actor_user_id)
     .filter((value): value is string => Boolean(value));
 
   const names = await loadMemberNames(actorIds);
 
-  return rows.map(row => ({
+  const rows = slicedRows.map(row => ({
     id: row.id,
     actor: resolveAuditActor(row.actor_user_id, names),
     action: row.action,
@@ -183,4 +231,9 @@ export async function loadOrganizationAuditEvents(
     entityId: row.entity_id,
     createdAt: row.created_at,
   }));
+
+  return {
+    rows,
+    nextCursor,
+  };
 }

@@ -1,7 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
 import { useAuth } from "@/auth/useAuth";
 import {
+  DEFAULT_AUDIT_LIMIT,
   loadOrganizationAuditEvents,
+  type AuditPage,
   type OrganizationAuditEvent,
 } from "./auditService";
 
@@ -42,13 +44,24 @@ export function useOrganizationAuditEvents(
   const { identity } = useAuth();
   const organizationId =
     options?.organizationId ?? identity?.membership?.organizationId;
-  const limit = options?.limit ?? 50;
+  const limit = options?.limit ?? DEFAULT_AUDIT_LIMIT;
 
-  return useQuery<OrganizationAuditEvent[], Error>({
+  return useInfiniteQuery<
+    AuditPage<OrganizationAuditEvent>,
+    Error,
+    InfiniteData<AuditPage<OrganizationAuditEvent>, number | null>,
+    readonly [string, string, { readonly organizationId: string }],
+    number | null
+  >({
     queryKey: organizationId
       ? auditKeys.events(organizationId)
       : (["audit", "events", { organizationId: "" }] as const),
-    queryFn: () => loadOrganizationAuditEvents(limit),
+    queryFn: ({ pageParam }) =>
+      // `organizationId` burada kesin dolu: `enabled` onsuz sorguyu hiç
+      // çalıştırmıyor ve anahtar da onu taşıyor.
+      loadOrganizationAuditEvents(organizationId!, limit, pageParam),
+    initialPageParam: null,
+    getNextPageParam: lastPage => lastPage.nextCursor,
     enabled: Boolean(organizationId),
   });
 }

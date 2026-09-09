@@ -1,14 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { useAuth } from "@/auth/useAuth";
 import {
+  DEFAULT_OPERATOR_LIMIT,
+  DEFAULT_ORGANIZATION_LIMIT,
+  DEFAULT_PLATFORM_AUDIT_LIMIT,
   loadAuditEvents,
   loadOperators,
   loadOrganizations,
   loadOrganizationStats,
+  type AuditPage,
+  type OperatorListResult,
+  type OrganizationListResult,
   type OrganizationStats,
   type PlatformAuditEvent,
-  type PlatformOperatorRow,
-  type PlatformOrganization,
 } from "./platformService";
 
 /**
@@ -40,6 +48,7 @@ export const platformKeys = {
 
 export type UsePlatformOrganizationsOptions = {
   enabled?: boolean;
+  limit?: number;
 };
 
 /**
@@ -54,16 +63,18 @@ export function usePlatformOrganizations(
   const { identity } = useAuth();
   const isOperator = Boolean(identity?.platformOperator);
   const isEnabled = (options?.enabled ?? true) && isOperator;
+  const limit = options?.limit ?? DEFAULT_ORGANIZATION_LIMIT;
 
-  return useQuery<PlatformOrganization[], Error>({
+  return useQuery<OrganizationListResult, Error>({
     queryKey: platformKeys.organizations(),
-    queryFn: () => loadOrganizations(),
+    queryFn: () => loadOrganizations(limit),
     enabled: isEnabled,
   });
 }
 
 export type UsePlatformOperatorsOptions = {
   enabled?: boolean;
+  limit?: number;
 };
 
 /**
@@ -76,16 +87,18 @@ export function usePlatformOperators(options?: UsePlatformOperatorsOptions) {
   const { identity } = useAuth();
   const isOperator = Boolean(identity?.platformOperator);
   const isEnabled = (options?.enabled ?? true) && isOperator;
+  const limit = options?.limit ?? DEFAULT_OPERATOR_LIMIT;
 
-  return useQuery<PlatformOperatorRow[], Error>({
+  return useQuery<OperatorListResult, Error>({
     queryKey: platformKeys.operators(),
-    queryFn: () => loadOperators(),
+    queryFn: () => loadOperators(limit),
     enabled: isEnabled,
   });
 }
 
 export type UsePlatformAuditEventsOptions = {
   enabled?: boolean;
+  limit?: number;
 };
 
 /**
@@ -100,10 +113,19 @@ export function usePlatformAuditEvents(
   const { identity } = useAuth();
   const isOperator = Boolean(identity?.platformOperator);
   const isEnabled = (options?.enabled ?? true) && isOperator;
+  const limit = options?.limit ?? DEFAULT_PLATFORM_AUDIT_LIMIT;
 
-  return useQuery<PlatformAuditEvent[], Error>({
+  return useInfiniteQuery<
+    AuditPage<PlatformAuditEvent>,
+    Error,
+    InfiniteData<AuditPage<PlatformAuditEvent>, number | null>,
+    readonly [string, string, { readonly scope: "platform" }],
+    number | null
+  >({
     queryKey: platformKeys.auditEvents(),
-    queryFn: () => loadAuditEvents(),
+    queryFn: ({ pageParam }) => loadAuditEvents(limit, pageParam),
+    initialPageParam: null,
+    getNextPageParam: lastPage => lastPage.nextCursor,
     enabled: isEnabled,
   });
 }

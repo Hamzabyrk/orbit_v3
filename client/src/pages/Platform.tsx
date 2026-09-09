@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, Redirect } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { OrbitMark } from "@/components/OrbitMark";
@@ -18,6 +18,10 @@ import {
   usePlatformOperators,
   usePlatformOrganizations,
 } from "@/platform/platformQueries";
+import {
+  DEFAULT_OPERATOR_LIMIT,
+  DEFAULT_ORGANIZATION_LIMIT,
+} from "@/platform/platformService";
 
 export default function Platform() {
   const { identity, loading, signOut } = useAuth();
@@ -27,6 +31,11 @@ export default function Platform() {
   const organizationsQuery = usePlatformOrganizations();
   const operatorsQuery = usePlatformOperators();
   const auditEventsQuery = usePlatformAuditEvents();
+
+  const auditEvents = useMemo(
+    () => auditEventsQuery.data?.pages.flatMap(page => page.rows) ?? [],
+    [auditEventsQuery.data]
+  );
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: platformKeys.all });
@@ -137,7 +146,9 @@ export default function Platform() {
           />
         ) : (
           <PlatformOrganizations
-            organizations={organizationsQuery.data ?? []}
+            organizations={organizationsQuery.data?.rows ?? []}
+            truncated={organizationsQuery.data?.truncated}
+            limit={DEFAULT_ORGANIZATION_LIMIT}
             onCreated={refresh}
           />
         )
@@ -162,7 +173,11 @@ export default function Platform() {
             }
           />
         ) : (
-          <PlatformOperators operators={operatorsQuery.data ?? []} />
+          <PlatformOperators
+            operators={operatorsQuery.data?.rows ?? []}
+            truncated={operatorsQuery.data?.truncated}
+            limit={DEFAULT_OPERATOR_LIMIT}
+          />
         )
       ) : auditEventsQuery.isLoading ? (
         <PlatformNotice
@@ -184,7 +199,12 @@ export default function Platform() {
           }
         />
       ) : (
-        <PlatformAuditLog events={auditEventsQuery.data ?? []} />
+        <PlatformAuditLog
+          events={auditEvents}
+          hasNextPage={auditEventsQuery.hasNextPage}
+          isFetchingNextPage={auditEventsQuery.isFetchingNextPage}
+          onLoadMore={() => void auditEventsQuery.fetchNextPage()}
+        />
       )}
     </PlatformShell>
   );
