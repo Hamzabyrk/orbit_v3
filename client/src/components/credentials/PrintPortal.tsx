@@ -17,34 +17,27 @@ const PRINT_ROOT_ID = "orbit-print-root";
  * konumlandırma yazdırma akışının dışına düşüyordu.
  */
 export function PrintPortal({ children }: { children: ReactNode }) {
-  const [container, setContainer] = useState<HTMLElement | null>(null);
+  // Düğüm burada YARATILIYOR ama belgeye BAĞLANMIYOR: `createElement` belgeye
+  // dokunmaz, dolayısıyla render saf kalır. Bağlamak ve sökmek efektin işi.
+  //
+  // Önceki hâli düğümü efekt içinde yaratıp `setContainer` ile içeri
+  // taşıyordu; bu, ilk render'ın `null` dönmesi ve içeriğin bir tur sonra
+  // belirmesi demekti. Şimdi kap ilk render'da hazır.
+  //
+  // `index.html`'de durmuyor çünkü yazdırılacak bir şey olmadığında belgede
+  // boş bir kap durmasın.
+  const [container] = useState<HTMLDivElement>(() => {
+    const node = document.createElement("div");
+    node.id = PRINT_ROOT_ID;
+    return node;
+  });
 
   useEffect(() => {
-    // Düğüm burada oluşturuluyor, `index.html`'de değil: yazdırılacak bir şey
-    // olmadığında belgede boş bir kap durmasın.
-    let node = document.getElementById(PRINT_ROOT_ID);
-    let created = false;
-
-    if (!node) {
-      node = document.createElement("div");
-      node.id = PRINT_ROOT_ID;
-      document.body.appendChild(node);
-      created = true;
-    }
-
-    setContainer(node);
-
+    document.body.appendChild(container);
     return () => {
-      setContainer(null);
-      if (created && node?.parentNode) {
-        node.parentNode.removeChild(node);
-      }
+      container.remove();
     };
-  }, []);
-
-  if (!container) {
-    return null;
-  }
+  }, [container]);
 
   return createPortal(children, container);
 }

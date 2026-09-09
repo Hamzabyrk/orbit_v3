@@ -32,10 +32,19 @@ export function ForcePasswordChangeScreen({
   const [error, setError] = useState<string | null>(null);
 
   const rules = useMemo(() => evaluatePassword(password), [password]);
+
+  // "Şimdi" bileşen bağlanırken BİR KEZ okunuyor. `Date.now()`'ı doğrudan
+  // render gövdesinde çağırmak render'ı saf olmaktan çıkarır: aynı girdiyle
+  // iki farklı çıktı üretir ve `<StrictMode>`'un çift render'ında iki farklı
+  // değer okunur. Davranış değişmiyor — değer zaten yalnızca render başına
+  // hesaplanıyordu ve ekranda geri sayan bir sayaç yok; kalan süre "3 gün"
+  // gibi kaba bir ifade.
+  const [now] = useState(() => Date.now());
+
   const expirationTime = expiresAt ? new Date(expiresAt).getTime() : null;
   const remainingMilliseconds =
     expirationTime !== null && Number.isFinite(expirationTime)
-      ? expirationTime - Date.now()
+      ? expirationTime - now
       : null;
   const expired = remainingMilliseconds !== null && remainingMilliseconds <= 0;
   const remainingTime =
