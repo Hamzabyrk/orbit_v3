@@ -115,6 +115,11 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 type AuthChangeListener = (event: string, session: Session | null) => void;
 
 let authChangeListener: AuthChangeListener | null = null;
+// `<StrictMode>` altında efekt kur-sök-kur çalışır. Sayaçlar temizliğin
+// gerçekten koştuğunu ölçmek için: sökülmezse iki canlı dinleyici kalır ve
+// her olay iki kez işlenir (#221'in yakınında duran bir hata sınıfı).
+let subscribeCount = 0;
+let unsubscribeCount = 0;
 const fromMock = vi.fn();
 const signOutMock = vi.fn(async () => ({ error: null }));
 const signInWithPasswordMock = vi.fn();
@@ -127,10 +132,13 @@ vi.mock("@/lib/supabaseClient", () => ({
     auth: {
       onAuthStateChange: (cb: AuthChangeListener) => {
         authChangeListener = cb;
+        subscribeCount++;
         return {
           data: {
             subscription: {
-              unsubscribe: vi.fn(),
+              unsubscribe: () => {
+                unsubscribeCount++;
+              },
             },
           },
         };
@@ -787,6 +795,88 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
 
     // Ve dedup kimliği kaybettirmedi — atlanan olay yerine geçmedi, sadece
     // aynı işi tekrarlamadı.
+    expect(latestContext?.identity).not.toBeNull();
+    expect(latestContext?.identity?.membership?.role).toBe("teacher");
+  });
+  // v1.3-02 — `<StrictMode>` bu turda açıldı. Açtığı şey burada ölçülüyor:
+  // React efekti kurup söküp yeniden kuruyor. Temizlik çalışmazsa iki canlı
+  // `onAuthStateChange` dinleyicisi kalır ve her oturum olayı iki kez işlenir.
+  //
+  // Bu, #221'in bir adım ötesi: orada kimlik iki kez okunuyordu çünkü işaret
+  // geç konuyordu; burada iki kez okunma sebebi iki dinleyici olurdu.
+  it("Test 7 — <StrictMode> altında abonelik sökülüyor ve kimlik yine çözülüyor", async () => {
+    let latestContext: AuthContextType | null = null;
+
+    function TestConsumer() {
+      latestContext = useContext(AuthContext);
+      return null;
+    }
+
+    subscribeCount = 0;
+    unsubscribeCount = 0;
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === "organization_memberships") {
+        return chainReturning(
+          ok({
+            id: "m-7",
+            organization_id: "org-1",
+            branch_id: null,
+            role: "teacher",
+          })
+        );
+      }
+      if (table === "organizations") {
+        return chainReturning(ok({ name: "Pilot Dershane", code: 1042 }));
+      }
+      if (table === "branches") {
+        return chainReturning(ok({ id: "b1", name: "Merkez" }));
+      }
+      if (table === "profiles") {
+        return chainReturning(
+          ok({
+            display_name: "Öğretmen Kullanıcı",
+            must_change_password: false,
+            password_expires_at: null,
+            recovery_email: null,
+          })
+        );
+      }
+      return chainReturning(empty);
+    });
+
+    const rootDiv = mockDoc.createElement("div");
+    mockDoc.body.appendChild(rootDiv);
+    const root = ReactDOM.createRoot(rootDiv as unknown as HTMLElement);
+
+    await React.act(async () => {
+      root.render(
+        React.createElement(
+          React.StrictMode,
+          null,
+          React.createElement(
+            QueryClientProvider,
+            { client: new QueryClient() },
+            React.createElement(
+              AuthProvider,
+              null,
+              React.createElement(TestConsumer)
+            )
+          )
+        )
+      );
+    });
+
+    // ⛔ Kur-sök-kur: her kurulumun bir sökülmesi olmalı, sonuncusu hariç.
+    expect(subscribeCount).toBe(2);
+    expect(unsubscribeCount).toBe(1);
+
+    // Ve yeniden kurulan abonelik çalışıyor: olay işleniyor, kimlik yazılıyor.
+    await React.act(async () => {
+      authChangeListener!("SIGNED_IN", testSession);
+      await new Promise(r => setTimeout(r, 20));
+    });
+
     expect(latestContext?.identity).not.toBeNull();
     expect(latestContext?.identity?.membership?.role).toBe("teacher");
   });

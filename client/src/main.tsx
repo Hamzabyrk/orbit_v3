@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { AuthProvider } from "./auth/AuthProvider";
@@ -60,10 +61,31 @@ export const queryClient = new QueryClient({
   },
 });
 
+/**
+ * `<StrictMode>` — yalnızca geliştirmede etkin, üretim derlemesinde hiçbir şey
+ * yapmaz (v1.3-02).
+ *
+ * Açtığı şey şu: React her efekti bir kez kurup söküp yeniden kuruyor ve her
+ * render'ı iki kez çalıştırıyor. Bu, temizliği eksik bir efekti ve saf olmayan
+ * bir render'ı **geliştirmede** görünür kılar; kapalıyken ikisi de yalnızca
+ * üretimde, kullanıcıda ortaya çıkar.
+ *
+ * Bugüne kadar kapalıydı ve bunun bir bedeli ölçüldü: #213 (kimlik çözümü
+ * sürerken yapılan çıkışın geri alınması) ve #221 (her girişte kimliğin iki
+ * kez okunması) ikisi de efekt zamanlaması hatalarıydı ve ikisi de aylarca
+ * fark edilmedi.
+ *
+ * **Neden şimdi açılabiliyor:** v1.3-01 ve v1.3-02 bu efektlerin neredeyse
+ * hepsini yeniden yazdı. `eslint-plugin-react-hooks` v7 aynı turda açıldı ve
+ * depoda gösterdiği 10 hatanın onu da kapandı (#196). Daha önce açmak,
+ * yeniden yazılacak kodu düzeltmek olurdu.
+ */
 createRoot(document.getElementById("root")!).render(
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-  </QueryClientProvider>
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </QueryClientProvider>
+  </StrictMode>
 );
