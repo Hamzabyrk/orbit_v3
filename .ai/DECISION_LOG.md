@@ -62,6 +62,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Katılımcı sayısı sınavın sayısıdır, okuyanın gördüğü satırların değil
 - Ödeme durumu iki değerlidir; planı olmayan "Güncel" değildir
 - Denetim kaydının imleci saat değil sıra numarasıdır
+- Realtime tetikleyiciyle yayınlanır; kanalın adı kapsamdır
 
 **Kapsam ve sürüm**
 
@@ -1916,3 +1917,38 @@ Yani aynı işlemde yazılan her denetim olayı **aynı zaman damgasını** taş
 **Reddedilen: `created_at`'i `clock_timestamp()`'e çevirmek.** Çakışmayı gerçekten çözerdi ama iki yayında olan tabloda varsayılan değiştirmek demek; üstelik `id` zaten elde hazırken.
 
 **İndeks:** `audit_events (organization_id, id desc)`. Canlıda doğrulandı — plan hem kurum süzmesini hem imleci tek indeks taramasında karşılıyor. `platform_audit_events` süzmediği için birincil anahtar indeksi yetiyor. Eski `created_at` indeksleri **bırakıldı**: tarih aralığıyla filtreleme hâlâ onların işi.
+
+---
+
+### Karar: Realtime tetikleyiciyle yayınlanır; kanalın adı kapsamdır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-09
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.3-05 Realtime'ı getiriyor ve **v1.4'ün release gate'i buna dayanıyor**. Bu bir otonom davranış açıyor — her açık sekme kalıcı bir WebSocket tutacak — bu yüzden mekanizma seçilmeden önce açıklandı ve onaylandı (**K-20**).
+
+Ölçülen başlangıç: `supabase_realtime` yayını var ama **içi boş**; istemcide hiç Realtime kodu yok; `realtime.messages` RLS açık ve **sıfır politikalı** (yani her özel kanal kapalı); on bir iş tablosunun hepsinde `REPLICA IDENTITY = default`.
+
+**Karar:** Değişiklikler **veritabanı tetikleyicisinden Broadcast** ile yayınlanır. Konu adı `org:<organization_id>`; yetki `realtime.messages` üzerindeki tek bir politikayla, **kanal düzeyinde** çözülür. `postgres_changes` kullanılmaz.
+
+**Gerekçe 1 — silme sızıntısı.** `postgres_changes` yolunda silme olayında eski satırdan yalnız birincil anahtar kalır (`REPLICA IDENTITY = default`), yani RLS'in süzeceği `organization_id` yoktur ve **başka kurumda silinen satırın kimliği her aboneye giderdi**. Bu depoda tenant sınırı iki bağımsız mekanizmayla tutuluyor; üçüncü bir yerden delinmesine izin verilmedi.
+
+Tetikleyici yolu sorunu ortadan kaldırıyor: tetikleyicinin `OLD` kaydı `REPLICA IDENTITY`'den bağımsız olarak **tam satırdır**. Ölçüldü — DELETE tetiklendi ve doğru kuruma gitti.
+
+**Gerekçe 2 — kanalın adı kapsamdır.** 2026-08-21 kararı zaten şunu yazmıştı: _"kanallar kurum ve gerekli sınıf kapsamıyla sınırlandırılacak"_. `postgres_changes`'te kapsam istemci tarafı bir süzgeçtir; burada **konu adının kendisidir** ve yetki her mesajda her abone için değil, abonelikte bir kez çözülür.
+
+**Gerekçe 3 — yayın hiçbir veri taşımıyor.** Yük yalnızca tablo adı ve işlem türü. Yayın yükü satır düzeyinde RLS'ten geçmez; içine bir kimlik bile konsa kurum içindeki rol ayrımları (öğretmen ödeme görmez, öğrenci veli listesi görmez) yayında uygulanmazdı. Yayın bir **veri kanalı değil, bir dürtme**: istemci tazeler, veri her zamanki gibi RLS'ten geçerek gelir. Böylece Realtime kapsamı genişletmiyor, **yalnızca zamanlamayı** değiştiriyor.
+
+**Reddedilen: `postgres_changes` + `REPLICA IDENTITY FULL`.** Silme sızıntısını kapatırdı ama her UPDATE'te tüm eski satırı WAL'a yazmak demekti, ve RLS her abone için her mesajda yeniden çalışırdı.
+
+**Reddedilen: `postgres_changes`, silme kapsam dışı.** Sızıntıyı kapatırdı ama silinen kayıt ekranda durmaya devam ederdi — "kullanıcının gördüğüne güvenebilmesi" kuralıyla doğrudan çelişir.
+
+**Ölçümler (canlı, `begin; … rollback;`):**
+
+- Tek INSERT deyimi iki kuruma üç satır yazdı → **her kuruma tam bir mesaj** (deyim düzeyinde tetikleyici + geçiş tablosu).
+- UPDATE ve DELETE birer mesaj üretti; DELETE yükünde yalnız tablo adı ve işlem türü vardı — veri yok.
+- Kanal yetkisi: A üyesi A kanalında 1, **B üyesi A kanalında 0**, uydurulmuş konu adında **0**.
+- `current_user_has_membership(null)` hata vermiyor, `false` dönüyor — bozuk konu adı kendiliğinden kapalı kapıya çarpıyor.
+
+**Bir provizyon tuzağı bulundu ve yazıldı.** `realtime.messages` bölümlenmiş bir tablo ve ilk ölçümde **sıfır bölümü** vardı; `realtime.send` sessizce düşüyordu (kendi içinde `EXCEPTION WHEN OTHERS THEN RAISE WARNING` taşıyor). Sebep provizyondu: projede Realtime hiç kullanılmamıştı. Tek bir istemci aboneliği açıldı ve servis **beş günlük bölümü kendisi yarattı**. Bölüm yaşam döngüsü Supabase'in işi; `realtime` şemasında nesne oluşturma iznimiz yok (denendi, reddedildi).
