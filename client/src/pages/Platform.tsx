@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, Redirect } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import { OrbitMark } from "@/components/OrbitMark";
 import { useAuth } from "@/auth/useAuth";
 import {
@@ -12,68 +13,24 @@ import { PlatformAuditLog } from "@/platform/PlatformAuditLog";
 import { PlatformOperators } from "@/platform/PlatformOperators";
 import { PlatformOrganizations } from "@/platform/PlatformOrganizations";
 import {
-  loadAuditEvents,
-  loadOperators,
-  loadOrganizations,
-  type PlatformAuditEvent,
-  type PlatformOperatorRow,
-  type PlatformOrganization,
-} from "@/platform/platformService";
-
-type PanelData = {
-  organizations: PlatformOrganization[];
-  operators: PlatformOperatorRow[];
-  events: PlatformAuditEvent[];
-};
-
-const EMPTY_DATA: PanelData = { organizations: [], operators: [], events: [] };
+  platformKeys,
+  usePlatformAuditEvents,
+  usePlatformOperators,
+  usePlatformOrganizations,
+} from "@/platform/platformQueries";
 
 export default function Platform() {
   const { identity, loading, signOut } = useAuth();
   const [tab, setTab] = useState<PlatformTab>("organizations");
-  const [data, setData] = useState<PanelData>(EMPTY_DATA);
-  const [dataLoading, setDataLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const isOperator = Boolean(identity?.platformOperator);
+  const organizationsQuery = usePlatformOrganizations();
+  const operatorsQuery = usePlatformOperators();
+  const auditEventsQuery = usePlatformAuditEvents();
 
-  const refresh = useCallback(async () => {
-    const [organizations, operators, events] = await Promise.all([
-      loadOrganizations(),
-      loadOperators(),
-      loadAuditEvents(),
-    ]);
-
-    setData({ organizations, operators, events });
-  }, []);
-
-  useEffect(() => {
-    if (!isOperator) {
-      setDataLoading(false);
-      return;
-    }
-
-    let active = true;
-    setDataLoading(true);
-
-    refresh()
-      .then(() => {
-        if (active) setLoadError(null);
-      })
-      .catch((error: unknown) => {
-        if (!active) return;
-        setLoadError(
-          error instanceof Error ? error.message : "Panel verileri yüklenemedi."
-        );
-      })
-      .finally(() => {
-        if (active) setDataLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [isOperator, refresh]);
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: platformKeys.all });
+  };
 
   if (loading) {
     return (
@@ -158,46 +115,76 @@ export default function Platform() {
     >
       <PlatformTabs active={tab} onChange={setTab} />
 
-      {dataLoading ? (
+      {tab === "organizations" ? (
+        organizationsQuery.isLoading ? (
+          <PlatformNotice
+            title="Yükleniyor…"
+            description="Kurum kayıtları getiriliyor."
+          />
+        ) : organizationsQuery.error ? (
+          <PlatformNotice
+            title="Veriler yüklenemedi"
+            description={organizationsQuery.error.message}
+            footer={
+              <button
+                type="button"
+                onClick={() => void organizationsQuery.refetch()}
+                className="font-bold text-sky-300"
+              >
+                Tekrar dene
+              </button>
+            }
+          />
+        ) : (
+          <PlatformOrganizations
+            organizations={organizationsQuery.data ?? []}
+            onCreated={refresh}
+          />
+        )
+      ) : tab === "operators" ? (
+        operatorsQuery.isLoading ? (
+          <PlatformNotice
+            title="Yükleniyor…"
+            description="Operatör kayıtları getiriliyor."
+          />
+        ) : operatorsQuery.error ? (
+          <PlatformNotice
+            title="Veriler yüklenemedi"
+            description={operatorsQuery.error.message}
+            footer={
+              <button
+                type="button"
+                onClick={() => void operatorsQuery.refetch()}
+                className="font-bold text-sky-300"
+              >
+                Tekrar dene
+              </button>
+            }
+          />
+        ) : (
+          <PlatformOperators operators={operatorsQuery.data ?? []} />
+        )
+      ) : auditEventsQuery.isLoading ? (
         <PlatformNotice
           title="Yükleniyor…"
-          description="Kurum, operatör ve denetim kayıtları getiriliyor."
+          description="Platform denetim kayıtları getiriliyor."
         />
-      ) : loadError ? (
+      ) : auditEventsQuery.error ? (
         <PlatformNotice
           title="Veriler yüklenemedi"
-          description={loadError}
+          description={auditEventsQuery.error.message}
           footer={
             <button
               type="button"
-              onClick={() => {
-                setDataLoading(true);
-                refresh()
-                  .then(() => setLoadError(null))
-                  .catch((error: unknown) =>
-                    setLoadError(
-                      error instanceof Error
-                        ? error.message
-                        : "Panel verileri yüklenemedi."
-                    )
-                  )
-                  .finally(() => setDataLoading(false));
-              }}
+              onClick={() => void auditEventsQuery.refetch()}
               className="font-bold text-sky-300"
             >
               Tekrar dene
             </button>
           }
         />
-      ) : tab === "organizations" ? (
-        <PlatformOrganizations
-          organizations={data.organizations}
-          onCreated={() => void refresh()}
-        />
-      ) : tab === "operators" ? (
-        <PlatformOperators operators={data.operators} />
       ) : (
-        <PlatformAuditLog events={data.events} />
+        <PlatformAuditLog events={auditEventsQuery.data ?? []} />
       )}
     </PlatformShell>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -11,12 +11,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CredentialsPanel } from "@/components/credentials/CredentialsPanel";
+import { useOrganizationStats } from "./platformQueries";
 import {
   deleteOrganization,
-  loadOrganizationStats,
   resetAdminPassword,
   type OrganizationCredentials,
-  type OrganizationStats,
   type PlatformOrganization,
 } from "./platformService";
 
@@ -63,34 +62,26 @@ export function OrganizationProfileDialog({
   const [credentials, setCredentials] =
     useState<OrganizationCredentials | null>(null);
   const [confirmName, setConfirmName] = useState("");
-  const [stats, setStats] = useState<OrganizationStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(false);
 
-  // Farklı bir kuruma geçildiğinde her şey sıfırlanmalı; kalsaydı operatör bir
-  // kurumun ekranında başka kurumun şifresini veya sayılarını görebilirdi.
-  useEffect(() => {
-    if (!organization) return;
+  const { data: stats = null, isLoading: statsLoading } = useOrganizationStats(
+    organization?.id
+  );
 
+  // Farklı bir kuruma geçildiğinde diyalog içindeki kullanıcı durumları
+  // sıfırlanır; kalsaydı operatör bir kurumun ekranında önceki kurumun
+  // geçici şifresini görebilirdi. İstatistikler ise React Query'nin kurum
+  // kimliği içeren anahtarı (`platformKeys.organizationStats`) tarafından
+  // korunur (K-19).
+  const [prevOrgId, setPrevOrgId] = useState<string | null>(
+    organization?.id ?? null
+  );
+
+  if (organization && organization.id !== prevOrgId) {
+    setPrevOrgId(organization.id);
     setView("overview");
     setCredentials(null);
     setConfirmName("");
-    setStats(null);
-    setStatsLoading(true);
-
-    let active = true;
-
-    void loadOrganizationStats(organization.id)
-      .then(result => {
-        if (active) setStats(result);
-      })
-      .finally(() => {
-        if (active) setStatsLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [organization]);
+  }
 
   if (!organization) {
     return null;
@@ -98,6 +89,9 @@ export function OrganizationProfileDialog({
 
   const close = () => {
     if (submitting) return;
+    setView("overview");
+    setCredentials(null);
+    setConfirmName("");
     onClose();
   };
 
@@ -174,6 +168,8 @@ export function OrganizationProfileDialog({
             credentials={credentials}
             onDone={() => {
               setCredentials(null);
+              setView("overview");
+              setConfirmName("");
               onClose();
             }}
           />

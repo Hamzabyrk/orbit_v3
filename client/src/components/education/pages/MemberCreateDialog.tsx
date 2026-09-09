@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,15 +13,13 @@ import { CredentialsPanel } from "@/components/credentials/CredentialsPanel";
 import type { IssuedCredentials } from "@/components/credentials/IssuedCredentials";
 import { DEMO_TEMPORARY_PASSWORD } from "@/components/credentials/IssuedCredentials";
 import { useAuth } from "@/auth/useAuth";
+import { useSettingsBranches } from "@/settings/settingsQueries";
 import {
   createMember,
-  loadOrganizationBranches,
   resolveBranchSelection,
   type MemberRole,
 } from "@/organization/memberService";
 import { roleMeta } from "../roleMeta";
-
-type Branch = { id: string; name: string };
 
 const MEMBER_ROLES: MemberRole[] = ["teacher", "student", "parent"];
 
@@ -40,10 +38,18 @@ export function MemberCreateDialog({
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<MemberRole>("teacher");
   const [selectedBranchKey, setSelectedBranchKey] = useState<string>("");
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchLoading, setBranchLoading] = useState(false);
-  const [branchError, setBranchError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const {
+    data: branchList = [],
+    isLoading: branchQueryLoading,
+    error: branchQueryError,
+  } = useSettingsBranches(organizationId, { enabled: open });
+
+  const branches = demoMode ? [] : branchList;
+  const branchLoading = !demoMode && open && branchQueryLoading;
+  const branchError =
+    !demoMode && open && branchQueryError ? branchQueryError.message : null;
 
   /**
    * Aynı gönderimin tekrarını sunucuya tanıtan anahtar (v1.2-17).
@@ -62,48 +68,10 @@ export function MemberCreateDialog({
     null
   );
 
-  useEffect(() => {
-    if (!open || demoMode) {
-      return;
-    }
-
-    let active = true;
-    setBranchLoading(true);
-    setBranchError(null);
-
-    void loadOrganizationBranches(organizationId)
-      .then(data => {
-        if (!active) {
-          return;
-        }
-        setBranches(data);
-      })
-      .catch(loadError => {
-        if (!active) {
-          return;
-        }
-        setBranches([]);
-        setBranchError(
-          loadError instanceof Error
-            ? loadError.message
-            : "Şubeler yüklenemedi. Lütfen tekrar deneyin."
-        );
-      })
-      .finally(() => {
-        if (active) setBranchLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [demoMode, open, organizationId]);
-
   const reset = () => {
     setFullName("");
     setRole("teacher");
     setSelectedBranchKey("");
-    setBranches([]);
-    setBranchError(null);
     setError(null);
     setCredentials(null);
     // Diyalog kapandı: bundan sonrası yeni bir istektir, eski anahtar
