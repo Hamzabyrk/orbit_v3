@@ -1,0 +1,78 @@
+-- Denetim kaydının imleci saat değil, sıra numarasıdır (v1.3-06).
+--
+-- =========================================================================
+-- Bağlam
+-- =========================================================================
+--
+-- `DECISION_LOG` — "Cache anahtarı kurumu taşır; sayfalama imleçlidir; sessiz
+-- kesme yoktur" (2026-09-07) iki listeyi adıyla işaretlemişti:
+-- `audit/auditService.ts:165` ve `platform/platformService.ts:190`. İkisi de
+-- `.limit(50)` ile **sessizce** kesiliyor; imleç yok, toplam yok, arayüzde
+-- kesildiğine dair hiçbir işaret yok.
+--
+-- Kararın kendi cümlesi: _"Bugünkü denetim kaydı yöneticiye en yeni 50 olayı
+-- gösterip 'hepsi bu' diyor; oysa bilmiyor."_ Ve zamana göre sıralı, sınırsız
+-- büyüyen listeler için yöntemi de yazmış: **imleç** —
+-- `.lt(sıra_sütunu, imleç).limit(n)`.
+--
+-- Bu migration o "sıra sütunu"nun hangisi olduğunu belirliyor ve gereken
+-- indeksi açıyor.
+--
+-- =========================================================================
+-- ⛔ Sıra sütunu `created_at` DEĞİL, `id`
+-- =========================================================================
+--
+-- Doğal okuma `created_at` derdi. Yanlış olurdu ve sebebi ölçüldü.
+--
+-- `created_at` varsayılanı `now()` ve **`now()` işlem başlangıç zamanıdır**.
+-- Canlıda ölçüldü (2026-09-09): tek bir işlem içinde, arada 150 ms uyku
+-- olmasına rağmen `now()` **birebir aynı** değeri döndürdü; `clock_timestamp()`
+-- ise ilerledi.
+--
+--     now()            → 2026-09-09 15:13:45.958729+00
+--     pg_sleep(0.15)
+--     now()            → 2026-09-09 15:13:45.958729+00   (aynı)
+--
+-- Yani **aynı işlemde yazılan her denetim olayı bayt bayt aynı `created_at`
+-- değerini taşır.** `.lt(created_at, imleç)` biçiminde bir imleç, sınır
+-- zaman damgasını paylaşan satırların **hepsini birden atlar** — ve bunu
+-- sessizce yapar. Bir uyum yüzeyinde atlanan satır kabul edilemez; kararın
+-- kendisi bunu offset'i reddederken zaten yazmıştı.
+--
+-- Bugün production'da çakışan zaman damgası yok (6 + 14 olay, hepsi ayrı) —
+-- ama bu verinin azlığından, tasarımın sağlamlığından değil. Kurum silme gibi
+-- akışlarda birden çok fonksiyon aynı işlem içinde olay yazıyor.
+--
+-- **`id` bu sorunun hiçbirini taşımıyor:** `bigint generated always as
+-- identity`, yani tekil ve artan. Keyset imleci üzerinde ne eşitlik, ne atlama,
+-- ne tekrar var. PostgREST de bunu doğrudan ifade ediyor (`.lt("id", imleç)`);
+-- `(created_at, id)` bileşik keyset'i ise `or(...and(...))` cambazlığı ya da
+-- ayrı bir fonksiyon gerektirirdi.
+--
+-- **Duvar saatinden sapma:** iki eşzamanlı işlem, `created_at` sırasının
+-- tersine `id` alabilir (A önce başlar, B önce yazar). Bu ancak eşzamanlı
+-- işlemlerde olur ve orada "hangisi önce oldu" sorusunun zaten kesin bir
+-- cevabı yoktur. `created_at` ekranda gösterilmeye devam ediyor; değişen
+-- yalnızca **sıralama ve imleç** ölçütü.
+--
+-- =========================================================================
+-- İndeks
+-- =========================================================================
+--
+-- `audit_events` kuruma göre süzülüp sıraya diziliyor; mevcut indeks
+-- `(organization_id, created_at desc)` ve `id`'ye göre sıralamada işe
+-- yaramıyor.
+--
+-- `platform_audit_events` için yeni indeks YOK: o sorgu süzmüyor, yalnız
+-- sıralıyor ve birincil anahtar indeksi (`id`) geriye doğru taranarak bunu
+-- zaten karşılıyor.
+--
+-- Eski `created_at` indeksleri **bırakılıyor**. Kullanılmaz hale gelmiyorlar:
+-- tarih aralığıyla filtreleme (uyum raporu, "şu ay ne oldu") hâlâ onların işi
+-- ve o ekran v1.4'ün kapsamında.
+
+create index if not exists audit_events_org_id_desc_idx
+  on public.audit_events (organization_id, id desc);
+
+comment on index public.audit_events_org_id_desc_idx is
+  'Kurum denetim kaydının imleçli sayfalaması için. Sıra sütunu `created_at` DEĞİL `id`: `created_at` varsayılanı `now()` ve `now()` işlem başlangıç zamanı olduğu için aynı işlemde yazılan olaylar birebir aynı değeri taşır; zaman damgası imleci o satırları sessizce atlardı (DECISION_LOG — "sessiz kesme yoktur").';

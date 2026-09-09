@@ -61,6 +61,7 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Ders, sınıfa bağlanmaz — çünkü sınıfın ders listesi diye bir model yok
 - Katılımcı sayısı sınavın sayısıdır, okuyanın gördüğü satırların değil
 - Ödeme durumu iki değerlidir; planı olmayan "Güncel" değildir
+- Denetim kaydının imleci saat değil sıra numarasıdır
 
 **Kapsam ve sürüm**
 
@@ -1883,3 +1884,35 @@ görülebilir ödeme planı yok         →  hiçbir şey (rozet çizilmez)
 **Demo değişmedi.** Üç durum demoda eskisi gibi görünüyor. Üretim onları çizmiyor çünkü kuralları yok — eksik değil, **kuralı yazılana kadar kapsam dışı**.
 
 **Vade karşılaştırması istemcide yapılmaz.** "Bugün" kurum saatine (`Europe/Istanbul`) göre veritabanında hesaplanır. Tarayıcının saat dilimine bırakılsaydı aynı taksit iki veliye iki farklı gün gecikmiş görünürdü (**K-06**). Ayrıntı: v1.3-15 migration'ı.
+
+---
+
+### Karar: Denetim kaydının imleci saat değil sıra numarasıdır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-09
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** 2026-09-07 kararı ("sessiz kesme yoktur") zamana göre sıralı, sınırsız büyüyen listeler için yöntemi yazmıştı: **imleç** — `.lt(sıra_sütunu, imleç).limit(n)`. Ama **hangi sütun** olduğunu yazmamıştı. Doğal okuma `created_at` derdi.
+
+**Karar:** Sıra sütunu ve imleç ölçütü **`id`**'dir, `created_at` değil. `created_at` ekranda gösterilmeye devam eder; değişen yalnız sıralama ve imleç ölçütüdür.
+
+**Gerekçe — `created_at` sessizce satır atlar ve bu ölçüldü.** `created_at` varsayılanı `now()` ve `now()` **işlem başlangıç zamanıdır**. Canlıda ölçüldü: tek bir işlem içinde, arada 150 ms uyku olmasına rağmen iki `now()` çağrısı **birebir aynı** değeri döndürdü; `clock_timestamp()` ise ilerledi.
+
+```
+now()          → 2026-09-09 15:13:45.958729+00
+pg_sleep(0.15)
+now()          → 2026-09-09 15:13:45.958729+00
+```
+
+Yani aynı işlemde yazılan her denetim olayı **aynı zaman damgasını** taşır. `.lt(created_at, imleç)` biçiminde bir imleç, sınır zaman damgasını paylaşan satırların hepsini birden atlar. Bu, offset'in reddedilme sebebiyle aynı hatadır — sadece daha sinsisi, çünkü offset'te satır atlanması eşzamanlı yazmaya bağlıyken burada **tek bir işlemin kendisi yetiyor**.
+
+**`id` bu sorunların hiçbirini taşımıyor.** İki denetim tablosunda da `id bigint generated always as identity`: tekil ve artan. Keyset imleci üzerinde eşitlik, atlama ya da tekrar yok. PostgREST bunu doğrudan ifade ediyor (`.lt("id", imleç)`); `(created_at, id)` bileşik keyset'i ise `or(...and(...))` cambazlığı veya ayrı bir veritabanı fonksiyonu gerektirirdi — yani daha kırılgan bir çözüm, daha kötü bir sebep için.
+
+**Kabul edilen bedel: duvar saatinden küçük bir sapma.** İki eşzamanlı işlem, `created_at` sırasının tersine `id` alabilir: A önce başlar, B önce yazar. Bu yalnız eşzamanlı işlemlerde olur ve orada "hangisi önce oldu" sorusunun zaten kesin bir cevabı yoktur. Buna karşılık kazanılan şey, listenin **hiçbir satırı atlamayacağının garantisi**.
+
+**Reddedilen: `(created_at, id)` bileşik keyset.** Duvar saati sırasını da korurdu. Ama PostgREST'te ifadesi kırılgan, indeksi daha geniş, ve kazandırdığı şey — eşzamanlı işlemlerde kesin sıralama — bu iki ekran için kimsenin ihtiyacı olmayan bir kesinlik.
+
+**Reddedilen: `created_at`'i `clock_timestamp()`'e çevirmek.** Çakışmayı gerçekten çözerdi ama iki yayında olan tabloda varsayılan değiştirmek demek; üstelik `id` zaten elde hazırken.
+
+**İndeks:** `audit_events (organization_id, id desc)`. Canlıda doğrulandı — plan hem kurum süzmesini hem imleci tek indeks taramasında karşılıyor. `platform_audit_events` süzmediği için birincil anahtar indeksi yetiyor. Eski `created_at` indeksleri **bırakıldı**: tarih aralığıyla filtreleme hâlâ onların işi.
