@@ -1,6 +1,17 @@
 {
-  "include": ["client/src/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "include": ["client/src/**/*", "supabase/tests/**/*"],
+  // Test dosyaları BİLEREK dışlanmıyor (#243). Dışlandıkları sürece
+  // `pnpm check` — beş kapı komutundan biri ve zorunlu `quality-gate`'in
+  // içinde — depodaki test kodunu hiç okumuyordu; vitest de tip denetlemiyor,
+  // esbuild tipleri yalnızca siliyor. Bu bir varsayım değil, ölçüldü:
+  // `SessionEventInput`'a zorunlu bir alan eklendi, `sessionEvents.test.ts`
+  // onu doldurmadı ve kapı yeşil döndü.
+  //
+  // Bu depoda testler yalnız doğrulama değil **sözleşme kaydı** olarak da
+  // kullanılıyor (K-22 / K-03 iddiaları çoğu zaman testte yazılı). Sözleşmeyi
+  // yazan dosyanın tip denetiminden muaf olması, sözleşmenin sessizce
+  // eskimesine açık kapı bırakırdı (K-06).
+  "exclude": ["node_modules", "build", "dist"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",

@@ -4,7 +4,11 @@ import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Session, User } from "@supabase/supabase-js";
 import { AuthContext } from "./AuthContext";
-import type { AuthContextType } from "./types";
+// Tipin adı `AuthContextValue`; burada 2026-09-09'a kadar var olmayan bir
+// ad yazılıydı ve kimse görmedi çünkü `pnpm check` test dosyalarını
+// okumuyordu (#243). Tip-only import olduğu için çalışma zamanında
+// silinip gidiyordu: testin tip iddiası tamamen kurguydu.
+import type { AuthContextValue } from "./types";
 
 // Node ortamında React 19'un render edebilmesi için minimal DOM taklidi
 class MockNode {
@@ -143,7 +147,7 @@ vi.mock("@/lib/supabaseClient", () => ({
           },
         };
       },
-      signOut: (...args: unknown[]) => signOutMock(...args),
+      signOut: () => signOutMock(),
       signInWithPassword: (...args: unknown[]) =>
         signInWithPasswordMock(...args),
     },
@@ -192,10 +196,17 @@ const testSession: Session = {
 
 describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () => {
   it("Test 1 — kimlik çözümü uçuştayken çıkış yapılırsa bayat sonuç yazılmaz", async () => {
-    let latestContext: AuthContextType | null = null;
+    // Bağlam düz bir `let` yerine NESNE içinde tutuluyor. Sebep TypeScript'in
+    // akış analizi: `let x: T | null = null` sonrası atama yalnızca bir geri
+    // çağrımda yapılırsa derleyici değişkeni `null`'a daraltır ve okuma
+    // yerinde tip `never` olur. Nesne özelliğinin daraltması araya giren
+    // fonksiyon çağrılarında (burada `React.act`) düşer, sorun oluşmaz.
+    //
+    // Bu hiç görünmüyordu çünkü dosyanın tipi zaten kurguydu (#243).
+    const seen: { context: AuthContextValue | null } = { context: null };
 
     function TestConsumer() {
-      latestContext = useContext(AuthContext);
+      seen.context = useContext(AuthContext);
       return null;
     }
 
@@ -260,7 +271,7 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
       await new Promise(r => setTimeout(r, 10));
     });
 
-    expect(latestContext?.identity).toBeNull();
+    expect(seen.context?.identity).toBeNull();
 
     // 3. Uçuştaki sorgu döner
     await React.act(async () => {
@@ -277,7 +288,7 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
     });
 
     // Kabul kriteri 1: Çıkmış kullanıcının kimliği geri yazılmamalı
-    expect(latestContext?.identity).toBeNull();
+    expect(seen.context?.identity).toBeNull();
 
     // Kabul kriteri 2: resolvedTokenRef yazılmamış olmalı (aynı token tekrar gelirse skip-resolved sayılmamalı)
     // Eğer bayat token yazılmış olsaydı, tekrar giriş 'skip-resolved' ile yutulurdu.
@@ -317,15 +328,15 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
     });
 
     // Tekrar giriş yapıldığında kimlik başarıyla yüklenmeli
-    expect(latestContext?.identity).not.toBeNull();
-    expect(latestContext?.identity?.displayName).toBe("Pilot Kullanıcı");
+    expect(seen.context?.identity).not.toBeNull();
+    expect(seen.context?.identity?.displayName).toBe("Pilot Kullanıcı");
   });
 
   it("Test 2 — normal yol bozulmadı: araya bir şey girmediğinde kimlik her zamanki gibi yazılır", async () => {
-    let latestContext: AuthContextType | null = null;
+    const seen: { context: AuthContextValue | null } = { context: null };
 
     function TestConsumer() {
-      latestContext = useContext(AuthContext);
+      seen.context = useContext(AuthContext);
       return null;
     }
 
@@ -383,16 +394,16 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
       await new Promise(r => setTimeout(r, 20));
     });
 
-    expect(latestContext?.identity).not.toBeNull();
-    expect(latestContext?.identity?.displayName).toBe("Öğretmen Kullanıcı");
-    expect(latestContext?.identity?.membership?.role).toBe("teacher");
+    expect(seen.context?.identity).not.toBeNull();
+    expect(seen.context?.identity?.displayName).toBe("Öğretmen Kullanıcı");
+    expect(seen.context?.identity?.membership?.role).toBe("teacher");
   });
 
   it("Test 3 — uçuştaki sorgu hata verse bile bayat hata sonraki oturumu sıfırlamaz", async () => {
-    let latestContext: AuthContextType | null = null;
+    const seen: { context: AuthContextValue | null } = { context: null };
 
     function TestConsumer() {
-      latestContext = useContext(AuthContext);
+      seen.context = useContext(AuthContext);
       return null;
     }
 
@@ -488,15 +499,15 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
     });
 
     // İkinci oturumun kimliği sağlam durmalı, bayat hata onu sıfırlamamalı
-    expect(latestContext?.identity).not.toBeNull();
-    expect(latestContext?.identity?.displayName).toBe("İkinci Kullanıcı");
+    expect(seen.context?.identity).not.toBeNull();
+    expect(seen.context?.identity?.displayName).toBe("İkinci Kullanıcı");
   });
 
   it("Test 4 — kimlik okuması başarısızken signIn fırlatmalı ve signOut çağrılmalı", async () => {
-    let latestContext: AuthContextType | null = null;
+    const seen: { context: AuthContextValue | null } = { context: null };
 
     function TestConsumer() {
-      latestContext = useContext(AuthContext);
+      seen.context = useContext(AuthContext);
       return null;
     }
 
@@ -580,9 +591,14 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
     // signIn çağrılır ve uçuştayken (query beklerken) setTimeout çalışıp SIGNED_IN applyIdentity'yi başlatır
     let signInPromise: Promise<void>;
     await React.act(async () => {
-      signInPromise = latestContext!.signIn({
+      signInPromise = seen.context!.signIn({
         email: "pilot@dershane.com",
         password: "password123",
+        // Üretim yolunda okunmayan alan: `signIn` bunu yalnız demo modunda
+        // kullanıyor ve bu dosyada demo kapalı. Tip zorunlu kıldığı için
+        // yazılıyor — demoya özgü bir alanın her girişte zorunlu olması ayrı
+        // bir kusur ve PR'da not düşüldü.
+        demoRole: "admin",
       });
       // window.setTimeout(..., 0)'ın çalışıp ikinci applyIdentity'yi başlatması için bekleme
       await new Promise(r => setTimeout(r, 10));
@@ -607,10 +623,10 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
   });
 
   it("Test 5 — oturum kapandığında (SIGNED_OUT) React Query önbelleği temizlenir (#132, v1.3-00)", async () => {
-    let latestContext: AuthContextType | null = null;
+    const seen: { context: AuthContextValue | null } = { context: null };
 
     function TestConsumer() {
-      latestContext = useContext(AuthContext);
+      seen.context = useContext(AuthContext);
       return null;
     }
 
@@ -675,7 +691,7 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
       await new Promise(r => setTimeout(r, 20));
     });
 
-    expect(latestContext?.identity).not.toBeNull();
+    expect(seen.context?.identity).not.toBeNull();
     expect(testQueryClient.getQueryData(queryKey)).toBeDefined();
 
     // 2. SIGNED_OUT olayı tetiklenir
@@ -685,7 +701,7 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
     });
 
     // 3. Kimlik null'a çekilmiş olmalı
-    expect(latestContext?.identity).toBeNull();
+    expect(seen.context?.identity).toBeNull();
 
     // 4. Paylaşılan dershane bilgisayarında verinin kalmaması için önbellek tamamen temizlenmiş olmalı (#132)
     expect(testQueryClient.getQueryData(queryKey)).toBeUndefined();
@@ -699,10 +715,10 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
   // başlıyordu. `AuthProvider`'ın yorumu 2026-09-09'a kadar bunun olmadığını
   // iddia ediyordu.
   it("Test 6 — tek girişte kimlik YALNIZCA BİR KEZ okunur (#221)", async () => {
-    let latestContext: AuthContextType | null = null;
+    const seen: { context: AuthContextValue | null } = { context: null };
 
     function TestConsumer() {
-      latestContext = useContext(AuthContext);
+      seen.context = useContext(AuthContext);
       return null;
     }
 
@@ -762,9 +778,14 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
     // 1. Giriş başlar; üyelik sorgusu uçuşta kalır.
     let signInPromise: Promise<void>;
     await React.act(async () => {
-      signInPromise = latestContext!.signIn({
+      signInPromise = seen.context!.signIn({
         email: "pilot@dershane.com",
         password: "password123",
+        // Üretim yolunda okunmayan alan: `signIn` bunu yalnız demo modunda
+        // kullanıyor ve bu dosyada demo kapalı. Tip zorunlu kıldığı için
+        // yazılıyor — demoya özgü bir alanın her girişte zorunlu olması ayrı
+        // bir kusur ve PR'da not düşüldü.
+        demoRole: "admin",
       });
       await new Promise(r => setTimeout(r, 10));
     });
@@ -795,8 +816,8 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
 
     // Ve dedup kimliği kaybettirmedi — atlanan olay yerine geçmedi, sadece
     // aynı işi tekrarlamadı.
-    expect(latestContext?.identity).not.toBeNull();
-    expect(latestContext?.identity?.membership?.role).toBe("teacher");
+    expect(seen.context?.identity).not.toBeNull();
+    expect(seen.context?.identity?.membership?.role).toBe("teacher");
   });
   // v1.3-02 — `<StrictMode>` bu turda açıldı. Açtığı şey burada ölçülüyor:
   // React efekti kurup söküp yeniden kuruyor. Temizlik çalışmazsa iki canlı
@@ -805,10 +826,10 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
   // Bu, #221'in bir adım ötesi: orada kimlik iki kez okunuyordu çünkü işaret
   // geç konuyordu; burada iki kez okunma sebebi iki dinleyici olurdu.
   it("Test 7 — <StrictMode> altında abonelik sökülüyor ve kimlik yine çözülüyor", async () => {
-    let latestContext: AuthContextType | null = null;
+    const seen: { context: AuthContextValue | null } = { context: null };
 
     function TestConsumer() {
-      latestContext = useContext(AuthContext);
+      seen.context = useContext(AuthContext);
       return null;
     }
 
@@ -877,7 +898,7 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
       await new Promise(r => setTimeout(r, 20));
     });
 
-    expect(latestContext?.identity).not.toBeNull();
-    expect(latestContext?.identity?.membership?.role).toBe("teacher");
+    expect(seen.context?.identity).not.toBeNull();
+    expect(seen.context?.identity?.membership?.role).toBe("teacher");
   });
 });
