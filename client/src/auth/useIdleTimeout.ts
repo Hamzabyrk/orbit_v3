@@ -45,8 +45,18 @@ export function useIdleTimeout({
 }): void {
   // Geri çağrım her render'da değişebilir; efektin yeniden kurulmaması için
   // ref üzerinden okunuyor.
+  //
+  // Yazma render'da DEĞİL efektte yapılıyor: render'ın bir ref'e yazması onu
+  // saf olmaktan çıkarır ve React'in render'ı atma ya da tekrarlama hakkı
+  // vardır (`<StrictMode>` bunu geliştirmede zaten yapar). İlk değer
+  // `useRef`'in kendi başlangıcından geliyor, dolayısıyla ilk render'da da
+  // doğru geri çağrım duruyor; sonraki güncellemeler boyamadan sonra iniyor
+  // ve zaman aşımı çok daha geç tetiklendiği için bu gecikme görünmez.
   const onExpireRef = useRef(onExpire);
-  onExpireRef.current = onExpire;
+
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
 
   const warnedRef = useRef(false);
 
