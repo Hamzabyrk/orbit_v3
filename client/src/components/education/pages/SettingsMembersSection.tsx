@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth/useAuth";
 import {
   Dialog,
@@ -12,8 +13,8 @@ import { CredentialsPanel } from "@/components/credentials/CredentialsPanel";
 import type { IssuedCredentials } from "@/components/credentials/IssuedCredentials";
 import { DEMO_TEMPORARY_PASSWORD } from "@/components/credentials/IssuedCredentials";
 import { MemberCreateDialog } from "./MemberCreateDialog";
+import { settingsKeys, useSettingsMembers } from "@/settings/settingsQueries";
 import {
-  loadOrganizationMembers,
   resetMemberPassword,
   type MemberStatus,
   type OrganizationMember,
@@ -53,11 +54,18 @@ function getResetTargetSubjectName(member: OrganizationMember): string {
 
 export function SettingsMembersSection() {
   const { identity, demoMode } = useAuth();
-  const [members, setMembers] = useState<OrganizationMember[]>(
-    demoMode ? demoMembers : []
-  );
-  const [loading, setLoading] = useState(!demoMode);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const organizationId = identity?.membership?.organizationId;
+
+  const {
+    data: serverMembers = [],
+    isLoading,
+    error: queryError,
+  } = useSettingsMembers();
+
+  const members = demoMode ? demoMembers : serverMembers;
+  const loading = !demoMode && isLoading;
+  const loadError = queryError ? queryError.message : null;
 
   const [resetTarget, setResetTarget] = useState<OrganizationMember | null>(
     null
@@ -74,56 +82,6 @@ export function SettingsMembersSection() {
     null
   );
   const [createOpen, setCreateOpen] = useState(false);
-  // Liste birden fazla kez yenilenebiliyor: açılışta ve üye eklendikten sonra.
-  // Geç dönen eski bir istek yeni listenin üzerine yazarsa, yöneticiye az önce
-  // oluşturduğu üyeyi eksik gösterir ve aynı kişiyi ikinci kez açtırabilir.
-  const reloadIdRef = useRef(0);
-
-  const reloadMembers = useCallback(() => {
-    if (demoMode) {
-      setMembers(demoMembers);
-      setLoading(false);
-      return;
-    }
-
-    const organizationId = identity?.membership?.organizationId;
-    const organizationCode = identity?.membership?.organizationCode ?? null;
-
-    if (!organizationId) {
-      setLoading(false);
-      return;
-    }
-
-    const reloadId = ++reloadIdRef.current;
-    setLoading(true);
-    setLoadError(null);
-
-    void loadOrganizationMembers(organizationId, organizationCode)
-      .then(data => {
-        if (reloadId !== reloadIdRef.current) return;
-        setMembers(data);
-      })
-      .catch(error => {
-        if (reloadId !== reloadIdRef.current) return;
-        setLoadError(
-          error instanceof Error
-            ? error.message
-            : "Üye listesi yüklenemedi. Lütfen tekrar deneyin."
-        );
-        setMembers([]);
-      })
-      .finally(() => {
-        if (reloadId === reloadIdRef.current) setLoading(false);
-      });
-  }, [
-    demoMode,
-    identity?.membership?.organizationCode,
-    identity?.membership?.organizationId,
-  ]);
-
-  useEffect(() => {
-    reloadMembers();
-  }, [reloadMembers]);
 
   const handleOpenReset = (member: OrganizationMember) => {
     setResetTarget(member);
@@ -385,7 +343,11 @@ export function SettingsMembersSection() {
         organizationId={identity?.membership?.organizationId ?? ""}
         onDone={() => {
           setCreateOpen(false);
-          reloadMembers();
+          void queryClient.invalidateQueries({
+            queryKey: organizationId
+              ? settingsKeys.members(organizationId)
+              : settingsKeys.all,
+          });
         }}
       />
     </>

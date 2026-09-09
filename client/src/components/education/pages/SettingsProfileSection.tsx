@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth/useAuth";
-import {
-  loadProfileContact,
-  saveProfilePhone,
-} from "@/auth/profileContactService";
+import { saveProfilePhone } from "@/auth/profileContactService";
+import { settingsKeys, useProfileContact } from "@/settings/settingsQueries";
 import { demoRoleNames, roleMeta } from "../roleMeta";
 import { roleEmail } from "../demoData";
 import type { Role } from "../types";
@@ -12,49 +11,28 @@ import { SettingsFormField } from "./SettingsFormField";
 
 export function SettingsProfileSection({ role }: { role: Role }) {
   const { identity, demoMode } = useAuth();
-  const [phone, setPhone] = useState(demoMode ? "+90 555 123 45 67" : "");
-  const [recoveryEmail, setRecoveryEmail] = useState(
-    demoMode ? roleEmail[role] : ""
-  );
-  const [loading, setLoading] = useState(!demoMode);
+  const queryClient = useQueryClient();
+  const [userPhone, setUserPhone] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const { data: contact, isLoading, error: queryError } = useProfileContact();
+
+  const phone = demoMode
+    ? "+90 555 123 45 67"
+    : userPhone !== null
+      ? userPhone
+      : (contact?.phone ?? "");
+
+  const recoveryEmail = demoMode
+    ? roleEmail[role]
+    : (contact?.recoveryEmail ?? "");
+
+  const loading = !demoMode && isLoading;
+  const loadError = queryError ? queryError.message : null;
 
   const displayName = demoMode
     ? demoRoleNames[role]
     : (identity?.displayName ?? "");
-
-  useEffect(() => {
-    if (demoMode) return;
-
-    let active = true;
-    setLoading(true);
-    setLoadError(null);
-
-    void loadProfileContact()
-      .then(contact => {
-        if (!active) return;
-        setPhone(contact?.phone ?? "");
-        setRecoveryEmail(contact?.recoveryEmail ?? "");
-      })
-      .catch(error => {
-        if (!active) return;
-        setLoadError(
-          error instanceof Error
-            ? error.message
-            : "Profil iletişim bilgileri yüklenemedi."
-        );
-        setPhone("");
-        setRecoveryEmail("");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [demoMode]);
 
   const save = async () => {
     if (demoMode) {
@@ -67,6 +45,11 @@ export function SettingsProfileSection({ role }: { role: Role }) {
     setSaving(true);
     try {
       await saveProfilePhone(phone.trim() || null);
+      if (identity?.userId) {
+        void queryClient.invalidateQueries({
+          queryKey: settingsKeys.profileContact(identity.userId),
+        });
+      }
       toast.success("Değişiklikler kaydedildi", {
         description: "Telefon bilginiz güncellendi.",
       });
@@ -101,7 +84,11 @@ export function SettingsProfileSection({ role }: { role: Role }) {
       ) : null}
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <SettingsFormField label="Ad Soyad" value={displayName} disabled />
-        <SettingsFormField label="Telefon" value={phone} onChange={setPhone} />
+        <SettingsFormField
+          label="Telefon"
+          value={phone}
+          onChange={setUserPhone}
+        />
         <div>
           <SettingsFormField
             label="Kurtarma e-postası"
