@@ -1,5 +1,4 @@
 import { BarChart3, ClipboardCheck, X } from "lucide-react";
-import { toast } from "sonner";
 import { Badge, StatCard } from "./shared";
 import type { Student } from "./types";
 
@@ -65,7 +64,6 @@ export function StudentDetail({
               <StatCard
                 label="Son sınav"
                 value={String(student.score)}
-                detail="TYT Deneme 06"
                 icon={BarChart3}
                 tone="violet"
               />
@@ -110,24 +108,6 @@ export function StudentDetail({
               </div>
             ) : null}
           </div>
-        </section>
-        <section className="mt-4 rounded-xl border border-blue-100 bg-blue-50/55 p-4">
-          <p className="text-[11px] font-extrabold text-blue-900">Son not</p>
-          <p className="mt-1 text-[11px] leading-5 text-blue-800">
-            Geometri konusunda düzenli tekrar önerildi. Veli görüşmesi için 20
-            Ağustos tarihinde uygun slot bulundu.
-          </p>
-          <button
-            onClick={() =>
-              toast.info("Veli görüşmesi taslağı henüz kaydedilmiyor", {
-                description:
-                  "İletişim kuyruğu altyapısı bir sonraki aşamada kurulacaktır; şu an bir taslak oluşturulmadı.",
-              })
-            }
-            className="mt-3 text-[11px] font-bold text-blue-700 underline underline-offset-4"
-          >
-            Veli görüşmesi öner
-          </button>
         </section>
       </aside>
     </div>

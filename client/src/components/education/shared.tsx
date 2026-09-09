@@ -42,7 +42,17 @@ export function StatCard({
 }: {
   label: string;
   value: string;
-  detail: string;
+  /**
+   * Değerin altındaki açıklama satırı — **opsiyonel ve bilinçli olarak öyle.**
+   *
+   * Eskiden zorunluydu ve bunun bir bedeli oldu: `StudentDetail` gerçek bir
+   * öğrencinin gerçek puanını `detail="TYT Deneme 06"` sabitiyle çizmişti,
+   * çünkü kart bir alt metin İSTİYORDU ve elde doğrusu yoktu. Zorunlu bir
+   * alan, doldurulamadığında uydurulur (**K-03**).
+   *
+   * Verilmezse satır hiç çizilmez.
+   */
+  detail?: string;
   icon: typeof Users;
   tone?: "blue" | "green" | "amber" | "violet" | "rose";
 }) {
@@ -66,7 +76,9 @@ export function StatCard({
       <p className="mt-4 font-display text-[24px] font-extrabold tracking-[-.055em] text-slate-900">
         {value}
       </p>
-      <p className="mt-1 text-[10px] font-medium text-slate-400">{detail}</p>
+      {detail ? (
+        <p className="mt-1 text-[10px] font-medium text-slate-400">{detail}</p>
+      ) : null}
     </section>
   );
 }
