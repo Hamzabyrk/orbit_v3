@@ -21,7 +21,7 @@ import {
 } from "@/organization/memberService";
 import { roleMeta } from "../roleMeta";
 import { organizationMembers as demoMembers } from "../educationData";
-import { Badge } from "../shared";
+import { Badge, ErrorState, TableSkeleton } from "../shared";
 
 const STATUS_META: Record<
   MemberStatus,
@@ -61,6 +61,7 @@ export function SettingsMembersSection() {
     data: serverMembers = [],
     isLoading,
     error: queryError,
+    refetch,
   } = useSettingsMembers();
 
   const members = demoMode ? demoMembers : serverMembers;
@@ -169,16 +170,14 @@ export function SettingsMembersSection() {
       </div>
 
       {loading ? (
-        <div className="mt-6 flex items-center justify-center rounded-xl border border-slate-200/80 bg-slate-50/50 p-8">
-          <p className="text-[12px] font-medium text-slate-500">
-            Üye listesi yükleniyor…
-          </p>
-        </div>
+        <TableSkeleton rows={4} columns={6} className="mt-6" />
       ) : loadError ? (
-        <div className="mt-6 rounded-xl border border-rose-100 bg-rose-50 p-4 text-[12px] leading-5 text-rose-800">
-          <p className="font-bold">Üye listesi alınamadı</p>
-          <p className="mt-0.5 text-[11px] text-rose-700">{loadError}</p>
-        </div>
+        <ErrorState
+          className="mt-6"
+          title="Üye listesi alınamadı"
+          message={loadError}
+          onRetry={!demoMode ? () => void refetch() : undefined}
+        />
       ) : members.length === 0 ? (
         <div className="mt-6 flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-8">
           <p className="text-[12px] font-medium text-slate-500">

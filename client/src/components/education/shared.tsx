@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowRight,
   BookOpen,
@@ -272,6 +274,124 @@ export function EmptyState({
         <p className="mt-1.5 max-w-sm text-[11px] leading-5 text-slate-500">
           {description}
         </p>
+      ) : null}
+    </div>
+  );
+}
+
+export function TableSkeleton({
+  rows = 5,
+  columns = 4,
+  className,
+}: {
+  rows?: number;
+  columns?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label="Yükleniyor…"
+      className={cn(
+        "overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]",
+        className
+      )}
+    >
+      <span className="sr-only">Yükleniyor…</span>
+      <div className="space-y-4">
+        <div className="flex items-center gap-4 border-b border-slate-100 pb-3">
+          {Array.from({ length: columns }).map((_, c) => (
+            <Skeleton key={`th-${c}`} className="h-4 flex-1 bg-slate-100" />
+          ))}
+        </div>
+        {Array.from({ length: rows }).map((_, r) => (
+          <div key={`tr-${r}`} className="flex items-center gap-4 py-2">
+            {Array.from({ length: columns }).map((_, c) => (
+              <Skeleton
+                key={`td-${r}-${c}`}
+                className="h-4 flex-1 bg-slate-100"
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function CardSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label="Yükleniyor…"
+      className={cn(
+        "rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_4px_16px_rgba(15,23,42,.025)]",
+        className
+      )}
+    >
+      <span className="sr-only">Yükleniyor…</span>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-5 w-48 max-w-full bg-slate-100" />
+          <Skeleton className="h-3.5 w-32 max-w-full bg-slate-100" />
+        </div>
+        <Skeleton className="h-6 w-20 shrink-0 rounded-full bg-slate-100" />
+      </div>
+      <div className="mt-6 space-y-3">
+        <Skeleton className="h-4 w-full bg-slate-100" />
+        <Skeleton className="h-4 w-3/4 bg-slate-100" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Hata durumu — tek görünüm, tek yer (v1.3-02b).
+ *
+ * Öncesinde iki ayrı kurgu vardı: üç ekran `EmptyState` kullanıyordu, üç ekran
+ * kendi pembe kutusunu çiziyordu. Aynı olgunun iki biçimde tutulması, birinin
+ * eskimesi demekti (**K-06**).
+ *
+ * ⚠️ **`message` içine "sayfayı yenileyin" gibi bir yönerge yazma.** `onRetry`
+ * verildiğinde o işi düğme yapıyor; metin de aynı şeyi söylerse kullanıcıya iki
+ * farklı yol gösterilmiş olur ve biri gereksizdir. `message` yalnızca **sebebi**
+ * taşır — kullanıcının okuyup karar vereceği şey odur.
+ */
+export function ErrorState({
+  title = "Veriler görüntülenemedi",
+  message,
+  onRetry,
+  className,
+}: {
+  title?: string;
+  message?: string;
+  onRetry?: () => void;
+  className?: string;
+}) {
+  return (
+    <div
+      role="alert"
+      className={cn(
+        "flex min-h-36 flex-col items-center justify-center rounded-2xl border border-dashed border-rose-200 bg-rose-50/60 px-6 py-8 text-center",
+        className
+      )}
+    >
+      <p className="text-[12px] font-extrabold text-rose-900">{title}</p>
+      {message ? (
+        <p className="mt-1.5 max-w-md text-[11px] leading-5 text-rose-700">
+          {message}
+        </p>
+      ) : null}
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-4 inline-flex items-center justify-center rounded-xl bg-slate-900 px-3.5 py-2 text-[11px] font-bold text-white shadow-[0_4px_12px_rgba(15,23,42,.08)] transition hover:bg-slate-800 active:scale-[.98]"
+        >
+          Tekrar dene
+        </button>
       ) : null}
     </div>
   );

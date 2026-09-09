@@ -3,7 +3,13 @@ import { BookOpen } from "lucide-react";
 import { isDemoMode } from "@/auth/runtime";
 import { schedule as defaultSchedule } from "../educationData";
 import { filterScheduleForRole } from "../scopeFilters";
-import { Badge, EmptyState, PageHeader } from "../shared";
+import {
+  Badge,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  TableSkeleton,
+} from "../shared";
 import type { Role, ScheduleItem, WeekDay } from "../types";
 import {
   getDefaultScheduleDay,
@@ -16,6 +22,7 @@ export function SchedulePage({
   schedule: scheduleList = defaultSchedule,
   isLoading = false,
   error = null,
+  onRetry,
   truncated = false,
   limit,
 }: {
@@ -23,6 +30,7 @@ export function SchedulePage({
   schedule?: ScheduleItem[];
   isLoading?: boolean;
   error?: Error | null;
+  onRetry?: () => void;
   truncated?: boolean;
   /** Üst sınırın tek kaynağı servistedir; bant onu tekrar etmez, gösterir (K-06). */
   limit?: number;
@@ -78,15 +86,16 @@ export function SchedulePage({
         </div>
         <div className="mt-5 space-y-3">
           {isLoading ? (
-            <div className="py-10 text-center">
-              <p className="text-[12px] font-extrabold text-slate-700">
-                Ders programı yükleniyor…
-              </p>
-            </div>
+            <TableSkeleton
+              rows={4}
+              columns={3}
+              className="border-0 p-0 shadow-none"
+            />
           ) : error ? (
-            <EmptyState
+            <ErrorState
               title="Ders programı görüntülenemedi"
-              description={`${error.message} Sayfayı yenilemeyi deneyin.`}
+              message={error.message}
+              onRetry={onRetry}
             />
           ) : dayFiltered.length === 0 ? (
             <EmptyState

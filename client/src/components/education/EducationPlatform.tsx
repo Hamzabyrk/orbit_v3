@@ -269,6 +269,7 @@ export function EducationPlatform({
           onSelect={setSelectedStudent}
           isLoading={!isDemoMode && studentsQuery.isLoading}
           error={!isDemoMode ? studentsQuery.error : null}
+          onRetry={!isDemoMode ? () => void studentsQuery.refetch() : undefined}
           truncated={!isDemoMode && Boolean(studentsQuery.data?.truncated)}
           limit={DEFAULT_STUDENT_LIMIT}
           onAdd={() =>
@@ -286,6 +287,7 @@ export function EducationPlatform({
           classes={activeClasses}
           isLoading={!isDemoMode && classesQuery.isLoading}
           error={!isDemoMode ? classesQuery.error : null}
+          onRetry={!isDemoMode ? () => void classesQuery.refetch() : undefined}
           truncated={!isDemoMode && Boolean(classesQuery.data?.truncated)}
           limit={DEFAULT_CLASS_LIMIT}
           onNavigate={navigate}
@@ -298,6 +300,7 @@ export function EducationPlatform({
           schedule={activeSchedule}
           isLoading={!isDemoMode && scheduleQuery.isLoading}
           error={!isDemoMode ? scheduleQuery.error : null}
+          onRetry={!isDemoMode ? () => void scheduleQuery.refetch() : undefined}
           truncated={!isDemoMode && Boolean(scheduleQuery.data?.truncated)}
           limit={DEFAULT_SCHEDULE_LIMIT}
         />
@@ -314,6 +317,9 @@ export function EducationPlatform({
           }
           isLoading={!isDemoMode && attendanceQuery.isLoading}
           error={!isDemoMode ? attendanceQuery.error : null}
+          onRetry={
+            !isDemoMode ? () => void attendanceQuery.refetch() : undefined
+          }
         />
       );
     if (active === "Sınavlar")
@@ -324,6 +330,7 @@ export function EducationPlatform({
           exam={!isDemoMode ? (examQuery.data?.exam ?? null) : undefined}
           isLoading={!isDemoMode && examQuery.isLoading}
           error={!isDemoMode ? examQuery.error : null}
+          onRetry={!isDemoMode ? () => void examQuery.refetch() : undefined}
         />
       );
     if (active === "Ödevler")
@@ -356,6 +363,14 @@ export function EducationPlatform({
             !isDemoMode
               ? paymentsQuery.error || paymentOverviewQuery.error
               : null
+          }
+          onRetry={
+            !isDemoMode
+              ? () => {
+                  void paymentsQuery.refetch();
+                  void paymentOverviewQuery.refetch();
+                }
+              : undefined
           }
           truncated={!isDemoMode && Boolean(paymentsQuery.data?.truncated)}
           limit={DEFAULT_PAYMENT_LIMIT}

@@ -2,7 +2,13 @@ import { ChevronRight, School } from "lucide-react";
 import { toast } from "sonner";
 import { isDemoMode } from "@/auth/runtime";
 import { filterClassesForRole } from "../scopeFilters";
-import { Badge, EmptyState, PageHeader } from "../shared";
+import {
+  Badge,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  TableSkeleton,
+} from "../shared";
 import type { ClassGroup, Role, Section } from "../types";
 
 export function ClassesPage({
@@ -10,6 +16,7 @@ export function ClassesPage({
   classes: classList,
   isLoading = false,
   error = null,
+  onRetry,
   truncated = false,
   limit,
   onNavigate,
@@ -18,6 +25,7 @@ export function ClassesPage({
   classes: ClassGroup[];
   isLoading?: boolean;
   error?: Error | null;
+  onRetry?: () => void;
   truncated?: boolean;
   /** Üst sınırın tek kaynağı servistedir; bant onu tekrar etmez, gösterir (K-06). */
   limit?: number;
@@ -48,22 +56,18 @@ export function ClassesPage({
         </div>
       ) : null}
       {isLoading ? (
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-10 text-center">
-          <p className="text-[12px] font-extrabold text-slate-700">
-            Sınıflar yükleniyor…
-          </p>
-        </div>
+        <TableSkeleton rows={4} columns={3} className="mt-6" />
       ) : error ? (
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-8">
-          <EmptyState
-            title="Sınıflar görüntülenemedi"
-            description={`${error.message} Sayfayı yenilemeyi deneyin.`}
-          />
-        </div>
+        <ErrorState
+          className="mt-6"
+          title="Sınıflar görüntülenemedi"
+          message={error.message}
+          onRetry={onRetry}
+        />
       ) : (
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {shown.length === 0 ? (
-            <EmptyState title="Henüz sınıf kaydı yok" />
+            <EmptyState title="Gösterilecek sınıf yok" />
           ) : null}
           {shown.map(group => (
             <article

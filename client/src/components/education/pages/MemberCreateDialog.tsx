@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CredentialsPanel } from "@/components/credentials/CredentialsPanel";
 import type { IssuedCredentials } from "@/components/credentials/IssuedCredentials";
 import { DEMO_TEMPORARY_PASSWORD } from "@/components/credentials/IssuedCredentials";
@@ -238,9 +239,14 @@ export function MemberCreateDialog({
               </p>
             ) : null}
             {branchLoading ? (
-              <p className="text-[11px] text-muted-foreground">
-                Şubeler yükleniyor…
-              </p>
+              <div
+                role="status"
+                aria-busy="true"
+                className="flex items-center gap-2 pt-1"
+              >
+                <Skeleton className="h-3.5 w-28 bg-slate-100" />
+                <span className="sr-only">Şubeler yükleniyor…</span>
+              </div>
             ) : null}
             {branchError ? (
               <p className="text-[11px] font-bold text-rose-600">
