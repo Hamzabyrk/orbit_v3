@@ -83,6 +83,9 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Kaynağı olmayan alan tek turda değil, sahibi olan dilimde karara bağlanır
 - Preview'da doğrulanamayan yüzeyler açık kalır; tetikleyici v1.4 kapanışıdır
 - Realtime yayını Supabase'e özgüdür ve bilerek kabul edildi
+- Bağlama bir RPC'dir; Edge Function sınırı kimlik **yaratan** işlemleri tutar
+- Bağlanacak üyeliğin rolü katıdır; öğretmen-veli durumu bilinen bedeldir
+- Çağrı defteri özeti kimlik belirteci taşımaz
 
 ---
 
@@ -2062,3 +2065,67 @@ RLS zinciri geçici bir satırla ölçüldü (işlem içinde, geri alındı): `a
 | SQL (migration + pgTAP)                            | 4.735 satır | 14.374 satır — düz Postgres, taşınabilirliğe zarar değil |
 
 **Kural bundan sonra:** bu soru **dilim açılışında** sorulur ve cevabı briefing'e yazılır. Sorulmadığında geriye dönük sorulur; sorulmamış olması cevabın verilmediği anlamına gelmez ama **kaydın eksik olduğu** anlamına gelir.
+
+---
+
+### Karar: Bağlama bir RPC'dir; Edge Function sınırı kimlik **yaratan** işlemleri tutar
+
+**Durum:** Alındı
+**Tarih:** 2026-09-10
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-00 (#261) akademik kaydı giriş hesabına bağlıyor. Bağlanacak sütun (`students.auth_user_id`, `guardians.auth_user_id`) `authenticated` rolünün yazma yetkisinde **yok** — ve bu v1.2-01'de bilerek böyle bırakılmış, gerekçesiyle:
+
+> "Sınır şurada duruyor: kimlik işlemleri Edge Function'da kalır. Bu yüzden `auth_user_id` hiçbir yazma yetkisinde YOK. Bir öğrenciye giriş hesabı bağlamak, adını düzeltmekle aynı sınıfta bir işlem değil; yönetici bunu doğrudan UPDATE ile yapamaz."
+
+**Karar:** Cümlenin **birinci yarısı korunuyor, ikinci yarısı daraltılıyor.** Yönetici bu sütunu hâlâ doğrudan yazamıyor — yetki tablosu değişmedi. Yazma yolu `SECURITY DEFINER` bir RPC ailesi: `link_student_account`, `unlink_student_account`, `link_guardian_account`, `unlink_guardian_account`. Sınırın yeni ifadesi: **kimlik yaratan işlemler Edge Function'da kalır.**
+
+**Gerekçe — ölçüldü:** Bağlama `service_role` istemiyor. Kimlik yaratmıyor, `auth` şemasına yazmıyor, Auth admin API'sine çıkmıyor; `organization_memberships`'i okuyup `public` şemasındaki bir sütunu yazıyor. `create-member`'dan farkı tam olarak bu. Buna karşılık Edge Function ayrı deploy edilen bir parçadır ve bu bizi #113/#114'te bir kez ısırdı: arayüz deploy edilmemiş bir fonksiyona bağlanmış, form sessizce çalışmamıştı. Bir RPC migration ile birlikte iner ve pgTAP ile ölçülür — bu dilimde 37 iddia.
+
+**Bağı çözme aynı ailede ve aynı PR'da.** Sebebi tekillik indeksinin **küresel** olması: yanlış bağlanan bir hesap, çözülmediği sürece başka hiçbir kayda bağlanamaz. Çözme olmasaydı ilk yanlış bağlama elle SQL gerektiren kalıcı bir hata olurdu. Arşivlenmiş kayıt **bağlanamaz ama çözülebilir**; arşivde bağlı kalan satır o hesabı kilitler.
+
+**Alternatifler:**
+
+- **Edge Function (`link-account`):** Reddedildi. `config.toml` satırı, CORS, hız sınırı/idempotency guard'ı ve dağıtım kapısı testi gerekirdi; karşılığında `service_role` gerektirmeyen bir işe ağ atlaması eklemiş olurduk.
+- **Sütun yetkisini açmak:** Reddedildi ve en kötüsü buydu. Bugün bağlanan hesabın aynı kurumun üyesi ve doğru rolde olduğunu doğrulayan **hiçbir şey yok**; düz bir UPDATE yetkisi, yöneticiye başka kurumun kullanıcısını kendi öğrencisine bağlama imkânı verirdi.
+
+---
+
+### Karar: Bağlanacak üyeliğin rolü katıdır; öğretmen-veli durumu bilinen bedeldir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-10
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-00'ın bağlama fonksiyonu, hedef üyeliğin rolünü sormak zorunda. Katı ile gevşek arasındaki fark ölçüldü.
+
+**Karar:** Öğrenci kaydı yalnız `student` rollü, veli kaydı yalnız `parent` rollü bir üyeliğe bağlanır. Uymayan çağrı `ORB03` ile reddedilir.
+
+**Gerekçe:** En dar yüzey. Rol bir **kimlik** sorusu ve bağlama anında sorulmalı — v1.2-15'in kurduğu ayrımın aynısı. Durum (`status`) bilinçli olarak sorulmuyor: o bir **canlı yetki** sorusu ve RLS onu zaten her istekte soruyor; karıştırılsaydı henüz aktifleştirilmemiş bir öğrencinin kaydı bağlanamazdı.
+
+**Bilinen bedeli — ölçüldü ve kabul edildi:** Kendi çocuğu da o kurumda okuyan bir **öğretmen**, kurumda zaten `teacher` üyeliği taşıdığı için ikinci bir `parent` üyeliği açamaz (`organization_memberships`'in `(organization_id, user_id)` tekillik indeksi). Dolayısıyla bir veli kaydına **hiç bağlanamaz** ve kendi çocuğunun panelini göremez. Aynısı yönetici-veli için de geçerli.
+
+**Şartı ve sahibi var (K-12):** Gevşetme kararı **v1.4-10**'da (veli–öğrenci bağının kurulması) yeniden sorulur; gerçek bir kurumda bu durumun çıkıp çıkmadığı orada görülür. Gevşetmenin teknik yolu açık: `guardians_select_self` politikası role değil `auth_user_id`'ye bakıyor, yani gevşetme yalnız bu fonksiyonun rol kontrolünü değiştirir.
+
+---
+
+### Karar: Çağrı defteri özeti kimlik belirteci taşımaz
+
+**Durum:** Alındı
+**Tarih:** 2026-09-10
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `internal_function_calls`, tekrarlanan isteği ikinci kez yapmamak için tutulan çağrı defteri (v1.2-17). Kavramsal olarak tenant kaydı değil — platform operatörünün çağrısının kurumu yoktur — ve bu yüzden `organization_id` taşımıyor. Sonucu ölçülmüştü: `internal_delete_organization` o tabloyu **görmüyor**, dolayısıyla silinen bir kurumun üyelerine ait satırlar geride kalıyor ve özetlerinde **giriş numarası** taşıyorlardı.
+
+**Karar:** Satırı temizlemeye çalışmak yerine **taşınacak bir şey bırakmamak.** Giriş numarası üç Edge Function'ın özetinden çıkarıldı (`create-member`, `reset-member-password`, `reset-admin-password`); geriye yalnız `member_created` / `password_reset` bayrakları kaldı.
+
+**Gerekçe:** Kayıp yok — giriş numarası = kurum kodu + `person_code` ve ikisi de yöneticiye zaten açık. Kalıcı kayıt `audit_events` ve `platform_audit_events`'te duruyor; ikisi de kurum kapsamlı, ikisi de kurumla birlikte gidiyor.
+
+**Ölçülen tek bedel:** tekrarlanan istekte istemcinin gösterdiği "(giriş no …)" parantezi artık boş kalıyor. `memberService` bunu zaten koşullu yazıyor, mesaj bozulmuyor. O koşulun kendisi artık ölü — kaldırılması **v1.4-07**'ye (üye satır işlemleri) bırakıldı, çünkü o dilim zaten aynı mesajları elden geçiriyor.
+
+**Doğrulandı (yerel yığın, gerçek zincir):** `create-member` çağrısından sonra defterdeki satır `{"member_created": true}`. Zincir testi de yeşil — tekrarlanan istek hâlâ `replay` dönüyor.
+
+**Alternatifler:**
+
+- **`internal_delete_organization`'a hedefli temizlik adımı:** Reddedildi. Kurum taşımayan bir tabloyu silme fonksiyonuna tanıtmak, tablonun kavramını bozardı.
+- **Olduğu gibi bırakmak:** Reddedildi. Tablo bugün boş, yani göç maliyeti sıfır; ilk gerçek kurum verisi girdikten sonra aynı karar bir veri temizliği işine dönerdi.

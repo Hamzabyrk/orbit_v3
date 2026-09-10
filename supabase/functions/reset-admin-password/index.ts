@@ -226,13 +226,15 @@ Deno.serve(async request => {
     console.error("[reset-admin-password] audit write failed");
   }
 
+  // Giriş numarası çağrı defterinden v1.4-00'da çıkarıldı — gerekçesi
+  // `create-member`'daki notta ve `PLATFORM_SETTINGS` §5'te. Bu fonksiyonu
+  // platform operatörü çağırıyor; defterdeki satır bir kuruma bağlanamıyor ve
+  // kurum silindiğinde onunla gitmiyor. Numara `platform_audit_events`'te
+  // duruyor, orası zaten operatörün okuduğu yer.
   await finishFunctionCall(
     adminClient,
     guard.callId,
-    {
-      login_number: `${organization.code}${membership.person_code}`,
-      password_reset: true,
-    },
+    { password_reset: true },
     "[reset-admin-password]"
   );
 
