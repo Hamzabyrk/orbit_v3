@@ -8,8 +8,10 @@ import {
 import {
   DEFAULT_CLASS_LIMIT,
   loadClasses,
+  loadClassEnrollments,
   type ClassListResult,
 } from "./classService";
+import type { ClassEnrollmentItem } from "@/components/education/types";
 import {
   DEFAULT_SCHEDULE_LIMIT,
   loadSchedule,
@@ -58,6 +60,8 @@ export const educationKeys = {
   },
   classes: (organizationId: string) =>
     ["education", "classes", { organizationId }] as const,
+  classEnrollments: (organizationId: string, classId: string) =>
+    ["education", "classEnrollments", { organizationId, classId }] as const,
   schedule: (organizationId: string) =>
     ["education", "schedule", { organizationId }] as const,
   attendance: (organizationId: string) =>
@@ -131,7 +135,39 @@ export function useClasses(options?: UseClassesOptions) {
     queryKey: organizationId
       ? educationKeys.classes(organizationId)
       : (["education", "classes", { organizationId: "" }] as const),
-    queryFn: () => loadClasses(limit),
+    queryFn: () => loadClasses(organizationId ?? "", { limit }),
+    enabled: isEnabled,
+  });
+}
+
+export type UseClassEnrollmentsOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Belirli bir sınıfın aktif öğrenci kayıtlarını getiren React Query hook'u (v1.4-02).
+ */
+export function useClassEnrollments(
+  classId: string,
+  options?: UseClassEnrollmentsOptions
+) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled =
+    (options?.enabled ?? true) && Boolean(organizationId) && Boolean(classId);
+
+  return useQuery<ClassEnrollmentItem[], Error>({
+    queryKey:
+      organizationId && classId
+        ? educationKeys.classEnrollments(organizationId, classId)
+        : ([
+            "education",
+            "classEnrollments",
+            { organizationId: "", classId: "" },
+          ] as const),
+    queryFn: () => loadClassEnrollments(organizationId ?? "", classId),
     enabled: isEnabled,
   });
 }

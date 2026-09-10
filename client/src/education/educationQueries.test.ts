@@ -90,6 +90,21 @@ describe("educationKeys (K-19 ve Cache İzolasyonu)", () => {
     ]);
   });
 
+  it("sınıf kayıtları anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu + sınıfı taşır (v1.4-02)", () => {
+    const key = educationKeys.classEnrollments("org-123", "class-456");
+    expect(key).toEqual([
+      "education",
+      "classEnrollments",
+      { organizationId: "org-123", classId: "class-456" },
+    ]);
+
+    const otherClassKey = educationKeys.classEnrollments(
+      "org-123",
+      "class-789"
+    );
+    expect(key).not.toEqual(otherClassKey);
+  });
+
   it("farklı kurumlar için farklı sorgu anahtarları üretir (önbellek karışması önlenir)", () => {
     const key1 = educationKeys.students("org-a");
     const key2 = educationKeys.students("org-b");

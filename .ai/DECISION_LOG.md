@@ -88,6 +88,8 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Çağrı defteri özeti kimlik belirteci taşımaz
 - Öğrenci numarası kurumun defterinden gelir; sunucu üretmez
 - CRUD'un denetim izi tetikleyiciyle düşer
+- Kontenjan sınıfın, derslik programın özelliğidir
+- Denetim defterini tek bir fonksiyon yazar
 
 ---
 
@@ -2175,3 +2177,39 @@ RLS zinciri geçici bir satırla ölçüldü (işlem içinde, geri alındı): `a
 - Güncelleme kaydı değişen **alan adlarını** yazar, eski değerleri **yazmaz**. Denetim defteri bir yedek değil; eski değeri saklamak, silinmiş sanılan veriyi ikinci bir yerde tutmak olurdu.
 
 **Yan karar — `useMutation`'a geçilmedi.** v1.3-02a mutation katmanını bilinçli olarak kapsam dışı bırakmıştı ve bu dilim o kararı **açmadı**: yazma yolu, `MemberCreateDialog`'un zaten kullandığı desen (doğrudan servis çağrısı + `submitting` state'i + `invalidateQueries`). Katman kararı hâlâ ayrı ve verilmedi.
+
+---
+
+### Karar: Kontenjan sınıfın, derslik programın özelliğidir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-11
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `PROJECT_STATE`'in MVP kapsamı _"Sınıf adı, program türü, mentor öğretmen, **öğrenci kapasitesi ve derslik** organizasyonu"_ diyordu. v1.4-02 açılışında ölçüldü: `classes` tablosunda ikisi de **yok**, ve arayüz ikisini de vaat etmiyor. Yani söz yalnızca belgede duruyordu.
+
+**Karar:** **Kontenjan geldi** (`classes.capacity`, isteğe bağlı, 1–1000). **Derslik gelmedi** ve `classes`'a hiç gelmeyecek; karşılığı **v1.4-11**'de (ders programı ekranı). MVP kapsam cümlesi buna göre düzeltildi.
+
+**Gerekçe:** Kontenjan sınıfın kendi özelliğidir ve bir değeri vardır. Derslik ise **ders programına** aittir: aynı sınıf pazartesi bir derslikte, çarşamba başkasında olabilir. `classes` satırına tek bir derslik yazmak, ders programı geldiğinde ya onunla çelişecek ya da taşınacak bir alan üretirdi — ve iki yerde tutulan bilginin biri her zaman eskir.
+
+**Sıfır kontenjan reddediliyor:** "sıfır kontenjanlı sınıf", arşivlenmiş sınıf demenin dolambaçlı yoludur ve bu sistemde arşivlemenin kendi alanı var. Üst sınır 1000, çünkü dört haneli bir kontenjan bir dershane sınıfının kapasitesi değil, veri girişi hatasıdır.
+
+**Kontenjan bir kısıt değil, bilgi.** Dolu sınıfa kayıt veritabanı tarafından **reddedilmiyor**; ekran doluluğu söylüyor ama kaydı engellemiyor. Engelleseydi arayüz, sunucuda karşılığı olmayan bir kuralı varmış gibi gösterirdi (**K-03**). Kontenjanın gerçek bir kısıt hâline gelip gelmeyeceği pilot verisiyle yeniden sorulur.
+
+---
+
+### Karar: Denetim defterini tek bir fonksiyon yazar
+
+**Durum:** Alındı
+**Tarih:** 2026-09-11
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-01, `students` için tabloya özgü `audit_student_change()` yazmıştı. Gerekçesi değişmedi — `audit_events` `authenticated` için salt okunur, dolayısıyla iz tetikleyiciyle düşmek zorunda. Ama v1.4 boyunca en az altı tablo daha aynı şeyi isteyecek: yoklama, sınav, ödev, ödeme, program, akış.
+
+**Karar:** Tek bir `public.audit_row_change()`. Sözleşme tetikleyici argümanında: `tg_argv[0]` varlık adı, kalanı **izlenen sütunlar**. v1.4-01'in fonksiyonu buna katlandı ve düşürüldü.
+
+**Gerekçe:** Üç tablodayken genelleştirmek, sekiz tablodayken genelleştirmekten ucuz. Daha önemlisi: sekiz neredeyse aynı fonksiyon, aralarındaki farkın **kasıtlı mı yoksa kopyalama hatası mı** olduğunu okuyana bırakırdı — ve bu projede tekrar eden bilginin biri her zaman eskiyor.
+
+**İzlenen sütun listesi bir kapsam beyanıdır.** Listede olmayan bir sütunun değişmesi iz bırakmaz, ve bu bir eksiklik değil sözleşmenin kendisi: `students.auth_user_id` tam olarak bu yüzden listede yok — onu v1.4-00'ın bağlama fonksiyonları kendi kayıtlarıyla yazıyor, iki kez yazılsaydı tek işlem için defterde iki satır görünürdü.
+
+**Genelleştirmenin güvenli olduğu ölçüldü:** v1.4-01'in öğrenci iddiaları **değiştirilmeden** geçti, çünkü fonksiyonun adını değil davranışını sınıyorlardı. Tek istisna fonksiyonun kendisinin `authenticated`'a kapalı olduğunu sınayan iddiaydı; o da yazıcıyla birlikte yeni dosyaya taşındı (**K-06** — aynı olgu iki dosyada tutulmaz).

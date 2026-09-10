@@ -12,7 +12,7 @@
 
 ### 🎯 MVP (Faz 1) Kapsamı:
 
-1. **Sınıf & Grup Yönetimi:** Sınıf adı, program türü, mentor öğretmen, öğrenci kapasitesi ve derslik organizasyonu.
+1. **Sınıf & Grup Yönetimi:** Sınıf adı, program türü, mentor öğretmen ve öğrenci kontenjanı. ⚠️ **Derslik bu maddeden çıkarıldı (v1.4-02, 2026-09-11):** derslik sınıfın değil **ders programının** özelliğidir — aynı sınıf farklı saatlerde farklı derslikte olabilir. Karşılığı **v1.4-11**'de (`DECISION_LOG` — "Kontenjan sınıfın, derslik programın özelliğidir").
 2. **Öğrenci Yönetimi:** Ad-Soyad, Öğrenci No, Sınıf, Telefon, Veli Adı, Veli Telefonu.
 3. **Müşteri Doğrulama Odaklı Rol Arayüzü:** Auth bariyeri olmadan 4 farklı rol (Admin, Öğretmen, Öğrenci, Veli) arasında tek tıkla geçiş yapılabilen, saha testine ve demo sunumlarına uygun arayüz.
 4. **İzole Mock Veri Katmanı:** Müşteriye sunum yaparken kurumun dolu gözükmesini sağlayan, `isMock: true` olarak bayraklanmış ve istendiğinde tek tıkla sıfırlanabilen gerçekçi örnek veriler.

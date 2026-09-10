@@ -42,9 +42,11 @@ import {
   unlinkStudentAccount,
 } from "@/education/studentService";
 import { StudentFormDialog } from "./pages/StudentFormDialog";
+import { ClassFormDialog } from "./pages/ClassFormDialog";
+import { ClassEnrollmentDialog } from "./pages/ClassEnrollmentDialog";
 import { useOrganizationChannel } from "@/realtime";
 import { DEFAULT_STUDENT_LIMIT } from "@/education/studentService";
-import { DEFAULT_CLASS_LIMIT } from "@/education/classService";
+import { archiveClass, DEFAULT_CLASS_LIMIT } from "@/education/classService";
 import { DEFAULT_SCHEDULE_LIMIT } from "@/education/scheduleService";
 import { DEFAULT_PAYMENT_LIMIT } from "@/education/paymentService";
 import { allNav } from "./navigation";
@@ -65,6 +67,7 @@ import { StudentsPage } from "./pages/StudentsPage";
 import { StudentDetail } from "./StudentDetail";
 import type {
   AttendanceState,
+  ClassGroup,
   DayPlanRole,
   DayPlanTask,
   Homework,
@@ -138,6 +141,11 @@ export function EducationPlatform({
   const queryClient = useQueryClient();
   const [studentFormOpen, setStudentFormOpen] = useState(false);
   const [studentForEdit, setStudentForEdit] = useState<Student | null>(null);
+  const [classFormOpen, setClassFormOpen] = useState(false);
+  const [classForEdit, setClassForEdit] = useState<ClassGroup | null>(null);
+  const [classEnrollmentOpen, setClassEnrollmentOpen] = useState(false);
+  const [classForEnrollment, setClassForEnrollment] =
+    useState<ClassGroup | null>(null);
 
   const studentsQuery = useStudents({ search: query, enabled: !isDemoMode });
   const membersQuery = useSettingsMembers({
@@ -161,6 +169,24 @@ export function EducationPlatform({
       toast.error(
         err instanceof Error ? err.message : "Öğrenci arşivlenemedi."
       );
+    }
+  };
+
+  const handleArchiveClass = async (cls: ClassGroup) => {
+    // Onay penceresi YOK ve bu öğrenci arşivlemesiyle aynı gerekçeye dayanıyor:
+    // arşivleme geri alınabilir bir işlem. Ayrıca `window.confirm` bu depoda
+    // hiç kullanılmıyor — tarayıcıyı bloklar, tasarım diline uymaz ve test
+    // edilemez. Onay gerekseydi yeri `components/ui/alert-dialog.tsx` olurdu.
+    try {
+      await archiveClass(cls.id);
+      toast.success("Sınıf arşivlendi", {
+        description: `${cls.name} arşive kaldırıldı.`,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: educationKeys.classes(organizationId),
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sınıf arşivlenemedi.");
     }
   };
 
@@ -392,6 +418,31 @@ export function EducationPlatform({
           truncated={!isDemoMode && Boolean(classesQuery.data?.truncated)}
           limit={DEFAULT_CLASS_LIMIT}
           onNavigate={navigate}
+          onAdd={() => {
+            if (isDemoMode) {
+              toast.info("Demo modunda sınıf ekleme kapalı.");
+              return;
+            }
+            setClassForEdit(null);
+            setClassFormOpen(true);
+          }}
+          onEdit={
+            !isDemoMode
+              ? cls => {
+                  setClassForEdit(cls);
+                  setClassFormOpen(true);
+                }
+              : undefined
+          }
+          onArchive={!isDemoMode ? handleArchiveClass : undefined}
+          onManageEnrollments={
+            !isDemoMode
+              ? cls => {
+                  setClassForEnrollment(cls);
+                  setClassEnrollmentOpen(true);
+                }
+              : undefined
+          }
         />
       );
     if (active === "Ders Programı")
@@ -738,13 +789,30 @@ export function EducationPlatform({
         />
       ) : null}
       {!isDemoMode && (
-        <StudentFormDialog
-          open={studentFormOpen}
-          onOpenChange={setStudentFormOpen}
-          organizationId={organizationId}
-          student={studentForEdit}
-          onDone={() => setStudentForEdit(null)}
-        />
+        <>
+          <StudentFormDialog
+            open={studentFormOpen}
+            onOpenChange={setStudentFormOpen}
+            organizationId={organizationId}
+            student={studentForEdit}
+            onDone={() => setStudentForEdit(null)}
+          />
+          <ClassFormDialog
+            open={classFormOpen}
+            onOpenChange={setClassFormOpen}
+            organizationId={organizationId}
+            classData={classForEdit}
+            onDone={() => setClassForEdit(null)}
+          />
+          {classForEnrollment && (
+            <ClassEnrollmentDialog
+              open={classEnrollmentOpen}
+              onOpenChange={setClassEnrollmentOpen}
+              organizationId={organizationId}
+              classData={classForEnrollment}
+            />
+          )}
+        </>
       )}
     </div>
   );

@@ -111,7 +111,9 @@ import { SettingsMembersSection } from "./SettingsMembersSection";
 import { MemberCreateDialog } from "./MemberCreateDialog";
 import { StudentFormDialog } from "./StudentFormDialog";
 import { StudentsPage } from "./StudentsPage";
-import type { Student } from "../types";
+import { ClassFormDialog } from "./ClassFormDialog";
+import { ClassesPage } from "./ClassesPage";
+import type { ClassGroup, Student } from "../types";
 import { useOrganizationAuditEvents } from "@/audit/auditQueries";
 import {
   useSettingsBranches,
@@ -537,5 +539,315 @@ describe("StudentsPage states (v1.4-01 CRUD & K-22 rozet & bağlama)", () => {
     expect(html).toContain("Öğrenci adı veya numarası ara...");
     expect(html).not.toContain("sınıf ara");
     expect(html).toContain("yukarıdaki arama kutusunu kullanın");
+  });
+});
+
+describe("ClassFormDialog states (v1.4-02)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("yeni sınıf ekleme modunda başlık ve buton doğru çizilir", () => {
+    vi.mocked(useSettingsBranches).mockReturnValue({
+      data: [
+        {
+          id: "br-1",
+          name: "Merkez Şube",
+          organization_id: "org-1",
+          is_default: true,
+          created_at: "",
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsBranches>);
+
+    vi.mocked(useSettingsMembers).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsMembers>);
+
+    const html = renderWithProviders(
+      createElement(ClassFormDialog, {
+        open: true,
+        onOpenChange: vi.fn(),
+        onDone: vi.fn(),
+        organizationId: "org-1",
+      })
+    );
+
+    expect(html).toContain("Yeni sınıf ekle");
+    expect(html).toContain("Sınıfı ekle");
+    expect(html).toContain("Merkez Şube");
+  });
+
+  it("düzenleme modunda sınıf bilgileri doldurulur ve kaydet başlığı gösterilir", () => {
+    vi.mocked(useSettingsBranches).mockReturnValue({
+      data: [
+        {
+          id: "br-1",
+          name: "Merkez Şube",
+          organization_id: "org-1",
+          is_default: true,
+          created_at: "",
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsBranches>);
+
+    vi.mocked(useSettingsMembers).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsMembers>);
+
+    const existingClass: ClassGroup = {
+      id: "cls-1",
+      name: "12-A Sayısal",
+      program: "YKS",
+      branch: "Merkez Şube",
+      branchId: "br-1",
+      mentor: null,
+      capacity: 25,
+      studentCount: 10,
+    };
+
+    const html = renderWithProviders(
+      createElement(ClassFormDialog, {
+        open: true,
+        onOpenChange: vi.fn(),
+        onDone: vi.fn(),
+        organizationId: "org-1",
+        classData: existingClass,
+      })
+    );
+
+    expect(html).toContain("Sınıfı düzenle");
+    expect(html).toContain("Değişiklikleri kaydet");
+    expect(html).toContain("12-A Sayısal");
+  });
+
+  it("rehber öğretmen seçimi yalnızca yönetici ve öğretmen rolleriyle sınırlandırılır (ORB03 / K-04)", () => {
+    vi.mocked(useSettingsBranches).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsBranches>);
+
+    vi.mocked(useSettingsMembers).mockReturnValue({
+      data: [
+        {
+          membershipId: "mem-t",
+          role: "teacher",
+          displayName: "Ayşe Öğretmen",
+          loginNumber: "1001",
+          branchName: "Merkez",
+          status: "active",
+        },
+        {
+          membershipId: "mem-a",
+          role: "admin",
+          displayName: "Ali Müdür",
+          loginNumber: "1002",
+          branchName: "Merkez",
+          status: "active",
+        },
+        {
+          membershipId: "mem-s",
+          role: "student",
+          displayName: "Ahmet Öğrenci",
+          loginNumber: "1003",
+          branchName: "Merkez",
+          status: "active",
+        },
+        {
+          membershipId: "mem-p",
+          role: "parent",
+          displayName: "Fatma Veli",
+          loginNumber: "1004",
+          branchName: "Merkez",
+          status: "active",
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsMembers>);
+
+    const html = renderWithProviders(
+      createElement(ClassFormDialog, {
+        open: true,
+        onOpenChange: vi.fn(),
+        onDone: vi.fn(),
+        organizationId: "org-1",
+      })
+    );
+
+    expect(html).toContain("Ayşe Öğretmen (Öğretmen)");
+    expect(html).toContain("Ali Müdür (Yönetici)");
+    expect(html).not.toContain("Ahmet Öğrenci");
+    expect(html).not.toContain("Fatma Veli");
+  });
+
+  it("R1 regresyonu: şube/üye sorgusu çözülmemişken yazılan sınıf adı sorgular çözüldüğünde silinmez", () => {
+    // 1. Başlangıçta şube ve üye sorguları henüz çözülmemiş (data: undefined)
+    vi.mocked(useSettingsBranches).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsBranches>);
+
+    vi.mocked(useSettingsMembers).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsMembers>);
+
+    const queryClient = new QueryClient();
+    const container = mockDoc.createElement("div");
+    mockDoc.body.appendChild(container);
+    const root = ReactDOM.createRoot(container as unknown as HTMLElement);
+
+    const renderDialog = () => {
+      React.act(() => {
+        root.render(
+          createElement(
+            QueryClientProvider,
+            { client: queryClient },
+            createElement(ClassFormDialog, {
+              open: true,
+              onOpenChange: vi.fn(),
+              onDone: vi.fn(),
+              organizationId: "org-1",
+            })
+          )
+        );
+      });
+    };
+
+    renderDialog();
+
+    // Kullanıcı forma "12-Fen-C" yazar
+    expect(capturedInputProps["class-name"]).toBeDefined();
+    React.act(() => {
+      capturedInputProps["class-name"].onChange?.({
+        target: { value: "12-Fen-C" },
+      } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    // Şube sorgusu çözülmemişken girilen ad korunmalı (R1)
+    expect(capturedInputProps["class-name"].value).toBe("12-Fen-C");
+
+    // 2. Şube sorgusu sonradan çözülür
+    vi.mocked(useSettingsBranches).mockReturnValue({
+      data: [
+        {
+          id: "br-1",
+          name: "Kadıköy Şubesi",
+          organization_id: "org-1",
+          is_default: true,
+          created_at: "",
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsBranches>);
+
+    // Bileşen yeniden render edilir
+    renderDialog();
+
+    // Sorgu çözüldükten sonra da yazılan sınıf adı silinmemeli, "12-Fen-C" kalmalıdır
+    expect(capturedInputProps["class-name"].value).toBe("12-Fen-C");
+  });
+});
+
+describe("ClassesPage states (v1.4-02)", () => {
+  const dummyClasses: ClassGroup[] = [
+    {
+      id: "cls-1",
+      name: "12-A Sayısal",
+      program: "YKS",
+      branch: "Merkez",
+      mentor: "Merve Karaca",
+      capacity: 20,
+      studentCount: 15,
+    },
+    {
+      id: "cls-2",
+      name: "12-B Eşit Ağırlık",
+      program: "YKS",
+      branch: "Merkez",
+      mentor: null,
+      capacity: 20,
+      studentCount: 20,
+    },
+    {
+      id: "cls-3",
+      name: "11-C Sözel",
+      program: "YKS",
+      branch: "Merkez",
+      mentor: null,
+      capacity: null,
+      studentCount: 8,
+    },
+  ];
+
+  it("kontenjan durumunu doğru görüntüler ve tam kapasitede rozet basar", () => {
+    const html = renderToStaticMarkup(
+      createElement(ClassesPage, {
+        role: "admin",
+        classes: dummyClasses,
+        onNavigate: vi.fn(),
+      })
+    );
+
+    // cls-1: 15/20 doluluk, tam dolu değil
+    expect(html).toContain("15/20 doluluk");
+
+    // cls-2: 20/20 doluluk, Kontenjan dolu
+    expect(html).toContain("20/20 doluluk");
+    expect(html).toContain("Kontenjan dolu");
+
+    // cls-3: capacity null -> 8 kayıt, sahte payda uydurulmaz (K-03)
+    expect(html).toContain("8 kayıt");
+    expect(html).not.toContain("8/null");
+    expect(html).not.toContain("8/0");
+  });
+
+  it("admin rolünde satır işlemleri (Öğrenciler, Düzenle, Arşivle) görünür", () => {
+    const html = renderToStaticMarkup(
+      createElement(ClassesPage, {
+        role: "admin",
+        classes: dummyClasses,
+        onNavigate: vi.fn(),
+        onAdd: vi.fn(),
+        onEdit: vi.fn(),
+        onArchive: vi.fn(),
+        onManageEnrollments: vi.fn(),
+      })
+    );
+
+    expect(html).toContain("Öğrenciler");
+    expect(html).toContain("Düzenle");
+    expect(html).toContain("Arşivle");
+  });
+
+  it("öğretmen rolünde yönetim düğmeleri (Düzenle, Arşivle) çizilmez", () => {
+    const html = renderToStaticMarkup(
+      createElement(ClassesPage, {
+        role: "teacher",
+        classes: dummyClasses,
+        onNavigate: vi.fn(),
+        onAdd: vi.fn(),
+        onEdit: vi.fn(),
+        onArchive: vi.fn(),
+        onManageEnrollments: vi.fn(),
+      })
+    );
+
+    expect(html).not.toContain("Düzenle");
+    expect(html).not.toContain("Arşivle");
+    expect(html).toContain("Öğrencileri görüntüle");
   });
 });
