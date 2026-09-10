@@ -188,13 +188,25 @@ Deno.serve(async request => {
   // ediyordu.
   const membershipCreated = typeof membershipId === "string";
 
-  // Tekrarlanan istekte döndürülecek özet. Giriş numarası var, **geçici
-  // şifre yok**: saklamak, şifrenin hiçbir yere yazılmaması kararını
-  // bozmak olurdu.
+  // Tekrarlanan istekte döndürülecek özet — **kimlik belirteci taşımaz**.
+  //
+  // Giriş numarası buradan v1.4-00'da çıkarıldı (`PLATFORM_SETTINGS` §5).
+  // Sebebi: `internal_function_calls` kurum taşımayan bir çağrı defteri,
+  // dolayısıyla `internal_delete_organization` onu görmüyor ve silinen bir
+  // kurumun üyelerine ait satırlar geride kalıyordu. Numarayı hiç yazmayınca
+  // temizlenecek bir şey de kalmıyor.
+  //
+  // Kayıp değil: giriş numarası = kurum kodu + `person_code` ve ikisi de
+  // yöneticiye zaten açık. Bedeli ölçüldü ve tek yerde: tekrarlanan istekte
+  // istemcinin gösterdiği "(giriş no …)" parantezi artık boş kalıyor —
+  // `memberService` bunu zaten koşullu yazıyor, mesaj bozulmuyor.
+  //
+  // Geçici şifre burada hiç yoktu ve olmayacak: saklamak, şifrenin hiçbir
+  // yere yazılmaması kararını bozmak olurdu.
   await finishFunctionCall(
     adminClient,
     guard.callId,
-    { login_number: loginNumber, member_created: membershipCreated },
+    { member_created: membershipCreated },
     "[create-member]"
   );
 

@@ -405,6 +405,8 @@ Gerekçe KVKK'daki veri minimizasyonu ilkesidir: hiç giriş yapmayacak bir çoc
 
 Bu tercih için veritabanında ayrı bir bayrak **tutulmaz**: `students.auth_user_id` doluysa hesap vardır, boşsa yoktur. Şablondaki sütun saklanan bir alan değil, içe aktarma anına ait bir talimattır. Aynı bilgiyi iki yerde tutmak bu projede tekrar eden hata kalıbıdır.
 
+**O sütunu kim doldurur (v1.4-00, #261).** Hesap açmak ile kaydı hesaba bağlamak **iki ayrı adımdır**: `create-member` hesabı açar, bağlamayı dört RPC yapar — `link_student_account`, `unlink_student_account`, `link_guardian_account`, `unlink_guardian_account`. Sütun `authenticated` için hâlâ salt okunur; yönetici onu doğrudan UPDATE ile yazamaz. Bağlanan üyeliğin aynı kurumda ve doğru rolde olması fonksiyonun içinde sınanır. Gerekçe ve reddedilen alternatifler: `DECISION_LOG` — "Bağlama bir RPC'dir".
+
 ### Şema ekleme sırası
 
 | Ne zaman                | Ne                                                                                                                 | Neden                                                                                               |

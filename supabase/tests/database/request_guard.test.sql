@@ -47,7 +47,7 @@ select is(
 select lives_ok(
   $sql$select public.internal_finish_function_call(
     (select id from public.internal_function_calls where idempotency_key = 'anahtar-a'),
-    jsonb_build_object('login_number', '10011002', 'member_created', true)
+    jsonb_build_object('member_created', true)
   )$sql$,
   'the call can be closed with a summary'
 );
@@ -63,14 +63,22 @@ select is(
 select is(
   (select public.internal_begin_function_call(
      'create-member', '91000000-0000-0000-0000-000000000091', 'anahtar-a'
-   ) -> 'outcome' ->> 'login_number'),
-  '10011002',
+   ) -> 'outcome' ->> 'member_created'),
+  'true',
   'the replay carries the stored summary'
 );
 
--- ⛔ Bu dilimin kırmızı çizgisi. Özet giriş numarasını taşır, şifreyi ASLA.
--- Geçici şifre hiçbir yere yazılmıyor (`DECISION_LOG` — "Kimlik ve Giriş
--- Bilgisi Mimarisi") ve idempotency bunu değiştirmek için bir gerekçe değil.
+-- ⛔ Bu dilimin kırmızı çizgisi. Özet **hiçbir kimlik belirteci** taşımaz:
+-- ne şifre, ne giriş numarası.
+--
+-- Şifre hiçbir zaman yazılmadı (`DECISION_LOG` — "Kimlik ve Giriş Bilgisi
+-- Mimarisi") ve idempotency bunu değiştirmek için bir gerekçe değil. Giriş
+-- numarası ise v1.4-00'da çıkarıldı: bu tablo kurum taşımıyor, dolayısıyla
+-- `internal_delete_organization` onu görmüyor ve silinen kurumun satırları
+-- geride kalıyordu (`PLATFORM_SETTINGS` §5).
+--
+-- Buradaki iddia yalnız **verilen** özeti ölçebilir; Edge Function'ların ne
+-- yazdığını `supabase/tests/deployment/functionCallLedger.test.ts` ölçüyor.
 select is(
   (select count(*)::int from public.internal_function_calls
    where outcome::text ilike '%password%'),
