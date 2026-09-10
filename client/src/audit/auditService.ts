@@ -86,11 +86,21 @@ const ACTION_LABELS: Record<string, string> = {
   "organization.bootstrap": "Kurum kuruldu",
   "membership.created": "Üye eklendi",
   "membership.password_reset": "Şifre sıfırlandı",
+  "student.created": "Öğrenci eklendi",
+  "student.updated": "Öğrenci güncellendi",
+  "student.archived": "Öğrenci arşivlendi",
+  "student.restored": "Öğrenci geri yüklendi",
+  "student.account_linked": "Öğrenci hesabı bağlandı",
+  "student.account_unlinked": "Öğrenci hesap bağı çözüldü",
+  "guardian.account_linked": "Veli hesabı bağlandı",
+  "guardian.account_unlinked": "Veli hesap bağı çözüldü",
 };
 
 const ENTITY_LABELS: Record<string, string> = {
   organization: "Kurum",
   organization_membership: "Üyelik",
+  student: "Öğrenci",
+  guardian: "Veli",
 };
 
 export function describeAuditAction(action: string): string {

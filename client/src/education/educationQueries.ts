@@ -28,6 +28,8 @@ import {
   type PaymentOverviewCounts,
 } from "./paymentService";
 
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
+
 /**
  * Eğitim alanı sorgu anahtarları (v1.3-01 · A, B, C, D ve E parçaları, **K-19** / mimari kararlar).
  *
@@ -44,8 +46,16 @@ import {
  */
 export const educationKeys = {
   all: ["education"] as const,
-  students: (organizationId: string) =>
-    ["education", "students", { organizationId }] as const,
+  students: (organizationId: string, search?: string) => {
+    const trimmed = search?.trim();
+    return trimmed
+      ? ([
+          "education",
+          "students",
+          { organizationId, search: trimmed },
+        ] as const)
+      : (["education", "students", { organizationId }] as const);
+  },
   classes: (organizationId: string) =>
     ["education", "classes", { organizationId }] as const,
   schedule: (organizationId: string) =>
@@ -63,6 +73,8 @@ export const educationKeys = {
 export type UseStudentsOptions = {
   organizationId?: string;
   limit?: number;
+  search?: string;
+  debounceMs?: number;
   enabled?: boolean;
 };
 
@@ -77,13 +89,21 @@ export function useStudents(options?: UseStudentsOptions) {
   const organizationId =
     options?.organizationId ?? identity?.membership?.organizationId;
   const limit = options?.limit ?? DEFAULT_STUDENT_LIMIT;
+  const debouncedSearch = useDebouncedValue(
+    options?.search,
+    options?.debounceMs ?? 300
+  );
   const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
 
   return useQuery<StudentListResult, Error>({
     queryKey: organizationId
-      ? educationKeys.students(organizationId)
+      ? educationKeys.students(organizationId, debouncedSearch)
       : (["education", "students", { organizationId: "" }] as const),
-    queryFn: () => loadStudents(limit),
+    queryFn: () =>
+      loadStudents(organizationId ?? "", {
+        limit,
+        search: debouncedSearch,
+      }),
     enabled: isEnabled,
   });
 }

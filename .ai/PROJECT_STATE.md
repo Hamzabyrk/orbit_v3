@@ -125,7 +125,7 @@ client/src/
 │   └── PlatformOperators.tsx / PlatformAuditLog.tsx
 ├── contexts/               # ThemeProvider
 ├── hooks/                  # useMobile, useComposition
-├── lib/                    # supabaseClient, utils, demoStorage (+ test), documents (ÖLÜ KOD)
+├── lib/                    # supabaseClient, utils, demoStorage (+ test), useDebouncedValue, documents (ÖLÜ KOD)
 └── pages/
     ├── Home.tsx            # Giriş yönlendirici; önce kilit, sonra operatör → /platform
     ├── Platform.tsx        # Platform paneli rotası

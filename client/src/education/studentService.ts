@@ -5,14 +5,13 @@ import { loadStudentLatestExamScores } from "./examService";
 import { loadStudentPaymentStatuses } from "./paymentService";
 
 /**
- * Öğrenci listesi servis katmanı (v1.3-01 · A, C, D ve E parçaları).
+ * Öğrenci listesi ve CRUD servis katmanı (v1.3-01 & v1.4-01 · #264).
  *
- * `students` tablosunu gerçek Supabase sorgusuna bağlar.
+ * `students` tablosunu Supabase sorgularına ve RPC çağrılarına bağlar.
  *
- * **Kapsam sorgulanmıyor (K-06):** `organization_id` filtresi sorguya yazılmaz.
- * Kapsam veritabanı düzeyinde RLS ile çözülür (`students_select_admin`, `students_select_teacher`,
- * `students_select_guardian`, `students_select_self`). İstemcide ikinci kez filtrelemek,
- * tek doğruluk kaynağı ilkesini çiğner.
+ * **Açık `organization_id` filtresi (ROADMAP §4.12, #249):** RLS tek başına süzdüğünde
+ * Postgres sorgu planlayıcısı `organization_id` indeksini kullanamıyor. Bu nedenle
+ * performans kısıtı olarak sorguya açık `.eq("organization_id", organizationId)` eklenir.
  *
  * **Arşiv filtresi zorunludur:** `archived_at is null` filtresi uygulanır. Bu sistemde
  * silme yerine arşivleme kullanılır; arşivlenmiş satırı getirmek silinen kaydı canlandırmaktır.
@@ -34,7 +33,7 @@ import { loadStudentPaymentStatuses } from "./paymentService";
  * kesinlikle "Güncel" verilmez (K-22).
  *
  * **Tip dürüstlüğü (K-03):** Kaynağı olmayan veya henüz hesaplanmayan alanlar
- * (`code`, `homework`, `risk`) `undefined` bırakılır,
+ * (`homework`, `risk`) `undefined` bırakılır,
  * kesinlikle `0` veya uydurulmuş dizelerle doldurulmaz.
  */
 
@@ -45,9 +44,16 @@ export type StudentListResult = {
   truncated: boolean;
 };
 
+export type LoadStudentsOptions = {
+  limit?: number;
+  search?: string;
+};
+
 type RawStudentRow = {
   id: string;
   full_name: string;
+  student_number?: string | null;
+  auth_user_id?: string | null;
   branch_id?: string | null;
   archived_at?: string | null;
   branches?: { name: string } | { name: string }[] | null;
@@ -70,6 +76,61 @@ type RawStudentRow = {
       }[]
     | null;
 };
+
+export const STUDENT_ERROR_MESSAGES: Record<string, string> = {
+  "23505":
+    "Bu öğrenci numarası kurumda zaten kullanımda. Farklı bir numara girin.",
+  "23514":
+    "Öğrenci numarası en fazla 32 karakter olmalı, başında ve sonunda boşluk bulunmamalıdır.",
+  "42501":
+    "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya şifre değişimi bekleniyor.",
+  ORB03:
+    "Bu üyelik bir öğrenci kaydına bağlanamaz. Lütfen aynı kurumda rolü öğrenci olan başka bir üyelik seçin.",
+  ORB04:
+    "Bu kayıt veya hesap zaten başka bir bağa sahip. Önce mevcut bağı çözün.",
+};
+
+/**
+ * Veritabanı ve RPC hata kodlarını kullanıcı dostu Türkçe mesajlara dönüştürür.
+ * Ham hata kodları arayüze sızdırılmaz.
+ */
+export function translateStudentError(error: unknown): string {
+  if (!error) {
+    return "Beklenmeyen bir hata oluştu.";
+  }
+
+  let code: string | undefined;
+
+  if (typeof error === "object" && error !== null) {
+    if (
+      "code" in error &&
+      typeof (error as { code: unknown }).code === "string"
+    ) {
+      code = (error as { code: string }).code;
+    }
+  }
+
+  if (code && STUDENT_ERROR_MESSAGES[code]) {
+    return STUDENT_ERROR_MESSAGES[code];
+  }
+
+  if (error instanceof Error) {
+    for (const [knownCode, message] of Object.entries(STUDENT_ERROR_MESSAGES)) {
+      if (error.message.includes(knownCode)) {
+        return message;
+      }
+    }
+    if (
+      error.message &&
+      !error.message.includes("PGRST") &&
+      !error.message.includes("PostgREST")
+    ) {
+      return error.message;
+    }
+  }
+
+  return "İşlem gerçekleştirilemedi. Lütfen tekrar deneyin.";
+}
 
 export function extractBranchName(branches: unknown): string | null {
   if (!branches) return null;
@@ -141,28 +202,35 @@ export function mapStudentRow(
   return {
     id: row.id,
     name: row.full_name,
+    code: row.student_number ?? undefined,
+    hasAccount: Boolean(row.auth_user_id),
     group: extractClassName(row.class_enrollments),
     branch: extractBranchName(row.branches),
+    branchId: row.branch_id ?? null,
     parent: extractGuardianName(row.student_guardians),
     attendance: attendancePercentage,
     score: latestExamScore,
     payment: paymentStatus,
     // Kaynağı olmayan ve henüz türetilmeyen alanlar dürüstçe undefined bırakılır:
-    // code: v1.4-01'de gelecek (K-12 gereği asgari veri politikası)
     // homework: teslim tablosu yok; türetilemez (#237, ROADMAP §4.7)
     // risk: hesaplama kuralı henüz tanımlanmadı
   };
 }
 
 export async function loadStudents(
-  limit = DEFAULT_STUDENT_LIMIT
+  organizationId: string,
+  options?: LoadStudentsOptions
 ): Promise<StudentListResult> {
-  const { data, error } = await supabase
+  const limit = options?.limit ?? DEFAULT_STUDENT_LIMIT;
+
+  let query = supabase
     .from("students")
     .select(
       `
       id,
       full_name,
+      student_number,
+      auth_user_id,
       branch_id,
       branches ( name ),
       class_enrollments (
@@ -175,7 +243,18 @@ export async function loadStudents(
       )
     `
     )
-    .is("archived_at", null)
+    .eq("organization_id", organizationId)
+    .is("archived_at", null);
+
+  const term = options?.search?.trim();
+  if (term) {
+    const safe = term.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    query = query.or(
+      `full_name.ilike."%${safe}%",student_number.ilike."%${safe}%"`
+    );
+  }
+
+  const { data, error } = await query
     .order("full_name", { ascending: true })
     .limit(limit);
 
@@ -205,4 +284,124 @@ export async function loadStudents(
     rows,
     truncated: rows.length === limit,
   };
+}
+
+export type CreateStudentInput = {
+  organizationId: string;
+  branchId: string;
+  fullName: string;
+  studentNumber?: string;
+};
+
+export async function createStudent(
+  input: CreateStudentInput
+): Promise<{ id: string }> {
+  const payload: {
+    organization_id: string;
+    branch_id: string;
+    full_name: string;
+    student_number?: string | null;
+  } = {
+    organization_id: input.organizationId,
+    branch_id: input.branchId,
+    full_name: input.fullName,
+  };
+
+  if (input.studentNumber !== undefined) {
+    payload.student_number = input.studentNumber;
+  }
+
+  const { data, error } = await supabase
+    .from("students")
+    .insert(payload)
+    .select("id")
+    .single();
+
+  if (error) {
+    throw new Error(translateStudentError(error));
+  }
+
+  return data;
+}
+
+export type UpdateStudentInput = {
+  fullName?: string;
+  branchId?: string;
+  studentNumber?: string | null;
+};
+
+export async function updateStudent(
+  studentId: string,
+  input: UpdateStudentInput
+): Promise<void> {
+  const payload: {
+    full_name?: string;
+    branch_id?: string;
+    student_number?: string | null;
+  } = {};
+
+  if (input.fullName !== undefined) {
+    payload.full_name = input.fullName;
+  }
+  if (input.branchId !== undefined) {
+    payload.branch_id = input.branchId;
+  }
+  if (input.studentNumber !== undefined) {
+    payload.student_number = input.studentNumber;
+  }
+
+  const { error } = await supabase
+    .from("students")
+    .update(payload)
+    .eq("id", studentId);
+
+  if (error) {
+    throw new Error(translateStudentError(error));
+  }
+}
+
+export async function archiveStudent(studentId: string): Promise<void> {
+  const { error } = await supabase
+    .from("students")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", studentId);
+
+  if (error) {
+    throw new Error(translateStudentError(error));
+  }
+}
+
+export async function restoreStudent(studentId: string): Promise<void> {
+  const { error } = await supabase
+    .from("students")
+    .update({ archived_at: null })
+    .eq("id", studentId);
+
+  if (error) {
+    throw new Error(translateStudentError(error));
+  }
+}
+
+export async function linkStudentAccount(
+  studentId: string,
+  membershipId: string
+): Promise<void> {
+  const { error } = await supabase.rpc("link_student_account", {
+    target_student_id: studentId,
+    target_membership_id: membershipId,
+  });
+
+  if (error) {
+    throw new Error(translateStudentError(error));
+  }
+}
+
+export async function unlinkStudentAccount(studentId: string): Promise<void> {
+  const { error } = await supabase.rpc("unlink_student_account", {
+    target_student_id: studentId,
+  });
+
+  if (error) {
+    throw new Error(translateStudentError(error));
+  }
 }

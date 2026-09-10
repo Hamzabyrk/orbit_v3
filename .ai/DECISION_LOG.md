@@ -86,6 +86,8 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Bağlama bir RPC'dir; Edge Function sınırı kimlik **yaratan** işlemleri tutar
 - Bağlanacak üyeliğin rolü katıdır; öğretmen-veli durumu bilinen bedeldir
 - Çağrı defteri özeti kimlik belirteci taşımaz
+- Öğrenci numarası kurumun defterinden gelir; sunucu üretmez
+- CRUD'un denetim izi tetikleyiciyle düşer
 
 ---
 
@@ -2129,3 +2131,47 @@ RLS zinciri geçici bir satırla ölçüldü (işlem içinde, geri alındı): `a
 
 - **`internal_delete_organization`'a hedefli temizlik adımı:** Reddedildi. Kurum taşımayan bir tabloyu silme fonksiyonuna tanıtmak, tablonun kavramını bozardı.
 - **Olduğu gibi bırakmak:** Reddedildi. Tablo bugün boş, yani göç maliyeti sıfır; ilk gerçek kurum verisi girdikten sonra aynı karar bir veri temizliği işine dönerdi.
+
+---
+
+### Karar: Öğrenci numarası kurumun defterinden gelir; sunucu üretmez
+
+**Durum:** Alındı
+**Tarih:** 2026-09-10
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-01 (#264) açılışında ölçüldü: arayüzün `Student` tipinde `code` alanı **vardı**, arama kutusu _"Öğrenci adı, kodu veya sınıf ara…"_ diyordu, `studentService` ise alanı `code: v1.4-01'de gelecek` yorumuyla boş bırakıyordu. Yani arama bugüne kadar **hep boş olan** bir alanda arıyordu. `students` tablosunda böyle bir sütun yoktu.
+
+**Karar:** `students.student_number` — **elle girilir**, **isteğe bağlıdır**, ve **kurum içinde tekildir** (dolu olduğunda; kısmi tekillik indeksi). Arşivlenen kayıt numarasını serbest bırakmaz.
+
+**Gerekçe:** Dershanenin kendi defterinde zaten bir numara var; sunucunun ürettiği ikinci bir numara kağıtla ekranı ayrıştırır ve sahada karışıklık üretir. İsteğe bağlı, çünkü numarasız çalışan kurum da var — zorunlu kılmak numarası olmayan kurumu uydurmaya zorlardı.
+
+**Tekilliğin kurum içinde olması bilinçli** ve `auth_user_id`'nin küresel tekilliğinden ayrılıyor: giriş hesabı bütün sistemde bir kişiyi işaret eder, öğrenci numarası ise kurumun kendi defterindeki sıradır. İki dershanenin ikisinde de "101" numaralı öğrenci olması normaldir.
+
+**Arşiv numarayı serbest bırakmıyor:** bıraksaydı ayrılan bir öğrencinin numarası yenisine verilir ve geçmiş kayıtlar iki kişiye birden işaret ederdi.
+
+**Alternatifler:**
+
+- **Sunucu üretsin (`person_code` gibi):** Reddedildi. Çakışma imkânsız olurdu ama kurumun defteriyle bağı olmayan ikinci bir numara doğardı.
+- **Numarayı tamamen kaldırmak:** Reddedildi. En az veriyi işleme ilkesine uygundu, ama MVP kapsamı "Öğrenci No" diyor ve giriş numarası yalnız hesabı olanlarda var — öğrencilerin çoğunun hesabı hiç olmayacak.
+
+---
+
+### Karar: CRUD'un denetim izi tetikleyiciyle düşer
+
+**Durum:** Alındı
+**Tarih:** 2026-09-10
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** _"v1.4'ün her CRUD dilimi denetim kaydı yazar"_ yazılıydı ama **nasıl** yazacağı yazılı değildi. v1.4-01 açılışında ölçüldü: `audit_events` `authenticated` rolü için **salt okunur**. Yani istemcinin denetim kaydı yazması teknik olarak mümkün değil.
+
+**Karar:** İz **tetikleyiciyle** düşer (`audit_student_change`). v1.4-14'e kalan: Zod doğrulaması ve **özel metadata** isteyen mutasyonlar.
+
+**Gerekçe:** Yalnız "mümkün olan tek yol" değil, **doğru yol**. Her mutasyon yolunun kaydı ayrı ayrı yazması gerekseydi, yazılmayan ilk yol sessizce izsiz kalırdı — ve eksik bir denetim satırı hata vermez, kimse fark etmez. K-19'un iki kez ölçtüğü ders: hatırlatma kapı değildir.
+
+**İki tasarım kısıtı kayda geçti:**
+
+- Tetikleyici `auth_user_id` değişimini **bilerek atlıyor**: onu v1.4-00'ın bağlama fonksiyonları kendi kayıtlarıyla yazıyor. Atlamasaydı tek bir işlem için defterde iki satır görünürdü. Ayrı bir pgTAP iddiasıyla ölçüldü.
+- Güncelleme kaydı değişen **alan adlarını** yazar, eski değerleri **yazmaz**. Denetim defteri bir yedek değil; eski değeri saklamak, silinmiş sanılan veriyi ikinci bir yerde tutmak olurdu.
+
+**Yan karar — `useMutation`'a geçilmedi.** v1.3-02a mutation katmanını bilinçli olarak kapsam dışı bırakmıştı ve bu dilim o kararı **açmadı**: yazma yolu, `MemberCreateDialog`'un zaten kullandığı desen (doğrudan servis çağrısı + `submitting` state'i + `invalidateQueries`). Katman kararı hâlâ ayrı ve verilmedi.
