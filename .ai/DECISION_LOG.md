@@ -79,6 +79,10 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Stabilizasyon fazında tek kişilik merge'e sınırlı izin
 - Hafıza kayıtları ileriye doğru düzeltilir, geri alınmaz
 - Belge sayısı değil bakım borcu — tek giriş noktası kuruldu, iki dosya emekliye ayrıldı
+- Akademik kayıt ile giriş hesabı ayrı bir adımda bağlanır
+- Kaynağı olmayan alan tek turda değil, sahibi olan dilimde karara bağlanır
+- Preview'da doğrulanamayan yüzeyler açık kalır; tetikleyici v1.4 kapanışıdır
+- Realtime yayını Supabase'e özgüdür ve bilerek kabul edildi
 
 ---
 
@@ -1952,3 +1956,109 @@ Tetikleyici yolu sorunu ortadan kaldırıyor: tetikleyicinin `OLD` kaydı `REPLI
 - `current_user_has_membership(null)` hata vermiyor, `false` dönüyor — bozuk konu adı kendiliğinden kapalı kapıya çarpıyor.
 
 **Bir provizyon tuzağı bulundu ve yazıldı.** `realtime.messages` bölümlenmiş bir tablo ve ilk ölçümde **sıfır bölümü** vardı; `realtime.send` sessizce düşüyordu (kendi içinde `EXCEPTION WHEN OTHERS THEN RAISE WARNING` taşıyor). Sebep provizyondu: projede Realtime hiç kullanılmamıştı. Tek bir istemci aboneliği açıldı ve servis **beş günlük bölümü kendisi yarattı**. Bölüm yaşam döngüsü Supabase'in işi; `realtime` şemasında nesne oluşturma iznimiz yok (denendi, reddedildi).
+
+---
+
+### Karar: Akademik kayıt ile giriş hesabı ayrı bir adımda bağlanır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-10
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `students.auth_user_id` ve `guardians.auth_user_id` sütunları v1.2'de açıldı ve **hiçbir zaman dolmadı**. v1.4-00 açılışında zemin canlıda ölçüldü:
+
+|                                 | Ölçüm                                                                              |
+| ------------------------------- | ---------------------------------------------------------------------------------- |
+| Sütunlar                        | ✅ ikisi de var, `nullable`                                                        |
+| Yabancı anahtar                 | `auth.users(id)` **`on delete set null`** — hesap silinince kayıt durur, bağ kopar |
+| Tekillik                        | `unique … where auth_user_id is not null` — bir hesap en fazla bir kayda bağlanır  |
+| `students` / `guardians` satırı | **0 / 0**                                                                          |
+| `deneme3` kurumunda             | **1 öğrenci üyeliği ve 1 veli üyeliği var, ikisinin de akademik kaydı yok**        |
+
+RLS zinciri geçici bir satırla ölçüldü (işlem içinde, geri alındı): `auth_user_id` boşken öğrenci **0** satır görüyor, bağlandığında **1** — doğru ad, `current_user_owns_student_record` → `true`; başka kurumun yöneticisi **0**.
+
+Üç politika (`students_select_self`, `guardians_select_self`, `student_guardians_select_guardian`) ve üç fonksiyon (`current_user_owns_student_record`, `current_user_guards_student`, `current_user_attends_class`) **tamamen** bu sütuna dayanıyor. Yani öğrenci ve veli okuma yolunun tamamı, yazılmayan bir sütuna bağlı.
+
+**Karar:** Bağlama, `create-member` sözleşmesi genişletilerek değil **ayrı bir adım** olarak yapılır.
+
+**Gerekçe:** Asıl sebep geriye dönük düzeltme değil — düzeltilecek kayıt yok, ölçüldü. Sebep ileriye dönük: **her öğrenci giriş hesabı almayacak.** Dershanede kaydı olup girişi olmayan öğrenci normal durumdur. Bağlama doğası gereği **isteğe bağlı ve ayrı** bir adımdır. Ayrıca `create-member` v1.2-17'de idempotency kazandı; sözleşmesi genişlerse idempotency anahtarı da değişir ve canlıda çalışan bir akış bozulur.
+
+⚠️ **Düzeltme (aynı gün):** Bu karar sorulurken seçeneğin gerekçesinde _"bugün elimizde hesabı olmayan öğrenci kayıtları var"_ yazılmıştı. **Yanlıştı ve ölçülmeden yazılmıştı (K-11).** Doğrusu tam tersi: kaydı olmayan hesap var, hesabı olmayan kayıt yok. Karar aynı kalıyor, gerekçesi düzeltildi.
+
+**Bunun getirdiği yükümlülük:** "bağlanmamış" bir ara durum var ve **ekranda görünmek zorunda** (**K-22**). Öğrenci üyeliği olup akademik kaydı olmayan kişi yöneticiye görünmelidir; aksi hâlde o kişi sisteme girer, boş ekran görür ve sebebini kimse bilmez.
+
+**Bir sınır — yazılı olsun:** tekillik indeksi `auth_user_id` üzerinde **kurum ayrımı olmadan** tekildir. Bir kişi **aynı hesapla** iki kurumda birden öğrenci olamaz. Bu, çoklu hesap kararıyla (2026-08-25) tutarlıdır — o karar zaten kurum başına ayrı hesap diyor ve **v1.4-14** geçiş düğmesi bunun üzerine kuruludur.
+
+**Alternatifler:**
+
+- **`create-member` sözleşmesini genişletmek:** Reddedildi. Ara durumu kaldırırdı ama canlı ve idempotent bir akışın sözleşmesini değiştirirdi, ve hesapsız öğrenci kaydı için **yine** ayrı bir yol gerekirdi.
+
+---
+
+### Karar: Kaynağı olmayan alan tek turda değil, sahibi olan dilimde karara bağlanır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-10
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** **#237** ve **#239** kaynağı ya da kuralı olmayan alanları topluyor: ödev tamamlama (`7/9` — teslim tablosu yok), akademik sinyal, deneme ortalaması eşiği ve diğerleri. v1.3'te hepsi **çizilmiyor** (K-22). v1.4 CRUD getiriyor, yani bir kısmı doldurulabilir hâle gelecek.
+
+**Karar:** Alanlar tek bir kapsam turunda değil, **sahibi olan CRUD diliminde** karara bağlanır: öğrenci alanları **v1.4-01**, sınav alanları **v1.4-04**, ödev **v1.4-05**, ödeme **v1.4-06**.
+
+**Gerekçe:** Kararı veren kişi o anda alanın **gerçek kaynağına bakıyor** olur; kaynağı henüz yazılmamış bir alan için bugün kural yazmak tahmine dayanır (**K-11**). Ayrıca hiçbir dilim başkasının alanı için beklemez.
+
+**Bedeli — açıkça:** #237 ve #239 v1.4 boyunca **açık kalır**. Bu bir borç değil, bilinçli bir dağıtım; kapanışları v1.4'ün son CRUD dilimindedir.
+
+**Alternatifler:**
+
+- **Şimdi tek turda hepsini karara bağlamak:** Reddedildi. CRUD dilimleri net bir sözleşmeyle başlardı, ama kaynağı yazılmamış alanlar için uydurma kural üretme riski taşırdı.
+
+---
+
+### Karar: Preview'da doğrulanamayan yüzeyler açık kalır; tetikleyici v1.4 kapanışıdır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-10
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `PLATFORM_SETTINGS.md` §5'teki _"Auth, RLS ve platform paneli preview'da doğrulanamıyor"_ açığının yeniden değerlendirme noktası **v1.4-00 açılışı** olarak yazılmıştı. O nokta geldi.
+
+**Karar:** Açık **kapatılmıyor ve doldurulmuyor**. Tetikleyici **v1.4 kapanışı** olarak yeniden kuruluyor.
+
+**Gerekçe:** v1.3 boyunca bu açığın maliyeti ölçüldü: **sıfır**. Doğrulama üç yoldan yapılıyor ve üçü de preview'a ihtiyaç duymuyor — canlı probe (`begin; … rollback;`), pgTAP (zorunlu `Tenant RLS` kontrolü) ve tarayıcıda gerçek oturum. v1.3'ün bütün ciddi bulguları bu üç yolla çıktı.
+
+**Neden kapatılmıyor:** v1.4 **yazma** yolları getiriyor. Bugüne kadarki doğrulama ağırlıklı olarak okuma üzerineydi; yazma yolunda geri alınamaz bir hatanın maliyeti farklıdır. Bugün "gerek yok" demek, o dünyada da geçerli olduğu anlamına gelmez.
+
+**Alternatifler:**
+
+- **Supabase preview branch'lerini açmak:** Reddedildi (şimdilik). Ücretli, her PR'ı yavaşlatır, ve preview veritabanının canlıdan sapması **yeni bir yanlışlık kaynağı** olurdu (**K-11**).
+- **Açığı kapatmak:** Reddedildi. Karşılığı olmayan bir borç taşımamak doğru, ama v1.4'ün yazma yolları görülmeden verilecek bir "gerek yok" kararı erken olurdu.
+
+---
+
+### Karar: Realtime yayını Supabase'e özgüdür ve bilerek kabul edildi
+
+**Durum:** Alındı
+**Tarih:** 2026-09-10
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** _"Sistem taşınabilir kurulur"_ kararının (2026-09-04) birinci maddesi şunu emrediyor: yeni bir sağlayıcı özelliği eklenirken **"bu, düz Postgres veya standart bir arayüzle yapılabilir mi?"** diye sorulur.
+
+**v1.3-17'de bu soru sorulmadı.** Realtime Broadcast (`realtime.send`, `realtime.messages`, `realtime.topic()`) uygulandı ve bunlar düz Postgres değil, Supabase'e özgüdür. Eksik 2026-09-10 taramasında bulundu: kural yazılıydı, uygulanmadı.
+
+**Karar:** Soru **geriye dönük** soruldu, cevabı kabul edildi: Realtime Broadcast bağımlılığı **bilinçli olarak** taşınıyor.
+
+**Gerekçe:** Düz Postgres karşılığı `LISTEN/NOTIFY`'dır ve **kalıcı bir sunucu bağlantısı** gerektirir. Tarayıcı bunu tutamaz; arada dinleyip WebSocket'e aktaracak bir sunucu ister. Bizim böyle bir sunucumuz yok — yani seçenek yoktu, tercih değil zorunluluktu.
+
+**Taşınabilirlik maliyeti küçük ve ölçüldü:** istemci tarafında tek bir kanal (`useOrganizationChannel`) ve o da doğrudan `supabase-js` import etmiyor, **dikişten** (`lib/supabaseClient.ts`) geçiyor. Veritabanı tarafında bir tetikleyici fonksiyon ve bir RLS politikası. Taşınma günü değiştirilecek yer sayılıdır.
+
+**Ölçülen taşınabilirlik durumu (2026-09-10, v1.3'ün 65 dosyasından sonra):**
+
+| Ölçü                                               | 2026-09-04  | 2026-09-10                                               |
+| -------------------------------------------------- | ----------- | -------------------------------------------------------- |
+| `supabase-js`'e dokunan **gerçek** istemci dosyası | 2 (+dikiş)  | **2 (+dikiş)** ✅                                        |
+| Supabase Auth admin API yüzeyi                     | 3 çağrı     | **3 çağrı** ✅                                           |
+| Supabase Storage kullanımı                         | yok         | **yok** ✅                                               |
+| SQL (migration + pgTAP)                            | 4.735 satır | 14.374 satır — düz Postgres, taşınabilirliğe zarar değil |
+
+**Kural bundan sonra:** bu soru **dilim açılışında** sorulur ve cevabı briefing'e yazılır. Sorulmadığında geriye dönük sorulur; sorulmamış olması cevabın verilmediği anlamına gelmez ama **kaydın eksik olduğu** anlamına gelir.
