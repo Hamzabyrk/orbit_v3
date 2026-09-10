@@ -94,6 +94,13 @@ const ACTION_LABELS: Record<string, string> = {
   "student.account_unlinked": "Öğrenci hesap bağı çözüldü",
   "guardian.account_linked": "Veli hesabı bağlandı",
   "guardian.account_unlinked": "Veli hesap bağı çözüldü",
+  "class.created": "Sınıf eklendi",
+  "class.updated": "Sınıf güncellendi",
+  "class.archived": "Sınıf arşivlendi",
+  "class.restored": "Sınıf geri yüklendi",
+  "class_enrollment.created": "Sınıfa öğrenci kaydedildi",
+  "class_enrollment.archived": "Öğrencinin sınıf kaydı sonlandırıldı",
+  "class_enrollment.restored": "Öğrencinin sınıf kaydı geri yüklendi",
 };
 
 const ENTITY_LABELS: Record<string, string> = {
@@ -101,6 +108,8 @@ const ENTITY_LABELS: Record<string, string> = {
   organization_membership: "Üyelik",
   student: "Öğrenci",
   guardian: "Veli",
+  class: "Sınıf",
+  class_enrollment: "Sınıf Kaydı",
 };
 
 export function describeAuditAction(action: string): string {

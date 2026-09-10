@@ -75,8 +75,23 @@ describe("describeAuditAction / describeAuditEntity", () => {
     expect(describeAuditAction("guardian.account_unlinked")).toBe(
       "Veli hesap bağı çözüldü"
     );
+    expect(describeAuditAction("class.created")).toBe("Sınıf eklendi");
+    expect(describeAuditAction("class.updated")).toBe("Sınıf güncellendi");
+    expect(describeAuditAction("class.archived")).toBe("Sınıf arşivlendi");
+    expect(describeAuditAction("class.restored")).toBe("Sınıf geri yüklendi");
+    expect(describeAuditAction("class_enrollment.created")).toBe(
+      "Sınıfa öğrenci kaydedildi"
+    );
+    expect(describeAuditAction("class_enrollment.archived")).toBe(
+      "Öğrencinin sınıf kaydı sonlandırıldı"
+    );
+    expect(describeAuditAction("class_enrollment.restored")).toBe(
+      "Öğrencinin sınıf kaydı geri yüklendi"
+    );
     expect(describeAuditEntity("student")).toBe("Öğrenci");
     expect(describeAuditEntity("guardian")).toBe("Veli");
+    expect(describeAuditEntity("class")).toBe("Sınıf");
+    expect(describeAuditEntity("class_enrollment")).toBe("Sınıf Kaydı");
   });
 
   it("bilinmeyen eylemde ham kodu gosterir, etiket uydurmaz", () => {

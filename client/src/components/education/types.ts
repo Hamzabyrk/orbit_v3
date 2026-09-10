@@ -28,9 +28,23 @@ export type ClassGroup = {
   name: string;
   program: string | null;
   mentor: string | null;
+  mentorMembershipId?: string | null;
+  branch?: string | null;
+  branchId?: string | null;
+  capacity?: number | null;
   studentCount: number;
   attendance?: number;
   nextLesson?: string;
+};
+
+export type ClassEnrollmentItem = {
+  id: string;
+  classId: string;
+  studentId: string;
+  studentName: string;
+  studentNumber?: string | null;
+  enrolledAt?: string | null;
+  archivedAt?: string | null;
 };
 
 import type { WeekDay } from "@/education/weekDays";

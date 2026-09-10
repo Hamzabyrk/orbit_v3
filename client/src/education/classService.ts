@@ -1,14 +1,18 @@
 import { supabase } from "@/lib/supabaseClient";
-import type { ClassGroup } from "@/components/education/types";
+import type {
+  ClassGroup,
+  ClassEnrollmentItem,
+} from "@/components/education/types";
+import { extractBranchName } from "./studentService";
 
 /**
- * Sınıf listesi servis katmanı (v1.3-01 · A parçası).
+ * Sınıf listesi ve sınıf yönetimi servis katmanı (v1.3-01 · A parçası, v1.4-02 · #266).
  *
- * `classes` tablosunu gerçek Supabase sorgusuna bağlar.
+ * `classes` ve `class_enrollments` tablolarını gerçek Supabase sorgularına bağlar.
  *
- * **Kapsam sorgulanmıyor (K-06):** `organization_id` filtresi sorguya yazılmaz.
- * Kapsam RLS ile çözülür (`classes_select_admin`, `classes_select_teacher`,
- * `classes_select_student`, `classes_select_guardian`).
+ * **Açık `organization_id` filtresi (ROADMAP §4.12, #249):** RLS tek başına süzdüğünde
+ * Postgres sorgu planlayıcısı `organization_id` indeksini kullanamıyor. Bu nedenle
+ * performans kısıtı olarak sorguya açık `.eq("organization_id", organizationId)` eklenir.
  *
  * **Arşiv filtresi zorunludur:** `archived_at is null` filtresi uygulanır.
  *
@@ -16,11 +20,9 @@ import type { ClassGroup } from "@/components/education/types";
  * `profiles` tablosuna doğrudan sorgu atılmaz; çünkü `profiles` aynı satırda `recovery_email`,
  * `phone` ve şifre kilidi durumunu taşır ve RLS sütun gizleyemez (#228).
  *
- * Fonksiyon çağrıyı yapanın görebildiği sınıfların personel adlarını döndürür.
- *
  * **Tip dürüstlüğü (K-03):** Kaynağı olmayan veya henüz hesaplanmayan alanlar
  * (`attendance`, `nextLesson`) `undefined` bırakılır, kesinlikle `0` veya uydurulmuş
- * dizeler verilmez.
+ * dizeler verilmez. Kontenjan belirtilmemişse `null` bırakılır.
  */
 
 export const DEFAULT_CLASS_LIMIT = 100;
@@ -35,9 +37,83 @@ type RawClassRow = {
   name: string;
   program: string | null;
   mentor_membership_id: string | null;
+  branch_id?: string | null;
+  capacity?: number | null;
+  branches?: { name: string } | { name: string }[] | null;
   archived_at?: string | null;
   class_enrollments?: { id: string; archived_at: string | null }[] | null;
 };
+
+type RawClassEnrollmentRow = {
+  id: string;
+  class_id: string;
+  student_id: string;
+  created_at?: string | null;
+  archived_at?: string | null;
+  students?:
+    | {
+        full_name: string;
+        student_number?: string | null;
+      }
+    | {
+        full_name: string;
+        student_number?: string | null;
+      }[]
+    | null;
+};
+
+/**
+ * Sınıf ve kayıt işlemlerinde oluşan veritabanı hatalarını kullanıcı dostu Türkçe mesajlara dönüştürür.
+ * 23505 hatası sınıf oluşturma/güncellemede "aynı isimde sınıf var", kayıtta "öğrenci zaten kayıtlı" anlamına gelir.
+ */
+export function translateClassError(
+  error: unknown,
+  context: "class" | "enrollment" = "class"
+): string {
+  if (!error) {
+    return "Beklenmeyen bir hata oluştu.";
+  }
+
+  let code: string | undefined;
+  if (typeof error === "object" && error !== null && "code" in error) {
+    code = String((error as { code: unknown }).code);
+  } else if (error instanceof Error) {
+    for (const known of ["23505", "23514", "42501", "ORB03"]) {
+      if (error.message.includes(known)) {
+        code = known;
+        break;
+      }
+    }
+  }
+
+  if (code === "23505") {
+    return context === "enrollment"
+      ? "Bu öğrenci zaten bu sınıfa kayıtlı."
+      : "Bu isimde bir sınıf bu kurumda zaten var. Farklı bir sınıf adı girin.";
+  }
+  if (code === "23514") {
+    return context === "enrollment"
+      ? "Geçersiz kayıt bilgisi."
+      : "Sınıf adı 1-120 karakter arasında olmalı veya kontenjan 1 ile 1000 arasında bir sayı olmalıdır.";
+  }
+  if (code === "ORB03") {
+    return "Rehber öğretmen olarak yalnızca öğretmen veya yönetici rolündeki bir üye seçilebilir.";
+  }
+  if (code === "42501") {
+    return "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya şifre değişimi bekleniyor.";
+  }
+
+  if (
+    error instanceof Error &&
+    error.message &&
+    !error.message.includes("PGRST") &&
+    !error.message.includes("PostgREST")
+  ) {
+    return error.message;
+  }
+
+  return "İşlem gerçekleştirilemedi. Lütfen tekrar deneyin.";
+}
 
 export async function loadMentorNames(
   classIds: string[]
@@ -90,6 +166,10 @@ export function mapClassRow(
     name: row.name,
     program: row.program || null,
     mentor: mentorName,
+    mentorMembershipId: row.mentor_membership_id ?? null,
+    branch: extractBranchName(row.branches),
+    branchId: row.branch_id ?? null,
+    capacity: row.capacity ?? null,
     studentCount: activeStudentCount,
     // attendance: yoklama türetmesi (C parçası)
     // nextLesson: ders programı türetmesi (B parçası)
@@ -97,8 +177,11 @@ export function mapClassRow(
 }
 
 export async function loadClasses(
-  limit = DEFAULT_CLASS_LIMIT
+  organizationId: string,
+  options?: { limit?: number }
 ): Promise<ClassListResult> {
+  const limit = options?.limit ?? DEFAULT_CLASS_LIMIT;
+
   const { data, error } = await supabase
     .from("classes")
     .select(
@@ -107,12 +190,16 @@ export async function loadClasses(
       name,
       program,
       mentor_membership_id,
+      branch_id,
+      capacity,
+      branches ( name ),
       class_enrollments (
         id,
         archived_at
       )
     `
     )
+    .eq("organization_id", organizationId)
     .is("archived_at", null)
     .order("name", { ascending: true })
     .limit(limit);
@@ -131,4 +218,200 @@ export async function loadClasses(
     rows,
     truncated: rows.length === limit,
   };
+}
+
+export type CreateClassInput = {
+  organizationId: string;
+  branchId: string;
+  name: string;
+  program?: string | null;
+  mentorMembershipId?: string | null;
+  capacity?: number | null;
+};
+
+export async function createClass(
+  input: CreateClassInput
+): Promise<{ id: string }> {
+  const payload: {
+    organization_id: string;
+    branch_id: string;
+    name: string;
+    program?: string | null;
+    mentor_membership_id?: string | null;
+    capacity?: number | null;
+  } = {
+    organization_id: input.organizationId,
+    branch_id: input.branchId,
+    name: input.name,
+  };
+
+  if (input.program !== undefined) {
+    payload.program = input.program;
+  }
+  if (input.mentorMembershipId !== undefined) {
+    payload.mentor_membership_id = input.mentorMembershipId;
+  }
+  if (input.capacity !== undefined) {
+    payload.capacity = input.capacity;
+  }
+
+  const { data, error } = await supabase
+    .from("classes")
+    .insert(payload)
+    .select("id")
+    .single();
+
+  if (error) {
+    throw new Error(translateClassError(error, "class"));
+  }
+
+  return data;
+}
+
+export type UpdateClassInput = {
+  name?: string;
+  program?: string | null;
+  branchId?: string;
+  mentorMembershipId?: string | null;
+  capacity?: number | null;
+};
+
+export async function updateClass(
+  classId: string,
+  input: UpdateClassInput
+): Promise<void> {
+  const payload: {
+    name?: string;
+    program?: string | null;
+    branch_id?: string;
+    mentor_membership_id?: string | null;
+    capacity?: number | null;
+  } = {};
+
+  if (input.name !== undefined) {
+    payload.name = input.name;
+  }
+  if (input.program !== undefined) {
+    payload.program = input.program;
+  }
+  if (input.branchId !== undefined) {
+    payload.branch_id = input.branchId;
+  }
+  if (input.mentorMembershipId !== undefined) {
+    payload.mentor_membership_id = input.mentorMembershipId;
+  }
+  if (input.capacity !== undefined) {
+    payload.capacity = input.capacity;
+  }
+
+  const { error } = await supabase
+    .from("classes")
+    .update(payload)
+    .eq("id", classId);
+
+  if (error) {
+    throw new Error(translateClassError(error, "class"));
+  }
+}
+
+export async function archiveClass(classId: string): Promise<void> {
+  const { error } = await supabase
+    .from("classes")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", classId);
+
+  if (error) {
+    throw new Error(translateClassError(error, "class"));
+  }
+}
+
+export async function restoreClass(classId: string): Promise<void> {
+  const { error } = await supabase
+    .from("classes")
+    .update({ archived_at: null })
+    .eq("id", classId);
+
+  if (error) {
+    throw new Error(translateClassError(error, "class"));
+  }
+}
+
+export async function loadClassEnrollments(
+  organizationId: string,
+  classId: string
+): Promise<ClassEnrollmentItem[]> {
+  const { data, error } = await supabase
+    .from("class_enrollments")
+    .select(
+      `
+      id,
+      class_id,
+      student_id,
+      created_at,
+      archived_at,
+      students (
+        full_name,
+        student_number
+      )
+    `
+    )
+    .eq("organization_id", organizationId)
+    .eq("class_id", classId)
+    .is("archived_at", null)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw new Error(translateClassError(error, "enrollment"));
+  }
+
+  const rows = (data ?? []) as RawClassEnrollmentRow[];
+  return rows.map(r => {
+    const student = Array.isArray(r.students) ? r.students[0] : r.students;
+    return {
+      id: r.id,
+      classId: r.class_id,
+      studentId: r.student_id,
+      studentName: student?.full_name ?? "İsimsiz Öğrenci",
+      studentNumber: student?.student_number ?? null,
+      enrolledAt: r.created_at ?? null,
+      archivedAt: r.archived_at ?? null,
+    };
+  });
+}
+
+export type EnrollStudentInput = {
+  organizationId: string;
+  classId: string;
+  studentId: string;
+};
+
+export async function enrollStudent(
+  input: EnrollStudentInput
+): Promise<{ id: string }> {
+  const { data, error } = await supabase
+    .from("class_enrollments")
+    .insert({
+      organization_id: input.organizationId,
+      class_id: input.classId,
+      student_id: input.studentId,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    throw new Error(translateClassError(error, "enrollment"));
+  }
+
+  return data;
+}
+
+export async function unenrollStudent(enrollmentId: string): Promise<void> {
+  const { error } = await supabase
+    .from("class_enrollments")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", enrollmentId);
+
+  if (error) {
+    throw new Error(translateClassError(error, "enrollment"));
+  }
 }
