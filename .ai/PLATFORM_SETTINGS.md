@@ -521,7 +521,7 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 
 > ⚠️ **Taban 2026-09-10'da yeniden ölçüldü ve belgedeki sayı sapmıştı: 19 değil 22.** Dağılım — **19** × `0029`, 1 × sızmış şifre koruması, 2 × `rls_enabled_no_policy`. Sapmanın sebebi bulundu: v1.3 üç yeni `SECURITY DEFINER` fonksiyonu `authenticated`'a açtı (`current_user_teaches_guardian`, `class_staff_names`, `exam_participant_count`) ve hiçbiri bu tabloya işlenmedi. Aşağıdaki "ders" tam olarak bunu söylüyordu ve **ikinci kez** atlandı; üçü de yukarıdaki tabloya eklendi.
 >
-> 🔜 **v1.4-00 merge edildiğinde beklenen: 26** (23 × `0029` + 1 + 2). Dört yeni fonksiyon `authenticated`'a açık ve bu bilinçli — yetki kontrolü fonksiyonun içinde. Beşincisi (`membership_may_be_linked`) `revoke all` ile kapalı olduğu için listede çıkmamalı. **Merge sonrası ölçülüp buraya yazılacak.**
+> ✅ **Merge sonrası ölçüldü (2026-09-10, PR #262): 26 — tahminin aynısı.** Dağılım: **23** × `0029` + 1 × sızmış şifre + 2 × `rls_enabled_no_policy`. Dört yeni fonksiyon (`link_/unlink_student_account`, `link_/unlink_guardian_account`) listede çıktı ve bu bilinçli — yetki kontrolü fonksiyonun içinde, `42501` ile. Beşincisi `membership_may_be_linked` **çıkmadı**: `revoke all` tuttu. Tahminin doğrulanması ayrıca şunu söylüyor: bu sayı artık kör bir sayaç değil, bileşimi bilinen bir taban.
 >
 > ✅ **Önceki taban 2026-09-07'de ölçülmüştü: 19.** Dağılım — 16 × `0029` (yukarıdaki `SECURITY DEFINER` listesi), 1 × sızmış şifre koruması (Pro plan, §5'te kabul edilmiş), 2 × `rls_enabled_no_policy`.
 >
