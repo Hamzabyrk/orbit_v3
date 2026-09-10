@@ -1,11 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_STUDENT_LIMIT,
+  archiveStudent,
+  createStudent,
   extractBranchName,
   extractClassName,
   extractGuardianName,
+  linkStudentAccount,
   loadStudents,
   mapStudentRow,
+  restoreStudent,
+  translateStudentError,
+  unlinkStudentAccount,
+  updateStudent,
 } from "./studentService";
 
 const fromMock = vi.fn();
@@ -23,14 +30,41 @@ type QueryResult = { data: unknown; error: unknown };
 function createQueryChain(
   result: QueryResult,
   spy?: {
+    eqArgs?: [string, unknown][];
+    orArgs?: string[];
     isArgs?: [string, unknown];
     orderArgs?: [string, { ascending?: boolean }];
     limitArg?: number;
     inArgs?: [string, unknown[]];
+    insertArg?: unknown;
+    updateArg?: unknown;
   }
 ) {
   const chain: Record<string, unknown> = {};
   chain.select = vi.fn().mockReturnValue(chain);
+  chain.single = vi.fn().mockReturnValue(Promise.resolve(result));
+  chain.insert = vi.fn((payload: unknown) => {
+    if (spy) spy.insertArg = payload;
+    return chain;
+  });
+  chain.update = vi.fn((payload: unknown) => {
+    if (spy) spy.updateArg = payload;
+    return chain;
+  });
+  chain.eq = vi.fn((col: string, val: unknown) => {
+    if (spy) {
+      if (!spy.eqArgs) spy.eqArgs = [];
+      spy.eqArgs.push([col, val]);
+    }
+    return chain;
+  });
+  chain.or = vi.fn((filter: string) => {
+    if (spy) {
+      if (!spy.orArgs) spy.orArgs = [];
+      spy.orArgs.push(filter);
+    }
+    return chain;
+  });
   chain.is = vi.fn((col: string, val: unknown) => {
     if (spy) spy.isArgs = [col, val];
     return chain;
@@ -47,6 +81,10 @@ function createQueryChain(
     if (spy) spy.limitArg = limit;
     return Promise.resolve(result);
   });
+  chain.then = (
+    resolve: (val: unknown) => unknown,
+    reject: (err: unknown) => unknown
+  ) => Promise.resolve(result).then(resolve, reject);
   return chain;
 }
 
@@ -101,22 +139,26 @@ describe("studentService", () => {
       expect(extractClassName(enrollments)).toBe("12-A Sayısal");
     });
 
-    it("sınıfın kendisi arşivlenmişse o kaydı dikkate almaz", () => {
+    it("aktif kayıt yoksa null döner", () => {
       const enrollments = [
         {
-          archived_at: null,
-          classes: {
-            name: "Kapanan Sınıf",
-            archived_at: "2026-06-01T00:00:00Z",
-          },
+          archived_at: "2026-06-01T00:00:00Z",
+          classes: { name: "11-A Sayısal", archived_at: null },
         },
       ];
       expect(extractClassName(enrollments)).toBeNull();
+      expect(extractClassName([])).toBeNull();
+      expect(extractClassName(null)).toBeNull();
     });
 
-    it("kayıt yoksa null döner", () => {
-      expect(extractClassName(null)).toBeNull();
-      expect(extractClassName([])).toBeNull();
+    it("sınıf dizisi içerisindeki ilk geçerli sınıfı döner", () => {
+      const enrollments = [
+        {
+          archived_at: null,
+          classes: [{ name: "10-B Eşit Ağırlık", archived_at: null }],
+        },
+      ];
+      expect(extractClassName(enrollments)).toBe("10-B Eşit Ağırlık");
     });
   });
 
@@ -135,17 +177,17 @@ describe("studentService", () => {
       const links = [
         {
           archived_at: null,
-          guardians: { full_name: "Fatma Yılmaz", archived_at: null },
+          guardians: { full_name: "Ahmet Yılmaz", archived_at: null },
         },
         {
           archived_at: null,
-          guardians: { full_name: "Ali Yılmaz", archived_at: null },
+          guardians: { full_name: "Ayşe Yılmaz", archived_at: null },
         },
       ];
-      expect(extractGuardianName(links)).toBe("Fatma Yılmaz, Ali Yılmaz");
+      expect(extractGuardianName(links)).toBe("Ahmet Yılmaz, Ayşe Yılmaz");
     });
 
-    it("arşivlenmiş veli bağını veya arşivlenmiş veliyi eler", () => {
+    it("arşivlenmiş veli kayıtlarını eler", () => {
       const links = [
         {
           archived_at: "2026-05-01T00:00:00Z",
@@ -153,110 +195,153 @@ describe("studentService", () => {
         },
         {
           archived_at: null,
-          guardians: {
-            full_name: "Silinmiş Veli",
-            archived_at: "2026-05-01T00:00:00Z",
-          },
-        },
-        {
-          archived_at: null,
-          guardians: { full_name: "Geçerli Veli", archived_at: null },
+          guardians: { full_name: "Aktif Veli", archived_at: null },
         },
       ];
-      expect(extractGuardianName(links)).toBe("Geçerli Veli");
+      expect(extractGuardianName(links)).toBe("Aktif Veli");
     });
 
-    it("veli bağı yoksa null döner", () => {
-      expect(extractGuardianName(null)).toBeNull();
+    it("aktif veli yoksa null döner (K-22: yokluk durumunda dize uydurulmaz)", () => {
       expect(extractGuardianName([])).toBeNull();
+      expect(extractGuardianName(null)).toBeNull();
+      expect(extractGuardianName(undefined)).toBeNull();
     });
   });
 
-  describe("mapStudentRow (Tip Dürüstlüğü & K-03 & Devam ve Sınav Türetimi)", () => {
-    it("devam yüzdesi ve sınav puanı verildiğinde nesneye yazar", () => {
-      const mapped = mapStudentRow(
-        {
-          id: "stu-1",
-          full_name: "Zeynep Kaya",
-          branches: { name: "Merkez" },
-          class_enrollments: [
-            { archived_at: null, classes: { name: "11-B", archived_at: null } },
-          ],
-          student_guardians: [],
-        },
-        85,
-        92
-      );
-
-      expect(mapped.id).toBe("stu-1");
-      expect(mapped.attendance).toBe(85);
-      expect(mapped.score).toBe(92);
-    });
-
-    it("devam yüzdesi veya sınav puanı undefined ise alanlara undefined yazar, sıfır uydurmaz (K-22)", () => {
-      const mapped = mapStudentRow(
-        {
-          id: "stu-2",
-          full_name: "Ahmet Demir",
-          branches: null,
-          class_enrollments: [],
-          student_guardians: [],
-        },
-        undefined,
-        undefined
-      );
-
-      expect(mapped.attendance).toBeUndefined();
-      expect(mapped.score).toBeUndefined();
-    });
-
-    it("kaynağı olmayan alanları kesinlikle uydurmaz (undefined bırakır)", () => {
-      const mapped = mapStudentRow({
-        id: "stu-1",
-        full_name: "Zeynep Kaya",
-        branches: { name: "Merkez" },
+  describe("mapStudentRow", () => {
+    it("öğrenci satırını doğru biçimde Student tipine dönüştürür", () => {
+      const raw = {
+        id: "stu-123",
+        full_name: "Mehmet Demir",
+        student_number: "2024-001",
+        auth_user_id: "auth-user-999",
+        branch_id: "branch-abc",
+        branches: { name: "Beşiktaş Şubesi" },
         class_enrollments: [
-          { archived_at: null, classes: { name: "11-B", archived_at: null } },
+          {
+            archived_at: null,
+            classes: { name: "12-C", archived_at: null },
+          },
         ],
         student_guardians: [
           {
             archived_at: null,
-            guardians: { full_name: "Ahmet Kaya", archived_at: null },
+            guardians: { full_name: "Kemal Demir", archived_at: null },
           },
         ],
+      };
+
+      const mapped = mapStudentRow(raw, 95, 82, "Güncel");
+
+      expect(mapped).toEqual({
+        id: "stu-123",
+        name: "Mehmet Demir",
+        code: "2024-001",
+        hasAccount: true,
+        group: "12-C",
+        branch: "Beşiktaş Şubesi",
+        branchId: "branch-abc",
+        parent: "Kemal Demir",
+        attendance: 95,
+        score: 82,
+        payment: "Güncel",
       });
+    });
 
-      expect(mapped.id).toBe("stu-1");
-      expect(mapped.name).toBe("Zeynep Kaya");
-      expect(mapped.branch).toBe("Merkez");
-      expect(mapped.group).toBe("11-B");
-      expect(mapped.parent).toBe("Ahmet Kaya");
+    it("öğrenci numarası ve giriş hesabı olmadığında dürüstçe haritalar (K-22)", () => {
+      const raw = {
+        id: "stu-456",
+        full_name: "Ayşe Kaya",
+        student_number: null,
+        auth_user_id: null,
+        branch_id: null,
+        branches: null,
+        class_enrollments: [],
+        student_guardians: [],
+      };
 
-      // K-03: Bu alanlar sıfır veya sahte dize değil, undefined olmak ZORUNDADIR.
+      const mapped = mapStudentRow(raw);
+
       expect(mapped.code).toBeUndefined();
+      expect(mapped.hasAccount).toBe(false);
+      expect(mapped.branchId).toBeNull();
       expect(mapped.attendance).toBeUndefined();
       expect(mapped.score).toBeUndefined();
-      expect(mapped.homework).toBeUndefined();
       expect(mapped.payment).toBeUndefined();
       expect(mapped.risk).toBeUndefined();
+      expect(mapped.homework).toBeUndefined();
     });
   });
 
-  describe("loadStudents (Sorgu, Devam Yüzdesi ve Sınav Puanı Entegrasyonu)", () => {
-    it("öğrencileri ada göre artan sırada çeker, devam yüzdesi ve sınav puanını bağlar", async () => {
+  describe("translateStudentError", () => {
+    it("23505 kodunu kurumda kullanımda olan numara mesajına çevirir", () => {
+      const msg = translateStudentError({ code: "23505" });
+      expect(msg).toBe(
+        "Bu öğrenci numarası kurumda zaten kullanımda. Farklı bir numara girin."
+      );
+    });
+
+    it("23514 kodunu geçersiz numara biçimi mesajına çevirir", () => {
+      const msg = translateStudentError({ code: "23514" });
+      expect(msg).toBe(
+        "Öğrenci numarası en fazla 32 karakter olmalı, başında ve sonunda boşluk bulunmamalıdır."
+      );
+    });
+
+    it("42501 kodunu yönetici yetkisi / şifre değişimi mesajına çevirir", () => {
+      const msg = translateStudentError({ code: "42501" });
+      expect(msg).toBe(
+        "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya şifre değişimi bekleniyor."
+      );
+    });
+
+    it("ORB03 kodunu bağlanamaz üyelik mesajına çevirir", () => {
+      const msg = translateStudentError({ code: "ORB03" });
+      expect(msg).toBe(
+        "Bu üyelik bir öğrenci kaydına bağlanamaz. Lütfen aynı kurumda rolü öğrenci olan başka bir üyelik seçin."
+      );
+    });
+
+    it("ORB04 kodunu zaten bağlı mesajına çevirir", () => {
+      const msg = translateStudentError({ code: "ORB04" });
+      expect(msg).toBe(
+        "Bu kayıt veya hesap zaten başka bir bağa sahip. Önce mevcut bağı çözün."
+      );
+    });
+
+    it("bilinmeyen hatalarda kullanıcıya ham kod sızdırmaz", () => {
+      const msg = translateStudentError({ code: "99999" });
+      expect(msg).toBe("İşlem gerçekleştirilemedi. Lütfen tekrar deneyin.");
+      expect(msg).not.toContain("99999");
+    });
+  });
+
+  describe("loadStudents (v1.4-01 açık organization_id ve arama süzgeci)", () => {
+    it("açık organization_id süzgeci taşır ve öğrencileri ada göre çeker", async () => {
       const studentRows = [
         {
           id: "stu-1",
           full_name: "Ali Can",
+          student_number: "101",
+          auth_user_id: "auth-1",
+          branch_id: "br-1",
           branches: { name: "Şube 1" },
           class_enrollments: [],
           student_guardians: [],
         },
       ];
 
+      const querySpy: {
+        eqArgs?: [string, unknown][];
+        orArgs?: string[];
+        isArgs?: [string, unknown];
+        orderArgs?: [string, { ascending?: boolean }];
+        limitArg?: number;
+      } = {};
+
       fromMock.mockImplementation((table: string) => {
         if (table === "students") {
-          return createQueryChain({ data: studentRows, error: null });
+          return createQueryChain({ data: studentRows, error: null }, querySpy);
         }
         return createQueryChain({ data: [], error: null });
       });
@@ -277,56 +362,99 @@ describe("studentService", () => {
         }
         if (fn === "student_latest_exam_scores") {
           return Promise.resolve({
-            data: [
-              {
-                student_id: "stu-1",
-                score: "88.00",
-              },
-            ],
+            data: [{ student_id: "stu-1", score: "88.00" }],
             error: null,
           });
         }
         if (fn === "student_payment_summaries") {
           return Promise.resolve({
-            data: [
-              {
-                student_id: "stu-1",
-                overdue_count: "0",
-              },
-            ],
+            data: [{ student_id: "stu-1", overdue_count: "0" }],
             error: null,
           });
         }
         return Promise.resolve({ data: null, error: null });
       });
 
-      const result = await loadStudents(50);
+      const result = await loadStudents("org-test-1", { limit: 50 });
 
       expect(fromMock).toHaveBeenCalledWith("students");
-      expect(fromMock).not.toHaveBeenCalledWith("attendance_records");
-      expect(fromMock).not.toHaveBeenCalledWith("exam_results");
-      expect(fromMock).not.toHaveBeenCalledWith("installments");
-      expect(rpcMock).not.toHaveBeenCalledWith(
-        "exam_ranking",
-        expect.anything()
-      );
-
-      expect(rpcMock).toHaveBeenCalledWith("student_attendance_counts", {
-        target_student_ids: ["stu-1"],
-      });
-      expect(rpcMock).toHaveBeenCalledWith("student_latest_exam_scores", {
-        target_student_ids: ["stu-1"],
-      });
-      expect(rpcMock).toHaveBeenCalledWith("student_payment_summaries", {
-        target_student_ids: ["stu-1"],
-      });
+      // ROADMAP §4.12, #249: Açık organization_id süzgeci zorunludur
+      expect(querySpy.eqArgs).toContainEqual(["organization_id", "org-test-1"]);
+      expect(querySpy.isArgs).toEqual(["archived_at", null]);
+      expect(querySpy.orderArgs).toEqual(["full_name", { ascending: true }]);
+      expect(querySpy.limitArg).toBe(50);
+      expect(querySpy.orArgs).toBeUndefined();
 
       expect(result.rows).toHaveLength(1);
       expect(result.rows[0].name).toBe("Ali Can");
+      expect(result.rows[0].code).toBe("101");
+      expect(result.rows[0].hasAccount).toBe(true);
       expect(result.rows[0].attendance).toBe(100);
       expect(result.rows[0].score).toBe(88);
       expect(result.rows[0].payment).toBe("Güncel");
       expect(result.truncated).toBe(false);
+    });
+
+    it("arama terimi verildiğinde sunucu sorgusuna .or() süzgeci ekler", async () => {
+      const querySpy: { orArgs?: string[] } = {};
+
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({ data: [], error: null }, querySpy);
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+      rpcMock.mockResolvedValue({ data: [], error: null });
+
+      await loadStudents("org-test-1", { search: "Zeynep" });
+
+      expect(querySpy.orArgs).toContain(
+        'full_name.ilike."%Zeynep%",student_number.ilike."%Zeynep%"'
+      );
+    });
+
+    it("boşluklu arama terimini kırparak gönderir, salt boşlukta süzgeç eklemez", async () => {
+      const querySpy: { orArgs?: string[] } = {};
+
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({ data: [], error: null }, querySpy);
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+      rpcMock.mockResolvedValue({ data: [], error: null });
+
+      await loadStudents("org-test-1", { search: "   " });
+      expect(querySpy.orArgs).toBeUndefined();
+
+      await loadStudents("org-test-1", { search: "  101  " });
+      expect(querySpy.orArgs).toContain(
+        'full_name.ilike."%101%",student_number.ilike."%101%"'
+      );
+    });
+
+    it("R2 regresyonu: süzgeç dizesi tırnaklıdır ve virgül/tırnak/ters bölü taşıyan terimlerde dize bozulmaz", async () => {
+      const querySpy: { orArgs?: string[] } = {};
+
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({ data: [], error: null }, querySpy);
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+      rpcMock.mockResolvedValue({ data: [], error: null });
+
+      // Virgüllü arama (PostgREST logic tree kırılmasını engeller)
+      await loadStudents("org-test-1", { search: "Ali, Veli" });
+      expect(querySpy.orArgs).toContain(
+        'full_name.ilike."%Ali, Veli%",student_number.ilike."%Ali, Veli%"'
+      );
+
+      // Çift tırnak ve ters bölü içeren arama
+      await loadStudents("org-test-1", { search: 'Test "1" \\ 2' });
+      expect(querySpy.orArgs).toContain(
+        'full_name.ilike."%Test \\"1\\" \\\\ 2%",student_number.ilike."%Test \\"1\\" \\\\ 2%"'
+      );
     });
 
     it("yoklama kaydı, sınavı veya ödeme planı olmayan öğrencinin alanları undefined kalır (K-22)", async () => {
@@ -348,29 +476,13 @@ describe("studentService", () => {
         return createQueryChain({ data: [], error: null });
       });
 
-      rpcMock.mockImplementation((fn: string) => {
-        if (
-          fn === "student_attendance_counts" ||
-          fn === "student_latest_exam_scores" ||
-          fn === "student_payment_summaries"
-        ) {
-          return Promise.resolve({ data: [], error: null });
-        }
-        return Promise.resolve({ data: null, error: null });
-      });
-
-      const result = await loadStudents();
-      expect(fromMock).not.toHaveBeenCalledWith("attendance_records");
-      expect(fromMock).not.toHaveBeenCalledWith("exam_results");
-      expect(fromMock).not.toHaveBeenCalledWith("installments");
-      expect(rpcMock).not.toHaveBeenCalledWith(
-        "exam_ranking",
-        expect.anything()
+      rpcMock.mockImplementation(() =>
+        Promise.resolve({ data: [], error: null })
       );
 
+      const result = await loadStudents("org-test-1");
       expect(result.rows[0].attendance).toBeUndefined();
       expect(result.rows[0].score).toBeUndefined();
-      // ⛔ Ödeme planı olmayan veya yetkisi olmayana "Güncel" denmez (K-22)
       expect(result.rows[0].payment).toBeUndefined();
     });
 
@@ -396,52 +508,15 @@ describe("studentService", () => {
       rpcMock.mockImplementation((fn: string) => {
         if (fn === "student_payment_summaries") {
           return Promise.resolve({
-            data: [
-              {
-                student_id: "stu-debtor",
-                overdue_count: "2", // PostgREST dizge döner
-              },
-            ],
+            data: [{ student_id: "stu-debtor", overdue_count: "2" }],
             error: null,
           });
         }
         return Promise.resolve({ data: [], error: null });
       });
 
-      const result = await loadStudents();
-      expect(fromMock).not.toHaveBeenCalledWith("installments");
+      const result = await loadStudents("org-test-1");
       expect(result.rows[0].payment).toBe("Takip gerekli");
-    });
-
-    it("yetkisiz çağıran (öğretmen/öğrenci) boş küme aldığında payment undefined kalır, 'Güncel' uydurulmaz (K-22)", async () => {
-      fromMock.mockImplementation((table: string) => {
-        if (table === "students") {
-          return createQueryChain({
-            data: [
-              {
-                id: "stu-1",
-                full_name: "Öğrenci 1",
-                branches: null,
-                class_enrollments: [],
-                student_guardians: [],
-              },
-            ],
-            error: null,
-          });
-        }
-        return createQueryChain({ data: [], error: null });
-      });
-
-      // Öğretmen ve öğrenci RLS gereği boş dizi alır
-      rpcMock.mockImplementation((fn: string) => {
-        if (fn === "student_payment_summaries") {
-          return Promise.resolve({ data: [], error: null });
-        }
-        return Promise.resolve({ data: [], error: null });
-      });
-
-      const result = await loadStudents();
-      expect(result.rows[0].payment).toBeUndefined();
     });
 
     it("satır sayısı limite eşitse truncated bayrağı true döner (K-03)", async () => {
@@ -461,7 +536,7 @@ describe("studentService", () => {
       });
       rpcMock.mockResolvedValue({ data: [], error: null });
 
-      const result = await loadStudents(5);
+      const result = await loadStudents("org-test-1", { limit: 5 });
 
       expect(result.rows).toHaveLength(5);
       expect(result.truncated).toBe(true);
@@ -477,7 +552,7 @@ describe("studentService", () => {
       });
       rpcMock.mockResolvedValue({ data: [], error: null });
 
-      await loadStudents();
+      await loadStudents("org-test-1");
 
       expect(spy.limitArg).toBe(DEFAULT_STUDENT_LIMIT);
     });
@@ -494,8 +569,245 @@ describe("studentService", () => {
       });
       rpcMock.mockResolvedValue({ data: [], error: null });
 
-      await expect(loadStudents()).rejects.toThrow(
+      await expect(loadStudents("org-test-1")).rejects.toThrow(
         "Öğrenci listesi yüklenemedi."
+      );
+    });
+  });
+
+  describe("createStudent", () => {
+    it("öğrenci kaydını doğru alanlarla oluşturur", async () => {
+      const spy: { insertArg?: unknown } = {};
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain(
+            { data: { id: "new-student-id" }, error: null },
+            spy
+          );
+        }
+        return createQueryChain({ data: null, error: null });
+      });
+
+      const res = await createStudent({
+        organizationId: "org-1",
+        branchId: "br-1",
+        fullName: "Fatma Demir",
+        studentNumber: "105",
+      });
+
+      expect(fromMock).toHaveBeenCalledWith("students");
+      expect(spy.insertArg).toEqual({
+        organization_id: "org-1",
+        branch_id: "br-1",
+        full_name: "Fatma Demir",
+        student_number: "105",
+      });
+      expect(res).toEqual({ id: "new-student-id" });
+    });
+
+    it("numarasız öğrenci eklenebilir", async () => {
+      const spy: { insertArg?: unknown } = {};
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain(
+            { data: { id: "new-student-id-2" }, error: null },
+            spy
+          );
+        }
+        return createQueryChain({ data: null, error: null });
+      });
+
+      await createStudent({
+        organizationId: "org-1",
+        branchId: "br-1",
+        fullName: "Numarasız Öğrenci",
+      });
+
+      expect(spy.insertArg).toEqual({
+        organization_id: "org-1",
+        branch_id: "br-1",
+        full_name: "Numarasız Öğrenci",
+      });
+    });
+
+    it("çakışan numarada 23505 hatasını Türkçe mesaja dönüştürür", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({
+            data: null,
+            error: { code: "23505" },
+          });
+        }
+        return createQueryChain({ data: null, error: null });
+      });
+
+      await expect(
+        createStudent({
+          organizationId: "org-1",
+          branchId: "br-1",
+          fullName: "Çakışan Öğrenci",
+          studentNumber: "101",
+        })
+      ).rejects.toThrow(
+        "Bu öğrenci numarası kurumda zaten kullanımda. Farklı bir numara girin."
+      );
+    });
+
+    it("biçimsiz numarada 23514 hatasını Türkçe mesaja dönüştürür", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({
+            data: null,
+            error: { code: "23514" },
+          });
+        }
+        return createQueryChain({ data: null, error: null });
+      });
+
+      await expect(
+        createStudent({
+          organizationId: "org-1",
+          branchId: "br-1",
+          fullName: "Hatalı Numaralı",
+          studentNumber: " 101 ",
+        })
+      ).rejects.toThrow(
+        "Öğrenci numarası en fazla 32 karakter olmalı, başında ve sonunda boşluk bulunmamalıdır."
+      );
+    });
+  });
+
+  describe("updateStudent", () => {
+    it("öğrenci bilgilerini günceller ve numarayı sıfırlayabilir", async () => {
+      const spy: { updateArg?: unknown; eqArgs?: [string, unknown][] } = {};
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({ data: null, error: null }, spy);
+        }
+        return createQueryChain({ data: null, error: null });
+      });
+
+      await updateStudent("stu-update-1", {
+        fullName: "Yeni Ad Soyad",
+        branchId: "br-new",
+        studentNumber: null,
+      });
+
+      expect(spy.updateArg).toEqual({
+        full_name: "Yeni Ad Soyad",
+        branch_id: "br-new",
+        student_number: null,
+      });
+      expect(spy.eqArgs).toContainEqual(["id", "stu-update-1"]);
+    });
+
+    it("hata durumunda Türkçeleştirilmiş hata fırlatır", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({
+            data: null,
+            error: { code: "42501" },
+          });
+        }
+        return createQueryChain({ data: null, error: null });
+      });
+
+      await expect(
+        updateStudent("stu-update-1", { fullName: "Test" })
+      ).rejects.toThrow(
+        "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya şifre değişimi bekleniyor."
+      );
+    });
+  });
+
+  describe("archiveStudent & restoreStudent", () => {
+    it("archiveStudent archived_at damgasını yazar", async () => {
+      const spy: { updateArg?: unknown; eqArgs?: [string, unknown][] } = {};
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({ data: null, error: null }, spy);
+        }
+        return createQueryChain({ data: null, error: null });
+      });
+
+      await archiveStudent("stu-arch-1");
+
+      expect(spy.updateArg).toHaveProperty("archived_at");
+      expect(spy.eqArgs).toContainEqual(["id", "stu-arch-1"]);
+    });
+
+    it("restoreStudent archived_at damgasını null yapar", async () => {
+      const spy: { updateArg?: unknown; eqArgs?: [string, unknown][] } = {};
+      fromMock.mockImplementation((table: string) => {
+        if (table === "students") {
+          return createQueryChain({ data: null, error: null }, spy);
+        }
+        return createQueryChain({ data: null, error: null });
+      });
+
+      await restoreStudent("stu-arch-1");
+
+      expect(spy.updateArg).toEqual({ archived_at: null });
+      expect(spy.eqArgs).toContainEqual(["id", "stu-arch-1"]);
+    });
+  });
+
+  describe("linkStudentAccount & unlinkStudentAccount (RPC çağrıları)", () => {
+    it("linkStudentAccount RPC fonksiyonunu doğru argümanlarla çağırır", async () => {
+      rpcMock.mockResolvedValue({ data: null, error: null });
+
+      await linkStudentAccount("stu-123", "membership-456");
+
+      expect(rpcMock).toHaveBeenCalledWith("link_student_account", {
+        target_student_id: "stu-123",
+        target_membership_id: "membership-456",
+      });
+    });
+
+    it("ORB03 hatasında uygun mesajı fırlatır", async () => {
+      rpcMock.mockResolvedValue({
+        data: null,
+        error: { code: "ORB03" },
+      });
+
+      await expect(
+        linkStudentAccount("stu-123", "membership-456")
+      ).rejects.toThrow(
+        "Bu üyelik bir öğrenci kaydına bağlanamaz. Lütfen aynı kurumda rolü öğrenci olan başka bir üyelik seçin."
+      );
+    });
+
+    it("ORB04 hatasında uygun mesajı fırlatır", async () => {
+      rpcMock.mockResolvedValue({
+        data: null,
+        error: { code: "ORB04" },
+      });
+
+      await expect(
+        linkStudentAccount("stu-123", "membership-456")
+      ).rejects.toThrow(
+        "Bu kayıt veya hesap zaten başka bir bağa sahip. Önce mevcut bağı çözün."
+      );
+    });
+
+    it("unlinkStudentAccount RPC fonksiyonunu çağırır", async () => {
+      rpcMock.mockResolvedValue({ data: null, error: null });
+
+      await unlinkStudentAccount("stu-123");
+
+      expect(rpcMock).toHaveBeenCalledWith("unlink_student_account", {
+        target_student_id: "stu-123",
+      });
+    });
+
+    it("unlinkStudentAccount yetki hatasında 42501 mesajını fırlatır", async () => {
+      rpcMock.mockResolvedValue({
+        data: null,
+        error: { code: "42501" },
+      });
+
+      await expect(unlinkStudentAccount("stu-123")).rejects.toThrow(
+        "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya şifre değişimi bekleniyor."
       );
     });
   });

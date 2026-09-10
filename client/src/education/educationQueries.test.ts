@@ -15,6 +15,27 @@ describe("educationKeys (K-19 ve Cache İzolasyonu)", () => {
     ]);
   });
 
+  it("öğrenci anahtarı arama terimi verildiğinde terimi de taşır (v1.4-01)", () => {
+    const keyWithSearch = educationKeys.students("org-123", "Ali");
+    expect(keyWithSearch).toEqual([
+      "education",
+      "students",
+      { organizationId: "org-123", search: "Ali" },
+    ]);
+
+    // Farklı arama terimleri farklı cache anahtarı üretir
+    const keyVeli = educationKeys.students("org-123", "Veli");
+    expect(keyWithSearch).not.toEqual(keyVeli);
+
+    // Boşluklar kırpılır
+    const keyTrimmed = educationKeys.students("org-123", "  Ali  ");
+    expect(keyTrimmed).toEqual(keyWithSearch);
+
+    // Boş arama anahtara search eklemez
+    const keyEmpty = educationKeys.students("org-123", "   ");
+    expect(keyEmpty).toEqual(educationKeys.students("org-123"));
+  });
+
   it("sınıf anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu taşır", () => {
     const key = educationKeys.classes("org-456");
     expect(key).toEqual([

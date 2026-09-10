@@ -13,12 +13,14 @@ export type Student = {
   code?: string;
   group: string | null;
   branch: string | null;
+  branchId?: string | null;
   parent: string | null;
   attendance?: number;
   score?: number;
   homework?: number;
   payment?: "Güncel" | "Takip gerekli";
   risk?: "Dengeli" | "Takip gerekli";
+  hasAccount?: boolean;
 };
 
 export type ClassGroup = {

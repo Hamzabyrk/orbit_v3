@@ -57,13 +57,33 @@ describe("describeAuditAction / describeAuditEntity", () => {
   it("bilinen eylemleri Turkcelestirir", () => {
     expect(describeAuditAction("membership.created")).toBe("Üye eklendi");
     expect(describeAuditEntity("organization")).toBe("Kurum");
+    expect(describeAuditAction("student.created")).toBe("Öğrenci eklendi");
+    expect(describeAuditAction("student.updated")).toBe("Öğrenci güncellendi");
+    expect(describeAuditAction("student.archived")).toBe("Öğrenci arşivlendi");
+    expect(describeAuditAction("student.restored")).toBe(
+      "Öğrenci geri yüklendi"
+    );
+    expect(describeAuditAction("student.account_linked")).toBe(
+      "Öğrenci hesabı bağlandı"
+    );
+    expect(describeAuditAction("student.account_unlinked")).toBe(
+      "Öğrenci hesap bağı çözüldü"
+    );
+    expect(describeAuditAction("guardian.account_linked")).toBe(
+      "Veli hesabı bağlandı"
+    );
+    expect(describeAuditAction("guardian.account_unlinked")).toBe(
+      "Veli hesap bağı çözüldü"
+    );
+    expect(describeAuditEntity("student")).toBe("Öğrenci");
+    expect(describeAuditEntity("guardian")).toBe("Veli");
   });
 
   it("bilinmeyen eylemde ham kodu gosterir, etiket uydurmaz", () => {
     // K-03. Edge Function'da yeni bir eylem yazıldığında burası
     // güncellenmezse ekran çirkin ama DOĞRU bir şey gösterir.
-    expect(describeAuditAction("student.archived")).toBe("student.archived");
-    expect(describeAuditEntity("student")).toBe("student");
+    expect(describeAuditAction("unknown.action")).toBe("unknown.action");
+    expect(describeAuditEntity("unknown_entity")).toBe("unknown_entity");
   });
 });
 

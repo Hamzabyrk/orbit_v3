@@ -31,7 +31,17 @@ import {
   usePayments,
   useSchedule,
   useStudents,
+  educationKeys,
 } from "@/education/educationQueries";
+import { useAuth } from "@/auth/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSettingsMembers } from "@/settings/settingsQueries";
+import {
+  archiveStudent,
+  linkStudentAccount,
+  unlinkStudentAccount,
+} from "@/education/studentService";
+import { StudentFormDialog } from "./pages/StudentFormDialog";
 import { useOrganizationChannel } from "@/realtime";
 import { DEFAULT_STUDENT_LIMIT } from "@/education/studentService";
 import { DEFAULT_CLASS_LIMIT } from "@/education/classService";
@@ -123,7 +133,70 @@ export function EducationPlatform({
     availableEducationSections(role).includes(item.label)
   );
 
-  const studentsQuery = useStudents({ enabled: !isDemoMode });
+  const { identity } = useAuth();
+  const organizationId = identity?.membership?.organizationId ?? "";
+  const queryClient = useQueryClient();
+  const [studentFormOpen, setStudentFormOpen] = useState(false);
+  const [studentForEdit, setStudentForEdit] = useState<Student | null>(null);
+
+  const studentsQuery = useStudents({ search: query, enabled: !isDemoMode });
+  const membersQuery = useSettingsMembers({
+    enabled: role === "admin" && !isDemoMode,
+  });
+  const studentMembers = useMemo(
+    () => (membersQuery.data ?? []).filter(m => m.role === "student"),
+    [membersQuery.data]
+  );
+
+  const handleArchiveStudent = async (student: Student) => {
+    try {
+      await archiveStudent(student.id);
+      toast.success("Öğrenci arşivlendi", {
+        description: `${student.name} arşive kaldırıldı.`,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: educationKeys.students(organizationId),
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Öğrenci arşivlenemedi."
+      );
+    }
+  };
+
+  const handleLinkStudentAccount = async (
+    studentId: string,
+    membershipId: string
+  ) => {
+    await linkStudentAccount(studentId, membershipId);
+    toast.success("Hesap bağlandı", {
+      description: "Öğrenciye giriş hesabı bağlandı.",
+    });
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: educationKeys.students(organizationId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["settings", "members", { organizationId }],
+      }),
+    ]);
+  };
+
+  const handleUnlinkStudentAccount = async (studentId: string) => {
+    await unlinkStudentAccount(studentId);
+    toast.success("Hesap bağı çözüldü", {
+      description: "Öğrencinin giriş hesabı bağı kaldırıldı.",
+    });
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: educationKeys.students(organizationId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["settings", "members", { organizationId }],
+      }),
+    ]);
+  };
+
   const classesQuery = useClasses({ enabled: !isDemoMode });
   const scheduleQuery = useSchedule({ enabled: !isDemoMode });
   const attendanceQuery = useLatestAttendanceSession({ enabled: !isDemoMode });
@@ -176,13 +249,16 @@ export function EducationPlatform({
       role,
       isDemoMode
     );
-    return roleStudents.filter(student => {
-      const searchTarget = [student.name, student.code, student.group]
-        .filter(Boolean)
-        .join(" ")
-        .toLocaleLowerCase("tr");
-      return searchTarget.includes(query.toLocaleLowerCase("tr"));
-    });
+    if (isDemoMode) {
+      return roleStudents.filter(student => {
+        const searchTarget = [student.name, student.code, student.group]
+          .filter(Boolean)
+          .join(" ")
+          .toLocaleLowerCase("tr");
+        return searchTarget.includes(query.toLocaleLowerCase("tr"));
+      });
+    }
+    return roleStudents;
   }, [activeStudents, role, query]);
 
   useEffect(() => {
@@ -277,12 +353,32 @@ export function EducationPlatform({
           onRetry={!isDemoMode ? () => void studentsQuery.refetch() : undefined}
           truncated={!isDemoMode && Boolean(studentsQuery.data?.truncated)}
           limit={DEFAULT_STUDENT_LIMIT}
-          onAdd={() =>
-            toast.info("Yeni öğrenci", {
-              description:
-                "Demo MVP’de öğrenci kayıt formu bir sonraki iterasyonda kalıcı veri modeline bağlanacak.",
-            })
-          }
+          linkableMembers={studentMembers}
+          onEdit={student => {
+            if (isDemoMode) {
+              toast.info("Öğrenciyi düzenle", {
+                description:
+                  "Demo modunda öğrenci düzenleme işlemi devre dışıdır.",
+              });
+              return;
+            }
+            setStudentForEdit(student);
+            setStudentFormOpen(true);
+          }}
+          onArchive={!isDemoMode ? handleArchiveStudent : undefined}
+          onLinkAccount={!isDemoMode ? handleLinkStudentAccount : undefined}
+          onUnlinkAccount={!isDemoMode ? handleUnlinkStudentAccount : undefined}
+          onAdd={() => {
+            if (isDemoMode) {
+              toast.info("Yeni öğrenci", {
+                description:
+                  "Demo MVP’de öğrenci kayıt formu bir sonraki iterasyonda kalıcı veri modeline bağlanacak.",
+              });
+              return;
+            }
+            setStudentForEdit(null);
+            setStudentFormOpen(true);
+          }}
         />
       );
     if (active === "Sınıflar")
@@ -641,6 +737,15 @@ export function EducationPlatform({
           onClose={() => setSelectedStudent(null)}
         />
       ) : null}
+      {!isDemoMode && (
+        <StudentFormDialog
+          open={studentFormOpen}
+          onOpenChange={setStudentFormOpen}
+          organizationId={organizationId}
+          student={studentForEdit}
+          onDone={() => setStudentForEdit(null)}
+        />
+      )}
     </div>
   );
 }

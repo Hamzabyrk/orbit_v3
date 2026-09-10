@@ -1,10 +1,107 @@
 import * as React from "react";
 import { createElement } from "react";
+import ReactDOM from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-// Vitest config runs in node without react plugin, so JSX compiled by esbuild expects React in global scope
-(globalThis as unknown as { React: typeof React }).React = React;
+// Node ortamında React act ile render edebilmek için minimal DOM taklidi
+class MockNode {
+  nodeType: number;
+  nodeName: string;
+  tagName: string;
+  childNodes: MockNode[] = [];
+  parentNode: MockNode | null = null;
+  style: Record<string, unknown> = {};
+  nodeValue?: string;
+  ownerDocument: MockDocument | null = null;
+  options: MockNode[] = [];
+  selected = false;
+
+  constructor(nodeType: number, name: string) {
+    this.nodeType = nodeType;
+    this.nodeName = name;
+    this.tagName = name;
+  }
+
+  appendChild<T extends MockNode>(child: T): T {
+    this.childNodes.push(child);
+    if (this.tagName === "select" && child.tagName === "option") {
+      this.options.push(child);
+    }
+    child.parentNode = this;
+    return child;
+  }
+
+  removeChild<T extends MockNode>(child: T): T {
+    const idx = this.childNodes.indexOf(child);
+    if (idx >= 0) this.childNodes.splice(idx, 1);
+    return child;
+  }
+
+  insertBefore<T extends MockNode>(child: T, ref: MockNode | null): T {
+    const idx = ref ? this.childNodes.indexOf(ref) : -1;
+    if (idx >= 0) this.childNodes.splice(idx, 0, child);
+    else this.childNodes.push(child);
+    child.parentNode = this;
+    return child;
+  }
+
+  addEventListener(): void {}
+  removeEventListener(): void {}
+  setAttribute(): void {}
+  removeAttribute(): void {}
+}
+
+class MockDocument extends MockNode {
+  documentElement: MockNode;
+  body: MockNode;
+  defaultView: unknown;
+
+  constructor() {
+    super(9, "#document");
+    this.documentElement = new MockNode(1, "html");
+    this.body = new MockNode(1, "body");
+    this.documentElement.appendChild(this.body);
+    this.appendChild(this.documentElement);
+    this.defaultView = null;
+  }
+
+  createElement(tag: string): MockNode {
+    const el = new MockNode(1, tag.toLowerCase());
+    el.ownerDocument = this;
+    return el;
+  }
+
+  createTextNode(text: string): MockNode {
+    const el = new MockNode(3, "#text");
+    el.nodeValue = text;
+    el.ownerDocument = this;
+    return el;
+  }
+}
+
+const mockDoc = new MockDocument();
+const mockWin = {
+  document: mockDoc,
+  HTMLIFrameElement: class HTMLIFrameElement {},
+  HTMLElement: class HTMLElement {},
+  Element: class Element {},
+  Node: MockNode,
+  addEventListener: () => {},
+  removeEventListener: () => {},
+  setTimeout: setTimeout,
+  clearTimeout: clearTimeout,
+};
+mockDoc.defaultView = mockWin;
+
+const globals = globalThis as unknown as Record<string, unknown>;
+globals.IS_REACT_ACT_ENVIRONMENT = true;
+globals.React = React;
+globals.window = mockWin;
+globals.document = mockDoc;
+globals.HTMLIFrameElement = mockWin.HTMLIFrameElement;
+globals.HTMLElement = mockWin.HTMLElement;
+globals.Element = mockWin.Element;
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthContext } from "@/auth/AuthContext";
@@ -12,11 +109,42 @@ import type { AuthContextValue } from "@/auth/types";
 import { AuditLogPage } from "./AuditLogPage";
 import { SettingsMembersSection } from "./SettingsMembersSection";
 import { MemberCreateDialog } from "./MemberCreateDialog";
+import { StudentFormDialog } from "./StudentFormDialog";
+import { StudentsPage } from "./StudentsPage";
+import type { Student } from "../types";
 import { useOrganizationAuditEvents } from "@/audit/auditQueries";
 import {
   useSettingsBranches,
   useSettingsMembers,
 } from "@/settings/settingsQueries";
+
+const capturedInputProps: Record<
+  string,
+  React.InputHTMLAttributes<HTMLInputElement> & {
+    id?: string;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  }
+> = {};
+
+vi.mock("@/components/ui/input", () => ({
+  Input: (
+    props: React.InputHTMLAttributes<HTMLInputElement> & { id?: string }
+  ) => {
+    if (props.id) {
+      capturedInputProps[props.id] = props;
+    }
+    return createElement("input", props);
+  },
+}));
+
+vi.mock("@/components/ui/popover", () => ({
+  Popover: ({ children }: { children: React.ReactNode }) =>
+    createElement("div", { "data-slot": "popover" }, children),
+  PopoverTrigger: ({ children }: { children: React.ReactNode }) =>
+    createElement("div", { "data-slot": "popover-trigger" }, children),
+  PopoverContent: ({ children }: { children: React.ReactNode }) =>
+    createElement("div", { "data-slot": "popover-content" }, children),
+}));
 
 vi.mock("@/audit/auditQueries", () => ({
   useOrganizationAuditEvents: vi.fn(),
@@ -164,5 +292,250 @@ describe("MemberCreateDialog states (v1.3-02b)", () => {
 
     expect(html).toContain('role="status"');
     expect(html).not.toMatch(/<p[^>]*>.*Şubeler yükleniyor.*<\/p>/i);
+  });
+});
+
+describe("StudentFormDialog states (v1.4-01)", () => {
+  it("yeni öğrenci ekleme modunda başlık ve buton doğru çizilir", () => {
+    vi.mocked(useSettingsBranches).mockReturnValue({
+      data: [
+        {
+          id: "br-1",
+          name: "Merkez Şube",
+          organization_id: "org-1",
+          is_default: true,
+          created_at: "",
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsBranches>);
+
+    const html = renderWithProviders(
+      createElement(StudentFormDialog, {
+        open: true,
+        onOpenChange: vi.fn(),
+        onDone: vi.fn(),
+        organizationId: "org-1",
+      })
+    );
+
+    expect(html).toContain("Yeni öğrenci ekle");
+    expect(html).toContain("Öğrenciyi ekle");
+    expect(html).toContain("Merkez Şube");
+  });
+
+  it("düzenleme modunda öğrenci bilgileri doldurulur ve kaydet başlığı gösterilir", () => {
+    vi.mocked(useSettingsBranches).mockReturnValue({
+      data: [
+        {
+          id: "br-1",
+          name: "Merkez Şube",
+          organization_id: "org-1",
+          is_default: true,
+          created_at: "",
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsBranches>);
+
+    const existingStudent: Student = {
+      id: "stu-1",
+      name: "Zeynep Kaya",
+      code: "101",
+      group: "12-A",
+      branch: "Merkez Şube",
+      branchId: "br-1",
+      parent: null,
+      hasAccount: false,
+    };
+
+    const html = renderWithProviders(
+      createElement(StudentFormDialog, {
+        open: true,
+        onOpenChange: vi.fn(),
+        onDone: vi.fn(),
+        organizationId: "org-1",
+        student: existingStudent,
+      })
+    );
+
+    expect(html).toContain("Öğrenciyi düzenle");
+    expect(html).toContain("Değişiklikleri kaydet");
+    expect(html).toContain("101");
+  });
+
+  it("R1 regresyonu: şube sorgusu çözülmemişken yazılan ad korunur ve sorgu çözüldüğünde silinmez", () => {
+    // 1. Başlangıçta şube sorgusu henüz çözülmemiş (data: undefined)
+    vi.mocked(useSettingsBranches).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsBranches>);
+
+    const queryClient = new QueryClient();
+    const container = mockDoc.createElement("div");
+    mockDoc.body.appendChild(container);
+    const root = ReactDOM.createRoot(container as unknown as HTMLElement);
+
+    const renderDialog = () => {
+      React.act(() => {
+        root.render(
+          createElement(
+            QueryClientProvider,
+            { client: queryClient },
+            createElement(StudentFormDialog, {
+              open: true,
+              onOpenChange: vi.fn(),
+              onDone: vi.fn(),
+              organizationId: "org-1",
+            })
+          )
+        );
+      });
+    };
+
+    renderDialog();
+
+    // Kullanıcı forma "Zeynep" yazar
+    expect(capturedInputProps["student-full-name"]).toBeDefined();
+    React.act(() => {
+      capturedInputProps["student-full-name"].onChange?.({
+        target: { value: "Zeynep" },
+      } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    // Şube sorgusu çözülmemişken girilen ad korunmalı (R1)
+    expect(capturedInputProps["student-full-name"].value).toBe("Zeynep");
+
+    // 2. Şube sorgusu sonradan çözülür
+    vi.mocked(useSettingsBranches).mockReturnValue({
+      data: [
+        {
+          id: "br-1",
+          name: "Kadıköy Şubesi",
+          organization_id: "org-1",
+          is_default: true,
+          created_at: "",
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsBranches>);
+
+    // Bileşen yeniden render edilir
+    renderDialog();
+
+    // Sorgu çözüldükten sonra da yazılan ad silinmemeli, "Zeynep" kalmalıdır
+    expect(capturedInputProps["student-full-name"].value).toBe("Zeynep");
+
+    React.act(() => {
+      root.unmount();
+    });
+    mockDoc.body.removeChild(container);
+  });
+});
+
+describe("StudentsPage states (v1.4-01 CRUD & K-22 rozet & bağlama)", () => {
+  const dummyStudents: Student[] = [
+    {
+      id: "stu-unlinked",
+      name: "Bağlantısız Öğrenci",
+      code: "101",
+      group: "12-A",
+      branch: "Merkez",
+      parent: null,
+      hasAccount: false,
+    },
+    {
+      id: "stu-linked",
+      name: "Bağlı Öğrenci",
+      code: "102",
+      group: "12-B",
+      branch: "Merkez",
+      parent: null,
+      hasAccount: true,
+    },
+  ];
+
+  it("K-22: hesabı olmayan öğrencide 'Hesap bağlı değil' rozeti gösterir, bağlı olanda göstermez", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudentsPage, {
+        role: "admin",
+        students: dummyStudents,
+        query: "",
+        onQuery: vi.fn(),
+        onSelect: vi.fn(),
+        onAdd: vi.fn(),
+      })
+    );
+
+    expect(html).toContain("Hesap bağlı değil");
+    expect(html).toContain("bg-slate-100 text-slate-600");
+  });
+
+  it("admin rolünde satır işlemleri görünür: Düzenle, Arşivle ve bağla/çöz", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudentsPage, {
+        role: "admin",
+        students: dummyStudents,
+        query: "",
+        onQuery: vi.fn(),
+        onSelect: vi.fn(),
+        onAdd: vi.fn(),
+        onEdit: vi.fn(),
+        onArchive: vi.fn(),
+        onLinkAccount: vi.fn(),
+        onUnlinkAccount: vi.fn(),
+      })
+    );
+
+    expect(html).toContain("Düzenle");
+    expect(html).toContain("Arşivle");
+    expect(html).toContain("Hesap bağla");
+    expect(html).toContain("Bağı çöz");
+  });
+
+  it("öğretmen rolünde yönetim düğmeleri (Düzenle, Arşivle, Bağla) çizilmez (K-04)", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudentsPage, {
+        role: "teacher",
+        students: dummyStudents,
+        query: "",
+        onQuery: vi.fn(),
+        onSelect: vi.fn(),
+        onAdd: vi.fn(),
+        onEdit: vi.fn(),
+        onArchive: vi.fn(),
+        onLinkAccount: vi.fn(),
+        onUnlinkAccount: vi.fn(),
+      })
+    );
+
+    expect(html).not.toContain("Düzenle");
+    expect(html).not.toContain("Arşivle");
+    expect(html).not.toContain("Hesap bağla");
+    expect(html).not.toContain("Bağı çöz");
+    expect(html).toContain("Profili aç");
+  });
+
+  it("placeholder gerçeğe uydurulmuştur ve kesilme bandı arama kutusunu öğütler (#256)", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudentsPage, {
+        role: "admin",
+        students: dummyStudents,
+        query: "",
+        onQuery: vi.fn(),
+        onSelect: vi.fn(),
+        onAdd: vi.fn(),
+        truncated: true,
+        limit: 100,
+      })
+    );
+
+    expect(html).toContain("Öğrenci adı veya numarası ara...");
+    expect(html).not.toContain("sınıf ara");
+    expect(html).toContain("yukarıdaki arama kutusunu kullanın");
   });
 });
