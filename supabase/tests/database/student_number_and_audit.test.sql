@@ -11,7 +11,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(23);
+select plan(22);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -260,12 +260,11 @@ select is(
   'an admin of another organization sees none of these students'
 );
 
-select throws_ok(
-  $sql$select public.audit_student_change()$sql$,
-  '42501',
-  null,
-  'the audit trigger function is not callable by authenticated'
-);
+-- Denetim yazıcısının `authenticated`'a kapalı olduğu iddiası buradan
+-- **taşındı**: v1.4-02'de tabloya özgü `audit_student_change` yerini paylaşılan
+-- `audit_row_change`'e bıraktı ve kapanış `class_capacity_and_audit.test.sql`'de
+-- bir kez sınanıyor. Aynı olguyu iki dosyada tekrarlamak, biri değiştiğinde
+-- diğerinin sessizce eskimesi demek olurdu (**K-06**).
 
 select * from finish();
 rollback;
