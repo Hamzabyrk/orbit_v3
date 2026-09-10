@@ -205,6 +205,37 @@ Backend'i doğuracak olan barındırma değil, **kimse ekranın başında değil
 
 Taşınma kararı ve tetikleyicisi için: `DECISION_LOG.md` — "Sistem taşınabilir kurulur; sağlayıcı bir tercih, bağımlılık değildir".
 
+#### "Kendi sunucumuza geçelim" iki farklı şeydir
+
+⚠️ **Bu ayrım karıştırılırsa karar da yanlış verilir.** İkisinin kod maliyeti arasında dağlar kadar fark var ve fark ölçüldü (2026-09-10).
+
+|                       | Frontend | Veritabanı + Auth                                | **Kod değişikliği** |
+| --------------------- | -------- | ------------------------------------------------ | ------------------- |
+| **A · Bugün**         | Vercel   | Supabase Cloud                                   | —                   |
+| **B · Hedef**         | Hetzner  | Supabase Cloud                                   | **Yok**             |
+| **C · Her şey bizde** | Hetzner  | **Hetzner'da self-hosted Supabase** (Docker)     | **Yok**             |
+| **D · Supabase'siz**  | Hetzner  | Hetzner'da **düz Postgres + kendi backend'imiz** | **Çok büyük**       |
+
+**C kodu değiştirmiyor.** Supabase açık kaynaktır ve Docker ile kendi sunucumuzda ayağa kalkar: Postgres, GoTrue (Auth), PostgREST, Realtime, Storage, Kong. Uygulamanın gördüğü arayüz **birebir aynıdır**; değişen tek şey `client/src/lib/supabaseClient.ts`'teki adrestir. Zaten CI'da her PR'da bu yığın `supabase start` ile Docker'da ayağa kalkıyor ve pgTAP testleri orada koşuyor — yani self-hosted Supabase'i günde defalarca çalıştırıyoruz.
+
+C'nin bedeli **kod değil sorumluluktur**: yedekleme ve **test edilmiş** geri yükleme, PITR, Postgres/GoTrue/PostgREST yamaları, bağlantı havuzu, izleme ve nöbet. Bkz. `DECISION_LOG` — "Sistem taşınabilir kurulur", "Bedeli — açıkça kabul ediliyor" paragrafı.
+
+**D bir taşınma değil, backend yazma projesidir.** Ölçülen yüzey:
+
+| Supabase parçası   | Bizdeki kullanım (2026-09-10)                                                         | D'de karşılığı                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **PostgREST**      | **46 tablo sorgusu + 9 RPC = 55 çağrı yeri** (test dışı)                              | 55 çağrı yerinin tamamı yeniden yazılır **ve** onları karşılayacak bir API yazılır |
+| **GoTrue (Auth)**  | 16 çağrı / 7 metot · **21 migration** `auth` şemasına dokunuyor · 3 admin API çağrısı | Kimlik doğrulama sistemi sıfırdan yazılır                                          |
+| **Realtime**       | 1 kanal                                                                               | Kendi WebSocket sunucumuz                                                          |
+| **Edge Functions** | 5 fonksiyon, 5 çağrı yeri                                                             | Kendi API sunucumuza taşınır                                                       |
+| **Storage**        | **0** — yalnız ölü `documents.ts` (#148)                                              | Kayıp yok                                                                          |
+
+`auth.users` şemanın içine gömülüdür: `students.auth_user_id` ve `guardians.auth_user_id` ona yabancı anahtarla bağlıdır ve öğrenci/veli RLS zincirinin tamamı bu bağa dayanır. **Kimlik sistemini değiştirmek şemanın yarısını ilgilendirir.**
+
+> **Sonuç:** "her şey bizde olsun" isteğinin karşılığı **C**'dir, D değil. D'nin maliyeti ise zamanla **büyür** — çağrı yeri sayısı her CRUD dilimiyle artar (v1.4 on dört dilim getiriyor) ve kesinti bütçesi kurum sayısı arttıkça daralır. C'nin maliyeti ise sabittir: bugün de üç yıl sonra da sıfır kod değişikliği, yalnız kesinti penceresi daralır.
+>
+> Yani beklemek bizi D'ye mahkûm etmiyor; **C her zaman açık kalıyor.**
+
 #### Taşınma günü kırılacaklar
 
 Bu liste bir plan değil, **bugün ölçülmüş bağımlılıklardır**. Taşınma gündeme geldiğinde tek tek karşılanmalıdır; unutulan her satır sessizce değil, **görünür biçimde** kırar — ama yanlış yerde aranır.
