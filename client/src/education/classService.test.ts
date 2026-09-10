@@ -456,6 +456,32 @@ describe("classService", () => {
       expect(enrollments[0].studentNumber).toBe("201");
     });
 
+    it("öğrenci satırı okunamadığında ad için etiket uydurmaz, null döner", () => {
+      // Boş gelmesinin üç sebebi var (kayıt yok · RLS satırı vermedi · henüz
+      // türetilmedi) ve uydurulmuş bir etiket üçünü birden birinciye indirir.
+      // Servis null döner; ne gösterileceğine ekran karar verir.
+      fromMock.mockReturnValue(
+        createClassQueryChain({
+          data: [
+            {
+              id: "enr-2",
+              class_id: "cls-1",
+              student_id: "stu-gizli",
+              created_at: "2026-09-01T10:00:00Z",
+              archived_at: null,
+              students: null,
+            },
+          ],
+          error: null,
+        })
+      );
+
+      return loadClassEnrollments("org-1", "cls-1").then(enrollments => {
+        expect(enrollments[0].studentName).toBeNull();
+        expect(enrollments[0].studentNumber).toBeNull();
+      });
+    });
+
     it("enrollStudent öğrenciyi sınıfa kaydeder", async () => {
       const spy: { insertArg?: unknown } = {};
       fromMock.mockReturnValue(

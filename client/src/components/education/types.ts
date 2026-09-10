@@ -41,7 +41,8 @@ export type ClassEnrollmentItem = {
   id: string;
   classId: string;
   studentId: string;
-  studentName: string;
+  /** Ad okunamıyorsa `null` — servis yokluk etiketi üretmez, kararı ekran verir. */
+  studentName: string | null;
   studentNumber?: string | null;
   enrolledAt?: string | null;
   archivedAt?: string | null;

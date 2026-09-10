@@ -102,14 +102,19 @@ export function ClassEnrollmentDialog({
     }
   };
 
-  const handleUnenroll = async (enrollmentId: string, studentName: string) => {
+  const handleUnenroll = async (
+    enrollmentId: string,
+    studentName: string | null
+  ) => {
     if (unenrollingId) return;
     setUnenrollingId(enrollmentId);
     setErrorMessage(null);
     try {
       await unenrollStudent(enrollmentId);
       toast.success("Kayıt sonlandırıldı", {
-        description: `${studentName} öğrencisinin ${classData.name} sınıfındaki kaydı arşivlendi.`,
+        description: studentName
+          ? `${studentName} öğrencisinin ${classData.name} sınıfındaki kaydı arşivlendi.`
+          : `Kayıt ${classData.name} sınıfından arşivlendi.`,
       });
       await Promise.all([
         queryClient.invalidateQueries({
@@ -250,9 +255,12 @@ export function ClassEnrollmentDialog({
                     className="flex items-center justify-between px-3 py-2.5 hover:bg-slate-50 text-xs"
                   >
                     <div className="min-w-0 pr-2">
-                      <p className="font-semibold text-slate-800 truncate">
-                        {item.studentName}
-                      </p>
+                      {/* Ad okunamıyorsa satır çizilmez, etiket uydurulmaz. */}
+                      {item.studentName ? (
+                        <p className="font-semibold text-slate-800 truncate">
+                          {item.studentName}
+                        </p>
+                      ) : null}
                       {item.studentNumber ? (
                         <p className="text-[10px] text-slate-400">
                           No: {item.studentNumber}

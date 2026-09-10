@@ -371,7 +371,11 @@ export async function loadClassEnrollments(
       id: r.id,
       classId: r.class_id,
       studentId: r.student_id,
-      studentName: student?.full_name ?? "İsimsiz Öğrenci",
+      // Ad okunamadığında **etiket uydurulmaz**. Boş gelmesinin üç sebebi var
+      // (kayıt yok · RLS satırı vermedi · henüz türetilmedi) ve uydurulmuş bir
+      // etiket üçünü birden birinciye indirir. Servis `null` döner; ne
+      // gösterileceğine ekran karar verir.
+      studentName: student?.full_name ?? null,
       studentNumber: student?.student_number ?? null,
       enrolledAt: r.created_at ?? null,
       archivedAt: r.archived_at ?? null,
