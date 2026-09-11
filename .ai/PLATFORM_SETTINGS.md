@@ -489,40 +489,45 @@ Yukarıdaki tablodaki "açık rıza, taahhütname veya yeterlilik kararı" ifade
 
 Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09-04'te ölçülen taban: 8 uyarı**, hepsi beklenen:
 
-| Uyarı                                | Seviye | Neden kalıcı                                                                                                               |
-| ------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------- |
-| `workspace_documents` policy yokluğu | INFO   | Özellik ölü; tablo yetkisi de yok, çift korumalı (#148 → v1.6-01)                                                          |
-| `current_user_administers_person`    | WARN   | Aşağıdaki altı satırın hepsi aynı lint: `0029`, "`authenticated` bu `SECURITY DEFINER` fonksiyonu çağırabiliyor"           |
-| `current_user_has_membership`        | WARN   | RLS politikalarının tamamı çağırıyor; içeride `auth.uid()` kullandığı için çağıran yalnızca kendi üyeliğini sorgulayabilir |
-| `current_user_has_recovery_channel`  | WARN   | Yalnızca çağıranın kendi durumunu döndürür                                                                                 |
-| `current_user_is_platform_operator`  | WARN   | Yalnızca çağıranın kendi durumunu döndürür                                                                                 |
-| `current_user_must_change_password`  | WARN   | Yalnızca çağıranın kendi durumunu döndürür; okunamadığında `true` döner (fail-closed)                                      |
-| `platform_organization_stats`        | WARN   | Operatör olmayan çağırana veri değil `null` döner                                                                          |
-| `current_user_teaches_class`         | WARN   | v1.2-02'de eklendi. Yalnızca çağıranın kendi kapsamını döndürür: "ben bu sınıfa giriyor muyum"                             |
-| `current_user_attends_class`         | WARN   | v1.2-02'de eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
-| `current_user_teaches_student`       | WARN   | v1.2-02'de eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
-| `current_user_guards_student`        | WARN   | v1.2-03'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
-| `current_user_guards_class`          | WARN   | v1.2-03'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
-| `current_user_owns_student_record`   | WARN   | v1.2-04'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
-| `current_user_can_record_attendance` | WARN   | v1.2-04'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
-| `exam_ranking`                       | WARN   | v1.2-05'te eklendi. Yetkiyi içeride çözer; yetkisiz çağırana boş küme, yetkisiz satırlarda maskelenmiş kimlik döner        |
-| `current_user_can_see_payment_plan`  | WARN   | v1.2-06'da eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                            |
-| `current_user_owns_membership`       | WARN   | v1.2-09'da eklendi. Kişisel kayıtların sahiplik kapısı; yalnızca çağıranın kendi kapsamını döndürür                        |
-| `current_user_teaches_guardian`      | WARN   | v1.3'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                               |
-| `class_staff_names`                  | WARN   | v1.3'te eklendi. Yetkiyi içeride çözer; kapsamı olmayan çağırana boş küme döner                                            |
-| `exam_participant_count`             | WARN   | v1.3'te eklendi. Sınavın kendi sayısını döndürür, okuyanın gördüğü satırların değil                                        |
-| `link_student_account`               | WARN   | v1.4-00'da eklendi (#261). Çağıranın kurum/şube yöneticisi olduğunu içeride sınar; değilse `42501`                         |
-| `unlink_student_account`             | WARN   | v1.4-00'da eklendi (#261). Aynı kapı                                                                                       |
-| `link_guardian_account`              | WARN   | v1.4-00'da eklendi (#261). Aynı kapı                                                                                       |
-| `unlink_guardian_account`            | WARN   | v1.4-00'da eklendi (#261). Aynı kapı                                                                                       |
-| `record_attendance`                  | WARN   | v1.4-03'te eklendi (#268). Yetkiyi içeride sorar (`current_user_can_record_attendance` + şifre kilidi); değilse `42501`    |
-| Sızmış şifre koruması kapalı         | WARN   | Pro plan gerektiriyor                                                                                                      |
+| Uyarı                                | Seviye | Neden kalıcı                                                                                                                   |
+| ------------------------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `workspace_documents` policy yokluğu | INFO   | Özellik ölü; tablo yetkisi de yok, çift korumalı (#148 → v1.6-01)                                                              |
+| `current_user_administers_person`    | WARN   | Aşağıdaki altı satırın hepsi aynı lint: `0029`, "`authenticated` bu `SECURITY DEFINER` fonksiyonu çağırabiliyor"               |
+| `current_user_has_membership`        | WARN   | RLS politikalarının tamamı çağırıyor; içeride `auth.uid()` kullandığı için çağıran yalnızca kendi üyeliğini sorgulayabilir     |
+| `current_user_has_recovery_channel`  | WARN   | Yalnızca çağıranın kendi durumunu döndürür                                                                                     |
+| `current_user_is_platform_operator`  | WARN   | Yalnızca çağıranın kendi durumunu döndürür                                                                                     |
+| `current_user_must_change_password`  | WARN   | Yalnızca çağıranın kendi durumunu döndürür; okunamadığında `true` döner (fail-closed)                                          |
+| `platform_organization_stats`        | WARN   | Operatör olmayan çağırana veri değil `null` döner                                                                              |
+| `current_user_teaches_class`         | WARN   | v1.2-02'de eklendi. Yalnızca çağıranın kendi kapsamını döndürür: "ben bu sınıfa giriyor muyum"                                 |
+| `current_user_attends_class`         | WARN   | v1.2-02'de eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                                |
+| `current_user_teaches_student`       | WARN   | v1.2-02'de eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                                |
+| `current_user_guards_student`        | WARN   | v1.2-03'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                                |
+| `current_user_guards_class`          | WARN   | v1.2-03'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                                |
+| `current_user_owns_student_record`   | WARN   | v1.2-04'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                                |
+| `current_user_can_record_attendance` | WARN   | v1.2-04'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                                |
+| `exam_ranking`                       | WARN   | v1.2-05'te eklendi. Yetkiyi içeride çözer; yetkisiz çağırana boş küme, yetkisiz satırlarda maskelenmiş kimlik döner            |
+| `current_user_can_see_payment_plan`  | WARN   | v1.2-06'da eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                                |
+| `current_user_owns_membership`       | WARN   | v1.2-09'da eklendi. Kişisel kayıtların sahiplik kapısı; yalnızca çağıranın kendi kapsamını döndürür                            |
+| `current_user_teaches_guardian`      | WARN   | v1.3'te eklendi. Yalnızca çağıranın kendi kapsamını döndürür                                                                   |
+| `class_staff_names`                  | WARN   | v1.3'te eklendi. Yetkiyi içeride çözer; kapsamı olmayan çağırana boş küme döner                                                |
+| `exam_participant_count`             | WARN   | v1.3'te eklendi. Sınavın kendi sayısını döndürür, okuyanın gördüğü satırların değil                                            |
+| `link_student_account`               | WARN   | v1.4-00'da eklendi (#261). Çağıranın kurum/şube yöneticisi olduğunu içeride sınar; değilse `42501`                             |
+| `unlink_student_account`             | WARN   | v1.4-00'da eklendi (#261). Aynı kapı                                                                                           |
+| `link_guardian_account`              | WARN   | v1.4-00'da eklendi (#261). Aynı kapı                                                                                           |
+| `unlink_guardian_account`            | WARN   | v1.4-00'da eklendi (#261). Aynı kapı                                                                                           |
+| `record_attendance`                  | WARN   | v1.4-03'te eklendi (#268). Yetkiyi içeride sorar (`current_user_can_record_attendance` + şifre kilidi); değilse `42501`        |
+| `record_exam_results`                | WARN   | v1.4-04'te eklendi (#270). Yetkiyi içeride sorar (kurum yöneticisi **veya** sınavın sınıfını okutan öğretmen); değilse `42501` |
+| Sızmış şifre koruması kapalı         | WARN   | Pro plan gerektiriyor                                                                                                          |
 
 **Bu listenin dışında bir uyarı çıkarsa incelenmelidir.**
 
 > ⚠️ **Taban 2026-09-10'da yeniden ölçüldü ve belgedeki sayı sapmıştı: 19 değil 22.** Dağılım — **19** × `0029`, 1 × sızmış şifre koruması, 2 × `rls_enabled_no_policy`. Sapmanın sebebi bulundu: v1.3 üç yeni `SECURITY DEFINER` fonksiyonu `authenticated`'a açtı (`current_user_teaches_guardian`, `class_staff_names`, `exam_participant_count`) ve hiçbiri bu tabloya işlenmedi. Aşağıdaki "ders" tam olarak bunu söylüyordu ve **ikinci kez** atlandı; üçü de yukarıdaki tabloya eklendi.
 >
 > ✅ **Merge sonrası ölçüldü (2026-09-11, PR #269): 27 — tahminin aynısı, ikinci kez.** Dağılım: **24** × `0029` + 1 × sızmış şifre + 2 × `rls_enabled_no_policy`. Artan tek satır `record_attendance`; v1.4-02'nin `audit_row_change`'i **çıkmadı** ve bu beklenendi — tetikleyici fonksiyonu, `authenticated`'a `execute` verilmedi. Aynı turda `20260911010000` migration'ının üretimde uygulandığı da doğrulandı.
+>
+> ✅ **Merge sonrası ölçüldü (2026-09-11, PR #271): 28 — tahminin aynısı, üçüncü kez.** Dağılım: **25** × `0029` + 1 × sızmış şifre + 2 × `rls_enabled_no_policy`. `record_exam_results` listede çıktı; `enforce_exam_score_within_max` **çıkmadı** — `revoke all` tuttu, tıpkı v1.4-00'daki `membership_may_be_linked` gibi. Üç kez üst üste tutan bir tahmin, bu sayının artık kör bir sayaç değil **bileşimi bilinen bir taban** olduğunu söylüyor.
+>
+> ⛔ **Aşağıdaki tahmin gerçekleşti; kayıt geçmiş olarak bırakıldı (K-11).**
 >
 > 📌 **v1.4-04 için tahmin: 28.** `record_exam_results` `authenticated`'a açık ve listede **çıkmalı** (yetki kontrolü fonksiyonun içinde, `42501` ile); `enforce_exam_score_within_max` **çıkmamalı** — `revoke all` uygulandı ve tetikleyici fonksiyonu. **Bu bir tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **#270 merge edildikten sonra** (**K-12**).
 >
