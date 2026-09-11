@@ -238,13 +238,24 @@ Bu, aşağıdaki bağlantı matrisinin okunuşunu değiştirir: **tablo, RLS ve 
 
 **Bağlantı matrisi** — hangi varlığın hangi katmanı var:
 
-| Varlık                                                                                     | Tablo  | Servis | Ekran |    Yazma     |
-| ------------------------------------------------------------------------------------------ | :----: | :----: | :---: | :----------: |
-| Kurum · Şube · Üyelik · Profil · Operatör · Platform denetimi                              |   ✅   |   ✅   |  ✅   |  ✅ / kısmi  |
-| Kurum denetim kaydı                                                                        |   ✅   |   ❌   |  ❌   | ✅ yazılıyor |
-| Öğrenci · Sınıf · Program · Yoklama · Sınav · Ödev · Ödeme · Mesaj · Gün planı · Otomasyon |   ❌   |   ❌   |  ✅   |      ❌      |
-| Öğretmen–sınıf ataması · Veli–öğrenci bağı                                                 |   ❌   |   ❌   |  ❌   |      ❌      |
-| Belge (`workspace_documents`)                                                              | ☠️ ölü | ☠️ ölü |  ❌   |      ❌      |
+| Varlık                                                        | Tablo  |  Servis  | Ekran |    Yazma     |
+| ------------------------------------------------------------- | :----: | :------: | :---: | :----------: |
+| Kurum · Şube · Üyelik · Profil · Operatör · Platform denetimi |   ✅   |    ✅    |  ✅   |  ✅ / kısmi  |
+| Kurum denetim kaydı                                           |   ✅   |    ❌    |  ❌   | ✅ yazılıyor |
+| Öğrenci · Sınıf · Yoklama · Sınav                             |   ✅   |    ✅    |  ✅   |      ✅      |
+| Program · Ödeme                                               |   ✅   | ✅ okuma |  ✅   |      ❌      |
+| Ödev · Mesaj · Gün planı                                      |   ✅   |    ❌    |  ✅   |      ❌      |
+| Otomasyon                                                     |   ❌   |    ❌    |  ✅   |      ❌      |
+| Öğretmen–sınıf ataması · Veli–öğrenci bağı                    |   ❌   |    ❌    |  ❌   |      ❌      |
+| Belge (`workspace_documents`)                                 | ☠️ ölü |  ☠️ ölü  |  ❌   |      ❌      |
+
+**On üçüncü düzeltme (2026-09-11, v1.4-01 … v1.4-04):** Yukarıdaki matris **v1.4 boyunca dört kez eskidi ve bu turda toplu olarak düzeltildi.** Eskiden tek bir satır on varlığı birden "❌ ❌ ✅ ❌" diye anlatıyordu; bugün o on varlık **dört farklı durumda** ve tek satırda tutmak K-06'nın tam olarak uyardığı şeydi.
+
+Ölçülerek yazıldı, iddiaya bakılmadı: `public` şemasında 27 tablo var (canlı sorgu, 2026-09-11) ve `client/src/education/` altındaki altı servisin hangisinin yazdığı `.insert(` / `.update(` / `.rpc(` sayımıyla ayrıldı. `scheduleService` ve `paymentService` **yalnız okuyor** — içlerindeki tek tük `.rpc(` çağrıları `class_staff_names`, `payment_plan_summaries`, `student_payment_summaries` ve `payment_overview_counts`, hepsi okuma.
+
+Dört varlık v1.4'te uçtan uca bağlandı — **Öğrenci** (v1.4-01), **Sınıf** (v1.4-02), **Yoklama** (v1.4-03) ve **Sınav** (v1.4-04). Bunların ekranı artık `educationData.ts`'ten değil veritabanından besleniyor ve **yazma da gerçek**: yoklama ve sınav sonucu birer RPC ile (`record_attendance`, `record_exam_results`), öğrenci ve sınıf doğrudan tablo yazımıyla.
+
+⚠️ **"Ekran ✅" hâlâ ekranın doğru şeyi gösterdiği anlamına gelmiyor** — yalnız bir ekranın var olduğunu söylüyor. **Otomasyon** satırının tablosu yok ve ekranı duruyor; bu bir eksiklik değil, kapsam kararıdır (`ROADMAP.md` §5 — otomasyon ayrı bir roadmap kararına bağlı).
 
 Son iki satır yalnızca eksik veri değil: **kapsamın kendisi** onlardan gelir. E7.2-B2'de yedi filtrenin üretimde boş küme dönmesinin sebebi budur.
 

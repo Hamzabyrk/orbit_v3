@@ -515,11 +515,16 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 | `unlink_student_account`             | WARN   | v1.4-00'da eklendi (#261). Aynı kapı                                                                                       |
 | `link_guardian_account`              | WARN   | v1.4-00'da eklendi (#261). Aynı kapı                                                                                       |
 | `unlink_guardian_account`            | WARN   | v1.4-00'da eklendi (#261). Aynı kapı                                                                                       |
+| `record_attendance`                  | WARN   | v1.4-03'te eklendi (#268). Yetkiyi içeride sorar (`current_user_can_record_attendance` + şifre kilidi); değilse `42501`    |
 | Sızmış şifre koruması kapalı         | WARN   | Pro plan gerektiriyor                                                                                                      |
 
 **Bu listenin dışında bir uyarı çıkarsa incelenmelidir.**
 
 > ⚠️ **Taban 2026-09-10'da yeniden ölçüldü ve belgedeki sayı sapmıştı: 19 değil 22.** Dağılım — **19** × `0029`, 1 × sızmış şifre koruması, 2 × `rls_enabled_no_policy`. Sapmanın sebebi bulundu: v1.3 üç yeni `SECURITY DEFINER` fonksiyonu `authenticated`'a açtı (`current_user_teaches_guardian`, `class_staff_names`, `exam_participant_count`) ve hiçbiri bu tabloya işlenmedi. Aşağıdaki "ders" tam olarak bunu söylüyordu ve **ikinci kez** atlandı; üçü de yukarıdaki tabloya eklendi.
+>
+> ✅ **Merge sonrası ölçüldü (2026-09-11, PR #269): 27 — tahminin aynısı, ikinci kez.** Dağılım: **24** × `0029` + 1 × sızmış şifre + 2 × `rls_enabled_no_policy`. Artan tek satır `record_attendance`; v1.4-02'nin `audit_row_change`'i **çıkmadı** ve bu beklenendi — tetikleyici fonksiyonu, `authenticated`'a `execute` verilmedi. Aynı turda `20260911010000` migration'ının üretimde uygulandığı da doğrulandı.
+>
+> 📌 **v1.4-04 için tahmin: 28.** `record_exam_results` `authenticated`'a açık ve listede **çıkmalı** (yetki kontrolü fonksiyonun içinde, `42501` ile); `enforce_exam_score_within_max` **çıkmamalı** — `revoke all` uygulandı ve tetikleyici fonksiyonu. **Bu bir tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **#270 merge edildikten sonra** (**K-12**).
 >
 > ✅ **Merge sonrası ölçüldü (2026-09-10, PR #262): 26 — tahminin aynısı.** Dağılım: **23** × `0029` + 1 × sızmış şifre + 2 × `rls_enabled_no_policy`. Dört yeni fonksiyon (`link_/unlink_student_account`, `link_/unlink_guardian_account`) listede çıktı ve bu bilinçli — yetki kontrolü fonksiyonun içinde, `42501` ile. Beşincisi `membership_may_be_linked` **çıkmadı**: `revoke all` tuttu. Tahminin doğrulanması ayrıca şunu söylüyor: bu sayı artık kör bir sayaç değil, bileşimi bilinen bir taban.
 >
