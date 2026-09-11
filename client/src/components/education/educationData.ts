@@ -1,5 +1,4 @@
 import {
-  Activity,
   BarChart3,
   BookOpen,
   CalendarDays,
@@ -28,7 +27,6 @@ import {
   demoAdminOverviewStatValues,
   demoAssessmentFollowUp,
   demoAssessmentHeaderInfo,
-  demoAssessmentOverviewStatValues,
   demoAssessmentSubjects,
   demoCommunicationsList,
   demoParentOverviewStatValues,
@@ -282,61 +280,6 @@ export const paymentOverviewStatTemplates: OverviewStatTemplate[] = [
   },
 ];
 
-export const assessmentOverviewStatTemplates = {
-  personal: [
-    {
-      key: "score",
-      label: "Puan",
-      icon: BarChart3,
-      tone: "violet" as const,
-      emptyValue: "—",
-      emptyDetail: "",
-    },
-    {
-      key: "progress",
-      label: "Gelişim",
-      icon: Activity,
-      tone: "green" as const,
-      emptyValue: "—",
-      emptyDetail: "Karşılaştırılacak önceki deneme yok",
-    },
-    {
-      key: "focus-area",
-      label: "Odak alanı",
-      icon: BookOpen,
-      tone: "amber" as const,
-      emptyValue: "—",
-      emptyDetail: "Henüz öneri oluşmadı",
-    },
-  ],
-  institution: [
-    {
-      key: "score",
-      label: "Kurum ortalaması",
-      icon: BarChart3,
-      tone: "violet" as const,
-      emptyValue: "—",
-      emptyDetail: "",
-    },
-    {
-      key: "progress",
-      label: "Gelişim",
-      icon: Activity,
-      tone: "green" as const,
-      emptyValue: "—",
-      emptyDetail: "Karşılaştırılacak önceki deneme yok",
-    },
-    {
-      key: "focus-area",
-      label: "Odak alanı",
-      icon: BookOpen,
-      tone: "amber" as const,
-      emptyValue: "—",
-      emptyDetail: "Henüz öneri oluşmadı",
-    },
-  ],
-};
-
 /**
  * Son dört ayın kısa adları.
  *
@@ -458,17 +401,6 @@ export const paymentOverviewStats = buildStatCards(
   paymentOverviewStatTemplates,
   isDemoMode ? demoPaymentOverviewStatValues : null
 );
-
-export const assessmentStatsByRole = {
-  personal: buildStatCards(
-    assessmentOverviewStatTemplates.personal,
-    isDemoMode ? demoAssessmentOverviewStatValues.personal : null
-  ),
-  institution: buildStatCards(
-    assessmentOverviewStatTemplates.institution,
-    isDemoMode ? demoAssessmentOverviewStatValues.institution : null
-  ),
-};
 
 export const assessmentHeaderInfo = isDemoMode
   ? demoAssessmentHeaderInfo
