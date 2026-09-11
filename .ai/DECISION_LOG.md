@@ -90,6 +90,8 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - CRUD'un denetim izi tetikleyiciyle düşer
 - Kontenjan sınıfın, derslik programın özelliğidir
 - Denetim defterini tek bir fonksiyon yazar
+- Yoklama tek nefeste kaydedilir
+- Denetim kapsamı hacme göre kesilir — yoklamada ilk giriş iz bırakmaz
 
 ---
 
@@ -2213,3 +2215,47 @@ RLS zinciri geçici bir satırla ölçüldü (işlem içinde, geri alındı): `a
 **İzlenen sütun listesi bir kapsam beyanıdır.** Listede olmayan bir sütunun değişmesi iz bırakmaz, ve bu bir eksiklik değil sözleşmenin kendisi: `students.auth_user_id` tam olarak bu yüzden listede yok — onu v1.4-00'ın bağlama fonksiyonları kendi kayıtlarıyla yazıyor, iki kez yazılsaydı tek işlem için defterde iki satır görünürdü.
 
 **Genelleştirmenin güvenli olduğu ölçüldü:** v1.4-01'in öğrenci iddiaları **değiştirilmeden** geçti, çünkü fonksiyonun adını değil davranışını sınıyorlardı. Tek istisna fonksiyonun kendisinin `authenticated`'a kapalı olduğunu sınayan iddiaydı; o da yazıcıyla birlikte yeni dosyaya taşındı (**K-06** — aynı olgu iki dosyada tutulmaz).
+
+---
+
+### Karar: Yoklama tek nefeste kaydedilir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-11
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Yoklama kaydetmek bir upsert: `attendance_records` üzerinde `unique (session_id, student_id)` var, `archived_at` yok, DELETE ne yetki ne politika olarak var. Öğrenci başına oturumda tek satır; ikinci kayıt güncellemedir.
+
+**Ölçüldü — istemcinin düz upsert'i çalışmıyor.** v1.2-04, `authenticated`'a bu tabloda yalnız **`status`** sütununda UPDATE yetkisi verdi; bilinçliydi, çünkü bir kaydı başka bir öğrenciye taşımak yoklamayı tahrif etmektir. PostgREST'in ürettiği upsert ise yükün **her** sütununu `SET` eder. Yerel yığında üç deneme:
+
+| Deneme                           | Sonuç                         |
+| -------------------------------- | ----------------------------- |
+| Düz insert                       | geçti                         |
+| Tam upsert (her sütunu SET eder) | **`42501 permission denied`** |
+| Yalnız `status` SET eden upsert  | geçti                         |
+
+**Karar:** Kaydetmenin tek yolu `record_attendance(target_session_id, entries jsonb)` RPC'si.
+
+**Gerekçe:** Bir sınıfın yoklaması **tek bir işlemdir.** Reddedilen alternatif — istemcinin "önce oku, eksikleri ekle, değişenleri güncelle" yapması — mevcut yetkilerle çalışırdı ama otuz öğrenci için otuza yakın ayrı istek demekti ve ortada kesilirse yarısı kaydedilmiş bir yoklama bırakırdı. **Yarım yoklama, hiç alınmamış yoklamadan kötüdür: alınmış görünür.**
+
+**RPC şemanın kurallarını tekrarlamıyor** (**K-06**): öğrencinin sınıfa kayıtlı olmasını tetikleyici (`ORB02`), durumun geçerliliğini enum, kiracı bütünlüğünü bileşik yabancı anahtarlar zaten sınıyor. Aynı kuralı iki yerde tutmak, birinin sessizce eskimesi demek.
+
+**Yan kayıt:** `attendance_sessions.id` `authenticated` için salt okunur; oturum açarken istemci kimlik **göndermez**, veritabanı üretir. Bu da ölçüldü (yük `id` taşıdığında istek `permission denied` ile dönüyor).
+
+---
+
+### Karar: Denetim kapsamı hacme göre kesilir — yoklamada ilk giriş iz bırakmaz
+
+**Durum:** Alındı
+**Tarih:** 2026-09-11
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4'ün kuralı "her CRUD dilimi iz bırakır" idi ve v1.4-01'den beri tetikleyiciyle uygulanıyor. Yoklama, bu kuralın **ilk kez pahalı** olduğu yer: §4.12 ölçtü, `attendance_records` ölçekte yılda ~90.000.000 satır (öğrenci × ders oturumu). Her kayda bir denetim satırı, defteri tek başına sistemin en büyük tablosu yapardı.
+
+**Karar:** `attendance_sessions` tam denetlenir. `attendance_records` **yalnız UPDATE**'te iz bırakır; ilk giriş (toplu insert) bırakmaz. Fonksiyon değişmedi, yalnız INSERT tetikleyicisi takılmadı.
+
+**Gerekçe — kesme yeri rastgele değil.** İlk yoklama girişi **beklenen ve toplu** olaydır: öğretmen o gün sınıfa girmiş ve listeyi doldurmuştur. Denetime değer olan, sonradan tek bir öğrencinin durumunun değiştirilmesidir — "yok" iken "izinli" olması. **Velinin itiraz edeceği işlem tam olarak odur ve o iz bırakıyor.**
+
+**Bedeli açıkça yazıldı:** ilk girişte kimin ne yazdığı `attendance_records` üzerinden değil, oturumun `recorded_by_membership_id` alanından okunur. O alan tetikleyiciyle dolduğu için güvenilir; ama oturumu açan ile dolduran farklı kişilerse alan **açanı** söyler.
+
+**"İz yok" iddiası da test edildi:** bir kararın sonucu "bir şey yazılmıyor" ise, o da en az "yazılıyor" kadar sınanmalı — yoksa bir gün sessizce yazılmaya başlar ve kimse fark etmez.

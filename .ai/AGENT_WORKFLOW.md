@@ -503,6 +503,21 @@ Bir alanın boş gelmesinin en az üç sebebi olur ve ekran üçünü ayırt ede
 
 _Kaynak: v1.3-01/A. Servisler `extractGuardianName` gibi yardımcılarda `"—"` üretiyordu. Denetleyen canlıda ölçtü: `guardians` tablosunun yalnız `_select_admin` ve `_select_self` politikası vardı, öğretmen için politika yoktu. Yani öğretmen, velisi kayıtlı her çocuk için `Veli: —` görecekti — ekran ona "bu çocuğun velisi yok" diyecekti. Ölçüm dört rolle yapıldı ve ayrıca #228'i doğurdu: görünürlüğün kendisi de bir ürün kararıymış ve hiç sorulmamıştı. Kuralı yazan da bu görevi yürüten ajandı._
 
+### K-23 · Kodu geri alındığında kırmızıya dönmeyen test, koruma değildir
+
+Bir kusuru kapatan her düzeltme, o kusuru **yakalayan** bir testle gelir. "Yakalıyor" demek yetmez: düzeltme geçici olarak geri alınır, testin **kırmızıya döndüğü görülür**, sonra geri yüklenir. Teslimde raporlanan şey o kırmızı çıktının kendisidir.
+
+Ölçülmeyen bir regresyon testi, kapının yeşil olduğunu söyler ve korumanın var olduğunu **sandırır** — ikincisi daha pahalıdır, çünkü bir dahaki kişi oraya bakmaz.
+
+Sık görülen iki boş biçim:
+
+- **Test, test ettiği fonksiyonu kendi gövdesinde yeniden yazar.** O zaman sınanan şey gerçek kod değil, testin kendi kopyasıdır; gerçek kod silinse bile yeşil kalır.
+- **Test, olamayacak bir şeyin yokluğunu iddia eder.** `expect(html).not.toContain("window.confirm")` gibi: render edilmiş HTML hiçbir koşulda o dizeyi içermez, dolayısıyla iddia her zaman geçer.
+
+**Pratik karşılığı:** kararı saf bir fonksiyona çıkar, onu doğrudan sına; bileşen tarafını da gerçekten render et. Depoda ikisinin de deseni var (`scopeFilters`, `attendanceStatus`, `navigationGuards` · `pages/extraStates.test.ts`).
+
+_Kaynak: v1.4-03. R1 ve R2 düzeltmeleri doğruydu ama dört regresyon testinin dördü de boştu; `EducationPlatform`'daki koruma tamamen kapatıldığında **41/41 test yeşil kaldı**. Üçüncü turda karar `shouldConfirmLeaving`'e çıkarıldı ve testler gerçek bileşeni render etti; aynı mutasyon bu kez testi kırmızıya döndürdü._
+
 ## Brifing yazarken
 
 İyi bir brifing şunları içerir:
