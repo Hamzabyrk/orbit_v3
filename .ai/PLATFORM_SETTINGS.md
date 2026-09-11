@@ -533,6 +533,8 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 >
 > ✅ **Merge sonrası ölçüldü (2026-09-10, PR #262): 26 — tahminin aynısı.** Dağılım: **23** × `0029` + 1 × sızmış şifre + 2 × `rls_enabled_no_policy`. Dört yeni fonksiyon (`link_/unlink_student_account`, `link_/unlink_guardian_account`) listede çıktı ve bu bilinçli — yetki kontrolü fonksiyonun içinde, `42501` ile. Beşincisi `membership_may_be_linked` **çıkmadı**: `revoke all` tuttu. Tahminin doğrulanması ayrıca şunu söylüyor: bu sayı artık kör bir sayaç değil, bileşimi bilinen bir taban.
 >
+> 📌 **v1.4-05 için tahmin: değişmez.** Dilim yeni bir `SECURITY DEFINER` fonksiyon açmıyor; `homework_assignments`'a yalnız denetim ve yayın tetikleyicileri takıyor. Tetikleyici fonksiyonları (`audit_row_change`, `broadcast_organization_change`) `authenticated`'a açık değil ve zaten listede yoklar. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **#273 merge edildikten sonra** (**K-12**).
+>
 > ✅ **Önceki taban 2026-09-07'de ölçülmüştü: 19.** Dağılım — 16 × `0029` (yukarıdaki `SECURITY DEFINER` listesi), 1 × sızmış şifre koruması (Pro plan, §5'te kabul edilmiş), 2 × `rls_enabled_no_policy`.
 >
 > Sayı v1.2 boyunca **18** idi ve v1.2-17'de **19** oldu. Artan şey `internal_function_calls`: RLS açık, politika **yok** — ve bu bilinçli. O tabloyu yalnızca `service_role` okuyup yazıyor; RLS açık + politika yok = `authenticated` ve `anon` için kapalı. İkinci `rls_enabled_no_policy` öteden beri `workspace_documents` (§5'te kabul edilmiş ölü tablo).
