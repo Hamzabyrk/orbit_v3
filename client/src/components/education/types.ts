@@ -17,6 +17,10 @@ export type Student = {
   parent: string | null;
   attendance?: number;
   score?: number;
+  latestExamId?: string;
+  latestExamName?: string;
+  latestExamDate?: string;
+  latestExamMaxScore?: number | null;
   homework?: number;
   payment?: "Güncel" | "Takip gerekli";
   risk?: "Dengeli" | "Takip gerekli";

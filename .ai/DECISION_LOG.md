@@ -2259,3 +2259,74 @@ RLS zinciri geçici bir satırla ölçüldü (işlem içinde, geri alındı): `a
 **Bedeli açıkça yazıldı:** ilk girişte kimin ne yazdığı `attendance_records` üzerinden değil, oturumun `recorded_by_membership_id` alanından okunur. O alan tetikleyiciyle dolduğu için güvenilir; ama oturumu açan ile dolduran farklı kişilerse alan **açanı** söyler.
 
 **"İz yok" iddiası da test edildi:** bir kararın sonucu "bir şey yazılmıyor" ise, o da en az "yazılıyor" kadar sınanmalı — yoksa bir gün sessizce yazılmaya başlar ve kimse fark etmez.
+
+---
+
+### Karar: Puanın tavanı vardır, tabanı yoktur
+
+**Durum:** Alındı
+**Tarih:** 2026-09-11
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `exams.max_score` sütunu v1.2-05'ten beri duruyor ama onu **zorlayan hiçbir şey yoktu** — `exam_results` üzerinde puanla ilgili sıfır kısıt, sıfır tetikleyici. Yerel yığında denendi ve kabul edildi: 100 puanlık bir sınavda `update exam_results set score = 500` **geçti**.
+
+**Karar:** `enforce_exam_score_within_max()` tetikleyicisi INSERT ve UPDATE'te puanı sınavın `max_score` değerine karşı sınar; aşarsa **`ORB05`** ile reddeder. `max_score` boşken üst sınır **uygulanmaz**.
+
+**Taban bilinçli olarak yok — ve bunu bir test öğretti.** İlk yazımda negatif puanı da reddetmiştim. v1.2-05'in pgTAP iddiası kırmızıya döndü:
+
+> _'a negative net score is storable — wrong answers can outweigh right ones'_
+
+Türkiye'de net puanlamada yanlış, doğruyu götürür; net eksiye düşebilir. `max_score` bir **tavan** belgeliyor, bir aralık değil. Olmayan bir kuralı şemaya yazmak veriyi korumak değil **reddetmek** olurdu.
+
+**`max_score` boşken kural olmaması da bilinçli:** tavan bilinmiyorsa uydurulmaz. Sınavın 100 üzerinden olduğunu varsaymak, tam olarak #237'nin _"100 üzerinden uydurma olur"_ uyarısıdır.
+
+**Neden şemada, neden yalnız RPC'de değil:** yanlış bir puan yalnız o satırı bozmuyor. `student_latest_exam_scores` onu "son puan" olarak öğrenci listesine taşıyor, ortalamaya giriyor ve veliye gidiyor. Kural RPC'de kalsaydı `service_role` veya ileride yazılacak başka bir yol onu atlardı; bütünlük şemada durur (v1.2-14 kararı).
+
+**`ORB05` aileye yeni giren kod:** "değer izin verilen aralığın dışında". `23514`'ten ayrıldı çünkü istemcinin cevabı farklı — `23514` "biçim yanlış" der, `ORB05` "tavanı aştın, tavan şu" der ve kullanıcı düzeltebilir.
+
+---
+
+### Karar: Sınav denetimi tam tutulur — yoklamanın kesmesi buraya taşınmaz
+
+**Durum:** Alındı
+**Tarih:** 2026-09-11
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Bir dilim önce (v1.4-03) denetim kapsamı ilk kez bilinçli olarak daraltıldı: `attendance_records` yalnız UPDATE'te iz bırakıyor. Aynı gerekçenin sınava da uygulanması beklenirdi.
+
+**Karar:** `exams` ve `exam_results` **tam** denetleniyor — INSERT de UPDATE de iz bırakıyor.
+
+**Gerekçe — yoklamanın iki gerekçesi de burada geçersiz:**
+
+| Yoklamada                                                                                   | Sınavda                                       |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| İlk girişi kimin yaptığı `attendance_sessions.recorded_by_membership_id`'den okunabiliyordu | `exams` tablosunda öyle bir alan **yok**      |
+| §4.12 tahmini ~90.000.000 satır/yıl                                                         | ~9.000.000 satır/yıl — **bir büyüklük küçük** |
+
+**Bir notun ilk kez kim tarafından girildiği, velinin soracağı ilk sorudur.** Yoklamada "ilk giriş toplu ve beklenen olaydır" demek mümkündü; bir not için aynı şey söylenemez.
+
+**Kayda geçen asıl şey kesmenin kendisi değil, kesmenin gerekçeye bağlı olduğu:** v1.4-03 bir izin verme değil, iki ölçüye dayanan bir istisnaydı. Ölçüler tutmadığında istisna da taşınmıyor.
+
+---
+
+### Karar: Kuralı olmayan kart, kural yazılarak değil kaldırılarak kapandı
+
+**Durum:** Alındı
+**Tarih:** 2026-09-11
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** #237 sınav ekranında kaynağı ya da kuralı olmayan beş şey saymış ve **üç soru** sormuştu: (1) farklı `max_score`'lu sınavlarda ders ortalaması ne demek, (2) "+6 · Önceki denemeye göre" hangi iki sınav, (3) "Odak alanı" hangi eşikle seçilir.
+
+**Karar:** Üç sorudan **yalnız biri kuralla** cevaplandı; diğer ikisinin cevabı **özelliğin kaldırılması** oldu.
+
+| Soru                        | Cevap                                                                                                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ders ortalaması             | **Kuralla:** ders geneli değil, **bu sınavın** ortalaması. Yalnız `max_score` dolu sınavda ve girilmiş puan varken çizilir; kaç öğrenciyi kapsadığını kartın kendisi söyler |
+| "+6 · Önceki denemeye göre" | **Kaldırıldı.** Hangi iki sınav olduğu yazılamadı; yazılamayan bir kural, çizilemeyen bir karttır                                                                           |
+| "Odak alanı" eşiği          | **Kaldırıldı.** Aynı gerekçe                                                                                                                                                |
+
+**Kaldırma kodda da yapıldı, yalnız ekranda değil.** `assessmentOverviewStatTemplates`, `assessmentStatsByRole` ve `demoAssessmentOverviewStatValues` silindi. Sebebi somut: kart ekrandan düştüğünde şablonlar kodda kalmıştı ve onlara dokunan tek yer **testlerdi** — yani testler ölü kodu koruyordu. Şablon durdukça "eşik yok" cevabı görünmez kalır ve kart bir gün geri takılır.
+
+**Bir kartı silmek de bir karardır ve bu yüzden burada.** "Henüz öneri oluşmadı" yazan boş bir kart, olmayan bir özelliğin geleceğini iddia eder (**K-22**).
+
+**Kapsam dışı bırakılan:** `Student.homework` ("7/9" teslim oranı) türetilemiyor çünkü şemada **teslim tablosu yok**. #237 bunu zaten §4.7'nin açık sorusuna bağlamıştı; kontrol noktası **v1.4-05** (ödev akışı).

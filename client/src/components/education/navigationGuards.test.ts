@@ -22,8 +22,23 @@ describe("navigationGuards - shouldConfirmLeaving (v1.4-03 Revizyon 2)", () => {
     expect(shouldConfirmLeaving("Yoklama", "Yoklama", false)).toBe(false);
   });
 
-  it("Yoklama dışındaki bir sayfadan ayrılırken kirli olsa bile onay gerektirmez (false döner)", () => {
-    // Yoklama dışındaki bölümlerin formları kendi diyalogları ile korunur
+  it("kirli durumdayken Sınavlar'dan başka bir bölüme çıkışta onay gerektirir (true döner) (v1.4-04 #270)", () => {
+    expect(shouldConfirmLeaving("Sınavlar", "Öğrenciler", true)).toBe(true);
+    expect(shouldConfirmLeaving("Sınavlar", "Sınıflar", true)).toBe(true);
+    expect(shouldConfirmLeaving("Sınavlar", "Genel Bakış", true)).toBe(true);
+  });
+
+  it("temiz durumdayken Sınavlar'dan başka bir bölüme geçişte onay gerektirmez (false döner)", () => {
+    expect(shouldConfirmLeaving("Sınavlar", "Öğrenciler", false)).toBe(false);
+    expect(shouldConfirmLeaving("Sınavlar", "Sınıflar", false)).toBe(false);
+  });
+
+  it("kirli olsa bile Sınavlar'dan Sınavlar'a tıklandığında onay gerektirmez (false döner)", () => {
+    expect(shouldConfirmLeaving("Sınavlar", "Sınavlar", true)).toBe(false);
+    expect(shouldConfirmLeaving("Sınavlar", "Sınavlar", false)).toBe(false);
+  });
+
+  it("Yoklama ve Sınavlar dışındaki bir sayfadan ayrılırken kirli olsa bile onay gerektirmez (false döner)", () => {
     expect(shouldConfirmLeaving("Öğrenciler", "Sınıflar", true)).toBe(false);
     expect(shouldConfirmLeaving("Genel Bakış", "Yoklama", true)).toBe(false);
     expect(shouldConfirmLeaving("Ders Programı", "Ödemeler", true)).toBe(false);

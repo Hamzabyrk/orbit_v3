@@ -1,18 +1,18 @@
-import * as React from "react";
-import { Info } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { BarChart3, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 import { isDemoMode } from "@/auth/runtime";
-import { useAuth } from "@/auth/useAuth";
 import {
   formatExamSummary,
+  loadExamSheet,
+  saveExamResults,
+  translateExamError,
   type LatestExamDetail,
+  type ExamSheet,
+  type ExamSheetStudent,
+  type ExamResultEntryInput,
 } from "@/education/examService";
-import {
-  assessmentFollowUp,
-  assessmentHeaderInfo,
-  assessmentStatsByRole,
-  assessmentSubjects,
-} from "../educationData";
+import { students as defaultStudents } from "../educationData";
 import {
   Badge,
   CardSkeleton,
@@ -21,17 +21,10 @@ import {
   PageHeader,
   StatCard,
 } from "../shared";
-import type { Role, Section } from "../types";
+import type { ClassGroup, Role, Section } from "../types";
+import { ExamFormDialog } from "./ExamFormDialog";
 
-export function AssessmentsPage({
-  role,
-  onNavigate,
-  exam,
-  isLoading = false,
-  error = null,
-  onRetry,
-  isDemo = isDemoMode,
-}: {
+export type AssessmentsPageProps = {
   role: Role;
   onNavigate: (section: Section) => void;
   exam?: LatestExamDetail | null;
@@ -39,20 +32,345 @@ export function AssessmentsPage({
   error?: Error | null;
   onRetry?: () => void;
   isDemo?: boolean;
-}) {
-  const { identity } = useAuth();
+  organizationId?: string;
+  classes?: ClassGroup[];
+  onDirtyChange?: (isDirty: boolean) => void;
+  onRequestConfirm?: (action: () => void) => void;
+  onSaved?: () => Promise<void> | void;
+  initialSheet?: ExamSheet | null;
+};
 
-  // Güvenlik kapısı (K-06 & Bulgu 2): isDemo prop'u üretimde (isDemoMode === false) demoyu AÇAMAZ.
-  // Prop yalnızca test ortamında veya demo modunda demoyu KAPATMAK (isDemo={false}) için kullanılabilir.
+export function AssessmentsPage({
+  role,
+  exam,
+  isLoading = false,
+  error = null,
+  onRetry,
+  isDemo = isDemoMode,
+  organizationId = "",
+  classes = [],
+  onDirtyChange,
+  onSaved,
+  initialSheet,
+}: AssessmentsPageProps) {
   const activeDemo = isDemoMode && isDemo;
   const isPersonal = role === "student" || role === "parent";
-  const stats = isPersonal
-    ? assessmentStatsByRole.personal
-    : assessmentStatsByRole.institution;
+  const canManageExams = role === "admin" || role === "teacher";
 
-  const studentName = identity?.displayName?.trim()
-    ? identity.displayName.trim().split(" ")[0]
-    : null;
+  const [activeExam, setActiveExam] = useState<LatestExamDetail | null>(() => {
+    if (exam) return exam;
+    if (initialSheet?.exam) {
+      return {
+        id: initialSheet.exam.id,
+        name: initialSheet.exam.name,
+        examDate: initialSheet.exam.examDate,
+        maxScore: initialSheet.exam.maxScore,
+        classId: initialSheet.exam.classId,
+        className: initialSheet.exam.className,
+        participantCount: null,
+      };
+    }
+    if (activeDemo) {
+      return {
+        id: "demo-exam-1",
+        name: "TYT Deneme 06",
+        examDate: "2026-08-14",
+        maxScore: 100,
+        participantCount: 54,
+        classId: "demo-class",
+        className: "12-A",
+      };
+    }
+    return null;
+  });
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [sheet, setSheet] = useState<ExamSheet | null>(() => {
+    if (initialSheet) return initialSheet;
+    if (activeDemo) {
+      const targetExam = exam;
+      const demoStudents: ExamSheetStudent[] = defaultStudents.map(s => ({
+        studentId: s.id,
+        studentName: s.name,
+        studentCode: s.code,
+        score: s.score ?? null,
+      }));
+      return {
+        exam: {
+          id: targetExam?.id ?? "demo-exam-1",
+          organizationId: "demo-org",
+          classId: targetExam?.classId ?? "demo-class",
+          className: targetExam?.className ?? "12-A",
+          subjectId: null,
+          subjectName: null,
+          name: targetExam?.name ?? "TYT Deneme 06",
+          examDate: targetExam?.examDate ?? "2026-08-14",
+          maxScore: targetExam?.maxScore ?? 100,
+        },
+        students: demoStudents,
+      };
+    }
+    return null;
+  });
+  const [isSheetLoading, setIsSheetLoading] = useState(false);
+  const [sheetError, setSheetError] = useState<Error | null>(null);
+  const [scores, setScores] = useState<Record<string, string>>(() => {
+    if (initialSheet) {
+      const initial: Record<string, string> = {};
+      for (const st of initialSheet.students) {
+        initial[st.studentId] =
+          st.score !== null && st.score !== undefined ? String(st.score) : "";
+      }
+      return initial;
+    }
+    if (activeDemo) {
+      const initial: Record<string, string> = {};
+      for (const st of defaultStudents) {
+        initial[st.id] =
+          st.score !== null && st.score !== undefined ? String(st.score) : "";
+      }
+      return initial;
+    }
+    return {};
+  });
+  const [initialScores, setInitialScores] = useState<Record<string, string>>(
+    () => {
+      if (initialSheet) {
+        const initial: Record<string, string> = {};
+        for (const st of initialSheet.students) {
+          initial[st.studentId] =
+            st.score !== null && st.score !== undefined ? String(st.score) : "";
+        }
+        return initial;
+      }
+      if (activeDemo) {
+        const initial: Record<string, string> = {};
+        for (const st of defaultStudents) {
+          initial[st.id] =
+            st.score !== null && st.score !== undefined ? String(st.score) : "";
+        }
+        return initial;
+      }
+      return {};
+    }
+  );
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (exam && !activeExam) {
+      setActiveExam(exam);
+    }
+  }, [exam, activeExam]);
+
+  // Canlı modda sınav çizelgesi ve öğrencileri yükle
+  useEffect(() => {
+    if (!activeDemo && organizationId && activeExam?.id) {
+      let cancelled = false;
+      setIsSheetLoading(true);
+      setSheetError(null);
+
+      loadExamSheet(organizationId, activeExam.id)
+        .then(loadedSheet => {
+          if (cancelled) return;
+          setSheet(loadedSheet);
+          const initial: Record<string, string> = {};
+          for (const st of loadedSheet.students) {
+            // Puanı olmayan öğrenci BOŞTUR (0 uydurulmaz - K-03)
+            initial[st.studentId] =
+              st.score !== null && st.score !== undefined
+                ? String(st.score)
+                : "";
+          }
+          setScores(initial);
+          setInitialScores(initial);
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          setSheetError(new Error(translateExamError(err)));
+        })
+        .finally(() => {
+          if (cancelled) return;
+          setIsSheetLoading(false);
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [activeDemo, organizationId, activeExam?.id]);
+
+  // Demo modunda örnek öğrenci listesi
+  useEffect(() => {
+    if (activeDemo && activeExam) {
+      const demoStudents: ExamSheetStudent[] = defaultStudents.map(s => ({
+        studentId: s.id,
+        studentName: s.name,
+        studentCode: s.code,
+        score: s.score ?? null,
+      }));
+      setSheet({
+        exam: {
+          id: activeExam.id,
+          organizationId: "demo-org",
+          classId: activeExam.classId ?? "demo-class",
+          className: activeExam.className ?? "12-A",
+          subjectId: null,
+          subjectName: null,
+          name: activeExam.name,
+          examDate: activeExam.examDate,
+          maxScore: activeExam.maxScore,
+        },
+        students: demoStudents,
+      });
+      const initial: Record<string, string> = {};
+      for (const st of demoStudents) {
+        initial[st.studentId] =
+          st.score !== null && st.score !== undefined ? String(st.score) : "";
+      }
+      setScores(initial);
+      setInitialScores(initial);
+    }
+  }, [activeDemo, activeExam]);
+
+  // Kaydedilmemiş değişiklik var mı?
+  const isDirty = useMemo(() => {
+    return Object.keys(scores).some(
+      studentId =>
+        (scores[studentId] ?? "") !== (initialScores[studentId] ?? "")
+    );
+  }, [scores, initialScores]);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
+  const handleScoreChange = (studentId: string, val: string) => {
+    setScores(prev => ({
+      ...prev,
+      [studentId]: val,
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!activeExam) return;
+
+    // Tavan kontrolü (ORB05)
+    if (activeExam.maxScore !== null && activeExam.maxScore !== undefined) {
+      for (const [studentId, scoreStr] of Object.entries(scores)) {
+        if (scoreStr.trim() !== "") {
+          const parsed = Number(scoreStr);
+          if (!Number.isNaN(parsed) && parsed > activeExam.maxScore) {
+            const student = sheet?.students.find(
+              s => s.studentId === studentId
+            );
+            const studentName = student ? `${student.studentName}: ` : "";
+            toast.error(
+              `${studentName}${translateExamError({ code: "ORB05" })}`
+            );
+            return;
+          }
+        }
+      }
+    }
+
+    const entries: ExamResultEntryInput[] = [];
+    for (const [studentId, scoreStr] of Object.entries(scores)) {
+      if (scoreStr.trim() !== "") {
+        const parsed = Number(scoreStr);
+        if (!Number.isNaN(parsed)) {
+          entries.push({ studentId, score: parsed });
+        }
+      }
+    }
+
+    if (activeDemo) {
+      toast.success("Sınav sonuçları kaydedildi", {
+        description: `${entries.length} öğrencinin sonucu kaydedildi (Demo).`,
+      });
+      setInitialScores({ ...scores });
+      onDirtyChange?.(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const count = await saveExamResults(activeExam.id, entries);
+      toast.success("Sınav sonuçları kaydedildi", {
+        description: `${count} öğrencinin sonucu kaydedildi.`,
+      });
+      setInitialScores({ ...scores });
+      onDirtyChange?.(false);
+      if (onSaved) {
+        await onSaved();
+      }
+    } catch (err: unknown) {
+      const msg = translateExamError(err);
+      toast.error("Sonuçlar kaydedilemedi", { description: msg });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // #237 / R1: Sınav ortalaması YALNIZ max_score DOLU sınavlarda ve puan girilmişken çizilir.
+  // Uygun sınav yoksa veya girilmiş puan yoksa kart HİÇ ÇİZİLMEZ.
+  // R1: Etiket 'Sınav ortalaması'dır ('Ders' değil). detail kaç öğrenciyi kapsadığını söyler.
+  const averageStat = useMemo(() => {
+    if (
+      !activeExam ||
+      activeExam.maxScore === null ||
+      activeExam.maxScore === undefined ||
+      activeExam.maxScore <= 0
+    ) {
+      return null;
+    }
+
+    const validScores: number[] = [];
+    for (const student of sheet?.students ?? []) {
+      const scoreVal = scores[student.studentId];
+      if (scoreVal !== undefined && scoreVal.trim() !== "") {
+        const num = Number(scoreVal);
+        if (!Number.isNaN(num)) {
+          validScores.push(num);
+        }
+      }
+    }
+
+    if (validScores.length === 0) {
+      return null;
+    }
+
+    const count = validScores.length;
+    const sum = validScores.reduce((acc, curr) => acc + curr, 0);
+    const avg = sum / count;
+    const percent = Math.round((avg / activeExam.maxScore) * 100);
+    const avgStr = (avg % 1 === 0 ? avg.toFixed(0) : avg.toFixed(1)).replace(
+      ".",
+      ","
+    );
+
+    return {
+      label: "Sınav ortalaması",
+      value: `%${percent}`,
+      detail: `${count} öğrencinin ortalaması · ${avgStr} / ${activeExam.maxScore} puan`,
+      icon: BarChart3,
+      tone: "violet" as const,
+    };
+  }, [activeExam, sheet?.students, scores]);
 
   return (
     <>
@@ -61,40 +379,12 @@ export function AssessmentsPage({
         title={isPersonal ? "Akademik gelişim" : "Sınavlar ve başarı"}
         description={
           isPersonal
-            ? "Son denemeler ve konu bazlı gelişim sinyalleri."
-            : "Deneme sonuçları, sınıf görünümü ve takip önerileri."
+            ? "Son denemeler ve sınav karnesi."
+            : "Sınav kayıtları, sınıf bazlı sonuç girişi ve değerlendirme."
         }
-        action={
-          activeDemo && (role === "admin" || role === "teacher")
-            ? "Sonuç gir"
-            : undefined
-        }
-        onAction={
-          activeDemo && (role === "admin" || role === "teacher")
-            ? () =>
-                toast.info("Sonuç girişi", {
-                  description:
-                    "Demo MVP’de sonuç girişi ekranı değerlendirme veri modelinin sonraki adımıdır.",
-                })
-            : undefined
-        }
+        action={canManageExams ? "Yeni sınav" : undefined}
+        onAction={canManageExams ? () => setCreateDialogOpen(true) : undefined}
       />
-
-      {!activeDemo ? (
-        <div className="mt-4 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50/80 px-4 py-3 text-[12px] text-blue-900">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
-          <div>
-            <p className="font-bold">
-              Sınav sonuç girişi ve detaylı analizler v1.4 sürümünde açılacaktır
-            </p>
-            <p className="mt-0.5 text-[11px] text-blue-700">
-              Şu anda kayıtlı en son sınav oturumu salt okunur olarak
-              görüntülenmektedir. Detaylı istatistikler ve veri girişi sonraki
-              sürümde aktif hale getirilecektir.
-            </p>
-          </div>
-        </div>
-      ) : null}
 
       {isLoading ? (
         <CardSkeleton className="mt-6" />
@@ -107,122 +397,188 @@ export function AssessmentsPage({
           }
           onRetry={onRetry}
         />
-      ) : !activeDemo && !exam ? (
+      ) : !activeExam ? (
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
           <EmptyState
             title="Henüz sınav kaydı yok"
             description="Kurumda kayıtlı bir sınav oturumu bulunamadı."
           />
         </section>
-      ) : !activeDemo ? (
-        // ÜRETİM GÖRÜNÜMÜ (v1.3-01d · K-22):
-        // Yalnızca doğrulanmış gerçek sınav başlığı, tarih ve katılımcı sayısı çizilir.
-        // Kaynağı veya hesaplama kuralı olmayan alanlar (tavsiyeler, odak alanı,
-        // konu bazlı ortalamalar, önceki denemeyle karşılaştırma) K-22 gereği çizilmez.
-        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-display text-[17px] font-extrabold text-slate-900">
-                {exam!.name}
-              </h2>
-              <p className="mt-1 text-[11px] text-slate-500">
-                {formatExamSummary(exam!)}
-              </p>
-            </div>
-            <Badge tone="blue">Kayıtlı Sınav</Badge>
-          </div>
-        </section>
       ) : (
-        // DEMO GÖRÜNÜMÜ: Mevcut interaktif ve zengin demo görünümü birebir korunur
-        <div
-          className={`mt-6 grid gap-6 ${
-            assessmentFollowUp ? "xl:grid-cols-[1.25fr_.75fr]" : ""
-          }`}
-        >
+        <div className="mt-6 space-y-6">
+          {/* Sınav Başlık Kartı */}
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-display text-[17px] font-extrabold text-slate-900">
-                  {assessmentHeaderInfo?.title ?? "Değerlendirme özeti"}
+                  {activeExam.name}
                 </h2>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  {assessmentHeaderInfo
-                    ? `${assessmentHeaderInfo.date} · ${
-                        isPersonal
-                          ? (studentName ?? assessmentHeaderInfo.studentName)
-                          : assessmentHeaderInfo.participantSummary
-                      }`
-                    : "Henüz yayınlanmış bir değerlendirme kaydı bulunmuyor."}
+                  {formatExamSummary(activeExam)}
                 </p>
               </div>
-              {assessmentHeaderInfo?.statusBadge ? (
-                <Badge tone="green">{assessmentHeaderInfo.statusBadge}</Badge>
-              ) : null}
+              <div className="flex items-center gap-2">
+                <Badge tone="blue">Kayıtlı Sınav</Badge>
+                {canManageExams ? (
+                  <button
+                    type="button"
+                    onClick={() => setCreateDialogOpen(true)}
+                    className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Yeni Sınav
+                  </button>
+                ) : null}
+              </div>
             </div>
-            {stats.length > 0 ? (
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                {stats.map(stat => (
-                  <StatCard
-                    key={stat.label}
-                    label={stat.label}
-                    value={stat.value}
-                    detail={stat.detail}
-                    icon={stat.icon}
-                    tone={stat.tone}
-                  />
-                ))}
+
+            {/* #237: Yalnız max_score dolu ve puan varsa çizilen ortalama kartı */}
+            {averageStat ? (
+              <div className="mt-4 max-w-xs">
+                <StatCard
+                  label={averageStat.label}
+                  value={averageStat.value}
+                  detail={averageStat.detail}
+                  icon={averageStat.icon}
+                  tone={averageStat.tone}
+                />
               </div>
             ) : null}
-            <div className="mt-6 rounded-xl bg-slate-50 p-4">
-              <p className="text-[11px] font-extrabold text-slate-700">
-                Konu bazlı görünüm
-              </p>
-              {assessmentSubjects.length === 0 ? (
-                <div className="mt-3">
-                  <EmptyState title="Konu bazlı değerlendirme verisi yok" />
-                </div>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {assessmentSubjects.map(item => (
-                    <div key={item.label}>
-                      <div className="mb-1 flex justify-between text-[10px] font-bold">
-                        <span className="text-slate-600">{item.label}</span>
-                        <span className="text-slate-400">{item.value}</span>
-                      </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-white">
-                        <span
-                          style={{ width: `${item.value}%` }}
-                          className={`block h-full rounded-full ${item.color}`}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </section>
-          {assessmentFollowUp ? (
-            <section className="rounded-2xl border border-amber-100 bg-amber-50/55 p-5">
-              <h2 className="text-[15px] font-extrabold text-amber-900">
-                Takip önerisi
-              </h2>
-              <p className="mt-2 text-[11px] leading-5 text-amber-800">
-                {isPersonal
-                  ? assessmentFollowUp.personalNote
-                  : assessmentFollowUp.institutionNote}
-              </p>
-              {!isPersonal && (
+
+          {/* Sınav Sonuçları Tablosu */}
+          <section className="rounded-2xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,.025)]">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+              <div>
+                <h3 className="font-display text-[15px] font-extrabold text-slate-900">
+                  Sınav Sonuçları
+                </h3>
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  {sheet?.students.length ?? 0} kayıtlı öğrenci
+                </p>
+              </div>
+              {canManageExams && !isPersonal ? (
                 <button
-                  onClick={() => onNavigate("İletişim")}
-                  className="mt-4 text-[11px] font-bold text-amber-800 underline underline-offset-4"
+                  type="button"
+                  onClick={() => void handleSave()}
+                  disabled={!isDirty || isSaving}
+                  className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-50"
                 >
-                  Veli bilgilendirmesi oluştur
+                  <Save className="h-3.5 w-3.5" />
+                  {isSaving ? "Kaydediliyor…" : "Sonuçları Kaydet"}
                 </button>
-              )}
-            </section>
-          ) : null}
+              ) : null}
+            </div>
+
+            {isSheetLoading ? (
+              <div className="p-5">
+                <CardSkeleton />
+              </div>
+            ) : sheetError ? (
+              <div className="p-5">
+                <ErrorState
+                  title="Öğrenci listesi yüklenemedi"
+                  message={sheetError.message}
+                />
+              </div>
+            ) : (sheet?.students ?? []).length === 0 ? (
+              <div className="p-6">
+                <EmptyState
+                  title="Sınıfta öğrenci bulunamadı"
+                  description="Bu sınavın sınıfına henüz kayıtlı öğrenci bulunmuyor."
+                />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/50 text-[11px] font-bold text-slate-400">
+                      <th className="px-5 py-3">Öğrenci</th>
+                      <th className="px-5 py-3 text-right">Puan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(sheet?.students ?? []).map(student => {
+                      const currentVal = scores[student.studentId] ?? "";
+                      return (
+                        <tr
+                          key={student.studentId}
+                          className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60"
+                        >
+                          <td className="px-5 py-3.5">
+                            <p className="text-xs font-extrabold text-slate-800">
+                              {student.studentName}
+                            </p>
+                            {student.studentCode ? (
+                              <p className="mt-0.5 text-[10px] text-slate-400">
+                                {student.studentCode}
+                              </p>
+                            ) : null}
+                          </td>
+                          <td className="px-5 py-3.5 text-right">
+                            {canManageExams && !isPersonal ? (
+                              <div className="flex items-center justify-end gap-1.5">
+                                <input
+                                  type="number"
+                                  step="any"
+                                  placeholder="Girilmedi"
+                                  value={currentVal}
+                                  onChange={e =>
+                                    handleScoreChange(
+                                      student.studentId,
+                                      e.target.value
+                                    )
+                                  }
+                                  className="h-8 w-24 rounded-lg border border-slate-200 px-2.5 text-right text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
+                                />
+                                {/* K-22, #237: maxScore boşken payda KESİNLİKLE gösterilmez */}
+                                {activeExam.maxScore !== null &&
+                                activeExam.maxScore !== undefined ? (
+                                  <span className="text-[11px] font-bold text-slate-400">
+                                    / {activeExam.maxScore}
+                                  </span>
+                                ) : null}
+                              </div>
+                            ) : (
+                              <span className="text-xs font-extrabold text-slate-800">
+                                {currentVal.trim() !== ""
+                                  ? activeExam.maxScore !== null &&
+                                    activeExam.maxScore !== undefined
+                                    ? `${currentVal} / ${activeExam.maxScore}`
+                                    : `${currentVal} puan`
+                                  : "—"}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         </div>
       )}
+
+      {organizationId && classes.length > 0 ? (
+        <ExamFormDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          organizationId={organizationId}
+          classes={classes}
+          onDone={newExamId => {
+            setActiveExam({
+              id: newExamId,
+              name: "Yeni Sınav",
+              examDate: new Date().toISOString().split("T")[0],
+              maxScore: null,
+              participantCount: null,
+            });
+            onSaved?.();
+          }}
+        />
+      ) : null}
     </>
   );
 }

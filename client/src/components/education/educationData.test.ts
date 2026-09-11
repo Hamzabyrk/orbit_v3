@@ -67,8 +67,6 @@ describe("educationData ortam dallanması", () => {
         data.studentOverviewStats,
         data.parentOverviewStats,
         data.paymentOverviewStats,
-        data.assessmentStatsByRole.personal,
-        data.assessmentStatsByRole.institution,
       ];
 
       expect(data.adminOverviewStats).toHaveLength(5);
@@ -76,8 +74,6 @@ describe("educationData ortam dallanması", () => {
       expect(data.studentOverviewStats).toHaveLength(4);
       expect(data.parentOverviewStats).toHaveLength(4);
       expect(data.paymentOverviewStats).toHaveLength(3);
-      expect(data.assessmentStatsByRole.personal).toHaveLength(3);
-      expect(data.assessmentStatsByRole.institution).toHaveLength(3);
 
       for (const group of allStatGroups) {
         for (const stat of group) {
@@ -141,8 +137,6 @@ describe("educationData ortam dallanması", () => {
         ...data.studentOverviewStats,
         ...data.parentOverviewStats,
         ...data.paymentOverviewStats,
-        ...data.assessmentStatsByRole.personal,
-        ...data.assessmentStatsByRole.institution,
       ];
 
       for (const kart of kartlar) {
@@ -209,8 +203,6 @@ describe("educationData ortam dallanması", () => {
       expect(data.attendanceLessonInfo).not.toBeNull();
 
       expect(data.paymentOverviewStats.length).toBeGreaterThan(0);
-      expect(data.assessmentStatsByRole.personal.length).toBeGreaterThan(0);
-      expect(data.assessmentStatsByRole.institution.length).toBeGreaterThan(0);
       expect(data.assessmentHeaderInfo).not.toBeNull();
       expect(data.assessmentSubjects.length).toBeGreaterThan(0);
       expect(data.assessmentFollowUp).not.toBeNull();

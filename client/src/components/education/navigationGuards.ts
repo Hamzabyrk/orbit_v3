@@ -24,10 +24,10 @@ export function shouldConfirmLeaving(
   nextSection: string,
   isDirty: boolean
 ): boolean {
-  // Yalnızca kullanıcı Yoklama'dayken, değişiklikler kaydedilmemişken (kirli)
-  // ve hedef bölüm Yoklama'dan farklı bir bölümken onay gerekir.
+  // Kullanıcı Yoklama veya Sınavlar bölümündeyken, kaydedilmemiş değişiklikler varken (kirli)
+  // ve hedef bölüm o bölümden farklı bir bölümken onay gerekir (v1.4-03, v1.4-04 #270).
   // Aynı bölüme tıklanırsa veya veri temizse onay sorulmaz.
-  return Boolean(
-    isDirty && activeSection === "Yoklama" && nextSection !== "Yoklama"
-  );
+  const isGuardedSection =
+    activeSection === "Yoklama" || activeSection === "Sınavlar";
+  return Boolean(isDirty && isGuardedSection && nextSection !== activeSection);
 }

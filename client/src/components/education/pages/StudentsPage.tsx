@@ -14,6 +14,7 @@ import {
 } from "../shared";
 import type { Role, Student } from "../types";
 import type { OrganizationMember } from "@/organization/memberService";
+import { formatTrDate } from "@/education/trDate";
 
 export type StudentsPageProps = {
   // Zorunlu: bir rol kapısının varsayılanı olmaz. Opsiyonel olsaydı
@@ -292,10 +293,28 @@ export function StudentsPage({
                           </Badge>
                         ) : null}
                       </td>
-                      <td className="px-5 py-4 font-extrabold text-slate-800">
-                        {student.score !== undefined
-                          ? `${student.score} puan`
-                          : null}
+                      <td className="px-5 py-4">
+                        {student.score !== undefined ? (
+                          <div>
+                            <span className="font-extrabold text-slate-800">
+                              {student.latestExamMaxScore !== null &&
+                              student.latestExamMaxScore !== undefined
+                                ? `${student.score} / ${student.latestExamMaxScore}`
+                                : `${student.score} puan`}
+                            </span>
+                            {student.latestExamName ||
+                            student.latestExamDate ? (
+                              <p className="mt-0.5 text-[10px] text-slate-400">
+                                {[
+                                  student.latestExamName,
+                                  formatTrDate(student.latestExamDate),
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </td>
                       <td className="px-5 py-4">
                         {student.risk ? (

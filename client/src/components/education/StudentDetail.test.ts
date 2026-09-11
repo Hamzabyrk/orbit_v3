@@ -96,4 +96,21 @@ describe("StudentDetail — uydurma veri yok (K-03 / K-22)", () => {
     expect(html).toContain("Takip gerekli");
     expect(html).toContain("92");
   });
+
+  it("#257: gerçek sınav adı, tarihi ve tam puanı dolu olduğunda çizilir", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudentDetail, {
+        student: ogrenci({
+          score: 84,
+          latestExamName: "TYT Deneme 01",
+          latestExamDate: "2026-09-10",
+          latestExamMaxScore: 100,
+        }),
+        onClose: vi.fn(),
+      })
+    );
+
+    expect(html).toContain("84 / 100");
+    expect(html).toContain("TYT Deneme 01 · 10 Eylül 2026");
+  });
 });

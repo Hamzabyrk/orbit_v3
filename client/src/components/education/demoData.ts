@@ -951,19 +951,6 @@ export const demoPaymentOverviewStatValues: Record<string, OverviewStatValue> =
     },
   };
 
-export const demoAssessmentOverviewStatValues = {
-  personal: {
-    score: { value: "84", detail: "100 üzerinden" },
-    progress: { value: "+6", detail: "Önceki denemeye göre" },
-    "focus-area": { value: "Geometri", detail: "Ek çalışma önerildi" },
-  },
-  institution: {
-    score: { value: "72", detail: "100 üzerinden" },
-    progress: { value: "+6", detail: "Önceki denemeye göre" },
-    "focus-area": { value: "Geometri", detail: "Ek çalışma önerildi" },
-  },
-};
-
 export const demoAssessmentHeaderInfo: AssessmentHeaderInfo = {
   title: "TYT Deneme 06",
   date: "14 Ağustos 2026",

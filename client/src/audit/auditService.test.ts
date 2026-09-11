@@ -103,12 +103,24 @@ describe("describeAuditAction / describeAuditEntity", () => {
     expect(describeAuditAction("attendance_record.updated")).toBe(
       "Yoklama kaydı güncellendi"
     );
+    expect(describeAuditAction("exam.created")).toBe("Sınav eklendi");
+    expect(describeAuditAction("exam.updated")).toBe("Sınav güncellendi");
+    expect(describeAuditAction("exam.archived")).toBe("Sınav arşivlendi");
+    expect(describeAuditAction("exam.restored")).toBe("Sınav geri yüklendi");
+    expect(describeAuditAction("exam_result.created")).toBe(
+      "Sınav sonucu eklendi"
+    );
+    expect(describeAuditAction("exam_result.updated")).toBe(
+      "Sınav sonucu güncellendi"
+    );
     expect(describeAuditEntity("student")).toBe("Öğrenci");
     expect(describeAuditEntity("guardian")).toBe("Veli");
     expect(describeAuditEntity("class")).toBe("Sınıf");
     expect(describeAuditEntity("class_enrollment")).toBe("Sınıf Kaydı");
     expect(describeAuditEntity("attendance_session")).toBe("Yoklama Oturumu");
     expect(describeAuditEntity("attendance_record")).toBe("Yoklama Kaydı");
+    expect(describeAuditEntity("exam")).toBe("Sınav");
+    expect(describeAuditEntity("exam_result")).toBe("Sınav Sonucu");
   });
 
   it("⛔ attendance_record.created diye bir eylem yoktur ve etiket haritasında yer almaz (hacim kısıtı)", () => {
