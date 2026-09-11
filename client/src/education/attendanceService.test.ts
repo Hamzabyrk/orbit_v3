@@ -9,8 +9,11 @@ import {
   loadLatestAttendanceSession,
   loadStudentAttendancePercentages,
   mapSessionRow,
+  openAttendanceSession,
+  loadAttendanceSheet,
+  saveAttendance,
+  translateAttendanceError,
 } from "./attendanceService";
-import { AttendancePage } from "@/components/education/pages/AttendancePage";
 
 const fromMock = vi.fn();
 const rpcMock = vi.fn();
@@ -27,14 +30,22 @@ type QueryResult = { data: unknown; error: unknown };
 function createQueryChain(
   result: QueryResult,
   spy?: {
+    eqArgs?: [string, unknown][];
     isArgs?: [string, unknown];
     orderArgs?: [string, { ascending?: boolean; nullsFirst?: boolean }][];
     limitArg?: number;
     inArgs?: [string, unknown[]];
+    insertArg?: unknown;
   }
 ) {
   const chain: Record<string, unknown> = {};
+  if (spy && !spy.eqArgs) spy.eqArgs = [];
+
   chain.select = vi.fn().mockReturnValue(chain);
+  chain.eq = vi.fn((col: string, val: unknown) => {
+    if (spy?.eqArgs) spy.eqArgs.push([col, val]);
+    return chain;
+  });
   chain.is = vi.fn((col: string, val: unknown) => {
     if (spy) spy.isArgs = [col, val];
     return chain;
@@ -56,6 +67,17 @@ function createQueryChain(
     if (spy) spy.limitArg = limit;
     return Promise.resolve(result);
   });
+  chain.insert = vi.fn((payload: unknown) => {
+    if (spy) spy.insertArg = payload;
+    return chain;
+  });
+  chain.single = vi.fn().mockResolvedValue(result);
+  chain.maybeSingle = vi.fn().mockResolvedValue(result);
+  chain.then = (
+    onFulfilled: (value: unknown) => unknown,
+    onRejected?: (reason: unknown) => unknown
+  ) => Promise.resolve(result).then(onFulfilled, onRejected);
+
   return chain;
 }
 
@@ -312,8 +334,9 @@ describe("attendanceService", () => {
   });
 
   describe("loadLatestAttendanceSession", () => {
-    it("en son aktif oturumu tarih ve saat azalan sırayla çeker", async () => {
+    it("en son aktif oturumu tarih ve saat azalan sırayla çeker ve organization_id süzer", async () => {
       const spy: {
+        eqArgs?: [string, unknown][];
         isArgs?: [string, unknown];
         orderArgs?: [string, { ascending?: boolean; nullsFirst?: boolean }][];
         limitArg?: number;
@@ -339,9 +362,10 @@ describe("attendanceService", () => {
         )
       );
 
-      const result = await loadLatestAttendanceSession();
+      const result = await loadLatestAttendanceSession("org-42");
 
       expect(fromMock).toHaveBeenCalledWith("attendance_sessions");
+      expect(spy.eqArgs).toEqual([["organization_id", "org-42"]]);
       expect(spy.isArgs).toEqual(["archived_at", null]);
       expect(spy.orderArgs).toEqual([
         ["session_date", { ascending: false }],
@@ -361,7 +385,7 @@ describe("attendanceService", () => {
         })
       );
 
-      const result = await loadLatestAttendanceSession();
+      const result = await loadLatestAttendanceSession("org-42");
       expect(result.session).toBeNull();
     });
 
@@ -373,14 +397,15 @@ describe("attendanceService", () => {
         })
       );
 
-      await expect(loadLatestAttendanceSession()).rejects.toThrow(
+      await expect(loadLatestAttendanceSession("org-42")).rejects.toThrow(
         "Yoklama oturumu yüklenemedi."
       );
     });
   });
 
   describe("loadAttendanceSessions (Kesilme Sözleşmesi)", () => {
-    it("oturum sayısı limite eşitse truncated: true döner", async () => {
+    it("oturum sayısı limite eşitse truncated: true döner ve organization_id süzer", async () => {
+      const spy: { eqArgs?: [string, unknown][] } = {};
       const mockSessions = Array.from({ length: 5 }, (_, i) => ({
         id: `sess-${i}`,
         class_id: "cls-1",
@@ -392,19 +417,23 @@ describe("attendanceService", () => {
       }));
 
       fromMock.mockReturnValue(
-        createQueryChain({
-          data: mockSessions,
-          error: null,
-        })
+        createQueryChain(
+          {
+            data: mockSessions,
+            error: null,
+          },
+          spy
+        )
       );
 
-      const result = await loadAttendanceSessions(5);
+      const result = await loadAttendanceSessions("org-42", 5);
+      expect(spy.eqArgs).toEqual([["organization_id", "org-42"]]);
       expect(result.rows).toHaveLength(5);
       expect(result.truncated).toBe(true);
     });
 
     it("varsayılan üst sınır 50'dir", async () => {
-      const spy: { limitArg?: number } = {};
+      const spy: { limitArg?: number; eqArgs?: [string, unknown][] } = {};
       fromMock.mockReturnValue(
         createQueryChain(
           {
@@ -415,198 +444,291 @@ describe("attendanceService", () => {
         )
       );
 
-      await loadAttendanceSessions();
+      await loadAttendanceSessions("org-42");
       expect(spy.limitArg).toBe(DEFAULT_ATTENDANCE_SESSION_LIMIT);
+      expect(spy.eqArgs).toEqual([["organization_id", "org-42"]]);
     });
   });
 
-  type MaybeElement = {
-    type?: unknown;
-    props?: { children?: unknown; [key: string]: unknown };
-  };
-  type ElementNode = MaybeElement & {
-    props: { children?: unknown; [key: string]: unknown };
-  };
+  describe("openAttendanceSession (v1.4-03 · #268)", () => {
+    it("oturum zaten varsa mevcut oturumun id'sini döner ve insert çağırmaz", async () => {
+      const spy: { eqArgs?: [string, unknown][]; isArgs?: [string, unknown] } =
+        {};
 
-  function isElementNode(el: MaybeElement): el is ElementNode {
-    return typeof el.props === "object" && el.props !== null;
-  }
+      fromMock.mockImplementation((table: string) => {
+        expect(table).toBe("attendance_sessions");
+        return createQueryChain(
+          {
+            data: { id: "existing-sess-1" },
+            error: null,
+          },
+          spy
+        );
+      });
 
-  function findElements(
-    node: unknown,
-    predicate: (el: MaybeElement) => boolean
-  ): ElementNode[] {
-    if (!node) return [];
-    if (Array.isArray(node)) {
-      return node.flatMap(item => findElements(item, predicate));
-    }
-    if (typeof node !== "object") return [];
-    const results: ElementNode[] = [];
-    const el = node as MaybeElement;
-    // ⛔ `predicate` tek başına yetmiyor: gezinti ağacındaki her düğüm React
-    // öğesi değil, `children` dizge ya da sayı olabilir ve o düğümlerde
-    // `props` yok. Eskiden `el` doğrudan itiliyordu ve dönen dizinin tipi
-    // `props`'u ZORUNLU sayıyordu — yani `props`'suz bir düğüm geçseydi
-    // çağıran taraf çalışma zamanında patlardı. Tip yalanını `pnpm check`
-    // görmüyordu (#243); artık daraltma gerçekten yapılıyor.
-    if (predicate(el) && isElementNode(el)) {
-      results.push(el);
-    }
-    if (el.props && el.props.children) {
-      results.push(...findElements(el.props.children, predicate));
-    }
-    return results;
-  }
-
-  describe("AttendancePage UI davranışları (K-03 & Etkileşim Kısıtı)", () => {
-    it("üretimde durum düğmeleri etkileşimli değildir (v1.4 uyarısı ve gerçek oturum başlığı görünür)", () => {
-      const setAttendances = vi.fn();
-      const session = {
-        id: "sess-1",
+      const result = await openAttendanceSession({
+        organizationId: "org-1",
         classId: "cls-1",
-        className: "12-A",
-        subjectId: "sub-1",
-        subjectName: "TYT Matematik",
-        sessionDate: "2026-09-08",
-        startsAt: "09:00",
-        records: [
-          {
-            id: "rec-1",
-            studentId: "stu-1",
-            studentName: "Ali Can",
-            status: "Katıldı" as const,
-          },
-        ],
-      };
-
-      const element = AttendancePage({
-        role: "teacher",
-        attendances: {},
-        setAttendances,
-        session,
-        isDemo: false,
+        sessionDate: "2026-09-10",
       });
 
-      const elementString = JSON.stringify(element);
-      expect(elementString).toContain(
-        "Yoklama alma ve düzenleme v1.4 sürümünde açılacaktır"
-      );
-      expect(elementString).toContain(
-        "TYT Matematik · 12-A · 8 Eylül 2026, 09:00"
-      );
-      expect(elementString).toContain("Kayıtlı Oturum");
+      expect(result.id).toBe("existing-sess-1");
+      expect(spy.eqArgs).toEqual([
+        ["organization_id", "org-1"],
+        ["class_id", "cls-1"],
+        ["session_date", "2026-09-10"],
+      ]);
+      expect(spy.isArgs).toEqual(["archived_at", null]);
     });
 
-    it("üretimde oturum yoksa 'Henüz yoklama kaydı yok' boş durumunu gösterir (K-03)", () => {
-      const element = AttendancePage({
-        role: "admin",
-        attendances: {},
-        setAttendances: vi.fn(),
-        session: null,
-        isDemo: false,
+    it("⛔ oturum yoksa yeni oturum açar ve id GÖNDERMEZ (veritabanı üretir)", async () => {
+      const insertSpy: { insertArg?: unknown } = {};
+
+      fromMock.mockImplementation((table: string) => {
+        expect(table).toBe("attendance_sessions");
+        // İlk arama boş döner (oturum yok)
+        const selectChain = createQueryChain({ data: null, error: null });
+        selectChain.maybeSingle = vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        });
+
+        // Insert zinciri
+        selectChain.insert = vi.fn((payload: unknown) => {
+          insertSpy.insertArg = payload;
+          return {
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: "new-generated-sess-id" },
+                error: null,
+              }),
+            }),
+          };
+        });
+
+        return selectChain;
       });
 
-      const elementString = JSON.stringify(element);
-      expect(elementString).toContain("Henüz yoklama kaydı yok");
-      expect(elementString).not.toContain(
-        "TYT Matematik · YKS 12-A · 15 Ağustos, 09:00"
-      );
-    });
-
-    it("demo modunda 'Taslak' rozeti gösterilir ve butonlar interaktiftir", () => {
-      const setAttendances = vi.fn();
-      const element = AttendancePage({
-        role: "admin",
-        attendances: { "stu-1": "Katıldı" },
-        setAttendances,
-        students: [
-          {
-            id: "stu-1",
-            name: "Ali Can",
-            group: "12-A",
-            branch: "Merkez",
-            parent: "Veli Can",
-          },
-        ],
-        isDemo: true,
-      });
-
-      const elementString = JSON.stringify(element);
-      expect(elementString).toContain("Taslak");
-      expect(elementString).not.toContain(
-        "Yoklama alma ve düzenleme v1.4 sürümünde açılacaktır"
-      );
-
-      // Demo modunda durum düğmelerini bul
-      const buttons = findElements(
-        element,
-        el =>
-          el.type === "button" &&
-          typeof el.props?.children === "string" &&
-          ["Katıldı", "Geç kaldı", "Gelmedi", "İzinli"].includes(
-            el.props.children
-          )
-      );
-
-      expect(buttons).toHaveLength(4);
-      const lateBtn = buttons.find(b => b.props.children === "Geç kaldı");
-      expect(lateBtn).toBeDefined();
-      expect(lateBtn?.props.disabled).toBeFalsy();
-
-      // Butona tıklandığında setAttendances çağrıldığını doğrula
-      const onClick = lateBtn?.props.onClick as (() => void) | undefined;
-      expect(onClick).toBeDefined();
-      onClick?.();
-
-      expect(setAttendances).toHaveBeenCalledTimes(1);
-    });
-
-    it("üretimde butonlar disabled=true'dur ve onClick taşımaz", () => {
-      const setAttendances = vi.fn();
-      const session = {
-        id: "sess-1",
+      const result = await openAttendanceSession({
+        organizationId: "org-1",
         classId: "cls-1",
-        className: "12-A",
-        subjectId: "sub-1",
-        subjectName: "TYT Matematik",
-        sessionDate: "2026-09-08",
-        startsAt: "09:00",
-        records: [
-          {
-            id: "rec-1",
-            studentId: "stu-1",
-            studentName: "Ali Can",
-            status: "Katıldı" as const,
-          },
-        ],
-      };
-
-      const element = AttendancePage({
-        role: "teacher",
-        attendances: {},
-        setAttendances,
-        session,
-        isDemo: false,
+        sessionDate: "2026-09-10",
       });
 
-      const buttons = findElements(
-        element,
-        el =>
-          el.type === "button" &&
-          typeof el.props?.children === "string" &&
-          ["Katıldı", "Geç kaldı", "Gelmedi", "İzinli"].includes(
-            el.props.children
-          )
-      );
+      expect(result.id).toBe("new-generated-sess-id");
+      // ⛔ İstemci asla id göndermez (authenticated için salt okunurdur)
+      expect(insertSpy.insertArg).toEqual({
+        organization_id: "org-1",
+        class_id: "cls-1",
+        session_date: "2026-09-10",
+      });
+      expect(
+        (insertSpy.insertArg as Record<string, unknown>).id
+      ).toBeUndefined();
+    });
 
-      expect(buttons).toHaveLength(4);
-      for (const btn of buttons) {
-        expect(btn.props.disabled).toBe(true);
-        expect(btn.props["aria-disabled"]).toBe("true");
-        expect(btn.props.onClick).toBeUndefined();
+    it("oturum açma hatasında translateAttendanceError üzerinden hata fırlatır", async () => {
+      fromMock.mockImplementation(() => {
+        return createQueryChain({
+          data: null,
+          error: { code: "42501", message: "permission denied" },
+        });
+      });
+
+      await expect(
+        openAttendanceSession({
+          organizationId: "org-1",
+          classId: "cls-1",
+          sessionDate: "2026-09-10",
+        })
+      ).rejects.toThrow("Bu yoklamayı kaydetme yetkiniz yok.");
+    });
+  });
+
+  describe("loadAttendanceSheet (v1.4-03 · #268)", () => {
+    it("oturum, kayıtlı öğrenciler ve mevcut yoklama durumlarını açık organization_id ile çeker", async () => {
+      const calls: { table: string; eqArgs?: [string, unknown][] }[] = [];
+
+      fromMock.mockImplementation((table: string) => {
+        const spy: { eqArgs: [string, unknown][] } = { eqArgs: [] };
+        calls.push({ table, eqArgs: spy.eqArgs });
+
+        if (table === "attendance_sessions") {
+          return createQueryChain(
+            {
+              data: {
+                id: "sess-1",
+                organization_id: "org-1",
+                class_id: "cls-1",
+                subject_id: null,
+                session_date: "2026-09-10",
+                starts_at: null,
+                classes: { name: "12-A", archived_at: null },
+                subjects: null,
+              },
+              error: null,
+            },
+            spy
+          );
+        }
+
+        if (table === "class_enrollments") {
+          return createQueryChain(
+            {
+              data: [
+                {
+                  id: "enr-1",
+                  student_id: "stu-1",
+                  archived_at: null,
+                  students: {
+                    id: "stu-1",
+                    full_name: "Ali Can",
+                    student_number: "101",
+                    archived_at: null,
+                  },
+                },
+                {
+                  id: "enr-2",
+                  student_id: "stu-2",
+                  archived_at: null,
+                  students: {
+                    id: "stu-2",
+                    full_name: "Burak Yılmaz",
+                    student_number: "102",
+                    archived_at: null,
+                  },
+                },
+              ],
+              error: null,
+            },
+            spy
+          );
+        }
+
+        if (table === "attendance_records") {
+          return createQueryChain(
+            {
+              data: [
+                {
+                  id: "rec-1",
+                  student_id: "stu-1",
+                  status: "present",
+                },
+              ],
+              error: null,
+            },
+            spy
+          );
+        }
+
+        throw new Error(`Unexpected table ${table}`);
+      });
+
+      const sheet = await loadAttendanceSheet("org-1", "sess-1");
+
+      expect(sheet.session.className).toBe("12-A");
+      expect(sheet.students).toHaveLength(2);
+
+      // stu-1'in kaydı var ("present" -> "Katıldı")
+      expect(sheet.students[0].studentId).toBe("stu-1");
+      expect(sheet.students[0].status).toBe("Katıldı");
+
+      // stu-2'nin henüz kaydı yok: varsayılan durum KESİNLİKLE null'dır (K-03)
+      expect(sheet.students[1].studentId).toBe("stu-2");
+      expect(sheet.students[1].status).toBeNull();
+
+      // Tüm sorgularda açık organization_id süzgeci çağrılmıştır
+      for (const call of calls) {
+        expect(call.eqArgs).toContainEqual(["organization_id", "org-1"]);
       }
+    });
 
-      expect(setAttendances).not.toHaveBeenCalled();
+    it("oturum bulunamadığında 23503 hatası fırlatır", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "attendance_sessions") {
+          return createQueryChain({ data: null, error: null });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+
+      await expect(
+        loadAttendanceSheet("org-1", "sess-nonexistent")
+      ).rejects.toThrow(
+        "Yoklama oturumu bulunamadı veya arşivlenmiş. Listeyi tazeleyip tekrar deneyin."
+      );
+    });
+  });
+
+  describe("saveAttendance (v1.4-03 · #268)", () => {
+    it("record_attendance RPC'sini target_session_id ve entries ile çağırır", async () => {
+      rpcMock.mockResolvedValue({
+        data: 3,
+        error: null,
+      });
+
+      const entries = [
+        { student_id: "stu-1", status: "present" as const },
+        { student_id: "stu-2", status: "absent" as const },
+        { student_id: "stu-3", status: "late" as const },
+      ];
+
+      const count = await saveAttendance("sess-1", entries);
+
+      expect(count).toBe(3);
+      expect(rpcMock).toHaveBeenCalledWith("record_attendance", {
+        target_session_id: "sess-1",
+        entries,
+      });
+    });
+
+    it("RPC hatasında translateAttendanceError üzerinden hata fırlatır", async () => {
+      rpcMock.mockResolvedValue({
+        data: null,
+        error: { code: "ORB02", message: "student not enrolled" },
+      });
+
+      await expect(
+        saveAttendance("sess-1", [
+          { student_id: "stu-alien", status: "present" as const },
+        ])
+      ).rejects.toThrow(
+        "Öğrenci bu sınıfa kayıtlı değil. Önce öğrenciyi sınıfa kaydedin (Sınıflar ekranından)."
+      );
+    });
+  });
+
+  describe("translateAttendanceError (v1.4-03 Dört Hata Kodu Sözleşmesi)", () => {
+    it("ORB02 hatasını sınıf ekranına yönlendiren Türkçe mesaja çevirir", () => {
+      const msg = translateAttendanceError({ code: "ORB02" });
+      expect(msg).toContain("Önce öğrenciyi sınıfa kaydedin");
+      expect(msg).toContain("Sınıflar ekranından");
+    });
+
+    it("42501 yetki hatasında kimlerin yoklama kaydedebileceğini söyler", () => {
+      const msg = translateAttendanceError({ code: "42501" });
+      expect(msg).toContain("Bu yoklamayı kaydetme yetkiniz yok.");
+      expect(msg).toContain("kurum yöneticisi veya sınıfın öğretmeni");
+    });
+
+    it("23503 oturum yok hatasında listeyi tazelemeyi önerir", () => {
+      const msg = translateAttendanceError({ code: "23503" });
+      expect(msg).toContain("Yoklama oturumu bulunamadı veya arşivlenmiş.");
+      expect(msg).toContain("tazeleyip tekrar deneyin");
+    });
+
+    it("22P02 geçersiz durum hatasını uygun mesaja çevirir", () => {
+      const msg = translateAttendanceError({ code: "22P02" });
+      expect(msg).toContain("Geçersiz yoklama durumu");
+    });
+
+    it("dört hata kodu birbirinden tamamen farklı dört ayrı mesaja çevrilir", () => {
+      const m1 = translateAttendanceError({ code: "ORB02" });
+      const m2 = translateAttendanceError({ code: "42501" });
+      const m3 = translateAttendanceError({ code: "23503" });
+      const m4 = translateAttendanceError({ code: "22P02" });
+
+      const set = new Set([m1, m2, m3, m4]);
+      expect(set.size).toBe(4);
     });
   });
 });

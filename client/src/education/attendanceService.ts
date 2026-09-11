@@ -1,16 +1,18 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { AttendanceState } from "@/components/education/types";
-import { dbStatusToAttendanceState } from "./attendanceStatus";
+import {
+  dbStatusToAttendanceState,
+  type AttendanceDbStatus,
+} from "./attendanceStatus";
 
 /**
- * Yoklama servis katmanı (v1.3-01 · C parçası).
+ * Yoklama servis katmanı (v1.3-01 · C parçası, v1.4-03 · #268).
  *
- * `attendance_sessions` ve `attendance_records` tablolarını gerçek Supabase sorgusuna bağlar.
+ * `attendance_sessions` ve `attendance_records` tablolarını gerçek Supabase sorgularına bağlar.
  *
- * **Kapsam sorgulanmıyor (K-06):** `organization_id` filtresi sorguya yazılmaz.
- * Kapsam veritabanı düzeyinde RLS ile çözülür (`attendance_sessions_select_admin`,
- * `attendance_sessions_select_teacher`, `attendance_sessions_select_student`,
- * `attendance_sessions_select_guardian`).
+ * **Açık `organization_id` filtresi (ROADMAP §4.12, #249):** RLS tek başına süzdüğünde
+ * Postgres sorgu planlayıcısı `organization_id` indeksini kullanamıyor. Bu nedenle
+ * performans kısıtı olarak tüm yoklama sorgularına açık `.eq("organization_id", organizationId)` eklenir.
  *
  * **⚠️ Arşiv filtresi tuzağı (K-06):**
  * `attendance_records` tablosunda `archived_at` sütunu YOK; `attendance_sessions` tablosunda VAR.
@@ -280,12 +282,92 @@ export async function loadStudentAttendancePercentages(
   return resultMap;
 }
 
+export type AttendanceEntryInput = {
+  student_id: string;
+  status: AttendanceDbStatus;
+};
+
+export type OpenAttendanceSessionInput = {
+  organizationId: string;
+  classId: string;
+  sessionDate: string;
+};
+
+export type AttendanceSheetStudent = {
+  studentId: string;
+  studentName: string;
+  studentCode?: string;
+  status: AttendanceState | null;
+};
+
+export type AttendanceSheet = {
+  session: {
+    id: string;
+    classId: string;
+    className: string | null;
+    subjectId: string | null;
+    subjectName: string | null;
+    sessionDate: string;
+    startsAt: string | null;
+  };
+  students: AttendanceSheetStudent[];
+};
+
 /**
- * Aktif kurumun en son yoklama oturumunu ve kayıtlarını çeker (v1.3-01c · 2.C).
+ * Yoklama işlemlerinde oluşan veritabanı hatalarını kullanıcı dostu Türkçe mesajlara dönüştürür.
+ */
+export function translateAttendanceError(error: unknown): string {
+  if (!error) {
+    return "Beklenmeyen bir hata oluştu.";
+  }
+
+  let code: string | undefined;
+  if (typeof error === "object" && error !== null && "code" in error) {
+    code = String((error as { code: unknown }).code);
+  } else if (error instanceof Error) {
+    for (const known of [
+      "ORB02",
+      "42501",
+      "23503",
+      "22P02",
+      "23505",
+      "22023",
+    ]) {
+      if (error.message.includes(known)) {
+        code = known;
+        break;
+      }
+    }
+  }
+
+  if (code === "ORB02") {
+    return "Öğrenci bu sınıfa kayıtlı değil. Önce öğrenciyi sınıfa kaydedin (Sınıflar ekranından).";
+  }
+  if (code === "42501") {
+    return "Bu yoklamayı kaydetme yetkiniz yok. Yoklamayı yalnızca kurum yöneticisi veya sınıfın öğretmeni kaydedebilir.";
+  }
+  if (code === "23503") {
+    return "Yoklama oturumu bulunamadı veya arşivlenmiş. Listeyi tazeleyip tekrar deneyin.";
+  }
+  if (code === "22P02") {
+    return "Geçersiz yoklama durumu değeri gönderildi.";
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Yoklama işlemi sırasında bir hata oluştu.";
+}
+
+/**
+ * Aktif kurumun en son yoklama oturumunu ve kayıtlarını çeker (v1.3-01c · 2.C, v1.4-03).
  *
  * Oturum yoksa `{ session: null }` döner.
  */
-export async function loadLatestAttendanceSession(): Promise<LatestAttendanceSessionResult> {
+export async function loadLatestAttendanceSession(
+  organizationId: string
+): Promise<LatestAttendanceSessionResult> {
   const { data, error } = await supabase
     .from("attendance_sessions")
     .select(
@@ -306,6 +388,7 @@ export async function loadLatestAttendanceSession(): Promise<LatestAttendanceSes
       )
     `
     )
+    .eq("organization_id", organizationId)
     .is("archived_at", null)
     .order("session_date", { ascending: false })
     .order("starts_at", { ascending: false, nullsFirst: false })
@@ -326,9 +409,10 @@ export async function loadLatestAttendanceSession(): Promise<LatestAttendanceSes
 }
 
 /**
- * Aktif kurumun yoklama oturumlarını listeler.
+ * Aktif kurumun yoklama oturumlarını listeler (v1.4-03).
  */
 export async function loadAttendanceSessions(
+  organizationId: string,
   limit = DEFAULT_ATTENDANCE_SESSION_LIMIT
 ): Promise<AttendanceSessionListResult> {
   const { data, error } = await supabase
@@ -351,6 +435,7 @@ export async function loadAttendanceSessions(
       )
     `
     )
+    .eq("organization_id", organizationId)
     .is("archived_at", null)
     .order("session_date", { ascending: false })
     .order("starts_at", { ascending: false, nullsFirst: false })
@@ -367,4 +452,224 @@ export async function loadAttendanceSessions(
     rows,
     truncated: rawRows.length === limit,
   };
+}
+
+/**
+ * Yoklama oturumu açar veya var olan oturumu döner (v1.4-03 · #268).
+ *
+ * ⛔ `attendance_sessions.id` authenticated rolü için salt okunurdur. Yüke `id`
+ * konursa PostgreSQL `42501 permission denied for table attendance_sessions`
+ * hatası döndürür (ölçüldü). Bu nedenle `id` GÖNDERİLMEZ; kimliği veritabanı
+ * üretir ve `.select("id").single()` ile geri okunur.
+ *
+ * Aynı sınıf ve tarih için zaten aktif bir oturum varsa ikinci bir oturum
+ * açılmaz; mevcut oturumun kimliği döner.
+ */
+export async function openAttendanceSession(
+  input: OpenAttendanceSessionInput
+): Promise<{ id: string }> {
+  // 1. Önce aynı kurum, sınıf ve tarihte aktif bir oturum var mı kontrol et
+  const { data: existing, error: selectError } = await supabase
+    .from("attendance_sessions")
+    .select("id")
+    .eq("organization_id", input.organizationId)
+    .eq("class_id", input.classId)
+    .eq("session_date", input.sessionDate)
+    .is("archived_at", null)
+    .maybeSingle();
+
+  if (selectError) {
+    throw new Error(translateAttendanceError(selectError));
+  }
+
+  if (existing) {
+    return { id: existing.id };
+  }
+
+  // 2. Yoksa id GÖNDERMEDEN yeni oturum aç (id veritabanı tarafından üretilir)
+  const { data, error: insertError } = await supabase
+    .from("attendance_sessions")
+    .insert({
+      organization_id: input.organizationId,
+      class_id: input.classId,
+      session_date: input.sessionDate,
+    })
+    .select("id")
+    .single();
+
+  if (insertError) {
+    // Eşzamanlı açma yarışında 23505 (unique ihlali) dönerse mevcut oturumu tekrar ara
+    if ((insertError as { code?: string }).code === "23505") {
+      const { data: retryExisting } = await supabase
+        .from("attendance_sessions")
+        .select("id")
+        .eq("organization_id", input.organizationId)
+        .eq("class_id", input.classId)
+        .eq("session_date", input.sessionDate)
+        .is("archived_at", null)
+        .maybeSingle();
+      if (retryExisting) {
+        return { id: retryExisting.id };
+      }
+    }
+    throw new Error(translateAttendanceError(insertError));
+  }
+
+  return { id: data.id };
+}
+
+/**
+ * Bir yoklama oturumunun sınıfına kayıtlı öğrencileri ve mevcut yoklama durumlarını yükler (v1.4-03 · #268).
+ *
+ * Yalnızca o sınıfa kayıtlı öğrenciler listelenir; sınıfa kayıtlı olmayan öğrenciler
+ * listelenmez. Öğrencinin oturumda henüz bir yoklama kaydı yoksa varsayılan durum
+ * kesinlikle `Katıldı` DEĞİL `null` (seçilmemiş) olarak döner (K-03).
+ */
+export async function loadAttendanceSheet(
+  organizationId: string,
+  sessionId: string
+): Promise<AttendanceSheet> {
+  // 1. Oturum bilgisini çek
+  const { data: sessionData, error: sessionError } = await supabase
+    .from("attendance_sessions")
+    .select(
+      `
+      id,
+      organization_id,
+      class_id,
+      subject_id,
+      session_date,
+      starts_at,
+      archived_at,
+      classes ( id, name, archived_at ),
+      subjects ( id, name, archived_at )
+    `
+    )
+    .eq("organization_id", organizationId)
+    .eq("id", sessionId)
+    .is("archived_at", null)
+    .maybeSingle();
+
+  if (sessionError) {
+    throw new Error(translateAttendanceError(sessionError));
+  }
+  if (!sessionData) {
+    throw new Error(translateAttendanceError({ code: "23503" }));
+  }
+
+  // 2. Sınıfa aktif kayıtlı öğrencileri çek
+  const { data: enrollmentsData, error: enrollError } = await supabase
+    .from("class_enrollments")
+    .select(
+      `
+      id,
+      student_id,
+      archived_at,
+      students (
+        id,
+        full_name,
+        student_number,
+        archived_at
+      )
+    `
+    )
+    .eq("organization_id", organizationId)
+    .eq("class_id", sessionData.class_id)
+    .is("archived_at", null)
+    .order("created_at", { ascending: true });
+
+  if (enrollError) {
+    throw new Error(translateAttendanceError(enrollError));
+  }
+
+  // 3. Bu oturumdaki mevcut yoklama durumlarını çek
+  const { data: recordsData, error: recordsError } = await supabase
+    .from("attendance_records")
+    .select("id, student_id, status")
+    .eq("organization_id", organizationId)
+    .eq("session_id", sessionId);
+
+  if (recordsError) {
+    throw new Error(translateAttendanceError(recordsError));
+  }
+
+  const statusByStudentId = new Map<string, AttendanceState | null>();
+  for (const rec of recordsData ?? []) {
+    statusByStudentId.set(
+      rec.student_id,
+      dbStatusToAttendanceState(rec.status)
+    );
+  }
+
+  const rawEnrollments = enrollmentsData ?? [];
+  const students: AttendanceSheetStudent[] = [];
+
+  for (const enr of rawEnrollments) {
+    const studentObj = Array.isArray(enr.students)
+      ? enr.students[0]
+      : enr.students;
+    if (
+      !studentObj ||
+      (studentObj.archived_at !== null && studentObj.archived_at !== undefined)
+    ) {
+      continue;
+    }
+
+    const studentName = studentObj.full_name?.trim() || "";
+    const studentCode = studentObj.student_number
+      ? String(studentObj.student_number)
+      : undefined;
+    const status = statusByStudentId.get(enr.student_id) ?? null;
+
+    students.push({
+      studentId: enr.student_id,
+      studentName,
+      studentCode,
+      status,
+    });
+  }
+
+  // Alfabetik sırala
+  students.sort((a, b) => a.studentName.localeCompare(b.studentName, "tr"));
+
+  return {
+    session: {
+      id: sessionData.id,
+      classId: sessionData.class_id,
+      className: extractActiveName(sessionData.classes),
+      subjectId: sessionData.subject_id || null,
+      subjectName: extractActiveName(sessionData.subjects),
+      sessionDate: sessionData.session_date,
+      startsAt: sessionData.starts_at
+        ? sessionData.starts_at.slice(0, 5)
+        : null,
+    },
+    students,
+  };
+}
+
+/**
+ * Bir yoklama oturumunun kayıtlarını tek nefeste kaydeder (v1.4-03 · #268).
+ *
+ * ⛔ Düz `supabase.from("attendance_records").upsert(...)` KULLANILAMAZ.
+ * `authenticated` rolü `attendance_records` üzerinde yalnızca `status` sütununda
+ * UPDATE yetkisine sahiptir. PostgREST upsert'i tüm sütunları SET ettiği için
+ * `42501 permission denied` ile kırılır (ölçüldü).
+ *
+ * Kaydetmenin tek yolu `record_attendance` RPC'sidir.
+ */
+export async function saveAttendance(
+  sessionId: string,
+  entries: AttendanceEntryInput[]
+): Promise<number> {
+  const { data, error } = await supabase.rpc("record_attendance", {
+    target_session_id: sessionId,
+    entries,
+  });
+
+  if (error) {
+    throw new Error(translateAttendanceError(error));
+  }
+
+  return typeof data === "number" ? data : Number(data) || 0;
 }

@@ -19,7 +19,9 @@ import {
 } from "./scheduleService";
 import {
   loadLatestAttendanceSession,
+  loadAttendanceSheet,
   type LatestAttendanceSessionResult,
+  type AttendanceSheet,
 } from "./attendanceService";
 import { loadLatestExam, type LatestExamResult } from "./examService";
 import {
@@ -66,6 +68,8 @@ export const educationKeys = {
     ["education", "schedule", { organizationId }] as const,
   attendance: (organizationId: string) =>
     ["education", "attendance", { organizationId }] as const,
+  attendanceSheet: (organizationId: string, sessionId: string) =>
+    ["education", "attendanceSheet", { organizationId, sessionId }] as const,
   exam: (organizationId: string) =>
     ["education", "exam", { organizationId }] as const,
   payments: (organizationId: string) =>
@@ -223,7 +227,42 @@ export function useLatestAttendanceSession(
     queryKey: organizationId
       ? educationKeys.attendance(organizationId)
       : (["education", "attendance", { organizationId: "" }] as const),
-    queryFn: () => loadLatestAttendanceSession(),
+    queryFn: () => loadLatestAttendanceSession(organizationId!),
+    enabled: isEnabled,
+  });
+}
+
+export type UseAttendanceSheetOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Bir yoklama oturumunun çizelgesini (öğrenci listesi ve yoklama durumları) getiren React Query hook'u (v1.4-03 · #268).
+ *
+ * Aktif kurum kimliği `useAuth` üzerinden sağlanır; kurum kimliği veya oturum kimliği
+ * henüz çözümlenmemişse sorgu çalıştırılmaz (`enabled: false`).
+ */
+export function useAttendanceSheet(
+  sessionId: string | null | undefined,
+  options?: UseAttendanceSheetOptions
+) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled =
+    (options?.enabled ?? true) && Boolean(organizationId) && Boolean(sessionId);
+
+  return useQuery<AttendanceSheet, Error>({
+    queryKey:
+      organizationId && sessionId
+        ? educationKeys.attendanceSheet(organizationId, sessionId)
+        : ([
+            "education",
+            "attendanceSheet",
+            { organizationId: "", sessionId: "" },
+          ] as const),
+    queryFn: () => loadAttendanceSheet(organizationId!, sessionId!),
     enabled: isEnabled,
   });
 }

@@ -7,6 +7,7 @@ import { clearDemoData, readDemoData, writeDemoData } from "@/lib/demoStorage";
 import { isDemoMode } from "@/auth/runtime";
 import { availableEducationSections } from "@/components/educationAccess";
 import { filterStudentsForRole } from "./scopeFilters";
+import { shouldConfirmLeaving } from "./navigationGuards";
 import { AdminDashboard } from "./dashboards/AdminDashboard";
 import { ParentDashboard } from "./dashboards/ParentDashboard";
 import { StudentDashboard } from "./dashboards/StudentDashboard";
@@ -44,6 +45,16 @@ import {
 import { StudentFormDialog } from "./pages/StudentFormDialog";
 import { ClassFormDialog } from "./pages/ClassFormDialog";
 import { ClassEnrollmentDialog } from "./pages/ClassEnrollmentDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useOrganizationChannel } from "@/realtime";
 import { DEFAULT_STUDENT_LIMIT } from "@/education/studentService";
 import { archiveClass, DEFAULT_CLASS_LIMIT } from "@/education/classService";
@@ -146,6 +157,18 @@ export function EducationPlatform({
   const [classEnrollmentOpen, setClassEnrollmentOpen] = useState(false);
   const [classForEnrollment, setClassForEnrollment] =
     useState<ClassGroup | null>(null);
+
+  // Kaydedilmemiş yoklama koruması (v1.4-03 Revizyon 1 - R1 & R2)
+  const [isAttendanceDirty, setIsAttendanceDirty] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingNavAction, setPendingNavAction] = useState<(() => void) | null>(
+    null
+  );
+
+  const requestConfirmLeave = (action: () => void) => {
+    setPendingNavAction(() => action);
+    setConfirmDialogOpen(true);
+  };
 
   const studentsQuery = useStudents({ search: query, enabled: !isDemoMode });
   const membersQuery = useSettingsMembers({
@@ -320,6 +343,16 @@ export function EducationPlatform({
 
   const changeRole = (nextRole: Role) => {
     if (!canSwitchRole) return;
+    if (shouldConfirmLeaving(active, "Genel Bakış", isAttendanceDirty)) {
+      requestConfirmLeave(() => {
+        setIsAttendanceDirty(false);
+        setRole(nextRole);
+        onRoleChange?.(nextRole);
+        setActive("Genel Bakış");
+        setMobileNav(false);
+      });
+      return;
+    }
     setRole(nextRole);
     onRoleChange?.(nextRole);
     setActive("Genel Bakış");
@@ -330,6 +363,14 @@ export function EducationPlatform({
   };
 
   const navigate = (section: Section) => {
+    if (shouldConfirmLeaving(active, section, isAttendanceDirty)) {
+      requestConfirmLeave(() => {
+        setIsAttendanceDirty(false);
+        setActive(section);
+        setMobileNav(false);
+      });
+      return;
+    }
     setActive(section);
     setMobileNav(false);
   };
@@ -462,6 +503,7 @@ export function EducationPlatform({
         <AttendancePage
           role={role}
           students={activeStudents}
+          classes={activeClasses}
           attendances={attendances}
           setAttendances={setAttendances}
           session={
@@ -472,6 +514,25 @@ export function EducationPlatform({
           onRetry={
             !isDemoMode ? () => void attendanceQuery.refetch() : undefined
           }
+          organizationId={organizationId}
+          onNavigate={navigate}
+          onDirtyChange={setIsAttendanceDirty}
+          onRequestConfirm={requestConfirmLeave}
+          isDemo={isDemoMode}
+          onSaved={async () => {
+            setIsAttendanceDirty(false);
+            await Promise.all([
+              queryClient.invalidateQueries({
+                queryKey: educationKeys.attendance(organizationId),
+              }),
+              queryClient.invalidateQueries({
+                queryKey: ["education", "attendanceSheet"],
+              }),
+              queryClient.invalidateQueries({
+                queryKey: educationKeys.students(organizationId),
+              }),
+            ]);
+          }}
         />
       );
     if (active === "Sınavlar")
@@ -814,6 +875,40 @@ export function EducationPlatform({
           )}
         </>
       )}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Kaydedilmemiş Değişiklikler</AlertDialogTitle>
+            <AlertDialogDescription>
+              Kaydedilmemiş yoklama değişiklikleriniz var. Devam ederseniz bu
+              değişiklikler kaybolacak. Devam etmek istediğinize emin misiniz?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setConfirmDialogOpen(false);
+                setPendingNavAction(null);
+              }}
+            >
+              Vazgeç
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setIsAttendanceDirty(false);
+                setConfirmDialogOpen(false);
+                if (pendingNavAction) {
+                  const action = pendingNavAction;
+                  setPendingNavAction(null);
+                  action();
+                }
+              }}
+            >
+              Devam Et
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
