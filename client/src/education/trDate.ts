@@ -26,7 +26,7 @@ export const TR_MONTHS = [
  * Başında tek sıfır olan günleri sayıya çevirir ("5 Eylül", "05 Eylül" değil).
  * Geçersiz veya boş değerlerde güvenli davranır (K-04).
  */
-export function formatTrDate(dateStr: string): string {
+export function formatTrDate(dateStr?: string | null): string {
   if (!dateStr) return "";
   const parts = dateStr.split("-");
   if (parts.length !== 3) return dateStr;

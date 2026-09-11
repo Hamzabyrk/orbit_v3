@@ -84,6 +84,27 @@ describe("educationKeys (K-19 ve Cache İzolasyonu)", () => {
     ]);
   });
 
+  it("sınav listesi anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu taşır (v1.4-04 #270)", () => {
+    const key = educationKeys.exams("org-exam-1");
+    expect(key).toEqual([
+      "education",
+      "exams",
+      { organizationId: "org-exam-1" },
+    ]);
+  });
+
+  it("sınav çizelgesi anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu + sınavı taşır (v1.4-04 #270)", () => {
+    const key = educationKeys.examSheet("org-exam-1", "exam-123");
+    expect(key).toEqual([
+      "education",
+      "examSheet",
+      { organizationId: "org-exam-1", examId: "exam-123" },
+    ]);
+
+    const otherExamKey = educationKeys.examSheet("org-exam-1", "exam-456");
+    expect(key).not.toEqual(otherExamKey);
+  });
+
   it("ödeme listesi anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu taşır (v1.3-01e)", () => {
     const key = educationKeys.payments("org-pay-1");
     expect(key).toEqual([

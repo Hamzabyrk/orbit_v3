@@ -1,7 +1,10 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { Student } from "@/components/education/types";
 import { loadStudentAttendancePercentages } from "./attendanceService";
-import { loadStudentLatestExamScores } from "./examService";
+import {
+  loadStudentLatestExamScores,
+  type StudentLatestExamScore,
+} from "./examService";
 import { loadStudentPaymentStatuses } from "./paymentService";
 
 /**
@@ -196,9 +199,25 @@ export function extractGuardianName(links: unknown): string | null {
 export function mapStudentRow(
   row: RawStudentRow,
   attendancePercentage?: number,
-  latestExamScore?: number,
+  latestExamScore?: StudentLatestExamScore | number,
   paymentStatus?: "Güncel" | "Takip gerekli"
 ): Student {
+  let score: number | undefined;
+  let latestExamId: string | undefined;
+  let latestExamName: string | undefined;
+  let latestExamDate: string | undefined;
+  let latestExamMaxScore: number | null | undefined;
+
+  if (typeof latestExamScore === "number") {
+    score = latestExamScore;
+  } else if (typeof latestExamScore === "object" && latestExamScore !== null) {
+    score = latestExamScore.score;
+    latestExamId = latestExamScore.examId;
+    latestExamName = latestExamScore.examName;
+    latestExamDate = latestExamScore.examDate;
+    latestExamMaxScore = latestExamScore.maxScore;
+  }
+
   return {
     id: row.id,
     name: row.full_name,
@@ -209,7 +228,11 @@ export function mapStudentRow(
     branchId: row.branch_id ?? null,
     parent: extractGuardianName(row.student_guardians),
     attendance: attendancePercentage,
-    score: latestExamScore,
+    score,
+    latestExamId,
+    latestExamName,
+    latestExamDate,
+    latestExamMaxScore,
     payment: paymentStatus,
     // Kaynağı olmayan ve henüz türetilmeyen alanlar dürüstçe undefined bırakılır:
     // homework: teslim tablosu yok; türetilemez (#237, ROADMAP §4.7)

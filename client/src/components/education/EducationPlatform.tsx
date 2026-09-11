@@ -158,8 +158,9 @@ export function EducationPlatform({
   const [classForEnrollment, setClassForEnrollment] =
     useState<ClassGroup | null>(null);
 
-  // Kaydedilmemiş yoklama koruması (v1.4-03 Revizyon 1 - R1 & R2)
+  // Kaydedilmemiş veri koruması (v1.4-03 Revizyon 1 & v1.4-04 #270)
   const [isAttendanceDirty, setIsAttendanceDirty] = useState(false);
+  const [isExamDirty, setIsExamDirty] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingNavAction, setPendingNavAction] = useState<(() => void) | null>(
     null
@@ -341,11 +342,19 @@ export function EducationPlatform({
     });
   };
 
+  const isCurrentSectionDirty =
+    active === "Yoklama"
+      ? isAttendanceDirty
+      : active === "Sınavlar"
+        ? isExamDirty
+        : false;
+
   const changeRole = (nextRole: Role) => {
     if (!canSwitchRole) return;
-    if (shouldConfirmLeaving(active, "Genel Bakış", isAttendanceDirty)) {
+    if (shouldConfirmLeaving(active, "Genel Bakış", isCurrentSectionDirty)) {
       requestConfirmLeave(() => {
         setIsAttendanceDirty(false);
+        setIsExamDirty(false);
         setRole(nextRole);
         onRoleChange?.(nextRole);
         setActive("Genel Bakış");
@@ -363,9 +372,10 @@ export function EducationPlatform({
   };
 
   const navigate = (section: Section) => {
-    if (shouldConfirmLeaving(active, section, isAttendanceDirty)) {
+    if (shouldConfirmLeaving(active, section, isCurrentSectionDirty)) {
       requestConfirmLeave(() => {
         setIsAttendanceDirty(false);
+        setIsExamDirty(false);
         setActive(section);
         setMobileNav(false);
       });
@@ -544,6 +554,28 @@ export function EducationPlatform({
           isLoading={!isDemoMode && examQuery.isLoading}
           error={!isDemoMode ? examQuery.error : null}
           onRetry={!isDemoMode ? () => void examQuery.refetch() : undefined}
+          organizationId={organizationId}
+          classes={activeClasses}
+          onDirtyChange={setIsExamDirty}
+          onRequestConfirm={requestConfirmLeave}
+          isDemo={isDemoMode}
+          onSaved={async () => {
+            setIsExamDirty(false);
+            await Promise.all([
+              queryClient.invalidateQueries({
+                queryKey: educationKeys.exam(organizationId),
+              }),
+              queryClient.invalidateQueries({
+                queryKey: ["education", "examSheet"],
+              }),
+              queryClient.invalidateQueries({
+                queryKey: ["education", "exams"],
+              }),
+              queryClient.invalidateQueries({
+                queryKey: educationKeys.students(organizationId),
+              }),
+            ]);
+          }}
         />
       );
     if (active === "Ödevler")
@@ -880,7 +912,7 @@ export function EducationPlatform({
           <AlertDialogHeader>
             <AlertDialogTitle>Kaydedilmemiş Değişiklikler</AlertDialogTitle>
             <AlertDialogDescription>
-              Kaydedilmemiş yoklama değişiklikleriniz var. Devam ederseniz bu
+              Kaydedilmemiş değişiklikleriniz var. Sayfadan ayrılırsanız bu
               değişiklikler kaybolacak. Devam etmek istediğinize emin misiniz?
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -896,6 +928,7 @@ export function EducationPlatform({
             <AlertDialogAction
               onClick={() => {
                 setIsAttendanceDirty(false);
+                setIsExamDirty(false);
                 setConfirmDialogOpen(false);
                 if (pendingNavAction) {
                   const action = pendingNavAction;

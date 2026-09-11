@@ -1,10 +1,24 @@
+import * as React from "react";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+(globalThis as unknown as { React: typeof React }).React = React;
+
 import {
+  archiveExam,
+  createExam,
   formatExamSummary,
   loadExamParticipantCount,
+  loadExams,
+  loadExamSheet,
   loadLatestExam,
   loadStudentLatestExamScores,
   mapLatestExamRow,
+  saveExamResults,
+  translateExamError,
+  updateExam,
+  type ExamSheet,
   type LatestExamDetail,
 } from "./examService";
 import { AssessmentsPage } from "@/components/education/pages/AssessmentsPage";
@@ -37,11 +51,21 @@ function createQueryChain(
     isArgs?: [string, unknown];
     orderArgs?: [string, { ascending?: boolean }][];
     limitArg?: number;
+    eqArgs?: [string, unknown][];
+    insertArg?: unknown;
+    updateArg?: unknown;
   }
 ) {
   const chain: Record<string, unknown> = {};
-  chain.select = vi.fn((columns: string) => {
-    if (spy) spy.selectArg = columns;
+  chain.select = vi.fn((columns?: string) => {
+    if (spy && columns) spy.selectArg = columns;
+    return chain;
+  });
+  chain.eq = vi.fn((col: string, val: unknown) => {
+    if (spy) {
+      if (!spy.eqArgs) spy.eqArgs = [];
+      spy.eqArgs.push([col, val]);
+    }
     return chain;
   });
   chain.is = vi.fn((col: string, val: unknown) => {
@@ -59,6 +83,20 @@ function createQueryChain(
     if (spy) spy.limitArg = limit;
     return Promise.resolve(result);
   });
+  chain.insert = vi.fn((payload: unknown) => {
+    if (spy) spy.insertArg = payload;
+    return chain;
+  });
+  chain.update = vi.fn((payload: unknown) => {
+    if (spy) spy.updateArg = payload;
+    return chain;
+  });
+  chain.single = vi.fn(() => Promise.resolve(result));
+  chain.maybeSingle = vi.fn(() => Promise.resolve(result));
+  chain.then = (
+    onfulfilled?: (value: QueryResult) => unknown,
+    onrejected?: (reason: unknown) => unknown
+  ) => Promise.resolve(result).then(onfulfilled, onrejected);
   return chain;
 }
 
@@ -204,7 +242,7 @@ describe("examService", () => {
     });
   });
 
-  describe("loadStudentLatestExamScores (RPC student_latest_exam_scores & 2.A/2.C)", () => {
+  describe("loadStudentLatestExamScores (RPC student_latest_exam_scores & #257 Altı Sütun)", () => {
     it("boş öğrenci listesinde veritabanına sorgu atmadan boş map döner", async () => {
       const result = await loadStudentLatestExamScores([]);
       expect(result.size).toBe(0);
@@ -212,13 +250,33 @@ describe("examService", () => {
       expect(fromMock).not.toHaveBeenCalled();
     });
 
-    it("PostgREST'ten DİZGE gelen puanları sayıya çevirir ve tek seferde çeker", async () => {
+    it("PostgREST'ten dönen altı sütunun HEPSİNİ taşır (#257) ve dizge puanları sayıya çevirir", async () => {
       rpcMock.mockResolvedValue({
         data: [
-          // PostgREST numeric sütunları canlıda "84.00" gibi dizge döner
-          { student_id: "stu-1", score: "84.00" },
-          { student_id: "stu-2", score: "72.50" },
-          { student_id: "stu-3", score: "0.00" }, // 0 geçerli bir puandır
+          {
+            student_id: "stu-1",
+            score: "84.00",
+            exam_id: "exam-101",
+            exam_name: "TYT Deneme 01",
+            exam_date: "2026-09-01",
+            max_score: "100.00",
+          },
+          {
+            student_id: "stu-2",
+            score: "72.50",
+            exam_id: "exam-102",
+            exam_name: "LGS Deneme 03",
+            exam_date: "2026-09-05",
+            max_score: "90.00",
+          },
+          {
+            student_id: "stu-3",
+            score: "0.00", // 0 geçerli bir puandır
+            exam_id: "exam-103",
+            exam_name: "Kazanım Testi",
+            exam_date: "2026-09-08",
+            max_score: null,
+          },
         ],
         error: null,
       });
@@ -244,13 +302,27 @@ describe("examService", () => {
         expect.anything()
       );
 
-      // Sayı dönüşüm doğrulaması
-      expect(map.get("stu-1")).toBe(84);
-      expect(typeof map.get("stu-1")).toBe("number");
-      expect(map.get("stu-2")).toBe(72.5);
-      expect(map.get("stu-3")).toBe(0);
+      // #257: Altı sütunun tamamının taşındığı doğrulaması
+      const stu1 = map.get("stu-1");
+      expect(stu1).toBeDefined();
+      expect(stu1?.studentId).toBe("stu-1");
+      expect(stu1?.score).toBe(84);
+      expect(typeof stu1?.score).toBe("number");
+      expect(stu1?.examId).toBe("exam-101");
+      expect(stu1?.examName).toBe("TYT Deneme 01");
+      expect(stu1?.examDate).toBe("2026-09-01");
+      expect(stu1?.maxScore).toBe(100);
 
-      // K-22: Sınavı olmayan öğrencinin puanı undefined kalır, 0 uydurulmaz
+      const stu2 = map.get("stu-2");
+      expect(stu2?.score).toBe(72.5);
+      expect(stu2?.examName).toBe("LGS Deneme 03");
+      expect(stu2?.maxScore).toBe(90);
+
+      const stu3 = map.get("stu-3");
+      expect(stu3?.score).toBe(0);
+      expect(stu3?.maxScore).toBeNull();
+
+      // K-22, K-03: Sınavı olmayan öğrencinin puanı undefined kalır, 0 uydurulmaz
       expect(map.get("stu-4")).toBeUndefined();
     });
 
@@ -266,13 +338,14 @@ describe("examService", () => {
     });
   });
 
-  describe("loadLatestExam (Sınav Başlığı & 2.E)", () => {
-    it("en son aktif sınavı tarih ve id azalan sırayla çeker ve arşivliyi eler", async () => {
+  describe("loadLatestExam (Sınav Başlığı & Açık organization_id)", () => {
+    it("açık organization_id süzgeci taşır (#249), tarih ve id azalan sırayla çeker, arşivliyi eler", async () => {
       const spy: {
         selectArg?: string;
         isArgs?: [string, unknown];
         orderArgs?: [string, { ascending?: boolean }][];
         limitArg?: number;
+        eqArgs?: [string, unknown][];
       } = {};
 
       fromMock.mockReturnValue(
@@ -293,9 +366,12 @@ describe("examService", () => {
       );
       rpcMock.mockResolvedValue({ data: "54", error: null });
 
-      const result = await loadLatestExam();
+      const result = await loadLatestExam("org-1");
 
       expect(fromMock).toHaveBeenCalledWith("exams");
+      // Açık organization_id süzgeci doğrulaması (#249)
+      expect(spy.eqArgs).toContainEqual(["organization_id", "org-1"]);
+
       // ⛔ exam_results tablosuna doğrudan sorgu atılmaz
       expect(fromMock).not.toHaveBeenCalledWith("exam_results");
       expect(rpcMock).not.toHaveBeenCalledWith(
@@ -342,7 +418,7 @@ describe("examService", () => {
         error: { message: "permission denied" },
       });
 
-      const result = await loadLatestExam();
+      const result = await loadLatestExam("org-1");
 
       expect(result.exam?.name).toBe("TYT Deneme 06");
       expect(result.exam?.participantCount).toBeNull();
@@ -356,27 +432,372 @@ describe("examService", () => {
         })
       );
 
-      const result = await loadLatestExam();
+      const result = await loadLatestExam("org-1");
       expect(result.exam).toBeNull();
       expect(rpcMock).not.toHaveBeenCalled();
     });
 
-    it("veritabanı hatasında anlamlı Türkçe hata fırlatır", async () => {
+    it("veritabanı hatasında translateExamError üzerinden hata fırlatır", async () => {
       fromMock.mockReturnValue(
         createQueryChain({
           data: null,
-          error: { message: "connection timeout" },
+          error: { code: "ORB02" },
         })
       );
 
-      await expect(loadLatestExam()).rejects.toThrow(
-        "Sınav bilgisi yüklenemedi."
+      await expect(loadLatestExam("org-1")).rejects.toThrow(
+        "Öğrenci bu sınavın sınıfına kayıtlı değil."
       );
     });
   });
 
-  describe("AssessmentsPage UI davranışları (K-22 & Üretimde Çizilmeyenler)", () => {
-    it("üretimde sınav başlığı ve katılımcı sayısı çizilir, kaynağı olmayan alanlar çizilmez (K-22)", () => {
+  describe("createExam (v1.4-04 & #270 Sınav Oluşturma)", () => {
+    it("⛔ Sınav oluştururken `id` GÖNDERİLMEZ (K-03 / Güvenlik Tuzağı) ve dönen id geri okunur", async () => {
+      const spy: {
+        insertArg?: Record<string, unknown>;
+        selectArg?: string;
+      } = {};
+
+      fromMock.mockReturnValue(
+        createQueryChain(
+          {
+            data: { id: "new-generated-exam-id" },
+            error: null,
+          },
+          spy
+        )
+      );
+
+      const res = await createExam({
+        organizationId: "org-1",
+        classId: "cls-1",
+        name: "YKS Deneme 01",
+        examDate: "2026-09-15",
+        maxScore: 100,
+      });
+
+      expect(fromMock).toHaveBeenCalledWith("exams");
+      expect(spy.insertArg).toBeDefined();
+
+      // ⛔ EN KRİTİK KONTROL: id yükün içinde GÖNDERİLMEZ
+      expect(spy.insertArg).not.toHaveProperty("id");
+
+      expect(spy.insertArg).toEqual({
+        organization_id: "org-1",
+        class_id: "cls-1",
+        name: "YKS Deneme 01",
+        exam_date: "2026-09-15",
+        max_score: 100,
+      });
+
+      expect(spy.selectArg).toBe("id");
+      expect(res.id).toBe("new-generated-exam-id");
+    });
+
+    it("hata oluştuğunda translateExamError üzerinden hata fırlatır", async () => {
+      fromMock.mockReturnValue(
+        createQueryChain({
+          data: null,
+          error: { code: "23514" },
+        })
+      );
+
+      await expect(
+        createExam({
+          organizationId: "org-1",
+          classId: "cls-1",
+          name: "",
+          examDate: "2026-09-15",
+        })
+      ).rejects.toThrow("Sınav adı 1 ile 160 karakter arasında olmalıdır.");
+    });
+  });
+
+  describe("updateExam ve archiveExam (Açık organization_id)", () => {
+    it("updateExam açık organization_id ve id süzgeciyle günceller", async () => {
+      const spy: { eqArgs?: [string, unknown][]; updateArg?: unknown } = {};
+      fromMock.mockReturnValue(
+        createQueryChain({ data: null, error: null }, spy)
+      );
+
+      await updateExam("org-1", "exam-1", {
+        name: "Yeni Sınav Adı",
+        maxScore: 120,
+      });
+
+      expect(fromMock).toHaveBeenCalledWith("exams");
+      expect(spy.updateArg).toEqual({ name: "Yeni Sınav Adı", max_score: 120 });
+      expect(spy.eqArgs).toContainEqual(["organization_id", "org-1"]);
+      expect(spy.eqArgs).toContainEqual(["id", "exam-1"]);
+    });
+
+    it("archiveExam açık organization_id ile archived_at zaman damgası koyar", async () => {
+      const spy: { eqArgs?: [string, unknown][]; updateArg?: unknown } = {};
+      fromMock.mockReturnValue(
+        createQueryChain({ data: null, error: null }, spy)
+      );
+
+      await archiveExam("org-1", "exam-1");
+
+      expect(fromMock).toHaveBeenCalledWith("exams");
+      expect(spy.updateArg).toEqual({ archived_at: expect.any(String) });
+      expect(spy.eqArgs).toContainEqual(["organization_id", "org-1"]);
+      expect(spy.eqArgs).toContainEqual(["id", "exam-1"]);
+    });
+
+    it("loadExams açık organization_id süzgeci taşır ve arşivli olmayan sınavları sıralar", async () => {
+      const spy: { eqArgs?: [string, unknown][]; isArgs?: [string, unknown] } =
+        {};
+      fromMock.mockReturnValue(
+        createQueryChain(
+          {
+            data: [
+              {
+                id: "exam-1",
+                organization_id: "org-1",
+                class_id: "cls-1",
+                name: "TYT 1",
+                exam_date: "2026-09-01",
+                max_score: "100.00",
+                classes: { name: "12-A" },
+              },
+            ],
+            error: null,
+          },
+          spy
+        )
+      );
+
+      const exams = await loadExams("org-1");
+
+      expect(fromMock).toHaveBeenCalledWith("exams");
+      expect(spy.eqArgs).toContainEqual(["organization_id", "org-1"]);
+      expect(spy.isArgs).toEqual(["archived_at", null]);
+      expect(exams).toHaveLength(1);
+      expect(exams[0].name).toBe("TYT 1");
+      expect(exams[0].maxScore).toBe(100);
+      expect(exams[0].className).toBe("12-A");
+    });
+
+    it("loadExamSheet sınavı, sınıf öğrencilerini ve varsa sonuçları yükler", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "exams") {
+          return createQueryChain({
+            data: {
+              id: "exam-1",
+              organization_id: "org-1",
+              class_id: "cls-1",
+              name: "Deneme 1",
+              exam_date: "2026-09-10",
+              max_score: "100",
+              classes: { name: "12-A" },
+            },
+            error: null,
+          });
+        }
+        if (table === "class_enrollments") {
+          return createQueryChain({
+            data: [
+              {
+                student_id: "stu-1",
+                students: { full_name: "Ali Can", student_number: 101 },
+              },
+              {
+                student_id: "stu-2",
+                students: { full_name: "Zeynep Kaya", student_number: 102 },
+              },
+            ],
+            error: null,
+          });
+        }
+        if (table === "exam_results") {
+          return createQueryChain({
+            data: [{ id: "res-1", student_id: "stu-2", score: "90" }],
+            error: null,
+          });
+        }
+        return createQueryChain({ data: null, error: null });
+      });
+
+      const sheet = await loadExamSheet("org-1", "exam-1");
+
+      expect(sheet.exam.name).toBe("Deneme 1");
+      expect(sheet.students).toHaveLength(2);
+      expect(sheet.students[0].studentName).toBe("Ali Can");
+      expect(sheet.students[0].score).toBeNull(); // Puanı olmayan öğrenci null (K-03)
+      expect(sheet.students[1].studentName).toBe("Zeynep Kaya");
+      expect(sheet.students[1].score).toBe(90);
+    });
+  });
+
+  describe("saveExamResults (v1.4-04 & #270 Sonuç Yazma RPC)", () => {
+    it("⛔ Düz upsert KULLANMAZ, yalnız record_exam_results RPC'sini çağırır ve eksi neti kabul eder", async () => {
+      rpcMock.mockResolvedValue({ data: 2, error: null });
+
+      const count = await saveExamResults("exam-1", [
+        { studentId: "stu-1", score: 85 },
+        { studentId: "stu-2", score: -5 }, // Eksi net puanlama geçerlidir!
+      ]);
+
+      expect(count).toBe(2);
+      expect(rpcMock).toHaveBeenCalledWith("record_exam_results", {
+        target_exam_id: "exam-1",
+        entries: [
+          { student_id: "stu-1", score: 85 },
+          { student_id: "stu-2", score: -5 },
+        ],
+      });
+
+      // ⛔ Düz upsert ASLA kullanılmaz (ÖLÇÜLDÜ: 42501)
+      expect(fromMock).not.toHaveBeenCalledWith("exam_results");
+    });
+
+    it("RPC tavan aşımında (ORB05) anlamlı Türkçe mesaj fırlatır", async () => {
+      rpcMock.mockResolvedValue({
+        data: null,
+        error: { code: "ORB05" },
+      });
+
+      await expect(
+        saveExamResults("exam-1", [{ studentId: "stu-1", score: 105 }])
+      ).rejects.toThrow("Girilen puan sınavın tam puanını aşıyor.");
+    });
+  });
+
+  describe("translateExamError (v1.4-04 Beş Hata Kodu Sözleşmesi)", () => {
+    it("ORB05 tavan aşımında tavanı söyler ve düzenleme önerir", () => {
+      const msg = translateExamError({ code: "ORB05" });
+      expect(msg).toContain("Girilen puan sınavın tam puanını aşıyor.");
+      expect(msg).toContain("sınav kaydını düzenleyin");
+    });
+
+    it("ORB02 kayıt dışı öğrenci hatasında sınıf ekranına yönlendirir", () => {
+      const msg = translateExamError({ code: "ORB02" });
+      expect(msg).toContain("Öğrenci bu sınavın sınıfına kayıtlı değil.");
+      expect(msg).toContain("Sınıflar ekranından");
+    });
+
+    it("42501 yetki hatasında yönetici veya sınıfın öğretmenini işaret eder", () => {
+      const msg = translateExamError({ code: "42501" });
+      expect(msg).toContain(
+        "Bu işlem için yetkiniz yok veya şifre değişimi bekleniyor."
+      );
+      expect(msg).toContain(
+        "kurum yöneticisi veya sınavın sınıfını okutan öğretmen"
+      );
+    });
+
+    it("23503 sınav yok hatasında listeyi tazelemeyi önerir", () => {
+      const msg = translateExamError({ code: "23503" });
+      expect(msg).toContain("Sınav bulunamadı veya arşivlenmiş.");
+      expect(msg).toContain("Listeyi tazeleyip tekrar deneyin");
+    });
+
+    it("23514 geçersiz sınav adı hatasında kabul edilen uzunluğu söyler", () => {
+      const msg = translateExamError({ code: "23514" });
+      expect(msg).toContain("Sınav adı 1 ile 160 karakter arasında olmalıdır.");
+    });
+
+    it("beş hata kodu birbirinden tamamen farklı beş ayrı Türkçe mesaja çevrilir", () => {
+      const m1 = translateExamError({ code: "ORB05" });
+      const m2 = translateExamError({ code: "ORB02" });
+      const m3 = translateExamError({ code: "42501" });
+      const m4 = translateExamError({ code: "23503" });
+      const m5 = translateExamError({ code: "23514" });
+
+      const set = new Set([m1, m2, m3, m4, m5]);
+      expect(set.size).toBe(5);
+    });
+  });
+
+  describe("AssessmentsPage UI davranışları (K-22, K-03 & #237 Temizliği)", () => {
+    it('puanı olmayan öğrenci BOŞTUR (value=""), 0 uydurulmaz (K-03)', () => {
+      const sheet: ExamSheet = {
+        exam: {
+          id: "exam-1",
+          organizationId: "org-1",
+          classId: "cls-1",
+          className: "12-A",
+          subjectId: null,
+          subjectName: null,
+          name: "TYT Deneme 06",
+          examDate: "2026-08-14",
+          maxScore: 100,
+        },
+        students: [
+          {
+            studentId: "stu-1",
+            studentName: "Ali Can",
+            studentCode: "101",
+            score: null, // Puanı YOK!
+          },
+          {
+            studentId: "stu-2",
+            studentName: "Zeynep Kaya",
+            studentCode: "102",
+            score: 85,
+          },
+        ],
+      };
+
+      const html = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "teacher",
+          onNavigate: vi.fn(),
+          initialSheet: sheet,
+          isDemo: false,
+        })
+      );
+
+      // Ali Can listelenir
+      expect(html).toContain("Ali Can");
+      // Zeynep Kaya ve puanı 85 yer alır
+      expect(html).toContain("Zeynep Kaya");
+      expect(html).toContain('value="85"');
+      // Puanı olmayan Ali Can için input boş gelir; 0 yazılmaz (K-03)
+      expect(html).toContain('placeholder="Girilmedi"');
+      expect(html).toContain('value=""');
+    });
+
+    it("max_score boş (null) iken payda (/) KESİNLİKLE ÇİZİLMEZ (#237, K-03)", () => {
+      const sheetWithoutMax: ExamSheet = {
+        exam: {
+          id: "exam-2",
+          organizationId: "org-1",
+          classId: "cls-1",
+          className: "12-A",
+          subjectId: null,
+          subjectName: null,
+          name: "Kazanım Testi",
+          examDate: "2026-08-14",
+          maxScore: null, // Tam puan YOK
+        },
+        students: [
+          {
+            studentId: "stu-1",
+            studentName: "Ali Can",
+            score: 45,
+          },
+        ],
+      };
+
+      const html = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "teacher",
+          onNavigate: vi.fn(),
+          initialSheet: sheetWithoutMax,
+          isDemo: false,
+        })
+      );
+
+      expect(html).toContain("Kazanım Testi");
+      // Sınav başlığında ve input yanında '/ 100' gibi uydurma payda çizilmez
+      expect(html).not.toContain("üzerinden");
+      expect(html).not.toContain("/ null");
+      expect(html).not.toContain("/ 100");
+    });
+
+    it("⛔ #237 ile kaldırılan dört öğe ekranda KESİNLİKLE BULUNMAZ", () => {
       const exam: LatestExamDetail = {
         id: "exam-1",
         name: "TYT Deneme 06",
@@ -385,112 +806,138 @@ describe("examService", () => {
         participantCount: 54,
       };
 
-      const element = AssessmentsPage({
-        role: "admin",
-        onNavigate: vi.fn(),
-        exam,
-        isDemo: false,
-      });
-
-      const elementString = JSON.stringify(element);
-
-      // Bağlanan ikisi:
-      expect(elementString).toContain("TYT Deneme 06");
-      expect(elementString).toContain(
-        "14 Ağustos 2026 · 54 katılımcı · 100 üzerinden"
-      );
-      expect(elementString).toContain("Kayıtlı Sınav");
-      expect(elementString).toContain(
-        "Sınav sonuç girişi ve detaylı analizler v1.4 sürümünde açılacaktır"
+      const html = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "admin",
+          onNavigate: vi.fn(),
+          exam,
+          isDemo: false,
+        })
       );
 
-      // ⛔ ÜRETİMDE ÇİZİLMEYECEK ALANLAR (K-22):
+      // Bağlanan gerçek alanlar:
+      expect(html).toContain("TYT Deneme 06");
+      expect(html).toContain("14 Ağustos 2026 · 54 katılımcı · 100 üzerinden");
+
+      // ⛔ KALDIRILAN DÖRT ÖĞE (#237):
       // 1. "Odak alan: Geometri"
-      expect(elementString).not.toContain("Odak alan: Geometri");
-      // 2. Tavsiye metinleri ("Takip önerisi")
-      expect(elementString).not.toContain("Takip önerisi");
-      expect(elementString).not.toContain(
+      expect(html).not.toContain("Odak alan: Geometri");
+      // 2. Tavsiye metinleri ("... etüdü öneriliyor" / "Takip önerisi")
+      expect(html).not.toContain("Takip önerisi");
+      expect(html).not.toContain(
         "Geometri konularında kısa tekrar ve soru çözüm etüdü öneriliyor."
       );
-      // 3. Ders ortalaması "Matematik 82"
-      expect(elementString).not.toContain("Matematik 82");
-      // 4. "+6 · Önceki denemeye göre"
-      expect(elementString).not.toContain("Önceki denemeye göre");
-      // 5. Yazma aksiyonu (Sonuç gir butonu) üretimde devre dışıdır
-      expect(elementString).not.toContain("Sonuç gir");
+      // 4. Sabit ders ortalaması "Matematik 82" ve genel "Ders ortalaması" etiketi (R1)
+      expect(html).not.toContain("Matematik 82");
+      expect(html).not.toContain("Ders ortalaması");
     });
 
-    it("üretimde max_score null iken 'üzerinden' ibaresi kesinlikle çizilmez (K-22, K-03)", () => {
-      const exam: LatestExamDetail = {
-        id: "exam-2",
-        name: "Kazanım Testi",
-        examDate: "2026-08-14",
-        maxScore: null,
-        participantCount: 20,
+    it("ortalama kartı 'Sınav ortalaması' olarak adlandırılır ve kapsadığı öğrenci sayısını belirtir (v1.4-04 R1)", () => {
+      const sheet: ExamSheet = {
+        exam: {
+          id: "exam-1",
+          organizationId: "org-1",
+          classId: "cls-1",
+          className: "12-A",
+          subjectId: null,
+          subjectName: null,
+          name: "TYT Deneme 06",
+          examDate: "2026-08-14",
+          maxScore: 100,
+        },
+        students: [
+          { studentId: "stu-1", studentName: "Ali Can", score: 80 },
+          { studentId: "stu-2", studentName: "Zeynep Kaya", score: 90 },
+          { studentId: "stu-3", studentName: "Mehmet Demir", score: null }, // Puanı girilmemiş
+        ],
       };
 
-      const element = AssessmentsPage({
-        role: "teacher",
-        onNavigate: vi.fn(),
-        exam,
-        isDemo: false,
-      });
+      const html = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "teacher",
+          onNavigate: vi.fn(),
+          initialSheet: sheet,
+          isDemo: false,
+        })
+      );
 
-      const elementString = JSON.stringify(element);
-      expect(elementString).toContain("14 Ağustos 2026 · 20 katılımcı");
-      expect(elementString).not.toContain("üzerinden");
+      // R1.1: Etiket 'Sınav ortalaması'dır; 'Ders ortalaması' DEĞİLDİR (#237 / R1)
+      expect(html).toContain("Sınav ortalaması");
+      expect(html).not.toContain("Ders ortalaması");
+
+      // R1.2: detail kaç öğrencinin puanının ortalaması olduğunu açıkça söyler
+      expect(html).toContain("2 öğrencinin ortalaması");
+      expect(html).toContain("85 / 100 puan");
     });
 
-    it("üretimde katılımcı sayısı bilinmiyorken sınav yine çizilir, sayı çizilmez (K-22)", () => {
-      const exam: LatestExamDetail = {
-        id: "exam-3",
-        name: "Kurum Geneli Deneme",
-        examDate: "2026-09-07",
-        maxScore: 100,
-        participantCount: null,
+    it("öğretmen ve yönetici rolünde sınav oluşturma ve sonuç kaydetme açıktır (rol kilitlenmesi yok)", () => {
+      const sheet: ExamSheet = {
+        exam: {
+          id: "exam-1",
+          organizationId: "org-1",
+          classId: "cls-1",
+          className: "12-A",
+          subjectId: null,
+          subjectName: null,
+          name: "TYT Deneme 06",
+          examDate: "2026-08-14",
+          maxScore: 100,
+        },
+        students: [{ studentId: "stu-1", studentName: "Ali Can", score: 80 }],
       };
 
-      const element = AssessmentsPage({
-        role: "student",
-        onNavigate: vi.fn(),
-        exam,
-        isDemo: false,
-      });
+      // Öğretmen için render
+      const teacherHtml = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "teacher",
+          onNavigate: vi.fn(),
+          initialSheet: sheet,
+          isDemo: false,
+        })
+      );
 
-      const elementString = JSON.stringify(element);
-      expect(elementString).toContain("Kurum Geneli Deneme");
-      expect(elementString).toContain("7 Eylül 2026 · 100 üzerinden");
-      // ⛔ Öğrenciye "1 katılımcı" ya da "0 katılımcı" gösterilmez: ikisi de
-      // sistemin bilmediği bir şeyi biliyormuş gibi söylerdi.
-      expect(elementString).not.toContain("katılımcı");
+      expect(teacherHtml).toContain("Yeni sınav");
+      expect(teacherHtml).toContain("Sonuçları Kaydet");
+
+      // Yönetici için render
+      const adminHtml = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "admin",
+          onNavigate: vi.fn(),
+          initialSheet: sheet,
+          isDemo: false,
+        })
+      );
+
+      expect(adminHtml).toContain("Yeni sınav");
+      expect(adminHtml).toContain("Sonuçları Kaydet");
     });
 
     it("üretimde sınav kaydı yoksa 'Henüz sınav kaydı yok' boş durumunu gösterir (K-03)", () => {
-      const element = AssessmentsPage({
-        role: "admin",
-        onNavigate: vi.fn(),
-        exam: null,
-        isDemo: false,
-      });
+      const html = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "admin",
+          onNavigate: vi.fn(),
+          exam: null,
+          isDemo: false,
+        })
+      );
 
-      const elementString = JSON.stringify(element);
-      expect(elementString).toContain("Henüz sınav kaydı yok");
-      expect(elementString).not.toContain("TYT Deneme 06");
+      expect(html).toContain("Henüz sınav kaydı yok");
+      expect(html).not.toContain("TYT Deneme 06");
     });
 
-    it("demo modunda tüm demo istatistikleri ve öneri kartları çizilir", () => {
-      const element = AssessmentsPage({
-        role: "admin",
-        onNavigate: vi.fn(),
-        isDemo: true,
-      });
+    it("demo modunda örnek sınav ve verilerle çizilir", () => {
+      const html = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "admin",
+          onNavigate: vi.fn(),
+          isDemo: true,
+        })
+      );
 
-      const elementString = JSON.stringify(element);
-      expect(elementString).toContain("TYT Deneme 06");
-      expect(elementString).toContain("Yayınlandı");
-      expect(elementString).toContain("Takip önerisi");
-      expect(elementString).toContain("Konu bazlı görünüm");
-      expect(elementString).toContain("Sonuç gir");
+      expect(html).toContain("TYT Deneme 06");
+      expect(html).toContain("Sınav Sonuçları");
     });
   });
 });

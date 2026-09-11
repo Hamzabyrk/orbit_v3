@@ -1,4 +1,5 @@
 import { BarChart3, ClipboardCheck, X } from "lucide-react";
+import { formatTrDate } from "@/education/trDate";
 import { Badge, StatCard } from "./shared";
 import type { Student } from "./types";
 
@@ -63,7 +64,17 @@ export function StudentDetail({
             {student.score !== undefined ? (
               <StatCard
                 label="Son sınav"
-                value={String(student.score)}
+                value={
+                  student.latestExamMaxScore !== null &&
+                  student.latestExamMaxScore !== undefined
+                    ? `${student.score} / ${student.latestExamMaxScore}`
+                    : String(student.score)
+                }
+                detail={
+                  [student.latestExamName, formatTrDate(student.latestExamDate)]
+                    .filter(Boolean)
+                    .join(" · ") || undefined
+                }
                 icon={BarChart3}
                 tone="violet"
               />
@@ -80,14 +91,6 @@ export function StudentDetail({
                 <span className="text-slate-400">Veli</span>
                 <span className="font-bold text-slate-700">
                   {student.parent}
-                </span>
-              </div>
-            ) : null}
-            {student.homework !== undefined ? (
-              <div className="flex justify-between">
-                <span className="text-slate-400">Ödev tamamlama</span>
-                <span className="font-bold text-slate-700">
-                  {student.homework}/9
                 </span>
               </div>
             ) : null}

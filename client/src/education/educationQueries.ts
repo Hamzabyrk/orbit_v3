@@ -23,7 +23,14 @@ import {
   type LatestAttendanceSessionResult,
   type AttendanceSheet,
 } from "./attendanceService";
-import { loadLatestExam, type LatestExamResult } from "./examService";
+import {
+  loadLatestExam,
+  loadExams,
+  loadExamSheet,
+  type LatestExamResult,
+  type ExamDetail,
+  type ExamSheet,
+} from "./examService";
 import {
   DEFAULT_PAYMENT_LIMIT,
   loadPaymentOverviewCounts,
@@ -72,6 +79,10 @@ export const educationKeys = {
     ["education", "attendanceSheet", { organizationId, sessionId }] as const,
   exam: (organizationId: string) =>
     ["education", "exam", { organizationId }] as const,
+  exams: (organizationId: string) =>
+    ["education", "exams", { organizationId }] as const,
+  examSheet: (organizationId: string, examId: string) =>
+    ["education", "examSheet", { organizationId, examId }] as const,
   payments: (organizationId: string) =>
     ["education", "payments", { organizationId }] as const,
   paymentOverview: (organizationId: string) =>
@@ -273,7 +284,7 @@ export type UseLatestExamOptions = {
 };
 
 /**
- * Aktif kurumun en son aktif sınavını getiren React Query hook'u (v1.3-01 · D parçası).
+ * Aktif kurumun en son aktif sınavını getiren React Query hook'u (v1.3-01 · D parçası, #249, #270).
  *
  * Aktif kurum kimliği `useAuth` üzerinden sağlanır; kurum kimliği henüz
  * çözümlenmemişse veya kullanıcı bir kuruma ait değilse sorgu çalıştırılmaz (`enabled: false`).
@@ -288,7 +299,65 @@ export function useLatestExam(options?: UseLatestExamOptions) {
     queryKey: organizationId
       ? educationKeys.exam(organizationId)
       : (["education", "exam", { organizationId: "" }] as const),
-    queryFn: () => loadLatestExam(),
+    queryFn: () => loadLatestExam(organizationId!),
+    enabled: isEnabled,
+  });
+}
+
+export type UseExamsOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Aktif kurumun sınav listesini getiren React Query hook'u (#270).
+ */
+export function useExams(options?: UseExamsOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<ExamDetail[], Error>({
+    queryKey: organizationId
+      ? educationKeys.exams(organizationId)
+      : (["education", "exams", { organizationId: "" }] as const),
+    queryFn: () => loadExams(organizationId!),
+    enabled: isEnabled,
+  });
+}
+
+export type UseExamSheetOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Bir sınavın çizelgesini (öğrenci listesi ve puanları) getiren React Query hook'u (v1.4-04 · #270).
+ *
+ * Aktif kurum kimliği `useAuth` üzerinden sağlanır; kurum kimliği veya sınav kimliği
+ * henüz çözümlenmemişse sorgu çalıştırılmaz (`enabled: false`).
+ */
+export function useExamSheet(
+  examId: string | null | undefined,
+  options?: UseExamSheetOptions
+) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled =
+    (options?.enabled ?? true) && Boolean(organizationId) && Boolean(examId);
+
+  return useQuery<ExamSheet, Error>({
+    queryKey:
+      organizationId && examId
+        ? educationKeys.examSheet(organizationId, examId)
+        : ([
+            "education",
+            "examSheet",
+            { organizationId: "", examId: "" },
+          ] as const),
+    queryFn: () => loadExamSheet(organizationId!, examId!),
     enabled: isEnabled,
   });
 }
