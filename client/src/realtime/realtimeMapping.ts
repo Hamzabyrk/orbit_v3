@@ -16,7 +16,8 @@ export type EducationTable =
   | "exams"
   | "exam_results"
   | "payment_plans"
-  | "installments";
+  | "installments"
+  | "homework_assignments";
 
 /**
  * Toplu tetikleyici veya içe aktarma sırasındaki mesajları birleştirme süresi (ms).
@@ -142,6 +143,10 @@ export function getAffectedQueryKeys(
         educationKeys.paymentOverview(organizationId),
         educationKeys.students(organizationId),
       ];
+
+    case "homework_assignments":
+      // Ödev listesi sorgusunu tazeler (v1.4-05 · #273)
+      return [educationKeys.homework(organizationId)];
 
     default:
       // Bilinmeyen veya dinlenmeyen tablolar sessizce yoksayılır

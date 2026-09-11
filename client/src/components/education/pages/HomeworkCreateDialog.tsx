@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { isDemoMode } from "@/auth/runtime";
 import { useAuth } from "@/auth/useAuth";
@@ -12,112 +12,231 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { classes } from "../educationData";
-import type { Homework, HomeworkSubject } from "../types";
+import {
+  createHomework,
+  updateHomework,
+  translateHomeworkError,
+} from "@/education/homeworkService";
+import { useSubjects } from "@/education/educationQueries";
+import { formatTrDate, getOrbitToday } from "@/education/trDate";
+import { classes as demoClasses } from "../educationData";
+import type { Homework, ClassGroup } from "../types";
 
-const SUBJECTS: HomeworkSubject[] = [
-  "Matematik",
-  "Türkçe",
-  "Fizik",
-  "Kimya",
-  "Biyoloji",
-  "Geometri",
-];
-
-const formatDate = (date: Date) =>
-  date.toLocaleDateString("tr-TR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+export type HomeworkCreateDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreate?: (item: Homework) => void;
+  onUpdate?: (item: Homework) => void;
+  onSaved?: () => Promise<void> | void;
+  organizationId?: string;
+  classes?: ClassGroup[];
+  homework?: Homework | null;
+};
 
 export function HomeworkCreateDialog({
   open,
   onOpenChange,
   onCreate,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onCreate: (item: Homework) => void;
-}) {
+  onUpdate,
+  onSaved,
+  organizationId = "",
+  classes = [],
+  homework = null,
+}: HomeworkCreateDialogProps) {
+  const isEditMode = Boolean(homework);
   const { identity } = useAuth();
   const teacherName = identity?.displayName?.trim() ?? "";
+  const role = identity?.membership?.role;
 
-  // Liste öğretmenin kendi sınıflarıyla sınırlı ve ad çözülemediğinde boş
-  // kalır. Bilinmeyende genişleyip tüm sınıfları açmak, öğretmene başkasının
-  // sınıfına ödev verdirmek olurdu (K-04). Boş liste zaten ele alınıyor:
-  // seçici devre dışı kalıyor ve sebebi yazılıyor.
-  const availableClasses = teacherName
-    ? classes.filter(item => item.mentor === teacherName).map(item => item.name)
-    : [];
+  const availableClasses = useMemo(() => {
+    if (isDemoMode) {
+      return teacherName
+        ? demoClasses.filter(item => item.mentor === teacherName)
+        : demoClasses;
+    }
+    if (role === "admin") {
+      return classes;
+    }
+    const filtered = classes.filter(
+      item =>
+        (teacherName && item.mentor === teacherName) ||
+        (identity?.membership?.membershipId &&
+          item.mentorMembershipId === identity.membership.membershipId)
+    );
+    return filtered.length > 0 ? filtered : classes;
+  }, [classes, teacherName, role, identity]);
 
-  const [classGroup, setClassGroup] = useState(availableClasses[0] ?? "");
-  const [subject, setSubject] = useState<HomeworkSubject>(SUBJECTS[0]);
+  const [classId, setClassId] = useState("");
+  const [subjectId, setSubjectId] = useState("__none__");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = classGroup !== "" && title.trim() !== "" && dueDate !== "";
+  const subjectsQuery = useSubjects({
+    organizationId,
+    enabled: open && !isDemoMode && Boolean(organizationId),
+  });
 
-  const resetForm = () => {
-    setClassGroup(availableClasses[0] ?? "");
-    setSubject(SUBJECTS[0]);
+  const availableSubjects = useMemo(() => {
+    if (isDemoMode) {
+      return [
+        { id: "Matematik", name: "Matematik" },
+        { id: "Türkçe", name: "Türkçe" },
+        { id: "Fizik", name: "Fizik" },
+        { id: "Kimya", name: "Kimya" },
+        { id: "Biyoloji", name: "Biyoloji" },
+        { id: "Geometri", name: "Geometri" },
+      ];
+    }
+    return (subjectsQuery.data ?? []).map(s => ({ id: s.id, name: s.name }));
+  }, [subjectsQuery.data]);
+
+  const resetForm = useCallback(() => {
+    setClassId(availableClasses[0]?.id ?? availableClasses[0]?.name ?? "");
+    setSubjectId("__none__");
     setTitle("");
     setDescription("");
     setDueDate("");
-  };
+    setError(null);
+    setSubmitting(false);
+  }, [availableClasses]);
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    if (homework) {
+      const matchClass = availableClasses.find(
+        c => c.id === homework.classId || c.name === homework.classGroup
+      );
+      setClassId(
+        matchClass?.id ||
+          matchClass?.name ||
+          homework.classId ||
+          homework.classGroup ||
+          ""
+      );
+      setSubjectId(homework.subjectId ?? "__none__");
+      setTitle(homework.title);
+      setDescription(homework.description || "");
+      // Doğrudan ISO alan: Türkçe metinden geri çözmek ikinci bir tarih
+      // mantığı olurdu ve ay adı eşleşmezse sessizce boş tarih üretirdi.
+      setDueDate(homework.rawDueDate);
+      setError(null);
+      setSubmitting(false);
+    } else {
+      resetForm();
+    }
+  }, [open, homework, resetForm, availableClasses]);
+
+  const canSubmit =
+    classId !== "" && title.trim() !== "" && dueDate !== "" && !submitting;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!canSubmit) return;
 
-    /**
-     * Üretimde ödevi kalıcı kılan bir yol **henüz yok.** `v1.2-08` tabloyu
-     * ekledi ama servis katmanı v1.2-10'da bağlanacak; o zamana kadar
-     * `writeDemoData` üretimde no-op ve `initialHomework` boş dizi.
-     *
-     * Bu koruma olmadan ekran yalan söylüyordu: kayıt yalnızca React state'ine
-     * ekleniyor, "Ödev oluşturuldu" deniyor ve ilk yenilemede kayboluyordu.
-     * `AttendancePage` aynı durumda doğruyu söylüyor ("şu an bir kayıt
-     * oluşturulmadı"); burası söylemiyordu. #131 ve #134 ile aynı aile.
-     *
-     * Demo modunda davranış değişmiyor: orada kayıt `localStorage`'a yazılıyor
-     * ve gerçekten kalıcı, dolayısıyla başarı mesajı doğru.
-     */
-    if (!isDemoMode) {
-      toast.info("Ödev kaydı henüz aktif değil", {
-        description:
-          "Ödev altyapısı kalıcı veri fazında bağlanacaktır; şu an bir kayıt oluşturulmadı.",
-      });
+    const trimmedTitle = title.trim();
+    if (trimmedTitle.length === 0 || trimmedTitle.length > 200) {
+      setError("Ödev başlığı 1 ile 200 karakter arasında olmalıdır.");
+      return;
+    }
+
+    const selectedClass = availableClasses.find(
+      c => c.id === classId || c.name === classId
+    );
+    const selectedClassName =
+      selectedClass?.name || homework?.classGroup || classId;
+
+    if (isDemoMode) {
+      const selectedSubjectObj = availableSubjects.find(
+        s => s.id === subjectId
+      );
+      const item: Homework = {
+        id: isEditMode && homework ? homework.id : `hw-${Date.now()}`,
+        classGroup: selectedClassName,
+        classId: selectedClass?.id || homework?.classId,
+        subject: selectedSubjectObj?.name ?? null,
+        subjectId: selectedSubjectObj ? selectedSubjectObj.id : null,
+        title: trimmedTitle,
+        description: description.trim(),
+        assignedBy: homework?.assignedBy ?? (teacherName || "Öğretmen"),
+        assignedDate:
+          homework?.assignedDate ??
+          formatTrDate(new Date().toISOString().split("T")[0]),
+        dueDate: formatTrDate(dueDate),
+        rawDueDate: dueDate,
+        status: dueDate < getOrbitToday() ? "Süresi Doldu" : "Aktif",
+      };
+
+      if (isEditMode) {
+        onUpdate?.(item);
+        toast.success("Ödev güncellendi", {
+          description: `"${item.title}" ödevi güncellendi.`,
+        });
+      } else {
+        onCreate?.(item);
+        toast.success("Ödev oluşturuldu", {
+          description: `${selectedClassName} sınıfına "${item.title}" ödevi eklendi.`,
+        });
+      }
+
       resetForm();
       onOpenChange(false);
       return;
     }
 
-    const item: Homework = {
-      id: `hw-${Date.now()}`,
-      classGroup,
-      subject,
-      title: title.trim(),
-      description: description.trim(),
-      assignedBy: teacherName || "Öğretmen",
-      assignedDate: formatDate(new Date()),
-      dueDate: formatDate(new Date(dueDate)),
-      status: "Aktif",
-    };
-    onCreate(item);
-    toast.success("Ödev oluşturuldu", {
-      description: `${classGroup} sınıfına "${item.title}" ödevi eklendi.`,
-    });
-    resetForm();
-    onOpenChange(false);
+    if (!organizationId) {
+      setError("Kurum bilgisi bulunamadı.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      if (isEditMode && homework) {
+        await updateHomework(organizationId, homework.id, {
+          title: trimmedTitle,
+          description: description.trim() || null,
+          dueDate,
+          subjectId: subjectId && subjectId !== "__none__" ? subjectId : null,
+        });
+
+        toast.success("Ödev güncellendi", {
+          description: `"${trimmedTitle}" ödevi güncellendi.`,
+        });
+      } else {
+        await createHomework({
+          organizationId,
+          classId: selectedClass?.id || classId,
+          subjectId: subjectId && subjectId !== "__none__" ? subjectId : null,
+          title: trimmedTitle,
+          description: description.trim() || null,
+          dueDate,
+        });
+
+        toast.success("Ödev oluşturuldu", {
+          description: `${selectedClassName} sınıfına "${trimmedTitle}" ödevi eklendi.`,
+        });
+      }
+
+      if (onSaved) {
+        await onSaved();
+      }
+      resetForm();
+      onOpenChange(false);
+    } catch (err: unknown) {
+      const msg = translateHomeworkError(err);
+      setError(msg);
+      toast.error(isEditMode ? "Ödev güncellenemedi" : "Ödev oluşturulamadı", {
+        description: msg,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -129,113 +248,158 @@ export function HomeworkCreateDialog({
       }}
     >
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Yeni ödev oluştur</DialogTitle>
-          <DialogDescription>
-            Sadece sorumlu olduğunuz sınıflara ödev atayabilirsiniz.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
-                Sınıf
-              </Label>
-              <Select
-                value={classGroup}
-                onValueChange={setClassGroup}
-                disabled={availableClasses.length === 0}
-              >
-                <SelectTrigger className="mt-1.5 h-9 w-full text-[13px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableClasses.map(name => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>
+              {isEditMode ? "Ödevi düzenle" : "Yeni ödev oluştur"}
+            </DialogTitle>
+            <DialogDescription>
+              {isEditMode
+                ? "Ödev detaylarını ve teslim tarihini güncelleyin."
+                : "Sorumlu olduğunuz sınıflara ödev atayabilirsiniz."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label
+                  htmlFor="hw-class"
+                  className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400"
+                >
+                  Sınıf
+                </Label>
+                <select
+                  id="hw-class"
+                  value={classId}
+                  onChange={event => setClassId(event.target.value)}
+                  disabled={
+                    submitting || isEditMode || availableClasses.length === 0
+                  }
+                  className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] shadow-sm outline-none focus:border-blue-500 disabled:opacity-60"
+                >
+                  {availableClasses.length === 0 ? (
+                    <option value="">Ödev verilebilecek bir sınıf yok</option>
+                  ) : (
+                    availableClasses.map(item => (
+                      <option
+                        key={item.id || item.name}
+                        value={item.id || item.name}
+                      >
+                        {item.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+                {isEditMode ? (
+                  <p className="mt-1.5 text-[11px] leading-5 text-slate-400">
+                    Sınıf bilgisi ödev oluşturulduktan sonra değiştirilemez.
+                  </p>
+                ) : availableClasses.length === 0 ? (
+                  <p className="mt-1.5 text-[11px] leading-5 text-slate-500">
+                    Ödev verilebilecek bir sınıf yok.
+                  </p>
+                ) : null}
+              </div>
+              <div>
+                <Label
+                  htmlFor="hw-subject"
+                  className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400"
+                >
+                  Ders
+                </Label>
+                <select
+                  id="hw-subject"
+                  value={subjectId}
+                  onChange={event => setSubjectId(event.target.value)}
+                  disabled={submitting}
+                  className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-[13px] shadow-sm outline-none focus:border-blue-500"
+                >
+                  <option value="__none__">Ders seçilmedi</option>
+                  {availableSubjects.map(item => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
                   ))}
-                </SelectContent>
-              </Select>
-              {availableClasses.length === 0 ? (
-                <p className="mt-1.5 text-[11px] leading-5 text-slate-500">
-                  Ödev verilebilecek bir sınıf yok.
-                </p>
-              ) : null}
+                </select>
+              </div>
             </div>
             <div>
-              <Label className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
-                Ders
-              </Label>
-              <Select
-                value={subject}
-                onValueChange={value => setSubject(value as HomeworkSubject)}
+              <Label
+                htmlFor="hw-title"
+                className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400"
               >
-                <SelectTrigger className="mt-1.5 h-9 w-full text-[13px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SUBJECTS.map(item => (
-                    <SelectItem key={item} value={item}>
-                      {item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                Başlık
+              </Label>
+              <Input
+                id="hw-title"
+                value={title}
+                onChange={event => setTitle(event.target.value)}
+                placeholder="Örn. Türev Uygulamaları Deneme Seti"
+                disabled={submitting}
+                className="mt-1.5 h-9 text-[13px]"
+              />
             </div>
+            <div>
+              <Label
+                htmlFor="hw-description"
+                className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400"
+              >
+                Açıklama
+              </Label>
+              <Textarea
+                id="hw-description"
+                value={description}
+                onChange={event => setDescription(event.target.value)}
+                placeholder="Ödevin kapsamı ve öğrencilerden beklenenler"
+                disabled={submitting}
+                className="mt-1.5 min-h-20 text-[13px]"
+              />
+            </div>
+            <div>
+              <Label
+                htmlFor="hw-due-date"
+                className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400"
+              >
+                Son teslim tarihi
+              </Label>
+              <Input
+                id="hw-due-date"
+                type="date"
+                value={dueDate}
+                onChange={event => setDueDate(event.target.value)}
+                disabled={submitting}
+                className="mt-1.5 h-9 text-[13px]"
+              />
+            </div>
+            {error ? (
+              <p className="text-[11px] font-semibold text-rose-600">{error}</p>
+            ) : null}
           </div>
-          <div>
-            <Label className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
-              Başlık
-            </Label>
-            <Input
-              value={title}
-              onChange={event => setTitle(event.target.value)}
-              placeholder="Örn. Türev Uygulamaları Deneme Seti"
-              className="mt-1.5 h-9 text-[13px]"
-            />
-          </div>
-          <div>
-            <Label className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
-              Açıklama
-            </Label>
-            <Textarea
-              value={description}
-              onChange={event => setDescription(event.target.value)}
-              placeholder="Ödevin kapsamı ve öğrencilerden beklenenler"
-              className="mt-1.5 min-h-20 text-[13px]"
-            />
-          </div>
-          <div>
-            <Label className="text-[10px] font-extrabold uppercase tracking-[.06em] text-slate-400">
-              Son teslim tarihi
-            </Label>
-            <Input
-              type="date"
-              value={dueDate}
-              onChange={event => setDueDate(event.target.value)}
-              className="mt-1.5 h-9 text-[13px]"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <button
-            onClick={() => {
-              resetForm();
-              onOpenChange(false);
-            }}
-            className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 px-4 text-[11px] font-bold text-slate-600 hover:bg-slate-50"
-          >
-            Vazgeç
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-4 text-[11px] font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Ödevi Oluştur
-          </button>
-        </DialogFooter>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => {
+                resetForm();
+                onOpenChange(false);
+              }}
+              disabled={submitting}
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 px-4 text-[11px] font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            >
+              Vazgeç
+            </button>
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-900 px-4 text-[11px] font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {submitting
+                ? "Kaydediliyor…"
+                : isEditMode
+                  ? "Değişiklikleri kaydet"
+                  : "Ödevi Oluştur"}
+            </button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

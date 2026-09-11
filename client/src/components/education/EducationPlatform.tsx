@@ -26,6 +26,7 @@ import {
 } from "./educationData";
 import {
   useClasses,
+  useHomework,
   useLatestAttendanceSession,
   useLatestExam,
   usePaymentOverview,
@@ -42,6 +43,7 @@ import {
   linkStudentAccount,
   unlinkStudentAccount,
 } from "@/education/studentService";
+import { DEFAULT_HOMEWORK_LIMIT } from "@/education/homeworkService";
 import { StudentFormDialog } from "./pages/StudentFormDialog";
 import { ClassFormDialog } from "./pages/ClassFormDialog";
 import { ClassEnrollmentDialog } from "./pages/ClassEnrollmentDialog";
@@ -253,6 +255,7 @@ export function EducationPlatform({
   const examQuery = useLatestExam({ enabled: !isDemoMode });
   const paymentsQuery = usePayments({ enabled: !isDemoMode });
   const paymentOverviewQuery = usePaymentOverview({ enabled: !isDemoMode });
+  const homeworkQuery = useHomework({ enabled: !isDemoMode });
 
   // Aktif kurumun Realtime kanalına tekil abonelik (v1.3-05).
   // Demo modunda devre dışıdır; canlı modda arka plandaki veri değişikliklerini dinler.
@@ -292,6 +295,13 @@ export function EducationPlatform({
     }
     return buildPaymentStats(paymentOverviewQuery.data ?? null);
   }, [paymentOverviewQuery.data]);
+
+  const activeHomework = useMemo(() => {
+    if (isDemoMode) {
+      return homework;
+    }
+    return homeworkQuery.data?.rows ?? [];
+  }, [homework, homeworkQuery.data?.rows]);
 
   const visibleStudents = useMemo(() => {
     const roleStudents = filterStudentsForRole(
@@ -582,7 +592,20 @@ export function EducationPlatform({
       return (
         <HomeworkPage
           role={role}
-          homework={homework}
+          homework={activeHomework}
+          isLoading={!isDemoMode && homeworkQuery.isLoading}
+          error={homeworkQuery.error}
+          onRetry={() => homeworkQuery.refetch()}
+          truncated={!isDemoMode && Boolean(homeworkQuery.data?.truncated)}
+          limit={DEFAULT_HOMEWORK_LIMIT}
+          organizationId={organizationId}
+          classes={activeClasses}
+          onSaved={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: educationKeys.homework(organizationId),
+            });
+          }}
+          isDemo={isDemoMode}
           setHomework={setHomework}
         />
       );

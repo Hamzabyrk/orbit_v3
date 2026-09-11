@@ -235,7 +235,6 @@ export function mapStudentRow(
     latestExamMaxScore,
     payment: paymentStatus,
     // Kaynağı olmayan ve henüz türetilmeyen alanlar dürüstçe undefined bırakılır:
-    // homework: teslim tablosu yok; türetilemez (#237, ROADMAP §4.7)
     // risk: hesaplama kuralı henüz tanımlanmadı
   };
 }

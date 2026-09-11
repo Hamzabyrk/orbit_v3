@@ -21,7 +21,6 @@ export type Student = {
   latestExamName?: string;
   latestExamDate?: string;
   latestExamMaxScore?: number | null;
-  homework?: number;
   payment?: "Güncel" | "Takip gerekli";
   risk?: "Dengeli" | "Takip gerekli";
   hasAccount?: boolean;
@@ -125,19 +124,25 @@ export type DayPlanEvent = {
   subtitle: string;
 };
 
-export type HomeworkStatus = "Aktif" | "Süresi Doldu" | "Tamamlandı";
-
-export type HomeworkSubject =
-  "Matematik" | "Türkçe" | "Fizik" | "Kimya" | "Biyoloji" | "Geometri";
+export type HomeworkStatus = "Aktif" | "Süresi Doldu";
 
 export type Homework = {
   id: string;
   classGroup: string;
-  subject: HomeworkSubject;
+  classId?: string;
+  subject: string | null;
+  subjectId?: string | null;
   title: string;
   description: string;
-  assignedBy: string;
+  assignedBy?: string | null;
   assignedDate: string;
   dueDate: string;
+  /**
+   * Vade tarihi ISO biçiminde (YYYY-MM-DD) — `dueDate` ise ekrana yazılan
+   * Türkçe biçimdir. İkisi birden tutuluyor çünkü düzenleme formu ISO
+   * istiyor ve **Türkçe metinden geri çözmek bir tarih mantığının ikinci
+   * kopyasıdır**: ay adı eşleşmezse sessizce boş tarih üretir.
+   */
+  rawDueDate: string;
   status: HomeworkStatus;
 };

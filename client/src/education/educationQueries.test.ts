@@ -170,5 +170,31 @@ describe("educationKeys (K-19 ve Cache İzolasyonu)", () => {
     const overKey1 = educationKeys.paymentOverview("org-a");
     const overKey2 = educationKeys.paymentOverview("org-b");
     expect(overKey1).not.toEqual(overKey2);
+
+    const hwKey1 = educationKeys.homework("org-a");
+    const hwKey2 = educationKeys.homework("org-b");
+    expect(hwKey1).not.toEqual(hwKey2);
+
+    const subKey1 = educationKeys.subjects("org-a");
+    const subKey2 = educationKeys.subjects("org-b");
+    expect(subKey1).not.toEqual(subKey2);
+  });
+
+  it("ödev anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu taşır (v1.4-05 #273)", () => {
+    const key = educationKeys.homework("org-hw-1");
+    expect(key).toEqual([
+      "education",
+      "homework",
+      { organizationId: "org-hw-1" },
+    ]);
+  });
+
+  it("ders listesi anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu taşır", () => {
+    const key = educationKeys.subjects("org-sub-1");
+    expect(key).toEqual([
+      "education",
+      "subjects",
+      { organizationId: "org-sub-1" },
+    ]);
   });
 });

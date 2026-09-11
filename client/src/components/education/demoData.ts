@@ -55,7 +55,6 @@ export const students: Student[] = [
     parent: "Murat Kaya",
     attendance: 96,
     score: 84,
-    homework: 8,
     payment: "Güncel",
     risk: "Dengeli",
   },
@@ -68,7 +67,6 @@ export const students: Student[] = [
     parent: "Elif Demir",
     attendance: 88,
     score: 71,
-    homework: 5,
     payment: "Güncel",
     risk: "Takip gerekli",
   },
@@ -81,7 +79,6 @@ export const students: Student[] = [
     parent: "Selin Yıldız",
     attendance: 94,
     score: 78,
-    homework: 7,
     payment: "Takip gerekli",
     risk: "Dengeli",
   },
@@ -94,7 +91,6 @@ export const students: Student[] = [
     parent: "Berna Öztürk",
     attendance: 82,
     score: 63,
-    homework: 3,
     payment: "Güncel",
     risk: "Takip gerekli",
   },
@@ -107,7 +103,6 @@ export const students: Student[] = [
     parent: "Emre Akın",
     attendance: 98,
     score: 89,
-    homework: 9,
     payment: "Güncel",
     risk: "Dengeli",
   },
@@ -314,6 +309,7 @@ export const initialHomework: Homework[] = [
     assignedBy: "Merve Karaca",
     assignedDate: "18 Ağustos 2026",
     dueDate: "22 Ağustos 2026",
+    rawDueDate: "2026-08-22",
     status: "Süresi Doldu",
   },
   {
@@ -326,6 +322,7 @@ export const initialHomework: Homework[] = [
     assignedBy: "Merve Karaca",
     assignedDate: "20 Ağustos 2026",
     dueDate: "27 Ağustos 2026",
+    rawDueDate: "2026-08-27",
     status: "Aktif",
   },
   {
@@ -338,7 +335,8 @@ export const initialHomework: Homework[] = [
     assignedBy: "Merve Karaca",
     assignedDate: "12 Ağustos 2026",
     dueDate: "19 Ağustos 2026",
-    status: "Tamamlandı",
+    rawDueDate: "2026-08-19",
+    status: "Süresi Doldu",
   },
   {
     id: "hw-4",
@@ -350,6 +348,7 @@ export const initialHomework: Homework[] = [
     assignedBy: "Merve Karaca",
     assignedDate: "19 Ağustos 2026",
     dueDate: "26 Ağustos 2026",
+    rawDueDate: "2026-08-26",
     status: "Aktif",
   },
   {
@@ -362,6 +361,7 @@ export const initialHomework: Homework[] = [
     assignedBy: "Merve Karaca",
     assignedDate: "14 Ağustos 2026",
     dueDate: "20 Ağustos 2026",
+    rawDueDate: "2026-08-20",
     status: "Süresi Doldu",
   },
   {
@@ -374,6 +374,7 @@ export const initialHomework: Homework[] = [
     assignedBy: "Bora Ekin",
     assignedDate: "17 Ağustos 2026",
     dueDate: "24 Ağustos 2026",
+    rawDueDate: "2026-08-24",
     status: "Aktif",
   },
   {
@@ -386,6 +387,7 @@ export const initialHomework: Homework[] = [
     assignedBy: "Bora Ekin",
     assignedDate: "10 Ağustos 2026",
     dueDate: "17 Ağustos 2026",
+    rawDueDate: "2026-08-17",
     status: "Süresi Doldu",
   },
 ];
@@ -976,8 +978,6 @@ export const demoAssessmentFollowUp: AssessmentFollowUp = {
 export const demoReportAttendanceValues = [92, 94, 90, 93];
 export const demoReportExamValues = [68, 71, 69, 72];
 export const demoReportExamLabels = ["D-03", "D-04", "D-05", "D-06"];
-export const demoReportHomeworkValues = [78, 82, 86, 84];
-export const demoReportHomeworkLabels = ["May", "Haz", "Tem", "Ağu"];
 
 export const demoReportActions: ReportActionItem[] = [
   {

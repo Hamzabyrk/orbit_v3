@@ -111,7 +111,6 @@ describe("educationData ortam dallanması", () => {
       expect(data.reportActions).toEqual([]);
       expect(data.reportAttendanceValues).toEqual([0, 0, 0, 0]);
       expect(data.reportExamValues).toEqual([0, 0, 0, 0]);
-      expect(data.reportHomeworkValues).toEqual([0, 0, 0, 0]);
       expect(data.reportExamLabels).not.toContain("D-03");
     });
 
@@ -214,7 +213,6 @@ describe("educationData ortam dallanması", () => {
       expect(data.reportActions.length).toBeGreaterThan(0);
       expect(data.reportAttendanceValues.some(v => v > 0)).toBe(true);
       expect(data.reportExamValues.some(v => v > 0)).toBe(true);
-      expect(data.reportHomeworkValues.some(v => v > 0)).toBe(true);
     });
   });
 });
