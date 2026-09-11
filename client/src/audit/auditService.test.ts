@@ -88,10 +88,34 @@ describe("describeAuditAction / describeAuditEntity", () => {
     expect(describeAuditAction("class_enrollment.restored")).toBe(
       "Öğrencinin sınıf kaydı geri yüklendi"
     );
+    expect(describeAuditAction("attendance_session.created")).toBe(
+      "Yoklama oturumu açıldı"
+    );
+    expect(describeAuditAction("attendance_session.updated")).toBe(
+      "Yoklama oturumu güncellendi"
+    );
+    expect(describeAuditAction("attendance_session.archived")).toBe(
+      "Yoklama oturumu arşivlendi"
+    );
+    expect(describeAuditAction("attendance_session.restored")).toBe(
+      "Yoklama oturumu geri yüklendi"
+    );
+    expect(describeAuditAction("attendance_record.updated")).toBe(
+      "Yoklama kaydı güncellendi"
+    );
     expect(describeAuditEntity("student")).toBe("Öğrenci");
     expect(describeAuditEntity("guardian")).toBe("Veli");
     expect(describeAuditEntity("class")).toBe("Sınıf");
     expect(describeAuditEntity("class_enrollment")).toBe("Sınıf Kaydı");
+    expect(describeAuditEntity("attendance_session")).toBe("Yoklama Oturumu");
+    expect(describeAuditEntity("attendance_record")).toBe("Yoklama Kaydı");
+  });
+
+  it("⛔ attendance_record.created diye bir eylem yoktur ve etiket haritasında yer almaz (hacim kısıtı)", () => {
+    // İlk toplu giriş bilerek denetlenmez (§4.12); etiket haritasında olmamalıdır.
+    expect(describeAuditAction("attendance_record.created")).toBe(
+      "attendance_record.created"
+    );
   });
 
   it("bilinmeyen eylemde ham kodu gosterir, etiket uydurmaz", () => {

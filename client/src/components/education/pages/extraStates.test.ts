@@ -72,6 +72,12 @@ class MockDocument extends MockNode {
     return el;
   }
 
+  createElementNS(_ns: string, tag: string): MockNode {
+    const el = new MockNode(1, tag.toLowerCase());
+    el.ownerDocument = this;
+    return el;
+  }
+
   createTextNode(text: string): MockNode {
     const el = new MockNode(3, "#text");
     el.nodeValue = text;
@@ -113,12 +119,14 @@ import { StudentFormDialog } from "./StudentFormDialog";
 import { StudentsPage } from "./StudentsPage";
 import { ClassFormDialog } from "./ClassFormDialog";
 import { ClassesPage } from "./ClassesPage";
-import type { ClassGroup, Student } from "../types";
+import type { ClassGroup, Section, Student } from "../types";
 import { useOrganizationAuditEvents } from "@/audit/auditQueries";
 import {
   useSettingsBranches,
   useSettingsMembers,
 } from "@/settings/settingsQueries";
+import { AttendancePage } from "./AttendancePage";
+import { EducationPlatform } from "../EducationPlatform";
 
 const capturedInputProps: Record<
   string,
@@ -177,6 +185,102 @@ vi.mock("@/components/ui/dialog", () => ({
     handleCompositionEnd: () => {},
   }),
 }));
+
+let capturedAlertDialogProps: {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+} = {};
+let capturedAlertCancelProps: { onClick?: () => void } = {};
+let capturedAlertActionProps: { onClick?: () => void } = {};
+
+vi.mock("@/components/ui/alert-dialog", () => ({
+  AlertDialog: (props: {
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    children?: React.ReactNode;
+  }) => {
+    capturedAlertDialogProps = props;
+    return createElement(
+      "div",
+      { "data-slot": "alert-dialog", "data-open": props.open },
+      props.open ? props.children : null
+    );
+  },
+  AlertDialogContent: ({ children }: { children?: React.ReactNode }) =>
+    createElement("div", { "data-slot": "alert-dialog-content" }, children),
+  AlertDialogHeader: ({ children }: { children?: React.ReactNode }) =>
+    createElement("div", { "data-slot": "alert-dialog-header" }, children),
+  AlertDialogTitle: ({ children }: { children?: React.ReactNode }) =>
+    createElement("div", { "data-slot": "alert-dialog-title" }, children),
+  AlertDialogDescription: ({ children }: { children?: React.ReactNode }) =>
+    createElement("div", { "data-slot": "alert-dialog-description" }, children),
+  AlertDialogFooter: ({ children }: { children?: React.ReactNode }) =>
+    createElement("div", { "data-slot": "alert-dialog-footer" }, children),
+  AlertDialogCancel: (props: {
+    onClick?: () => void;
+    children?: React.ReactNode;
+  }) => {
+    capturedAlertCancelProps = props;
+    return createElement(
+      "button",
+      { "data-slot": "alert-dialog-cancel", onClick: props.onClick },
+      props.children
+    );
+  },
+  AlertDialogAction: (props: {
+    onClick?: () => void;
+    children?: React.ReactNode;
+  }) => {
+    capturedAlertActionProps = props;
+    return createElement(
+      "button",
+      { "data-slot": "alert-dialog-action", onClick: props.onClick },
+      props.children
+    );
+  },
+}));
+
+let capturedAdminDashboardProps: { onNavigate?: (section: Section) => void } =
+  {};
+vi.mock("../dashboards/AdminDashboard", () => ({
+  AdminDashboard: (props: { onNavigate?: (section: Section) => void }) => {
+    React.useEffect(() => {
+      capturedAdminDashboardProps = props;
+    }, [props]);
+    return createElement("div", { "data-slot": "admin-dashboard" });
+  },
+}));
+
+type AttendanceProps = React.ComponentProps<typeof AttendancePage>;
+
+let mockAttendanceInterception = false;
+let capturedAttendanceProps: AttendanceProps | null = null;
+
+function MockInterceptedAttendancePage(props: AttendanceProps) {
+  const { onDirtyChange } = props;
+  React.useEffect(() => {
+    capturedAttendanceProps = props;
+  });
+  React.useEffect(() => {
+    return () => {
+      onDirtyChange?.(false);
+    };
+  }, [onDirtyChange]);
+  return createElement("div", { "data-slot": "attendance-page" });
+}
+
+vi.mock("./AttendancePage", async importOriginal => {
+  const actual = await importOriginal<typeof import("./AttendancePage")>();
+  return {
+    ...actual,
+    AttendancePage: (props: AttendanceProps) => {
+      if (mockAttendanceInterception) {
+        return createElement(MockInterceptedAttendancePage, props);
+      }
+      return actual.AttendancePage(props);
+    },
+  };
+});
 
 function renderWithProviders(component: React.ReactElement, demoMode = false) {
   const dummyAuth: AuthContextValue = {
@@ -849,5 +953,370 @@ describe("ClassesPage states (v1.4-02)", () => {
     expect(html).not.toContain("Düzenle");
     expect(html).not.toContain("Arşivle");
     expect(html).toContain("Öğrencileri görüntüle");
+  });
+});
+
+describe("AttendancePage states (v1.4-03)", () => {
+  it("varsayılan durum seçilmemiştir: hiçbir öğrenci için 'Katıldı' ön işaretli gelmez (K-03)", () => {
+    const session = {
+      id: "sess-1",
+      classId: "cls-1",
+      className: "12-A",
+      subjectId: null,
+      subjectName: null,
+      sessionDate: "2026-09-10",
+      startsAt: null,
+      records: [
+        {
+          id: "rec-1",
+          studentId: "stu-1",
+          studentName: "Ali Can",
+          status: null,
+        },
+      ],
+    };
+
+    const html = renderToStaticMarkup(
+      createElement(AttendancePage, {
+        role: "teacher",
+        attendances: {},
+        setAttendances: vi.fn(),
+        session,
+        isDemo: false,
+      })
+    );
+
+    expect(html).toContain("Seçilmedi");
+    expect(html).not.toContain("bg-slate-900 text-white shadow-sm");
+  });
+
+  it("öğretmen rolünde akış açıktır: durum butonları devre dışı değildir ve kaydetme butonu mevcuttur", () => {
+    const session = {
+      id: "sess-1",
+      classId: "cls-1",
+      className: "12-A",
+      subjectId: null,
+      subjectName: null,
+      sessionDate: "2026-09-10",
+      startsAt: null,
+      records: [
+        {
+          id: "rec-1",
+          studentId: "stu-1",
+          studentName: "Ali Can",
+          status: "Katıldı" as const,
+        },
+      ],
+    };
+
+    const html = renderToStaticMarkup(
+      createElement(AttendancePage, {
+        role: "teacher",
+        attendances: {},
+        setAttendances: vi.fn(),
+        session,
+        isDemo: false,
+      })
+    );
+
+    expect(html).not.toContain('disabled="" aria-disabled="true"');
+    expect(html).toContain("Yoklamayı kaydet");
+  });
+
+  it("üretimde oturum yoksa 'Henüz yoklama kaydı yok' boş durumunu gösterir (K-03)", () => {
+    const html = renderToStaticMarkup(
+      createElement(AttendancePage, {
+        role: "admin",
+        attendances: {},
+        setAttendances: vi.fn(),
+        session: null,
+        isDemo: false,
+      })
+    );
+
+    expect(html).toContain("Henüz yoklama kaydı yok");
+  });
+
+  it("demo modunda 'Taslak' rozeti ve toast bildirimi davranışı korunur", () => {
+    const html = renderToStaticMarkup(
+      createElement(AttendancePage, {
+        role: "admin",
+        attendances: { "stu-1": "Katıldı" },
+        setAttendances: vi.fn(),
+        students: [
+          {
+            id: "stu-1",
+            name: "Ali Can",
+            group: "12-A",
+            branch: "Merkez",
+            parent: "Veli Can",
+          },
+        ],
+        isDemo: true,
+      })
+    );
+
+    expect(html).toContain("Taslak");
+    expect(html).toContain("Yoklamayı kaydet");
+  });
+});
+
+describe("EducationPlatform yoklama ayrılma koruması (v1.4-03 R1 & R2 Regresyon)", () => {
+  beforeEach(() => {
+    mockAttendanceInterception = true;
+    capturedAttendanceProps = null;
+    capturedAlertDialogProps = {};
+    capturedAlertCancelProps = {};
+    capturedAlertActionProps = {};
+  });
+
+  it("kirli durumdayken bölüm değiştirme doğrudan geçmez, AlertDialog onay penceresi açılır", () => {
+    const queryClient = new QueryClient();
+    const container = mockDoc.createElement("div");
+    mockDoc.body.appendChild(container);
+    const root = ReactDOM.createRoot(container as unknown as HTMLElement);
+
+    const dummyAuth: AuthContextValue = {
+      identity: {
+        user: {
+          id: "usr-1",
+          email: "admin@orbit.local",
+          phone: null,
+          created_at: "",
+        },
+        membership: {
+          id: "mem-1",
+          role: "admin",
+          organizationId: "org-1",
+        },
+      } as unknown as AuthContextValue["identity"],
+      loading: false,
+      demoMode: true,
+      passwordRecovery: false,
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+      switchDemoRole: vi.fn(),
+      requestPasswordReset: vi.fn(),
+      completePasswordReset: vi.fn(),
+      cancelPasswordRecovery: vi.fn(),
+      completeRequiredPasswordChange: vi.fn(),
+      refreshIdentity: vi.fn(),
+    };
+
+    React.act(() => {
+      root.render(
+        createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          createElement(
+            AuthContext.Provider,
+            { value: dummyAuth },
+            createElement(EducationPlatform, {
+              onLogout: vi.fn(),
+              initialRole: "admin",
+            })
+          )
+        )
+      );
+    });
+
+    // 1. AdminDashboard üzerinden Yoklama bölümüne geçilir
+    expect(capturedAdminDashboardProps.onNavigate).toBeDefined();
+    React.act(() => {
+      capturedAdminDashboardProps.onNavigate?.("Yoklama");
+    });
+
+    // 2. Yoklama sayfası ekrana gelir ve prop'ları yakalanır
+    expect(capturedAttendanceProps).not.toBeNull();
+
+    // 3. Öğretmen/Yönetici yoklama üzerinde değişiklik yapar (isDirty = true)
+    React.act(() => {
+      capturedAttendanceProps?.onDirtyChange?.(true);
+    });
+
+    // 4. Kullanıcı sol menüden Öğrenciler bölümüne geçmeye çalışır
+    React.act(() => {
+      capturedAttendanceProps?.onNavigate?.("Öğrenciler");
+    });
+
+    // ⛔ REGRESYON KORUMASI: Bölüm doğrudan DEĞİŞMEZ, AlertDialog açık şekilde tetiklenir
+    expect(capturedAlertDialogProps.open).toBe(true);
+
+    // 5. Kullanıcı "Vazgeç"e tıklar
+    React.act(() => {
+      capturedAlertCancelProps.onClick?.();
+    });
+
+    // Diyalog kapanır
+    expect(capturedAlertDialogProps.open).toBe(false);
+
+    // 6. Kullanıcı tekrar "Öğrenciler"e geçmeyi dener ve bu kez "Devam Et" der
+    React.act(() => {
+      capturedAttendanceProps?.onNavigate?.("Öğrenciler");
+    });
+    expect(capturedAlertDialogProps.open).toBe(true);
+
+    React.act(() => {
+      capturedAlertActionProps.onClick?.();
+    });
+
+    // Diyalog kapanır ve geçiş onaylanarak kirli durum sıfırlanır
+    expect(capturedAlertDialogProps.open).toBe(false);
+
+    React.act(() => {
+      root.unmount();
+    });
+    mockDoc.body.removeChild(container);
+    mockAttendanceInterception = false;
+  });
+
+  it("temiz durumdayken bölüm geçişi doğrudan geçer, onay penceresi açılmaz", () => {
+    const queryClient = new QueryClient();
+    const container = mockDoc.createElement("div");
+    mockDoc.body.appendChild(container);
+    const root = ReactDOM.createRoot(container as unknown as HTMLElement);
+
+    const dummyAuth: AuthContextValue = {
+      identity: {
+        user: {
+          id: "usr-1",
+          email: "admin@orbit.local",
+          phone: null,
+          created_at: "",
+        },
+        membership: {
+          id: "mem-1",
+          role: "admin",
+          organizationId: "org-1",
+        },
+      } as unknown as AuthContextValue["identity"],
+      loading: false,
+      demoMode: true,
+      passwordRecovery: false,
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+      switchDemoRole: vi.fn(),
+      requestPasswordReset: vi.fn(),
+      completePasswordReset: vi.fn(),
+      cancelPasswordRecovery: vi.fn(),
+      completeRequiredPasswordChange: vi.fn(),
+      refreshIdentity: vi.fn(),
+    };
+
+    React.act(() => {
+      root.render(
+        createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          createElement(
+            AuthContext.Provider,
+            { value: dummyAuth },
+            createElement(EducationPlatform, {
+              onLogout: vi.fn(),
+              initialRole: "admin",
+            })
+          )
+        )
+      );
+    });
+
+    React.act(() => {
+      capturedAdminDashboardProps.onNavigate?.("Yoklama");
+    });
+    expect(capturedAttendanceProps).not.toBeNull();
+
+    // Veri temizdir (isDirty = false)
+    React.act(() => {
+      capturedAttendanceProps?.onDirtyChange?.(false);
+    });
+
+    // Başka bölüme geçiş doğrudan geçer
+    React.act(() => {
+      capturedAttendanceProps?.onNavigate?.("Öğrenciler");
+    });
+
+    // Onay penceresi kesinlikle AÇILMAZ
+    expect(capturedAlertDialogProps.open).toBeFalsy();
+
+    React.act(() => {
+      root.unmount();
+    });
+    mockDoc.body.removeChild(container);
+    mockAttendanceInterception = false;
+  });
+
+  it("Yoklama'dayken tekrar Yoklama'ya tıklandığında kirli olsa bile onay penceresi açılmaz", () => {
+    const queryClient = new QueryClient();
+    const container = mockDoc.createElement("div");
+    mockDoc.body.appendChild(container);
+    const root = ReactDOM.createRoot(container as unknown as HTMLElement);
+
+    const dummyAuth: AuthContextValue = {
+      identity: {
+        user: {
+          id: "usr-1",
+          email: "admin@orbit.local",
+          phone: null,
+          created_at: "",
+        },
+        membership: {
+          id: "mem-1",
+          role: "admin",
+          organizationId: "org-1",
+        },
+      } as unknown as AuthContextValue["identity"],
+      loading: false,
+      demoMode: true,
+      passwordRecovery: false,
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+      switchDemoRole: vi.fn(),
+      requestPasswordReset: vi.fn(),
+      completePasswordReset: vi.fn(),
+      cancelPasswordRecovery: vi.fn(),
+      completeRequiredPasswordChange: vi.fn(),
+      refreshIdentity: vi.fn(),
+    };
+
+    React.act(() => {
+      root.render(
+        createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          createElement(
+            AuthContext.Provider,
+            { value: dummyAuth },
+            createElement(EducationPlatform, {
+              onLogout: vi.fn(),
+              initialRole: "admin",
+            })
+          )
+        )
+      );
+    });
+
+    React.act(() => {
+      capturedAdminDashboardProps.onNavigate?.("Yoklama");
+    });
+    expect(capturedAttendanceProps).not.toBeNull();
+
+    // Veri kirlidir
+    React.act(() => {
+      capturedAttendanceProps?.onDirtyChange?.(true);
+    });
+
+    // Tekrar Yoklama'ya tıklanır (aynı bölüm)
+    React.act(() => {
+      capturedAttendanceProps?.onNavigate?.("Yoklama");
+    });
+
+    // Aynı bölüme tıklandığında onay penceresi AÇILMAZ
+    expect(capturedAlertDialogProps.open).toBeFalsy();
+
+    React.act(() => {
+      root.unmount();
+    });
+    mockDoc.body.removeChild(container);
+    mockAttendanceInterception = false;
   });
 });
