@@ -63,7 +63,14 @@ export function PlatformAuditLog({
                 </div>
 
                 <p className="mt-1 text-[11px] leading-5 text-slate-400">
-                  {event.actorName ?? "Bilinmeyen kullanıcı"}
+                  {/* v1.4 ara denetimi: "Bilinmeyen kullanıcı" kişiyi TANIMSIZ
+                      ilan ediyordu; oysa bilinmeyen şey kullanıcı değil, adın
+                      okunup okunamadığı. Depo deseni (SettingsMembersSection)
+                      sistemin durumunu söylüyor. Aynı kusur v1.4-10'da
+                      "İsimsiz Veli" olarak bulunup düzeltilmişti (K-22). */}
+                  {event.actorName ?? (
+                    <span className="italic">adı okunamadı</span>
+                  )}
                   {event.organizationName ? ` · ${event.organizationName}` : ""}
                   {` · ${event.entityType}`}
                 </p>

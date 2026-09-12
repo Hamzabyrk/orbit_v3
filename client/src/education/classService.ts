@@ -304,35 +304,59 @@ export async function updateClass(
     payload.capacity = input.capacity;
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("classes")
     .update(payload)
-    .eq("id", classId);
+    .eq("id", classId)
+    .select("id");
 
   if (error) {
     throw new Error(translateClassError(error, "class"));
+  }
+
+  // K-14: sıfır satır etkileyen bir yazma "oldu" demez. RLS satırı
+  // gizlediğinde veya kimlik yanlış olduğunda `.update()` hata vermez,
+  // sessizce hiçbir şey yapmaz — ekran da "başarılı" derdi.
+  if (!data || data.length === 0) {
+    throw new Error("Sınıf bulunamadı veya güncellenemedi.");
   }
 }
 
 export async function archiveClass(classId: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("classes")
     .update({ archived_at: new Date().toISOString() })
-    .eq("id", classId);
+    .eq("id", classId)
+    .select("id");
 
   if (error) {
     throw new Error(translateClassError(error, "class"));
   }
+
+  // K-14: sıfır satır etkileyen bir yazma "oldu" demez. RLS satırı
+  // gizlediğinde veya kimlik yanlış olduğunda `.update()` hata vermez,
+  // sessizce hiçbir şey yapmaz — ekran da "başarılı" derdi.
+  if (!data || data.length === 0) {
+    throw new Error("Sınıf bulunamadı veya arşivlenemedi.");
+  }
 }
 
 export async function restoreClass(classId: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("classes")
     .update({ archived_at: null })
-    .eq("id", classId);
+    .eq("id", classId)
+    .select("id");
 
   if (error) {
     throw new Error(translateClassError(error, "class"));
+  }
+
+  // K-14: sıfır satır etkileyen bir yazma "oldu" demez. RLS satırı
+  // gizlediğinde veya kimlik yanlış olduğunda `.update()` hata vermez,
+  // sessizce hiçbir şey yapmaz — ekran da "başarılı" derdi.
+  if (!data || data.length === 0) {
+    throw new Error("Sınıf bulunamadı veya geri yüklenemedi.");
   }
 }
 
@@ -410,12 +434,20 @@ export async function enrollStudent(
 }
 
 export async function unenrollStudent(enrollmentId: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("class_enrollments")
     .update({ archived_at: new Date().toISOString() })
-    .eq("id", enrollmentId);
+    .eq("id", enrollmentId)
+    .select("id");
 
   if (error) {
     throw new Error(translateClassError(error, "enrollment"));
+  }
+
+  // K-14: sıfır satır etkileyen bir yazma "oldu" demez. RLS satırı
+  // gizlediğinde veya kimlik yanlış olduğunda `.update()` hata vermez,
+  // sessizce hiçbir şey yapmaz — ekran da "başarılı" derdi.
+  if (!data || data.length === 0) {
+    throw new Error("Sınıf kaydı bulunamadı veya kaldırılamadı.");
   }
 }

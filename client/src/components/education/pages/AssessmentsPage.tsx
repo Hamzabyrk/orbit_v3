@@ -5,6 +5,7 @@ import { isDemoMode } from "@/auth/runtime";
 import {
   formatExamSummary,
   loadExamSheet,
+  archiveExam,
   saveExamResults,
   translateExamError,
   type LatestExamDetail,
@@ -84,6 +85,12 @@ export function AssessmentsPage({
     return null;
   });
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  // Doluysa diyalog düzenleme kipinde açılır (v1.4 ara denetimi: v1.4-04
+  // `updateExam` ve `archiveExam`'i yazmış ama hiçbir ekrana bağlamamıştı).
+  const [examUnderEdit, setExamUnderEdit] = useState<LatestExamDetail | null>(
+    null
+  );
+  const [isArchiving, setIsArchiving] = useState(false);
   const [sheet, setSheet] = useState<ExamSheet | null>(() => {
     if (initialSheet) return initialSheet;
     if (activeDemo) {
@@ -266,6 +273,29 @@ export function AssessmentsPage({
     }));
   };
 
+  // Arşivleme geri alınabilir bir iş (archived_at) ama sınav sonuçlarını
+  // ekrandan düşürdüğü için onay tostu yerine doğrudan yapılıyor ve sonucu
+  // söyleniyor. Sıfır satır etkilenirse servis hata fırlatıyor (K-14).
+  const handleArchiveExam = async () => {
+    if (!organizationId || !activeExam) return;
+    setIsArchiving(true);
+    try {
+      await archiveExam(organizationId, activeExam.id);
+      toast.success("Sınav arşivlendi", {
+        description: `"${activeExam.name}" listeden kaldırıldı.`,
+      });
+      setActiveExam(null);
+      setSheet(null);
+      onSaved?.();
+    } catch (err: unknown) {
+      toast.error("Sınav arşivlenemedi", {
+        description: translateExamError(err),
+      });
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!activeExam) return;
 
@@ -420,14 +450,37 @@ export function AssessmentsPage({
               <div className="flex items-center gap-2">
                 <Badge tone="blue">Kayıtlı Sınav</Badge>
                 {canManageExams ? (
-                  <button
-                    type="button"
-                    onClick={() => setCreateDialogOpen(true)}
-                    className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Yeni Sınav
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExamUnderEdit(activeExam);
+                        setCreateDialogOpen(true);
+                      }}
+                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                    >
+                      Düzenle
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isArchiving}
+                      onClick={() => void handleArchiveExam()}
+                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                    >
+                      {isArchiving ? "Arşivleniyor…" : "Arşivle"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExamUnderEdit(null);
+                        setCreateDialogOpen(true);
+                      }}
+                      className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Yeni Sınav
+                    </button>
+                  </>
                 ) : null}
               </div>
             </div>
@@ -564,17 +617,19 @@ export function AssessmentsPage({
       {organizationId && classes.length > 0 ? (
         <ExamFormDialog
           open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
+          onOpenChange={next => {
+            setCreateDialogOpen(next);
+            if (!next) setExamUnderEdit(null);
+          }}
           organizationId={organizationId}
           classes={classes}
-          onDone={newExamId => {
-            setActiveExam({
-              id: newExamId,
-              name: "Yeni Sınav",
-              examDate: new Date().toISOString().split("T")[0],
-              maxScore: null,
-              participantCount: null,
-            });
+          exam={examUnderEdit}
+          onDone={savedExam => {
+            // Uydurma yok: diyalog kullanıcının yazdığı değerleri geri veriyor.
+            // Eskiden burada ad "Yeni Sınav", tarih bugün, tam puan null
+            // yazılıyordu — üçü de kullanıcının az önce girdiğinin yerine.
+            setActiveExam(savedExam);
+            setExamUnderEdit(null);
             onSaved?.();
           }}
         />

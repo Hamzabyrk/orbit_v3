@@ -138,7 +138,7 @@ client/src/
 
 **Edge Function'ların ortak katmanı:** `supabase/functions/_shared/` — `http.ts` (origin listesi, CORS, JSON yanıtı), `temporaryPassword.ts` (ömür sabiti ve üretici), `syntheticEmail.ts` (giriş adresi alan adı). Alt çizgiyle başladığı için ayrı bir fonksiyon olarak deploy edilmez. `syntheticEmail.ts`'in istemci tarafında derleyicinin göremediği bir ikizi var: `client/src/auth/loginIdentifier.ts` giriş numarasını bu adresten çözer, dolayısıyla ikisi birlikte değişir.
 
-**`lib/documents.ts` ölü koddur** — hiçbir yerden çağrılmıyor ve dayandığı `workspace_documents` tablosunda hiç policy yok. "Belgeler" özelliği v1.6'da yeniden ele alınana kadar bu şekilde kalır; bkz. `PLATFORM_SETTINGS.md` kabul edilmiş açıklar.
+**`lib/documents.ts` ölü koddur** — hiçbir yerden çağrılmıyor ve dayandığı `workspace_documents` tablosunda hiç policy yok. "Belgeler" özelliği v1.6'da yeniden ele alınana kadar bu şekilde kalır; bkz. `PLATFORM_SETTINGS.md` kabul edilmiş açıklar. **Bu satır artık bir kapının dayanağı (2026-09-13):** `client/src/lib/deadServiceExports.test.ts` "çağıranı olmayan servis kalamaz" kuralını zorluyor ve `lib/documents.ts` oradaki **tek muafiyet**, gerekçesi olarak buraya işaret ediyor. Muafiyetin kendisi de sınanıyor — dosya kullanılmaya başlandığı gün test kırmızıya döner ve satırın silinmesini ister.
 
 ---
 
@@ -263,6 +263,8 @@ Dört varlık v1.4'te uçtan uca bağlandı — **Öğrenci** (v1.4-01), **Sın�
 Bu dilimin kaydı, eklediğinden çok **kaldırdığı** için düşülüyor: `HomeworkStatus`'tan `"Tamamlandı"`, `Student` tipinden `homework` (`"7/9"` teslim oranı) ve rapor ekranından "Ödev tamamlama" kartı silindi. Sebep matrisin kendisinde görünüyor — ödev teslimi için **tablo yok**, dolayısıyla o üç öğe bir veriyi değil bir **beklentiyi** gösteriyordu. Teslim takibi **v1.4-15**'te açılacak (`DECISION_LOG`); o gün bu satırın hiçbir sütunu değişmeyecek ama **yeni bir satır** eklenecek.
 
 ⚠️ Böylece v1.4'ün CRUD dilimleri bitti: matriste "Servis ✅ + Yazma ✅" taşıyan beş varlık var (Öğrenci, Sınıf, Yoklama, Sınav, Ödev). **Program ve Ödeme hâlâ yalnız okuma** — ödeme kurallarının kaynağı yok (#239) ve o karar verilmeden yazma açılamaz.
+
+**v1.4 ara denetimi düzeltmesi (2026-09-13):** Yukarıdaki _"**Sınav** (v1.4-04) uçtan uca bağlandı"_ cümlesi **eksikti**. Sınav **sonucu** girişi gerçekten bağlıydı; sınavın kendisini **düzenlemek ve arşivlemek** bağlı değildi — `updateExam` ve `archiveExam` yazılmış, sınanmış ve hiçbir yerden çağrılmamıştı. Üstelik ekran yeni sınav oluşturulduğunda kullanıcının az önce yazdığı adı, tarihi ve tam puanı değil `"Yeni Sınav"`, bugünün tarihi ve boş puan gösteriyordu (**K-03**). İkisi de denetimde kapandı. **"Ekran ✅" satırının yukarıdaki uyarısının somut örneği budur.**
 
 **On altıncı düzeltme (2026-09-12, v1.4-06):** **Ödeme** satırı yazma grubuna geçti; "Servis" ve "Yazma" sütunları ✅ oldu. Yazma yüzeyi v1.2-06'dan beri açıktı, eksik olan ekrandı.
 
@@ -458,7 +460,10 @@ Sonradan nullable kolon eklemek ucuz ve kırıcı değildir; bu nedenle şemanı
 
 ### Henüz tasarlanmamış, pilot öncesi gereken adımlar
 
-- Öğrenci veya öğretmenin kurumdan ayrılması (`membership_status = suspended` mevcut, akış yok)
-- Kurumun ikinci ve sonraki şubelerinin eklenmesi
+- ~~Öğrenci veya öğretmenin kurumdan ayrılması (`membership_status = suspended` mevcut, akış yok)~~ ✅ **v1.4-07'de kapandı** (`internal_remove_member` + `remove-member` Edge Function; ayrılan kişinin `students`/`guardians` bağı da koparılıyor). Son yöneticiyi koruyan sayım **v1.4-08**'de eklendi (`ORB06`).
+- ~~Kurumun ikinci ve sonraki şubelerinin eklenmesi~~ 🟡 **v1.4-09'da açılıyor** (#284) — sunucu yarısı indi (RLS yazma politikaları, varsayılan şube tetikleyicisi, dolu şube arşivlenemez). Merge edilmeden **kapandı sayılmaz**; ekran yarısı yazanda.
+
+> ⚠️ **Bu iki satır v1.4-07 ve v1.4-09 geldiğinde güncellenmedi; v1.4 ara denetiminde (2026-09-13) yakalandı.** Kayda geçiyor çünkü listenin adı "henüz tasarlanmamış" ve içinde **tasarlanmış, yazılmış, üretime çıkmış** bir madde duruyordu. Bir eksiklik listesi eskidiğinde yanlış olmakla kalmaz, bakan kişiye **yapılmış işi yapılmamış** gösterir (**K-24**).
+
 - KVKK silme hakkı (pilot öncesi güvenlik listesi; bkz. `ROADMAP.md` v1.5)
 - Veri işleme sözleşmesi, aydınlatma metni ve açık rıza akışı

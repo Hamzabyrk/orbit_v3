@@ -518,6 +518,21 @@ Sık görülen iki boş biçim:
 
 _Kaynak: v1.4-03. R1 ve R2 düzeltmeleri doğruydu ama dört regresyon testinin dördü de boştu; `EducationPlatform`'daki koruma tamamen kapatıldığında **41/41 test yeşil kaldı**. Üçüncü turda karar `shouldConfirmLeaving`'e çıkarıldı ve testler gerçek bileşeni render etti; aynı mutasyon bu kez testi kırmızıya döndürdü._
 
+### K-24 · Sıkılaşan bir standart geriye uygulanmazsa standart değildir
+
+Bir kural sürümün ortasında sıkılaştığında, **o kuralın konduğu andan önce kapanmış dilimler ona göre yeniden ölçülür.** Yapılmazsa ortaya bir borç değil, **kuralın kendisinden daha kötü bir şey** çıkar: aynı depoda iki farklı standart, ve hangisinin nerede geçerli olduğunu yalnız kuralı koyan kişinin hafızası bilir.
+
+Sinsi yanı, bu ayrımın **hiçbir belirtisinin olmaması**. Eski dilim kendi zamanının kurallarını geçmişti; kapı yeşil, testler yeşil, kod duruyor. Yeni kural yalnız yeni yazılana uygulanır ve eskisi "denetlenmiş" sayılmaya devam eder — oysa hiç o gözle bakılmamıştır.
+
+**Kural:** bir K kuralı eklendiğinde ya da bir kontrol alışkanlık hâline geldiğinde, iki şeyden biri yapılır:
+
+1. **Geriye tarama yapılır** — kuralın kapsadığı bütün eski yüzey aynı turda ölçülür, ve
+2. **kural kapıya taşınır** — çünkü elle yapılan bir tarama, onu yapan kişi yorulduğunda biter (**K-19**).
+
+Sadece "bundan sonra böyle yapacağız" demek üçüncü bir seçenek değildir; bir süre sonra kuralın kendisi de unutulur.
+
+_Kaynak: v1.4 ara denetimi (2026-09-13). Denetim dokuz kapanmış dilimi taradı ve bulduğu bütün kusurların **tek bir örüntüsü** vardı: uyguladığım standartlar dilim dilim sıkılaşmış, eski dilimler hiç geri dönülüp hizalanmamıştı. "İhraç ettiğin her fonksiyonun çağıranı var mı" kontrolü v1.4-05'te başladı — v1.4-04'ün sınav düzenleme ve arşivleme fonksiyonları o turdan önceydi ve **ekrana hiç bağlanmadan** kapandı; kullanıcı sınavın adını, tarihini ve tam puanını yazıyor, ekran "Yeni Sınav", bugünün tarihi ve boş puan gösteriyordu (**K-03**). K-14 koruması da yalnız v1.4-05'ten sonraki servislerde vardı; dokuz fonksiyon sıfır satır etkileyen bir yazmayı "başarılı" sayıyordu. Kuralın ikinci maddesi aynı turda uygulandı: çağıran kontrolü `client/src/lib/deadServiceExports.test.ts` ile kapıya taşındı. Üç kez elle yapılmış ve üçünde de bir şey bulmuştu._
+
 ## Brifing yazarken
 
 İyi bir brifing şunları içerir:

@@ -19,18 +19,9 @@ import {
 } from "./scheduleService";
 import {
   loadLatestAttendanceSession,
-  loadAttendanceSheet,
   type LatestAttendanceSessionResult,
-  type AttendanceSheet,
 } from "./attendanceService";
-import {
-  loadLatestExam,
-  loadExams,
-  loadExamSheet,
-  type LatestExamResult,
-  type ExamDetail,
-  type ExamSheet,
-} from "./examService";
+import { loadLatestExam, type LatestExamResult } from "./examService";
 import {
   loadPaymentOverviewCounts,
   loadPayments,
@@ -297,36 +288,6 @@ export type UseAttendanceSheetOptions = {
   enabled?: boolean;
 };
 
-/**
- * Bir yoklama oturumunun çizelgesini (öğrenci listesi ve yoklama durumları) getiren React Query hook'u (v1.4-03 · #268).
- *
- * Aktif kurum kimliği `useAuth` üzerinden sağlanır; kurum kimliği veya oturum kimliği
- * henüz çözümlenmemişse sorgu çalıştırılmaz (`enabled: false`).
- */
-export function useAttendanceSheet(
-  sessionId: string | null | undefined,
-  options?: UseAttendanceSheetOptions
-) {
-  const { identity } = useAuth();
-  const organizationId =
-    options?.organizationId ?? identity?.membership?.organizationId;
-  const isEnabled =
-    (options?.enabled ?? true) && Boolean(organizationId) && Boolean(sessionId);
-
-  return useQuery<AttendanceSheet, Error>({
-    queryKey:
-      organizationId && sessionId
-        ? educationKeys.attendanceSheet(organizationId, sessionId)
-        : ([
-            "education",
-            "attendanceSheet",
-            { organizationId: "", sessionId: "" },
-          ] as const),
-    queryFn: () => loadAttendanceSheet(organizationId!, sessionId!),
-    enabled: isEnabled,
-  });
-}
-
 export type UseLatestExamOptions = {
   organizationId?: string;
   enabled?: boolean;
@@ -358,58 +319,10 @@ export type UseExamsOptions = {
   enabled?: boolean;
 };
 
-/**
- * Aktif kurumun sınav listesini getiren React Query hook'u (#270).
- */
-export function useExams(options?: UseExamsOptions) {
-  const { identity } = useAuth();
-  const organizationId =
-    options?.organizationId ?? identity?.membership?.organizationId;
-  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
-
-  return useQuery<ExamDetail[], Error>({
-    queryKey: organizationId
-      ? educationKeys.exams(organizationId)
-      : (["education", "exams", { organizationId: "" }] as const),
-    queryFn: () => loadExams(organizationId!),
-    enabled: isEnabled,
-  });
-}
-
 export type UseExamSheetOptions = {
   organizationId?: string;
   enabled?: boolean;
 };
-
-/**
- * Bir sınavın çizelgesini (öğrenci listesi ve puanları) getiren React Query hook'u (v1.4-04 · #270).
- *
- * Aktif kurum kimliği `useAuth` üzerinden sağlanır; kurum kimliği veya sınav kimliği
- * henüz çözümlenmemişse sorgu çalıştırılmaz (`enabled: false`).
- */
-export function useExamSheet(
-  examId: string | null | undefined,
-  options?: UseExamSheetOptions
-) {
-  const { identity } = useAuth();
-  const organizationId =
-    options?.organizationId ?? identity?.membership?.organizationId;
-  const isEnabled =
-    (options?.enabled ?? true) && Boolean(organizationId) && Boolean(examId);
-
-  return useQuery<ExamSheet, Error>({
-    queryKey:
-      organizationId && examId
-        ? educationKeys.examSheet(organizationId, examId)
-        : ([
-            "education",
-            "examSheet",
-            { organizationId: "", examId: "" },
-          ] as const),
-    queryFn: () => loadExamSheet(organizationId!, examId!),
-    enabled: isEnabled,
-  });
-}
 
 export type UsePaymentsOptions = {
   organizationId?: string;

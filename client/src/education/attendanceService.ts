@@ -409,52 +409,6 @@ export async function loadLatestAttendanceSession(
 }
 
 /**
- * Aktif kurumun yoklama oturumlarını listeler (v1.4-03).
- */
-export async function loadAttendanceSessions(
-  organizationId: string,
-  limit = DEFAULT_ATTENDANCE_SESSION_LIMIT
-): Promise<AttendanceSessionListResult> {
-  const { data, error } = await supabase
-    .from("attendance_sessions")
-    .select(
-      `
-      id,
-      class_id,
-      subject_id,
-      session_date,
-      starts_at,
-      archived_at,
-      classes ( id, name, archived_at ),
-      subjects ( id, name, archived_at ),
-      attendance_records (
-        id,
-        student_id,
-        status,
-        students ( id, full_name, archived_at )
-      )
-    `
-    )
-    .eq("organization_id", organizationId)
-    .is("archived_at", null)
-    .order("session_date", { ascending: false })
-    .order("starts_at", { ascending: false, nullsFirst: false })
-    .limit(limit);
-
-  if (error) {
-    throw new Error("Yoklama oturumları yüklenemedi.");
-  }
-
-  const rawRows = (data ?? []) as RawAttendanceSessionRow[];
-  const rows = rawRows.map(mapSessionRow);
-
-  return {
-    rows,
-    truncated: rawRows.length === limit,
-  };
-}
-
-/**
  * Yoklama oturumu açar veya var olan oturumu döner (v1.4-03 · #268).
  *
  * ⛔ `attendance_sessions.id` authenticated rolü için salt okunurdur. Yüke `id`

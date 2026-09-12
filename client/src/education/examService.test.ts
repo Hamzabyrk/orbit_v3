@@ -10,7 +10,6 @@ import {
   createExam,
   formatExamSummary,
   loadExamParticipantCount,
-  loadExams,
   loadExamSheet,
   loadLatestExam,
   loadStudentLatestExamScores,
@@ -517,7 +516,10 @@ describe("examService", () => {
     it("updateExam açık organization_id ve id süzgeciyle günceller", async () => {
       const spy: { eqArgs?: [string, unknown][]; updateArg?: unknown } = {};
       fromMock.mockReturnValue(
-        createQueryChain({ data: null, error: null }, spy)
+        createQueryChain(
+          { data: [{ id: "etkilenen-satir" }], error: null },
+          spy
+        )
       );
 
       await updateExam("org-1", "exam-1", {
@@ -534,7 +536,10 @@ describe("examService", () => {
     it("archiveExam açık organization_id ile archived_at zaman damgası koyar", async () => {
       const spy: { eqArgs?: [string, unknown][]; updateArg?: unknown } = {};
       fromMock.mockReturnValue(
-        createQueryChain({ data: null, error: null }, spy)
+        createQueryChain(
+          { data: [{ id: "etkilenen-satir" }], error: null },
+          spy
+        )
       );
 
       await archiveExam("org-1", "exam-1");
@@ -543,40 +548,6 @@ describe("examService", () => {
       expect(spy.updateArg).toEqual({ archived_at: expect.any(String) });
       expect(spy.eqArgs).toContainEqual(["organization_id", "org-1"]);
       expect(spy.eqArgs).toContainEqual(["id", "exam-1"]);
-    });
-
-    it("loadExams açık organization_id süzgeci taşır ve arşivli olmayan sınavları sıralar", async () => {
-      const spy: { eqArgs?: [string, unknown][]; isArgs?: [string, unknown] } =
-        {};
-      fromMock.mockReturnValue(
-        createQueryChain(
-          {
-            data: [
-              {
-                id: "exam-1",
-                organization_id: "org-1",
-                class_id: "cls-1",
-                name: "TYT 1",
-                exam_date: "2026-09-01",
-                max_score: "100.00",
-                classes: { name: "12-A" },
-              },
-            ],
-            error: null,
-          },
-          spy
-        )
-      );
-
-      const exams = await loadExams("org-1");
-
-      expect(fromMock).toHaveBeenCalledWith("exams");
-      expect(spy.eqArgs).toContainEqual(["organization_id", "org-1"]);
-      expect(spy.isArgs).toEqual(["archived_at", null]);
-      expect(exams).toHaveLength(1);
-      expect(exams[0].name).toBe("TYT 1");
-      expect(exams[0].maxScore).toBe(100);
-      expect(exams[0].className).toBe("12-A");
     });
 
     it("loadExamSheet sınavı, sınıf öğrencilerini ve varsa sonuçları yükler", async () => {
@@ -938,6 +909,98 @@ describe("examService", () => {
 
       expect(html).toContain("TYT Deneme 06");
       expect(html).toContain("Sınav Sonuçları");
+    });
+  });
+
+  // v1.4 ara denetimi · K-14 — bkz. classService.test.ts'teki aynı blok.
+  describe("K-14 sıfır satır koruması (v1.4 ara denetimi)", () => {
+    const senaryolar: [string, () => Promise<unknown>, string][] = [
+      [
+        "updateExam",
+        () => updateExam("org-1", "sinav-yok", { name: "X" }),
+        "güncellenemedi",
+      ],
+      ["archiveExam", () => archiveExam("org-1", "sinav-yok"), "arşivlenemedi"],
+    ];
+
+    for (const [ad, cagir, beklenen] of senaryolar) {
+      it(`${ad} sıfır satır etkilediğinde hata fırlatır`, async () => {
+        fromMock.mockReturnValue(createQueryChain({ data: [], error: null }));
+        await expect(cagir()).rejects.toThrow(beklenen);
+      });
+    }
+  });
+
+  // =========================================================================
+  // v1.4 ara denetimi (2026-09-13) — v1.4-04'ün karşılanmamış iddiası
+  // =========================================================================
+  //
+  // v1.4-04 "sınav ekle/düzenle/arşivle" diye kapandı; ölçüm `updateExam` ve
+  // `archiveExam`'in HİÇBİR ekrandan çağrılmadığını gösterdi. ExamFormDialog
+  // yalnız `createExam`'i import ediyordu. Bu blok iddiayı çiviliyor.
+  describe("sınav düzenleme ve arşivleme (v1.4 ara denetimi)", () => {
+    const aktifSinav: ExamSheet = {
+      exam: {
+        id: "exam-1",
+        organizationId: "org-1",
+        classId: "cls-1",
+        className: "12-A",
+        subjectId: null,
+        subjectName: null,
+        name: "TYT Deneme 06",
+        examDate: "2026-08-14",
+        maxScore: 100,
+      },
+      students: [{ studentId: "stu-1", studentName: "Ali Can", score: 80 }],
+    };
+
+    it("yönetkili rolde 'Düzenle' ve 'Arşivle' eylemleri çizilir", () => {
+      const html = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "teacher",
+          onNavigate: vi.fn(),
+          initialSheet: aktifSinav,
+          isDemo: false,
+        })
+      );
+
+      expect(html).toContain("Düzenle");
+      expect(html).toContain("Arşivle");
+    });
+
+    it("öğrenci rolünde bu eylemler KESİNLİKLE çizilmez", () => {
+      const html = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "student",
+          onNavigate: vi.fn(),
+          initialSheet: aktifSinav,
+          isDemo: false,
+        })
+      );
+
+      expect(html).not.toContain("Arşivle");
+    });
+
+    // ⚠️ Uydurma yer tutucunun ("Yeni Sınav", bugünün tarihi, tam puan null)
+    // korumasi bir DEĞİL bir TİP: `onDone` artık `LatestExamDetail` alıyor,
+    // yani diyalog kullanıcının yazdığı değerleri geri vermek zorunda.
+    // İmzayı `(id: string)`e döndürdüğümde `tsc` tam da uydurmanın yapıldığı
+    // satırda patlıyor — statik çizim bunu göremez, derleyici görür.
+    //
+    // Burada gözlenebilen şey, ekranın sınavın GERÇEK adını göstermesi.
+    it("ekran sınavın gerçek adını gösterir, yer tutucu bir ad değil", () => {
+      const html = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "teacher",
+          onNavigate: vi.fn(),
+          initialSheet: aktifSinav,
+          isDemo: false,
+        })
+      );
+
+      expect(html).toContain("TYT Deneme 06");
+      // Diyalog kapalıyken düzenleme başlığı çizilmez.
+      expect(html).not.toContain("Sınavı Düzenle");
     });
   });
 });
