@@ -45,6 +45,13 @@ import {
   type HomeworkListResult,
   type SubjectDetail,
 } from "./homeworkService";
+import {
+  DEFAULT_GUARDIAN_LIMIT,
+  loadGuardians,
+  loadStudentGuardianLinks,
+  type GuardianListResult,
+  type StudentGuardianLink,
+} from "./guardianService";
 
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
@@ -98,6 +105,25 @@ export const educationKeys = {
     ["education", "homework", { organizationId }] as const,
   subjects: (organizationId: string) =>
     ["education", "subjects", { organizationId }] as const,
+  guardians: (organizationId: string, search?: string) => {
+    const trimmed = search?.trim();
+    return trimmed
+      ? ([
+          "education",
+          "guardians",
+          { organizationId, search: trimmed },
+        ] as const)
+      : (["education", "guardians", { organizationId }] as const);
+  },
+  studentGuardians: (organizationId: string, studentId?: string) => {
+    return studentId
+      ? ([
+          "education",
+          "studentGuardians",
+          { organizationId, studentId },
+        ] as const)
+      : (["education", "studentGuardians", { organizationId }] as const);
+  },
 };
 
 export type UseStudentsOptions = {
@@ -471,6 +497,72 @@ export function useSubjects(options?: UseSubjectsOptions) {
       ? educationKeys.subjects(organizationId)
       : (["education", "subjects", { organizationId: "" }] as const),
     queryFn: () => loadSubjects(organizationId!),
+    enabled: isEnabled,
+  });
+}
+
+export type UseGuardiansOptions = {
+  organizationId?: string;
+  limit?: number;
+  search?: string;
+  debounceMs?: number;
+  enabled?: boolean;
+};
+
+/**
+ * Aktif kurumun velilerini getiren React Query hook'u (v1.4-10 · #275).
+ */
+export function useGuardians(options?: UseGuardiansOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const limit = options?.limit ?? DEFAULT_GUARDIAN_LIMIT;
+  const debouncedSearch = useDebouncedValue(
+    options?.search,
+    options?.debounceMs ?? 300
+  );
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<GuardianListResult, Error>({
+    queryKey: organizationId
+      ? educationKeys.guardians(organizationId, debouncedSearch)
+      : (["education", "guardians", { organizationId: "" }] as const),
+    queryFn: () =>
+      loadGuardians(organizationId ?? "", {
+        limit,
+        search: debouncedSearch,
+      }),
+    enabled: isEnabled,
+  });
+}
+
+export type UseStudentGuardiansOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Bir öğrencinin aktif veli bağlarını getiren React Query hook'u (v1.4-10 · #275).
+ */
+export function useStudentGuardians(
+  studentId: string,
+  options?: UseStudentGuardiansOptions
+) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled =
+    (options?.enabled ?? true) && Boolean(organizationId) && Boolean(studentId);
+
+  return useQuery<StudentGuardianLink[], Error>({
+    queryKey: organizationId
+      ? educationKeys.studentGuardians(organizationId, studentId)
+      : ([
+          "education",
+          "studentGuardians",
+          { organizationId: "", studentId },
+        ] as const),
+    queryFn: () => loadStudentGuardianLinks(organizationId!, studentId),
     enabled: isEnabled,
   });
 }

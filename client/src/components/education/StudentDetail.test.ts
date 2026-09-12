@@ -114,3 +114,151 @@ describe("StudentDetail — uydurma veri yok (K-03 / K-22)", () => {
     expect(html).toContain("TYT Deneme 01 · 10 Eylül 2026");
   });
 });
+
+describe("StudentDetail — Veliler Bölümü (v1.4-10 R1 / R2)", () => {
+  const dummyStudent = ogrenci();
+
+  const dummyGuardians = [
+    {
+      id: "link-1",
+      organizationId: "org-1",
+      studentId: "stu-1",
+      guardianId: "g-1",
+      guardian: {
+        id: "g-1",
+        fullName: "Fatma Demir",
+        phone: "+90 555 123 4567",
+        hasAccount: false,
+      },
+    },
+    {
+      id: "link-2",
+      organizationId: "org-1",
+      studentId: "stu-1",
+      guardianId: "g-2",
+      guardian: {
+        id: "g-2",
+        fullName: "Ali Veli",
+        phone: null,
+        hasAccount: true,
+      },
+    },
+  ];
+
+  it("bağlı velisi olan bir öğrencide veli adı, telefonu ve hesap rozeti çizilir", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudentDetail, {
+        student: dummyStudent,
+        onClose: vi.fn(),
+        role: "admin",
+        studentGuardians: dummyGuardians,
+      })
+    );
+
+    // Veli 1: adı, telefonu, 'Hesap bağlı değil' rozeti çizilir
+    expect(html).toContain("Fatma Demir");
+    expect(html).toContain("+90 555 123 4567");
+    expect(html).toContain("Hesap bağlı değil");
+
+    // Veli 2: adı çizilir, hesabı olduğu için rozet çizilmez
+    expect(html).toContain("Ali Veli");
+  });
+
+  it("⛔ telefonu olmayan velide 'Telefon yok' gibi bir etiket üretilmez, tire (—) çizilir (K-22)", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudentDetail, {
+        student: dummyStudent,
+        onClose: vi.fn(),
+        role: "admin",
+        studentGuardians: dummyGuardians,
+      })
+    );
+
+    // K-22: "Telefon yok" asla üretilmez
+    expect(html).not.toContain("Telefon yok");
+    expect(html).not.toContain("telefon yok");
+    expect(html).toContain("—");
+  });
+
+  it("yönetici olmayan rolde (öğretmen) 'Veli bağla' ve 'Bağı kopar' butonları çizilmez", () => {
+    const onLinkMock = vi.fn();
+    const onUnlinkMock = vi.fn();
+
+    // 1. Öğretmen rolü: butonlar çizilmez
+    const teacherHtml = renderToStaticMarkup(
+      createElement(StudentDetail, {
+        student: dummyStudent,
+        onClose: vi.fn(),
+        role: "teacher",
+        studentGuardians: dummyGuardians,
+        onLinkGuardian: onLinkMock,
+        onUnlinkGuardian: onUnlinkMock,
+      })
+    );
+
+    expect(teacherHtml).not.toContain("Veli bağla");
+    expect(teacherHtml).not.toContain("Bağı kopar");
+
+    // 2. Admin rolü: iki buton da çizilir
+    const adminHtml = renderToStaticMarkup(
+      createElement(StudentDetail, {
+        student: dummyStudent,
+        onClose: vi.fn(),
+        role: "admin",
+        studentGuardians: dummyGuardians,
+        onLinkGuardian: onLinkMock,
+        onUnlinkGuardian: onUnlinkMock,
+      })
+    );
+
+    expect(adminHtml).toContain("Veli bağla");
+    expect(adminHtml).toContain("Bağı kopar");
+  });
+
+  it("bağlanabilir veli kalmadığında seçici yerine anlamlı cümle çizilir, açılır liste çizilmez", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudentDetail, {
+        student: dummyStudent,
+        onClose: vi.fn(),
+        role: "admin",
+        studentGuardians: dummyGuardians,
+        availableGuardians: [],
+        isLinkGuardianOpen: true,
+        onLinkGuardian: vi.fn(),
+      })
+    );
+
+    expect(html).toContain("Bağlanabilir başka veli kaydı bulunmuyor.");
+    expect(html).not.toContain("<select");
+  });
+
+  it("R1 Regresyonu: veli adı okunamadığında 'adı okunamadı' çizilir, 'İsimsiz' veya 'İsimsiz Veli' uydurulmaz", () => {
+    const unreadGuardianLink = [
+      {
+        id: "link-unnamed",
+        organizationId: "org-1",
+        studentId: "stu-1",
+        guardianId: "g-unnamed",
+        guardian: {
+          id: "g-unnamed",
+          fullName: "",
+          phone: null,
+          hasAccount: true,
+        },
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      createElement(StudentDetail, {
+        student: dummyStudent,
+        onClose: vi.fn(),
+        role: "admin",
+        studentGuardians: unreadGuardianLink,
+      })
+    );
+
+    expect(html).toContain("adı okunamadı");
+    expect(html).not.toContain("İsimsiz");
+    expect(html).not.toContain("İsimsiz Veli");
+  });
+});

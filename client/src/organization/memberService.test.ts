@@ -1,12 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   formatLoginNumber,
   isMemberStatus,
+  loadOrganizationMembers,
   memberErrorMessage,
   resolveBranchSelection,
   sortMembers,
   type OrganizationMember,
 } from "./memberService";
+
+const fromMock = vi.fn();
+
+vi.mock("@/lib/supabaseClient", () => ({
+  supabase: {
+    from: (table: string) => fromMock(table),
+  },
+}));
 
 describe("memberService", () => {
   describe("formatLoginNumber", () => {
@@ -265,6 +274,130 @@ describe("memberService", () => {
       expect(
         resolveBranchSelection("9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d")
       ).toBe("9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d");
+    });
+  });
+
+  describe("loadOrganizationMembers (v1.4-10 · Bağlı Kişi)", () => {
+    it("öğrenci ve veli üyeliklerinin bağlı kişi bilgisini çözer, bağlı olmayana null atar", async () => {
+      fromMock.mockImplementation((table: string) => {
+        const chain: Record<string, unknown> = {};
+        chain.select = vi.fn().mockReturnValue(chain);
+        chain.eq = vi.fn().mockReturnValue(chain);
+        chain.is = vi.fn().mockReturnValue(chain);
+        chain.in = vi.fn().mockImplementation(() => {
+          if (table === "profiles") {
+            return Promise.resolve({
+              data: [
+                { id: "u-stu-1", display_name: "Ali Profil" },
+                { id: "u-stu-2", display_name: "Ayşe Profil" },
+                { id: "u-par-1", display_name: "Fatma Profil" },
+                { id: "u-adm-1", display_name: "Yönetici Profil" },
+              ],
+              error: null,
+            });
+          }
+          if (table === "branches") {
+            return Promise.resolve({ data: [], error: null });
+          }
+          if (table === "students") {
+            return Promise.resolve({
+              data: [
+                {
+                  id: "stu-rec-1",
+                  full_name: "Ali Öğrenci",
+                  auth_user_id: "u-stu-1",
+                },
+              ],
+              error: null,
+            });
+          }
+          if (table === "guardians") {
+            return Promise.resolve({
+              data: [
+                {
+                  id: "g-rec-1",
+                  full_name: "Fatma Veli",
+                  auth_user_id: "u-par-1",
+                },
+              ],
+              error: null,
+            });
+          }
+          return Promise.resolve({ data: [], error: null });
+        });
+
+        if (table === "organization_memberships") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: [
+                  {
+                    id: "m-1",
+                    user_id: "u-stu-1",
+                    branch_id: null,
+                    person_code: 1001,
+                    role: "student",
+                    status: "active",
+                  },
+                  {
+                    id: "m-2",
+                    user_id: "u-stu-2",
+                    branch_id: null,
+                    person_code: 1002,
+                    role: "student",
+                    status: "active",
+                  },
+                  {
+                    id: "m-3",
+                    user_id: "u-par-1",
+                    branch_id: null,
+                    person_code: 1003,
+                    role: "parent",
+                    status: "active",
+                  },
+                  {
+                    id: "m-4",
+                    user_id: "u-adm-1",
+                    branch_id: null,
+                    person_code: 1004,
+                    role: "admin",
+                    status: "active",
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          };
+        }
+
+        return chain;
+      });
+
+      const members = await loadOrganizationMembers("org-1", 1001);
+
+      // m-4: admin
+      const admin = members.find(m => m.membershipId === "m-4");
+      expect(admin?.linkedPerson).toBeUndefined();
+
+      // m-1: bağlı öğrenci
+      const linkedStudent = members.find(m => m.membershipId === "m-1");
+      expect(linkedStudent?.linkedPerson).toEqual({
+        type: "student",
+        id: "stu-rec-1",
+        name: "Ali Öğrenci",
+      });
+
+      // m-2: bağlı OLMAYAN öğrenci
+      const unlinkedStudent = members.find(m => m.membershipId === "m-2");
+      expect(unlinkedStudent?.linkedPerson).toBeNull();
+
+      // m-3: bağlı veli
+      const linkedGuardian = members.find(m => m.membershipId === "m-3");
+      expect(linkedGuardian?.linkedPerson).toEqual({
+        type: "guardian",
+        id: "g-rec-1",
+        name: "Fatma Veli",
+      });
     });
   });
 });

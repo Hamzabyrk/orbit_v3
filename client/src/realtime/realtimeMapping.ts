@@ -17,7 +17,9 @@ export type EducationTable =
   | "exam_results"
   | "payment_plans"
   | "installments"
-  | "homework_assignments";
+  | "homework_assignments"
+  | "guardians"
+  | "student_guardians";
 
 /**
  * Toplu tetikleyici veya içe aktarma sırasındaki mesajları birleştirme süresi (ms).
@@ -147,6 +149,23 @@ export function getAffectedQueryKeys(
     case "homework_assignments":
       // Ödev listesi sorgusunu tazeler (v1.4-05 · #273)
       return [educationKeys.homework(organizationId)];
+
+    case "guardians":
+      // Veli listesi ve öğrenci listesi — öğrenci listesi veli adını gömülü okuyor
+      // (`student_guardians ( archived_at, guardians ( full_name, archived_at ) )`),
+      // yani veli adı değişince veya veli arşivlenince öğrenci listesi de bayatlar.
+      return [
+        educationKeys.guardians(organizationId),
+        educationKeys.students(organizationId),
+      ];
+
+    case "student_guardians":
+      // Veli listesi (öğrenci sayısı), öğrenci listesi (veli adı), ve öğrenci–veli bağları
+      return [
+        educationKeys.guardians(organizationId),
+        educationKeys.students(organizationId),
+        educationKeys.studentGuardians(organizationId),
+      ];
 
     default:
       // Bilinmeyen veya dinlenmeyen tablolar sessizce yoksayılır

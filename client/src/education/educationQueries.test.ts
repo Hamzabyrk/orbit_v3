@@ -197,4 +197,35 @@ describe("educationKeys (K-19 ve Cache İzolasyonu)", () => {
       { organizationId: "org-sub-1" },
     ]);
   });
+
+  it("veli anahtarı [alan, kaynak, kapsam] sözleşmesine uyar, kurumu ve aramayı taşır (v1.4-10 #275)", () => {
+    const key = educationKeys.guardians("org-g-1");
+    expect(key).toEqual([
+      "education",
+      "guardians",
+      { organizationId: "org-g-1" },
+    ]);
+
+    const keyWithSearch = educationKeys.guardians("org-g-1", "Fatma");
+    expect(keyWithSearch).toEqual([
+      "education",
+      "guardians",
+      { organizationId: "org-g-1", search: "Fatma" },
+    ]);
+
+    const keyTrimmed = educationKeys.guardians("org-g-1", "  Fatma  ");
+    expect(keyTrimmed).toEqual(keyWithSearch);
+
+    const keyEmpty = educationKeys.guardians("org-g-1", "   ");
+    expect(keyEmpty).toEqual(key);
+  });
+
+  it("öğrenci-veli bağları anahtarı [alan, kaynak, kapsam] sözleşmesine uyar (v1.4-10 #275)", () => {
+    const key = educationKeys.studentGuardians("org-g-1", "stu-1");
+    expect(key).toEqual([
+      "education",
+      "studentGuardians",
+      { organizationId: "org-g-1", studentId: "stu-1" },
+    ]);
+  });
 });

@@ -5,6 +5,12 @@ import { supabase } from "@/lib/supabaseClient";
 export type MemberStatus = "invited" | "active" | "suspended";
 export type MemberRole = Exclude<EducationRole, "admin">;
 
+export type LinkedPersonInfo = {
+  type: "student" | "guardian";
+  id: string;
+  name: string;
+};
+
 export type OrganizationMember = {
   membershipId: string;
   displayName: string | null;
@@ -12,6 +18,7 @@ export type OrganizationMember = {
   role: EducationRole;
   branchName: string | null;
   status: MemberStatus;
+  linkedPerson?: LinkedPersonInfo | null;
 };
 
 const educationRoles = new Set<EducationRole>([
@@ -141,14 +148,41 @@ export async function loadOrganizationMembers(
     .filter((id): id is string => Boolean(id))
     .filter((id, index, arr) => arr.indexOf(id) === index);
 
-  const [profilesResult, branchesResult] = await Promise.all([
-    userIds.length > 0
-      ? supabase.from("profiles").select("id, display_name").in("id", userIds)
-      : Promise.resolve({ data: [], error: null }),
-    branchIds.length > 0
-      ? supabase.from("branches").select("id, name").in("id", branchIds)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
+  const studentUserIds = rows
+    .filter(r => r.role === "student")
+    .map(r => r.user_id)
+    .filter((id, index, arr) => arr.indexOf(id) === index);
+
+  const parentUserIds = rows
+    .filter(r => r.role === "parent")
+    .map(r => r.user_id)
+    .filter((id, index, arr) => arr.indexOf(id) === index);
+
+  const [profilesResult, branchesResult, studentsResult, guardiansResult] =
+    await Promise.all([
+      userIds.length > 0
+        ? supabase.from("profiles").select("id, display_name").in("id", userIds)
+        : Promise.resolve({ data: [], error: null }),
+      branchIds.length > 0
+        ? supabase.from("branches").select("id, name").in("id", branchIds)
+        : Promise.resolve({ data: [], error: null }),
+      studentUserIds.length > 0
+        ? supabase
+            .from("students")
+            .select("id, full_name, auth_user_id")
+            .eq("organization_id", organizationId)
+            .is("archived_at", null)
+            .in("auth_user_id", studentUserIds)
+        : Promise.resolve({ data: [], error: null }),
+      parentUserIds.length > 0
+        ? supabase
+            .from("guardians")
+            .select("id, full_name, auth_user_id")
+            .eq("organization_id", organizationId)
+            .is("archived_at", null)
+            .in("auth_user_id", parentUserIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
   if (profilesResult.error) {
     throw new Error("Üye profilleri yüklenemedi. Lütfen tekrar deneyin.");
@@ -158,12 +192,45 @@ export async function loadOrganizationMembers(
     throw new Error("Şube bilgileri yüklenemedi. Lütfen tekrar deneyin.");
   }
 
+  if (studentsResult.error) {
+    throw new Error(
+      "Öğrenci bağlantı bilgileri yüklenemedi. Lütfen tekrar deneyin."
+    );
+  }
+
+  if (guardiansResult.error) {
+    throw new Error(
+      "Veli bağlantı bilgileri yüklenemedi. Lütfen tekrar deneyin."
+    );
+  }
+
   const profileMap = new Map<string, string>(
     (profilesResult.data ?? []).map(p => [p.id, p.display_name])
   );
   const branchMap = new Map<string, string>(
     (branchesResult.data ?? []).map(b => [b.id, b.name])
   );
+  const studentMap = new Map<string, { id: string; name: string }>();
+  for (const s of (studentsResult.data ?? []) as {
+    id: string;
+    full_name: string;
+    auth_user_id: string | null;
+  }[]) {
+    if (s.auth_user_id) {
+      studentMap.set(s.auth_user_id, { id: s.id, name: s.full_name });
+    }
+  }
+
+  const guardianMap = new Map<string, { id: string; name: string }>();
+  for (const g of (guardiansResult.data ?? []) as {
+    id: string;
+    full_name: string;
+    auth_user_id: string | null;
+  }[]) {
+    if (g.auth_user_id) {
+      guardianMap.set(g.auth_user_id, { id: g.id, name: g.full_name });
+    }
+  }
 
   const members: OrganizationMember[] = rows.map(row => {
     if (!isEducationRole(row.role)) {
@@ -183,6 +250,15 @@ export async function loadOrganizationMembers(
       ? (branchMap.get(row.branch_id) ?? null)
       : null;
 
+    let linkedPerson: LinkedPersonInfo | null | undefined = undefined;
+    if (row.role === "student") {
+      const s = studentMap.get(row.user_id);
+      linkedPerson = s ? { type: "student", id: s.id, name: s.name } : null;
+    } else if (row.role === "parent") {
+      const g = guardianMap.get(row.user_id);
+      linkedPerson = g ? { type: "guardian", id: g.id, name: g.name } : null;
+    }
+
     return {
       membershipId: row.id,
       displayName,
@@ -190,6 +266,7 @@ export async function loadOrganizationMembers(
       role: row.role,
       branchName,
       status: row.status,
+      linkedPerson,
     };
   });
 

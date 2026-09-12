@@ -14,7 +14,9 @@ import {
 } from "../shared";
 import type { Role, Student } from "../types";
 import type { OrganizationMember } from "@/organization/memberService";
+import type { Guardian } from "@/education/guardianService";
 import { formatTrDate } from "@/education/trDate";
+import { GuardiansTab } from "./GuardiansTab";
 
 export type StudentsPageProps = {
   // Zorunlu: bir rol kapısının varsayılanı olmaz. Opsiyonel olsaydı
@@ -40,6 +42,23 @@ export type StudentsPageProps = {
   truncated?: boolean;
   /** Üst sınırın tek kaynağı servistedir; bant onu tekrar etmez, gösterir (K-06). */
   limit?: number;
+  guardians?: Guardian[];
+  guardianQuery?: string;
+  onGuardianQuery?: (value: string) => void;
+  onAddGuardian?: () => void;
+  onEditGuardian?: (guardian: Guardian) => void;
+  onArchiveGuardian?: (guardian: Guardian) => void | Promise<void>;
+  onLinkGuardianAccount?: (
+    guardianId: string,
+    membershipId: string
+  ) => void | Promise<void>;
+  onUnlinkGuardianAccount?: (guardianId: string) => void | Promise<void>;
+  linkableParentMembers?: OrganizationMember[];
+  isGuardiansLoading?: boolean;
+  guardiansError?: Error | null;
+  onGuardiansRetry?: () => void;
+  guardiansTruncated?: boolean;
+  guardiansLimit?: number;
 };
 
 function LinkAccountPopover({
@@ -106,7 +125,7 @@ function LinkAccountPopover({
                 <option value="">Hesap seçin…</option>
                 {members.map(m => (
                   <option key={m.membershipId} value={m.membershipId}>
-                    {m.displayName || "İsimsiz"}{" "}
+                    {m.displayName || "adı okunamadı"}{" "}
                     {m.loginNumber ? `(${m.loginNumber})` : ""}
                   </option>
                 ))}
@@ -159,7 +178,24 @@ export function StudentsPage({
   onRetry,
   truncated = false,
   limit,
+  guardians = [],
+  guardianQuery = "",
+  onGuardianQuery,
+  onAddGuardian,
+  onEditGuardian,
+  onArchiveGuardian,
+  onLinkGuardianAccount,
+  onUnlinkGuardianAccount,
+  linkableParentMembers = [],
+  isGuardiansLoading = false,
+  guardiansError = null,
+  onGuardiansRetry,
+  guardiansTruncated = false,
+  guardiansLimit,
 }: StudentsPageProps) {
+  const [activeTab, setActiveTab] = useState<"students" | "guardians">(
+    "students"
+  );
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
 
@@ -187,211 +223,288 @@ export function StudentsPage({
     <>
       <PageHeader
         eyebrow="Öğrenci operasyonları"
-        title="Öğrenciler"
-        description="Akademik gelişim, devam ve ödeme sinyallerini öğrenci bazında takip edin."
-        action={role === "admin" ? "Yeni öğrenci" : undefined}
-        onAction={role === "admin" ? onAdd : undefined}
+        title={
+          role === "admin" && activeTab === "guardians"
+            ? "Veliler"
+            : "Öğrenciler"
+        }
+        description={
+          role === "admin" && activeTab === "guardians"
+            ? "Kuruma kayıtlı velileri ve öğrenci bağlarını takip edin."
+            : "Akademik gelişim, devam ve ödeme sinyallerini öğrenci bazında takip edin."
+        }
+        action={
+          role === "admin"
+            ? activeTab === "students"
+              ? "Yeni öğrenci"
+              : "Yeni veli"
+            : undefined
+        }
+        onAction={
+          role === "admin"
+            ? activeTab === "students"
+              ? onAdd
+              : onAddGuardian
+            : undefined
+        }
       />
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-3 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            value={query}
-            onChange={event => onQuery(event.target.value)}
-            placeholder="Öğrenci adı veya numarası ara..."
-            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-[12px] outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
-          />
-        </div>
-      </div>
-      {truncated ? (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[11px] font-semibold text-amber-800">
-          Liste üst sınıra ({limit} kayıt) ulaştı. Kalan kayıtları görmek için
-          yukarıdaki arama kutusunu kullanın.
+      {role === "admin" ? (
+        <div className="mt-4 flex border-b border-slate-200">
+          <button
+            type="button"
+            onClick={() => setActiveTab("students")}
+            className={`border-b-2 px-4 py-2.5 text-xs font-bold transition ${
+              activeTab === "students"
+                ? "border-slate-900 text-slate-900"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            Öğrenciler
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("guardians")}
+            className={`border-b-2 px-4 py-2.5 text-xs font-bold transition ${
+              activeTab === "guardians"
+                ? "border-slate-900 text-slate-900"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            Veliler
+          </button>
         </div>
       ) : null}
-      {isLoading ? (
-        <TableSkeleton rows={5} columns={5} className="mt-5" />
-      ) : error ? (
-        <ErrorState
-          className="mt-5"
-          title="Öğrenciler görüntülenemedi"
-          message={error.message}
-          onRetry={onRetry}
-        />
+      {role === "admin" && activeTab === "guardians" ? (
+        <div className="mt-6">
+          <GuardiansTab
+            guardians={guardians}
+            query={guardianQuery}
+            onQuery={onGuardianQuery ?? (() => {})}
+            onAdd={onAddGuardian ?? (() => {})}
+            onEdit={onEditGuardian ?? (() => {})}
+            onArchive={onArchiveGuardian ?? (() => {})}
+            onLinkAccount={onLinkGuardianAccount}
+            onUnlinkAccount={onUnlinkGuardianAccount}
+            linkableMembers={linkableParentMembers}
+            isLoading={isGuardiansLoading}
+            error={guardiansError}
+            onRetry={onGuardiansRetry}
+            truncated={guardiansTruncated}
+            limit={guardiansLimit}
+          />
+        </div>
       ) : (
-        <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,.025)]">
-          {visibleStudents.length === 0 ? (
-            <EmptyState
-              title="Gösterilecek öğrenci yok"
-              description={
-                query
-                  ? "Arama kriterlerine uygun öğrenci bulunamadı."
-                  : "Henüz kayıtlı öğrenci bulunmuyor."
-              }
+        <>
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-3 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={query}
+                onChange={event => onQuery(event.target.value)}
+                placeholder="Öğrenci adı veya numarası ara..."
+                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-[12px] outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
+              />
+            </div>
+          </div>
+          {truncated ? (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[11px] font-semibold text-amber-800">
+              Liste üst sınıra ({limit} kayıt) ulaştı. Kalan kayıtları görmek
+              için yukarıdaki arama kutusunu kullanın.
+            </div>
+          ) : null}
+          {isLoading ? (
+            <TableSkeleton rows={5} columns={5} className="mt-5" />
+          ) : error ? (
+            <ErrorState
+              className="mt-5"
+              title="Öğrenciler görüntülenemedi"
+              message={error.message}
+              onRetry={onRetry}
             />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] text-left">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-extrabold uppercase tracking-[.08em] text-slate-400">
-                    <th className="px-5 py-3.5">Öğrenci</th>
-                    <th className="px-5 py-3.5">Sınıf</th>
-                    <th className="px-5 py-3.5">Devam</th>
-                    <th className="px-5 py-3.5">Son sınav</th>
-                    <th className="px-5 py-3.5">Takip</th>
-                    <th className="px-5 py-3.5" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleStudents.map(student => (
-                    <tr
-                      key={student.id}
-                      className="border-b border-slate-100 text-[12px] last:border-0 hover:bg-slate-50/70"
-                    >
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <span className="grid h-9 w-9 place-items-center rounded-full bg-blue-50 text-[11px] font-extrabold text-blue-700">
-                            {student.name
-                              .split(" ")
-                              .map(part => part[0])
-                              .join("")}
-                          </span>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-extrabold text-slate-800">
-                                {student.name}
-                              </p>
-                              {/* K-22: Hesabı olmayan öğrenci kırmızı değil slate rozet taşır */}
-                              {student.hasAccount === false ? (
-                                <Badge tone="slate">Hesap bağlı değil</Badge>
-                              ) : null}
+            <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_16px_rgba(15,23,42,.025)]">
+              {visibleStudents.length === 0 ? (
+                <EmptyState
+                  title="Gösterilecek öğrenci yok"
+                  description={
+                    query
+                      ? "Arama kriterlerine uygun öğrenci bulunamadı."
+                      : "Henüz kayıtlı öğrenci bulunmuyor."
+                  }
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[860px] text-left">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/70 text-[10px] font-extrabold uppercase tracking-[.08em] text-slate-400">
+                        <th className="px-5 py-3.5">Öğrenci</th>
+                        <th className="px-5 py-3.5">Sınıf</th>
+                        <th className="px-5 py-3.5">Devam</th>
+                        <th className="px-5 py-3.5">Son sınav</th>
+                        <th className="px-5 py-3.5">Takip</th>
+                        <th className="px-5 py-3.5" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleStudents.map(student => (
+                        <tr
+                          key={student.id}
+                          className="border-b border-slate-100 text-[12px] last:border-0 hover:bg-slate-50/70"
+                        >
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <span className="grid h-9 w-9 place-items-center rounded-full bg-blue-50 text-[11px] font-extrabold text-blue-700">
+                                {student.name
+                                  .split(" ")
+                                  .map(part => part[0])
+                                  .join("")}
+                              </span>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-extrabold text-slate-800">
+                                    {student.name}
+                                  </p>
+                                  {/* K-22: Hesabı olmayan öğrenci kırmızı değil slate rozet taşır */}
+                                  {student.hasAccount === false ? (
+                                    <Badge tone="slate">
+                                      Hesap bağlı değil
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                                {student.code || student.parent ? (
+                                  <p className="mt-0.5 text-[10px] text-slate-400">
+                                    {[
+                                      student.code,
+                                      student.parent
+                                        ? `Veli: ${student.parent}`
+                                        : null,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                  </p>
+                                ) : null}
+                              </div>
                             </div>
-                            {student.code || student.parent ? (
-                              <p className="mt-0.5 text-[10px] text-slate-400">
-                                {[
-                                  student.code,
-                                  student.parent
-                                    ? `Veli: ${student.parent}`
-                                    : null,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" · ")}
-                              </p>
+                          </td>
+                          <td className="px-5 py-4 font-semibold text-slate-600">
+                            {student.group}
+                          </td>
+                          <td className="px-5 py-4">
+                            {student.attendance !== undefined ? (
+                              <Badge
+                                tone={
+                                  student.attendance < 90 ? "amber" : "green"
+                                }
+                              >
+                                %{student.attendance}
+                              </Badge>
                             ) : null}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 font-semibold text-slate-600">
-                        {student.group}
-                      </td>
-                      <td className="px-5 py-4">
-                        {student.attendance !== undefined ? (
-                          <Badge
-                            tone={student.attendance < 90 ? "amber" : "green"}
-                          >
-                            %{student.attendance}
-                          </Badge>
-                        ) : null}
-                      </td>
-                      <td className="px-5 py-4">
-                        {student.score !== undefined ? (
-                          <div>
-                            <span className="font-extrabold text-slate-800">
-                              {student.latestExamMaxScore !== null &&
-                              student.latestExamMaxScore !== undefined
-                                ? `${student.score} / ${student.latestExamMaxScore}`
-                                : `${student.score} puan`}
-                            </span>
-                            {student.latestExamName ||
-                            student.latestExamDate ? (
-                              <p className="mt-0.5 text-[10px] text-slate-400">
-                                {[
-                                  student.latestExamName,
-                                  formatTrDate(student.latestExamDate),
-                                ]
-                                  .filter(Boolean)
-                                  .join(" · ")}
-                              </p>
+                          </td>
+                          <td className="px-5 py-4">
+                            {student.score !== undefined ? (
+                              <div>
+                                <span className="font-extrabold text-slate-800">
+                                  {student.latestExamMaxScore !== null &&
+                                  student.latestExamMaxScore !== undefined
+                                    ? `${student.score} / ${student.latestExamMaxScore}`
+                                    : `${student.score} puan`}
+                                </span>
+                                {student.latestExamName ||
+                                student.latestExamDate ? (
+                                  <p className="mt-0.5 text-[10px] text-slate-400">
+                                    {[
+                                      student.latestExamName,
+                                      formatTrDate(student.latestExamDate),
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                  </p>
+                                ) : null}
+                              </div>
                             ) : null}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td className="px-5 py-4">
-                        {student.risk ? (
-                          <Badge
-                            tone={
-                              student.risk === "Takip gerekli"
-                                ? "amber"
-                                : "green"
-                            }
-                          >
-                            {student.risk}
-                          </Badge>
-                        ) : null}
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {role === "admin" ? (
-                            <>
-                              {student.hasAccount ? (
-                                onUnlinkAccount ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => void handleUnlink(student)}
-                                    disabled={unlinkingId === student.id}
-                                    className="rounded-lg px-2 py-1 text-[11px] font-semibold text-amber-600 transition hover:bg-amber-50 disabled:opacity-50"
-                                  >
-                                    {unlinkingId === student.id
-                                      ? "Çözülüyor…"
-                                      : "Bağı çöz"}
-                                  </button>
-                                ) : null
-                              ) : onLinkAccount ? (
-                                <LinkAccountPopover
-                                  student={student}
-                                  members={linkableMembers}
-                                  onLink={onLinkAccount}
-                                />
+                          </td>
+                          <td className="px-5 py-4">
+                            {student.risk ? (
+                              <Badge
+                                tone={
+                                  student.risk === "Takip gerekli"
+                                    ? "amber"
+                                    : "green"
+                                }
+                              >
+                                {student.risk}
+                              </Badge>
+                            ) : null}
+                          </td>
+                          <td className="px-5 py-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {role === "admin" ? (
+                                <>
+                                  {student.hasAccount ? (
+                                    onUnlinkAccount ? (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          void handleUnlink(student)
+                                        }
+                                        disabled={unlinkingId === student.id}
+                                        className="rounded-lg px-2 py-1 text-[11px] font-semibold text-amber-600 transition hover:bg-amber-50 disabled:opacity-50"
+                                      >
+                                        {unlinkingId === student.id
+                                          ? "Çözülüyor…"
+                                          : "Bağı çöz"}
+                                      </button>
+                                    ) : null
+                                  ) : onLinkAccount ? (
+                                    <LinkAccountPopover
+                                      student={student}
+                                      members={linkableMembers}
+                                      onLink={onLinkAccount}
+                                    />
+                                  ) : null}
+                                  {onEdit ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => onEdit(student)}
+                                      className="rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-100"
+                                    >
+                                      Düzenle
+                                    </button>
+                                  ) : null}
+                                  {onArchive ? (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        void handleArchive(student)
+                                      }
+                                      disabled={archivingId === student.id}
+                                      className="rounded-lg px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+                                    >
+                                      {archivingId === student.id
+                                        ? "Arşivleniyor…"
+                                        : "Arşivle"}
+                                    </button>
+                                  ) : null}
+                                </>
                               ) : null}
-                              {onEdit ? (
-                                <button
-                                  type="button"
-                                  onClick={() => onEdit(student)}
-                                  className="rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-600 transition hover:bg-slate-100"
-                                >
-                                  Düzenle
-                                </button>
-                              ) : null}
-                              {onArchive ? (
-                                <button
-                                  type="button"
-                                  onClick={() => void handleArchive(student)}
-                                  disabled={archivingId === student.id}
-                                  className="rounded-lg px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
-                                >
-                                  {archivingId === student.id
-                                    ? "Arşivleniyor…"
-                                    : "Arşivle"}
-                                </button>
-                              ) : null}
-                            </>
-                          ) : null}
-                          <button
-                            type="button"
-                            onClick={() => onSelect(student)}
-                            className="rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-blue-600 transition hover:bg-blue-50"
-                          >
-                            Profili aç
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                              <button
+                                type="button"
+                                onClick={() => onSelect(student)}
+                                className="rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-blue-600 transition hover:bg-blue-50"
+                              >
+                                Profili aç
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           )}
-        </section>
+        </>
       )}
     </>
   );
