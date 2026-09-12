@@ -681,9 +681,15 @@ describe("studentService", () => {
       const spy: { updateArg?: unknown; eqArgs?: [string, unknown][] } = {};
       fromMock.mockImplementation((table: string) => {
         if (table === "students") {
-          return createQueryChain({ data: null, error: null }, spy);
+          return createQueryChain(
+            { data: [{ id: "etkilenen-satir" }], error: null },
+            spy
+          );
         }
-        return createQueryChain({ data: null, error: null });
+        return createQueryChain({
+          data: [{ id: "etkilenen-satir" }],
+          error: null,
+        });
       });
 
       await updateStudent("stu-update-1", {
@@ -724,9 +730,15 @@ describe("studentService", () => {
       const spy: { updateArg?: unknown; eqArgs?: [string, unknown][] } = {};
       fromMock.mockImplementation((table: string) => {
         if (table === "students") {
-          return createQueryChain({ data: null, error: null }, spy);
+          return createQueryChain(
+            { data: [{ id: "etkilenen-satir" }], error: null },
+            spy
+          );
         }
-        return createQueryChain({ data: null, error: null });
+        return createQueryChain({
+          data: [{ id: "etkilenen-satir" }],
+          error: null,
+        });
       });
 
       await archiveStudent("stu-arch-1");
@@ -739,9 +751,15 @@ describe("studentService", () => {
       const spy: { updateArg?: unknown; eqArgs?: [string, unknown][] } = {};
       fromMock.mockImplementation((table: string) => {
         if (table === "students") {
-          return createQueryChain({ data: null, error: null }, spy);
+          return createQueryChain(
+            { data: [{ id: "etkilenen-satir" }], error: null },
+            spy
+          );
         }
-        return createQueryChain({ data: null, error: null });
+        return createQueryChain({
+          data: [{ id: "etkilenen-satir" }],
+          error: null,
+        });
       });
 
       await restoreStudent("stu-arch-1");
@@ -809,5 +827,27 @@ describe("studentService", () => {
         "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya şifre değişimi bekleniyor."
       );
     });
+  });
+
+  // v1.4 ara denetimi · K-14 — bkz. classService.test.ts'teki aynı blok.
+  // RLS satırı gizlediğinde `.update()` hata vermez, sessizce sıfır satır
+  // günceller; koruma olmadan ekran "arşivlendi" derdi.
+  describe("K-14 sıfır satır koruması (v1.4 ara denetimi)", () => {
+    const senaryolar: [string, () => Promise<unknown>, string][] = [
+      [
+        "updateStudent",
+        () => updateStudent("ogr-yok", { fullName: "X" }),
+        "güncellenemedi",
+      ],
+      ["archiveStudent", () => archiveStudent("ogr-yok"), "arşivlenemedi"],
+      ["restoreStudent", () => restoreStudent("ogr-yok"), "geri yüklenemedi"],
+    ];
+
+    for (const [ad, cagir, beklenen] of senaryolar) {
+      it(`${ad} sıfır satır etkilediğinde hata fırlatır`, async () => {
+        fromMock.mockReturnValue(createQueryChain({ data: [], error: null }));
+        await expect(cagir()).rejects.toThrow(beklenen);
+      });
+    }
   });
 });

@@ -372,35 +372,59 @@ export async function updateStudent(
     payload.student_number = input.studentNumber;
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("students")
     .update(payload)
-    .eq("id", studentId);
+    .eq("id", studentId)
+    .select("id");
 
   if (error) {
     throw new Error(translateStudentError(error));
+  }
+
+  // K-14: sıfır satır etkileyen bir yazma "oldu" demez. RLS satırı
+  // gizlediğinde veya kimlik yanlış olduğunda `.update()` hata vermez,
+  // sessizce hiçbir şey yapmaz — ekran da "başarılı" derdi.
+  if (!data || data.length === 0) {
+    throw new Error("Öğrenci bulunamadı veya güncellenemedi.");
   }
 }
 
 export async function archiveStudent(studentId: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("students")
     .update({ archived_at: new Date().toISOString() })
-    .eq("id", studentId);
+    .eq("id", studentId)
+    .select("id");
 
   if (error) {
     throw new Error(translateStudentError(error));
   }
+
+  // K-14: sıfır satır etkileyen bir yazma "oldu" demez. RLS satırı
+  // gizlediğinde veya kimlik yanlış olduğunda `.update()` hata vermez,
+  // sessizce hiçbir şey yapmaz — ekran da "başarılı" derdi.
+  if (!data || data.length === 0) {
+    throw new Error("Öğrenci bulunamadı veya arşivlenemedi.");
+  }
 }
 
 export async function restoreStudent(studentId: string): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("students")
     .update({ archived_at: null })
-    .eq("id", studentId);
+    .eq("id", studentId)
+    .select("id");
 
   if (error) {
     throw new Error(translateStudentError(error));
+  }
+
+  // K-14: sıfır satır etkileyen bir yazma "oldu" demez. RLS satırı
+  // gizlediğinde veya kimlik yanlış olduğunda `.update()` hata vermez,
+  // sessizce hiçbir şey yapmaz — ekran da "başarılı" derdi.
+  if (!data || data.length === 0) {
+    throw new Error("Öğrenci bulunamadı veya geri yüklenemedi.");
   }
 }
 

@@ -349,7 +349,7 @@ describe("classService", () => {
       fromMock.mockReturnValue(
         createClassQueryChain(
           {
-            data: null,
+            data: [{ id: "etkilenen-satir" }],
             error: null,
           },
           spy
@@ -374,7 +374,7 @@ describe("classService", () => {
       fromMock.mockReturnValue(
         createClassQueryChain(
           {
-            data: null,
+            data: [{ id: "etkilenen-satir" }],
             error: null,
           },
           spy
@@ -396,7 +396,7 @@ describe("classService", () => {
       fromMock.mockReturnValue(
         createClassQueryChain(
           {
-            data: null,
+            data: [{ id: "etkilenen-satir" }],
             error: null,
           },
           spy
@@ -514,7 +514,7 @@ describe("classService", () => {
       fromMock.mockReturnValue(
         createClassQueryChain(
           {
-            data: null,
+            data: [{ id: "etkilenen-satir" }],
             error: null,
           },
           spy
@@ -564,5 +564,35 @@ describe("classService", () => {
         "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya şifre değişimi bekleniyor."
       );
     });
+  });
+
+  // =========================================================================
+  // v1.4 ara denetimi · K-14 — sıfır satır etkileyen yazma "oldu" demez
+  // =========================================================================
+  //
+  // Bu koruma v1.4-05'ten sonraki servislerde vardı, öncekilerde yoktu; ara
+  // denetim turu (2026-09-13) farkı ölçtü ve hizaladı. Önemi somut: RLS satırı
+  // gizlediğinde `.update()` HATA VERMEZ, sessizce sıfır satır günceller —
+  // ekran da "arşivlendi" derdi.
+  describe("K-14 sıfır satır koruması (v1.4 ara denetimi)", () => {
+    const senaryolar: [string, () => Promise<unknown>, string][] = [
+      [
+        "updateClass",
+        () => updateClass("cls-yok", { name: "X" }),
+        "güncellenemedi",
+      ],
+      ["archiveClass", () => archiveClass("cls-yok"), "arşivlenemedi"],
+      ["restoreClass", () => restoreClass("cls-yok"), "geri yüklenemedi"],
+      ["unenrollStudent", () => unenrollStudent("kayit-yok"), "kaldırılamadı"],
+    ];
+
+    for (const [ad, cagir, beklenen] of senaryolar) {
+      it(`${ad} sıfır satır etkilediğinde hata fırlatır`, async () => {
+        fromMock.mockReturnValue(
+          createClassQueryChain({ data: [], error: null })
+        );
+        await expect(cagir()).rejects.toThrow(beklenen);
+      });
+    }
   });
 });

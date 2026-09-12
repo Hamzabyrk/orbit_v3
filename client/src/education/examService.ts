@@ -403,66 +403,6 @@ export async function loadLatestExam(
 }
 
 /**
- * Aktif kurumun aktif sınavlarını listeler (#249, #270).
- * Açık `organization_id` süzgeci taşır.
- */
-export async function loadExams(organizationId: string): Promise<ExamDetail[]> {
-  const { data, error } = await supabase
-    .from("exams")
-    .select(
-      `
-      id,
-      organization_id,
-      class_id,
-      subject_id,
-      name,
-      exam_date,
-      max_score,
-      archived_at,
-      classes ( id, name, archived_at ),
-      subjects ( id, name, archived_at )
-    `
-    )
-    .eq("organization_id", organizationId)
-    .is("archived_at", null)
-    .order("exam_date", { ascending: false })
-    .order("id", { ascending: false });
-
-  if (error) {
-    throw new Error(translateExamError(error));
-  }
-
-  return (data ?? []).map(row => {
-    const cls = row.classes as {
-      id?: string;
-      name?: string;
-      archived_at?: string | null;
-    } | null;
-    const clsName = Array.isArray(cls) ? cls[0]?.name : cls?.name;
-    const sub = row.subjects as {
-      id?: string;
-      name?: string;
-      archived_at?: string | null;
-    } | null;
-    const subName = Array.isArray(sub) ? sub[0]?.name : sub?.name;
-    return {
-      id: row.id,
-      organizationId: row.organization_id,
-      classId: row.class_id,
-      className: clsName?.trim() || null,
-      subjectId: row.subject_id || null,
-      subjectName: subName?.trim() || null,
-      name: row.name,
-      examDate: row.exam_date,
-      maxScore:
-        row.max_score !== null && row.max_score !== undefined
-          ? Number(row.max_score)
-          : null,
-    };
-  });
-}
-
-/**
  * Yeni bir sınav kaydı oluşturur (v1.4-04 · #270).
  *
  * ⛔ 2. YASAK (ÖLÇÜLDÜ): Sınav oluştururken `id` GÖNDERME!
@@ -530,14 +470,22 @@ export async function updateExam(
   if (updates.examDate !== undefined) payload.exam_date = updates.examDate;
   if (updates.maxScore !== undefined) payload.max_score = updates.maxScore;
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("exams")
     .update(payload)
     .eq("organization_id", organizationId)
-    .eq("id", examId);
+    .eq("id", examId)
+    .select("id");
 
   if (error) {
     throw new Error(translateExamError(error));
+  }
+
+  // K-14: sıfır satır etkileyen bir yazma "oldu" demez. RLS satırı
+  // gizlediğinde veya kimlik yanlış olduğunda `.update()` hata vermez,
+  // sessizce hiçbir şey yapmaz — ekran da "başarılı" derdi.
+  if (!data || data.length === 0) {
+    throw new Error("Sınav bulunamadı veya güncellenemedi.");
   }
 }
 
@@ -549,14 +497,22 @@ export async function archiveExam(
   organizationId: string,
   examId: string
 ): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("exams")
     .update({ archived_at: new Date().toISOString() })
     .eq("organization_id", organizationId)
-    .eq("id", examId);
+    .eq("id", examId)
+    .select("id");
 
   if (error) {
     throw new Error(translateExamError(error));
+  }
+
+  // K-14: sıfır satır etkileyen bir yazma "oldu" demez. RLS satırı
+  // gizlediğinde veya kimlik yanlış olduğunda `.update()` hata vermez,
+  // sessizce hiçbir şey yapmaz — ekran da "başarılı" derdi.
+  if (!data || data.length === 0) {
+    throw new Error("Sınav bulunamadı veya arşivlenemedi.");
   }
 }
 

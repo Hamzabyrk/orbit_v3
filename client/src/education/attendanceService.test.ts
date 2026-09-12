@@ -1,11 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   calculateAttendancePercentage,
-  DEFAULT_ATTENDANCE_SESSION_LIMIT,
   extractActiveName,
   formatSessionDateTime,
   formatSessionTitle,
-  loadAttendanceSessions,
   loadLatestAttendanceSession,
   loadStudentAttendancePercentages,
   mapSessionRow,
@@ -400,53 +398,6 @@ describe("attendanceService", () => {
       await expect(loadLatestAttendanceSession("org-42")).rejects.toThrow(
         "Yoklama oturumu yüklenemedi."
       );
-    });
-  });
-
-  describe("loadAttendanceSessions (Kesilme Sözleşmesi)", () => {
-    it("oturum sayısı limite eşitse truncated: true döner ve organization_id süzer", async () => {
-      const spy: { eqArgs?: [string, unknown][] } = {};
-      const mockSessions = Array.from({ length: 5 }, (_, i) => ({
-        id: `sess-${i}`,
-        class_id: "cls-1",
-        session_date: "2026-09-08",
-        starts_at: "09:00:00",
-        classes: null,
-        subjects: null,
-        attendance_records: [],
-      }));
-
-      fromMock.mockReturnValue(
-        createQueryChain(
-          {
-            data: mockSessions,
-            error: null,
-          },
-          spy
-        )
-      );
-
-      const result = await loadAttendanceSessions("org-42", 5);
-      expect(spy.eqArgs).toEqual([["organization_id", "org-42"]]);
-      expect(result.rows).toHaveLength(5);
-      expect(result.truncated).toBe(true);
-    });
-
-    it("varsayılan üst sınır 50'dir", async () => {
-      const spy: { limitArg?: number; eqArgs?: [string, unknown][] } = {};
-      fromMock.mockReturnValue(
-        createQueryChain(
-          {
-            data: [],
-            error: null,
-          },
-          spy
-        )
-      );
-
-      await loadAttendanceSessions("org-42");
-      expect(spy.limitArg).toBe(DEFAULT_ATTENDANCE_SESSION_LIMIT);
-      expect(spy.eqArgs).toEqual([["organization_id", "org-42"]]);
     });
   });
 
