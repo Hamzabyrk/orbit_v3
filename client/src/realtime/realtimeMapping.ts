@@ -139,9 +139,10 @@ export function getAffectedQueryKeys(
       ];
 
     case "installments":
-      // Vadesi geçmiş taksitler, özet istatistikleri ve öğrencinin ödeme durumu (Student.payment)
+      // Vadesi geçmiş taksitler, özet istatistikleri, taksit listesi ve öğrencinin ödeme durumu (Student.payment)
       return [
         educationKeys.payments(organizationId),
+        educationKeys.planInstallments(organizationId),
         educationKeys.paymentOverview(organizationId),
         educationKeys.students(organizationId),
       ];

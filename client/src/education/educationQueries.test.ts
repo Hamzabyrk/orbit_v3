@@ -123,6 +123,34 @@ describe("educationKeys (K-19 ve Cache İzolasyonu)", () => {
     ]);
   });
 
+  it("ödemeler ve taksit anahtarları sözleşmeye uyar (v1.4-06 #277)", () => {
+    const paymentsKey = educationKeys.payments("org-pay-1");
+    expect(paymentsKey).toEqual([
+      "education",
+      "payments",
+      { organizationId: "org-pay-1" },
+    ]);
+
+    const studentPaymentsKey = educationKeys.payments("org-pay-1", {
+      studentId: "stu-1",
+    });
+    expect(studentPaymentsKey).toEqual([
+      "education",
+      "payments",
+      { organizationId: "org-pay-1", studentId: "stu-1" },
+    ]);
+
+    const installmentsKey = educationKeys.planInstallments(
+      "org-pay-1",
+      "plan-1"
+    );
+    expect(installmentsKey).toEqual([
+      "education",
+      "planInstallments",
+      { organizationId: "org-pay-1", planId: "plan-1" },
+    ]);
+  });
+
   it("sınıf kayıtları anahtarı [alan, kaynak, kapsam] sözleşmesine uyar ve kurumu + sınıfı taşır (v1.4-02)", () => {
     const key = educationKeys.classEnrollments("org-123", "class-456");
     expect(key).toEqual([

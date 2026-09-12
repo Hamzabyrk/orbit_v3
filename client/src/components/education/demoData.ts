@@ -276,24 +276,33 @@ export const initialAutomations: Automation[] = [
 
 export const paymentRows: PaymentRow[] = [
   {
+    id: "plan-demo-001",
+    studentId: "stu-001",
     student: "Zeynep Kaya",
     plan: "YKS Sayısal Paket",
     due: "05 Eylül 2026",
     amount: "₺7.200",
+    totalAmount: 72000,
     status: "Güncel",
   },
   {
+    id: "plan-demo-002",
+    studentId: "stu-003",
     student: "Derin Yıldız",
     plan: "YKS Eşit Ağırlık Paket",
     due: "28 Ağustos 2026",
     amount: "₺6.800",
+    totalAmount: 68000,
     status: "Hatırlatma gerekli",
   },
   {
+    id: "plan-demo-003",
+    studentId: "stu-004",
     student: "Aras Öztürk",
     plan: "YKS Eşit Ağırlık Paket",
     due: "18 Ağustos 2026",
     amount: "₺6.800",
+    totalAmount: 68000,
     status: "Gecikme riski",
   },
 ];

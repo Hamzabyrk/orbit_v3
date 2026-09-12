@@ -242,8 +242,8 @@ Bu, aşağıdaki bağlantı matrisinin okunuşunu değiştirir: **tablo, RLS ve 
 | ------------------------------------------------------------- | :----: | :------: | :---: | :----------: |
 | Kurum · Şube · Üyelik · Profil · Operatör · Platform denetimi |   ✅   |    ✅    |  ✅   |  ✅ / kısmi  |
 | Kurum denetim kaydı                                           |   ✅   |    ❌    |  ❌   | ✅ yazılıyor |
-| Öğrenci · Sınıf · Yoklama · Sınav · Ödev                      |   ✅   |    ✅    |  ✅   |      ✅      |
-| Program · Ödeme                                               |   ✅   | ✅ okuma |  ✅   |      ❌      |
+| Öğrenci · Sınıf · Yoklama · Sınav · Ödev · Ödeme              |   ✅   |    ✅    |  ✅   |      ✅      |
+| Program                                                       |   ✅   | ✅ okuma |  ✅   |      ❌      |
 | Mesaj · Gün planı                                             |   ✅   |    ❌    |  ✅   |      ❌      |
 | Otomasyon                                                     |   ❌   |    ❌    |  ✅   |      ❌      |
 | Veli · Veli–öğrenci bağı                                      |   ✅   |    ✅    |  ✅   |      ✅      |
@@ -263,6 +263,12 @@ Dört varlık v1.4'te uçtan uca bağlandı — **Öğrenci** (v1.4-01), **Sın�
 Bu dilimin kaydı, eklediğinden çok **kaldırdığı** için düşülüyor: `HomeworkStatus`'tan `"Tamamlandı"`, `Student` tipinden `homework` (`"7/9"` teslim oranı) ve rapor ekranından "Ödev tamamlama" kartı silindi. Sebep matrisin kendisinde görünüyor — ödev teslimi için **tablo yok**, dolayısıyla o üç öğe bir veriyi değil bir **beklentiyi** gösteriyordu. Teslim takibi **v1.4-15**'te açılacak (`DECISION_LOG`); o gün bu satırın hiçbir sütunu değişmeyecek ama **yeni bir satır** eklenecek.
 
 ⚠️ Böylece v1.4'ün CRUD dilimleri bitti: matriste "Servis ✅ + Yazma ✅" taşıyan beş varlık var (Öğrenci, Sınıf, Yoklama, Sınav, Ödev). **Program ve Ödeme hâlâ yalnız okuma** — ödeme kurallarının kaynağı yok (#239) ve o karar verilmeden yazma açılamaz.
+
+**On altıncı düzeltme (2026-09-12, v1.4-06):** **Ödeme** satırı yazma grubuna geçti; "Servis" ve "Yazma" sütunları ✅ oldu. Yazma yüzeyi v1.2-06'dan beri açıktı, eksik olan ekrandı.
+
+Bu dilim bir eksiği de kapattı: `installments`'ta `archived_at` yoktu, yani **yanlış girilmiş bir taksiti kaldırmanın hiçbir yolu yoktu** ve planın toplamı kalıcı olarak yanlış kalıyordu (`DECISION_LOG`).
+
+⚠️ **Geriye tek bir okuma-satırı kaldı: Program.** `schedule_entries` tablosu ve RLS'i v1.2-07'den beri duruyor, `scheduleService` okuyor, yazan ekran yok — karşılığı **v1.4-11** (ders programı ve derslik). Yani v1.4'ün CRUD işinde yazma açılmayan tek varlık program.
 
 **On beşinci düzeltme (2026-09-12, v1.4-10):** **Veli** ve **veli–öğrenci bağı** ayrı bir satır oldu ve dört sütunu da ✅. Bu, matrisin en uzun süredir dolmayan satırıydı ve `guardians` tablosu v1.2-03'ten beri duruyordu.
 
