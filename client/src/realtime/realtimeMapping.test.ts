@@ -5,6 +5,7 @@ import {
   type EducationTable,
 } from "./realtimeMapping";
 import { educationKeys } from "@/education/educationQueries";
+import { settingsKeys } from "@/settings/settingsQueries";
 
 describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
   const orgId = "org-uuid-test";
@@ -126,6 +127,13 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
     expect(keys).toContainEqual(educationKeys.studentGuardians(orgId));
   });
 
+  it("14. branches: şube ve üye (şube adı görünür) sorgularını tazeler (v1.4-09 #284)", () => {
+    const keys = getAffectedQueryKeys("branches", orgId);
+    expect(keys).toHaveLength(2);
+    expect(keys).toContainEqual(settingsKeys.branches(orgId));
+    expect(keys).toContainEqual(settingsKeys.members(orgId));
+  });
+
   it("⛔ Hiçbir tekil tablo mesajı toptan tazeleme (educationKeys.all) döndürmez", () => {
     const tables: EducationTable[] = [
       "students",
@@ -141,6 +149,7 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
       "homework_assignments",
       "guardians",
       "student_guardians",
+      "branches",
     ];
 
     for (const tbl of tables) {

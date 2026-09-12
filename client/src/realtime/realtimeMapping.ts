@@ -1,7 +1,8 @@
 import { educationKeys } from "@/education/educationQueries";
+import { settingsKeys } from "@/settings/settingsQueries";
 
 /**
- * Realtime bildirimlerini tetikleyen 10 iş tablosu (v1.3-17 / migration 20260909010000).
+ * Realtime bildirimlerini tetikleyen iş tabloları (v1.3-17, v1.4-09 · #284).
  *
  * `audit_events` (geçmişe dönük/sayfalı) ve `organization_memberships` (kimlik akışı)
  * bilinçli olarak bu kapsamın dışındadır.
@@ -19,7 +20,8 @@ export type EducationTable =
   | "installments"
   | "homework_assignments"
   | "guardians"
-  | "student_guardians";
+  | "student_guardians"
+  | "branches";
 
 /**
  * Toplu tetikleyici veya içe aktarma sırasındaki mesajları birleştirme süresi (ms).
@@ -166,6 +168,13 @@ export function getAffectedQueryKeys(
         educationKeys.guardians(organizationId),
         educationKeys.students(organizationId),
         educationKeys.studentGuardians(organizationId),
+      ];
+
+    case "branches":
+      // Şube listesi ve şube adını gösteren üye listesi (v1.4-09 · #284)
+      return [
+        settingsKeys.branches(organizationId),
+        settingsKeys.members(organizationId),
       ];
 
     default:

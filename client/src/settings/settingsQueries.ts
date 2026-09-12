@@ -1,10 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/auth/useAuth";
 import {
-  loadOrganizationBranches,
   loadOrganizationMembers,
   type OrganizationMember,
 } from "@/organization/memberService";
+import {
+  DEFAULT_BRANCH_LIMIT,
+  loadBranches,
+  loadOrganizationBranches,
+  type BranchListResult,
+  type LoadBranchesOptions,
+} from "@/organization/branchService";
 import { loadProfileContact } from "@/auth/profileContactService";
 
 /**
@@ -82,11 +88,53 @@ export function useSettingsBranches(
   const isEnabled =
     (options?.enabled ?? true) && Boolean(targetOrgId) && !demoMode;
 
-  return useQuery<{ id: string; name: string }[], Error>({
+  return useQuery<{ id: string; name: string; isDefault?: boolean }[], Error>({
     queryKey: targetOrgId
       ? settingsKeys.branches(targetOrgId)
       : (["settings", "branches", { organizationId: "" }] as const),
     queryFn: () => loadOrganizationBranches(targetOrgId!),
+    enabled: isEnabled,
+  });
+}
+
+export type UseBranchesOptions = LoadBranchesOptions & {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Kurumun tüm şubelerini limit ve kesilme bilgisiyle getiren React Query hook'u.
+ *
+ * Şube yönetimi ekranı (SettingsInstitutionSection) tarafından kullanılır.
+ */
+export function useBranches(
+  organizationId?: string,
+  options?: UseBranchesOptions
+) {
+  const { identity, demoMode } = useAuth();
+  const targetOrgId = organizationId ?? identity?.membership?.organizationId;
+  const isEnabled =
+    (options?.enabled ?? true) && Boolean(targetOrgId) && !demoMode;
+  const limit = options?.limit ?? DEFAULT_BRANCH_LIMIT;
+  const includeArchived = Boolean(options?.includeArchived);
+
+  return useQuery<BranchListResult, Error>({
+    queryKey: targetOrgId
+      ? ([
+          "settings",
+          "branches",
+          {
+            organizationId: targetOrgId,
+            includeArchived,
+            limit,
+          },
+        ] as const)
+      : (["settings", "branches", { organizationId: "" }] as const),
+    queryFn: () =>
+      loadBranches(targetOrgId!, {
+        includeArchived,
+        limit,
+      }),
     enabled: isEnabled,
   });
 }

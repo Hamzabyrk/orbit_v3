@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -47,10 +47,27 @@ export function MemberCreateDialog({
     error: branchQueryError,
   } = useSettingsBranches(organizationId, { enabled: open });
 
-  const branches = demoMode ? [] : branchList;
+  const branches = useMemo(
+    () => (demoMode ? [] : branchList),
+    [demoMode, branchList]
+  );
   const branchLoading = !demoMode && open && branchQueryLoading;
   const branchError =
     !demoMode && open && branchQueryError ? branchQueryError.message : null;
+
+  // Şube seçimi varsayılan şubeden ön-dolar (v1.4-09 · #284)
+  useEffect(() => {
+    if (!open || selectedBranchKey || branches.length === 0) {
+      return;
+    }
+    const defaultBranch =
+      branches.find(
+        b => b.isDefault ?? (b as { is_default?: boolean }).is_default
+      ) ?? (branches.length === 1 ? branches[0] : undefined);
+    if (defaultBranch) {
+      setSelectedBranchKey(defaultBranch.id);
+    }
+  }, [open, selectedBranchKey, branches]);
 
   /**
    * Aynı gönderimin tekrarını sunucuya tanıtan anahtar (v1.2-17).
@@ -90,7 +107,13 @@ export function MemberCreateDialog({
     onOpenChange(next);
   };
 
-  const resolvedBranchId = resolveBranchSelection(selectedBranchKey);
+  const defaultBranch =
+    branches.find(
+      b => b.isDefault ?? (b as { is_default?: boolean }).is_default
+    ) ?? (branches.length === 1 ? branches[0] : undefined);
+
+  const effectiveBranchKey = selectedBranchKey || defaultBranch?.id || "";
+  const resolvedBranchId = resolveBranchSelection(effectiveBranchKey);
   const nameValidationError =
     fullName.trim().length < 2 ? "Ad-soyad en az iki karakter olmalı." : null;
   const branchValidationError =
@@ -219,7 +242,7 @@ export function MemberCreateDialog({
             <Label htmlFor="member-branch">Şube</Label>
             <select
               id="member-branch"
-              value={selectedBranchKey}
+              value={effectiveBranchKey}
               onChange={event => setSelectedBranchKey(event.target.value)}
               disabled={branchLoading || Boolean(branchError)}
               className="h-10 rounded-md border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
@@ -234,7 +257,7 @@ export function MemberCreateDialog({
                 </option>
               ))}
             </select>
-            {selectedBranchKey === "__all__" ? (
+            {effectiveBranchKey === "__all__" ? (
               <p className="rounded-md bg-amber-50/70 p-2 text-[11px] leading-4 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                 <strong>Kurum geneli:</strong> Bu üye kurumun tüm mevcut ve
                 gelecekte açılacak şubelerini görebilir ve işlem yapabilir.

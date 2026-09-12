@@ -604,23 +604,7 @@ export async function createMember(
     auditWritten,
   };
 }
-
-export async function loadOrganizationBranches(
-  organizationId: string
-): Promise<{ id: string; name: string }[]> {
-  const { data, error } = await supabase
-    .from("branches")
-    .select("id, name")
-    .eq("organization_id", organizationId)
-    .is("archived_at", null)
-    .order("name", { ascending: true });
-
-  if (error) {
-    throw new Error("Şubeler yüklenemedi. Lütfen tekrar deneyin.");
-  }
-
-  return data ?? [];
-}
+export { loadOrganizationBranches } from "./branchService";
 
 /**
  * Kurumdaki bir üyenin şifresini sıfırlar ve yeni geçici şifre üretir.
