@@ -2433,3 +2433,53 @@ if cardinality(degisen) = 0 then return null; end if;
 **Karar:** Politika değiştirilmedi. Test, mekanizmayı değil **sonucu** ölçecek şekilde yazıldı (**K-13**): "bağ koparıldı" iddiası, velinin `students` ve `attendance_sessions` üzerinde sıfır satır görmesiyle kanıtlanıyor. Bağ satırının görünmeye devam ettiği de ayrıca test edildi — **davranış kayda geçti, sürpriz olarak kalmadı**.
 
 **Gerekçe:** Arşivlenmiş bir bağ satırı yalnız kimlikler taşıyor ve veli onun üzerinden hiçbir veriye ulaşamıyor. Politikaya süzgeç eklemek, altı politikanın davranışını birbirinden ayırmak olurdu — kazanç görünmezlik, bedel tutarsızlık.
+
+---
+
+### Karar: Yanlış girilmiş taksit arşivlenir — kalıptan bilinçli ayrılış
+
+**Durum:** Alındı
+**Tarih:** 2026-09-12
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-06 açılırken ölçüldü — **yanlış girilmiş bir taksiti kaldırmanın hiçbir yolu yoktu.** `installments` üzerinde `archived_at` yok, `authenticated` için DELETE yetkisi yok, DELETE politikası yok. Tutarı düzeltmek mümkündü ama **fazladan girilmiş** bir taksit defterde kalıyor ve planın toplamı kalıcı olarak yanlış oluyordu.
+
+**Bu, yazılı bir nota aykırılıktır ve o yüzden burada.** 20260908050000 şunu diyordu:
+
+> _"Arşiv `payment_plans`'tedir: `installments` tablosunda `archived_at` sütunu YOK — `attendance_records` ve `exam_results` ile aynı kalıp."_
+
+**Karar:** `installments.archived_at` eklendi.
+
+**Gerekçe — kalıp o iki tablo için doğru, taksit için değil.** `attendance_records` ve `exam_results` öğrenci başına **ölçümlerdir** ve varlıkları bir oturuma/sınava bağlıdır: oturum yanlış açıldıysa **oturum** arşivlenir, tek tek satırlar değil. Taksit ise **doğru bir planın içindeki tek yanlış satırdır**; planın tamamını arşivlemek, bir harfi düzeltmek için sayfayı yırtmaktır. Finansal bir defterde DELETE de doğru cevap değil — kayıt kalmalı, yalnız **hesaba katılmamalı**.
+
+**Asıl iş sütun değildi ve bu kayda değer.** Ölçüldü: taksitleri okuyan **üç** fonksiyon var (`student_payment_summaries`, `payment_plan_summaries`, `payment_overview_counts`) ve hiçbiri arşiv süzmüyordu. Sütunu ekleyip durmak, **düzeltmenin hiçbir şeyi düzeltmemesi** olurdu: arşivlenmiş taksit borç olarak sayılmaya devam eder ve veli hâlâ "vadesi geçmiş ödemeniz var" görürdü. Üçü de aynı migration'da yeniden yazıldı.
+
+**`payment_overview_counts`'ta süzgeç `where`'e kondu, `filter`'lara değil.** O fonksiyonun `having count(*) > 0`'ı "görecek taksiti olmayan çağırana hiç satır dönmesin" diyor; süzgeç `filter` içinde kalsaydı **yalnız arşivli taksiti olan** bir kurum üç sıfır okurdu ve o sıfırlar "kurumda hiç ödeme yok" demektir.
+
+**Bir tuzak daha ölçüldü:** `installments_plan_sequence_key` **tam** bir `UNIQUE (plan_id, sequence_no)` idi. Arşivlenen taksit sıra numarasını sonsuza dek tutacağı için, 3. taksit arşivlenip yerine yenisi girilmek istendiğinde `23505` ile çarpışırdı — **arşiv özelliği ilk kullanışta kendini kilitlerdi**. Kısmi indekse çevrildi (`students.student_number` ve `student_guardians`'ın deseni).
+
+---
+
+### Karar: Rapor ekranı kendi dilimidir; #239 ödeme takibini engellemiyor
+
+**Durum:** Alındı
+**Tarih:** 2026-09-12
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** #239 _"Ödeme durumlarının kuralı ve rapor ekranının kaynağı yok"_ diye açılmıştı ve v1.4-06'nın önünde duruyor gibi görünüyordu. Ölçüldü — **kapsamı iki dilimde belirgin şekilde küçülmüş** ve beş maddesi kapanmış:
+
+| #239'un maddesi                                | Durum                                                                  |
+| ---------------------------------------------- | ---------------------------------------------------------------------- |
+| `PaymentRow.status` üç değerli, kuralı yok     | ✅ 2026-09-09: **iki değerli** (`overdue_count > 0` → "Takip gerekli") |
+| "vadesi geçti hangi güne göre"                 | ✅ `orbit_today()` (v1.3-15), üretimde ölçüldü                         |
+| "Planlanan tahsilatın %82'si" (payda tanımsız) | ✅ üretimde çizilmiyor                                                 |
+| "Ödev tamamlama" kartı                         | ✅ **v1.4-05'te kaldırıldı**                                           |
+| `reportActions` (üretilmiş tavsiye)            | ✅ bilinçli kapsam dışı — §5                                           |
+
+**Karar:** Açık kalan iki kart ("Devam görünümü — Son 4 hafta" ve "Deneme gelişimi") **v1.4-16**'ya taşındı. Ödeme durumu kuralı zaten yazılı olduğu için **#239 ödeme CRUD'unu engellemiyor**.
+
+**Gerekçe:** İki kartın kuralı üç ayrı soru soruyor (hangi dört hafta, kimin kapsamı, izinli nasıl sayılır) ve "kurum ortalaması" #237'nin en zor sorusunun kurum geneli hâli — v1.4-04 onu **tek sınava indirgeyerek** çözmüştü. Bunları ödeme CRUD'una eklemek iki farklı işi tek dilim gibi göstermek olurdu.
+
+**Ve bekletmenin bedeli yok:** üretimde iki kartın değerleri sabit sıfır ve `ReportCard` hepsi sıfır olduğunda çubuk çizmek yerine dürüstçe _"Rapor verisi henüz yok"_ diyor.
+
+⚠️ **O dilim açılırken düzeltilecek bir kusur ölçüldü ve #278'e yazıldı:** `ReportCard`'ın koşulu `values.every(v => v === 0)`, yani **"veri yok" ile "veri sıfır"ı karıştırıyor**. Bugün ateşlenemiyor; kartlar gerçek veriye bağlandığı gün tatil dönemindeki bir sınıf "veri yok" görür (**K-22**).
