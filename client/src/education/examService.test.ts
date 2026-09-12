@@ -930,4 +930,77 @@ describe("examService", () => {
       });
     }
   });
+
+  // =========================================================================
+  // v1.4 ara denetimi (2026-09-13) — v1.4-04'ün karşılanmamış iddiası
+  // =========================================================================
+  //
+  // v1.4-04 "sınav ekle/düzenle/arşivle" diye kapandı; ölçüm `updateExam` ve
+  // `archiveExam`'in HİÇBİR ekrandan çağrılmadığını gösterdi. ExamFormDialog
+  // yalnız `createExam`'i import ediyordu. Bu blok iddiayı çiviliyor.
+  describe("sınav düzenleme ve arşivleme (v1.4 ara denetimi)", () => {
+    const aktifSinav: ExamSheet = {
+      exam: {
+        id: "exam-1",
+        organizationId: "org-1",
+        classId: "cls-1",
+        className: "12-A",
+        subjectId: null,
+        subjectName: null,
+        name: "TYT Deneme 06",
+        examDate: "2026-08-14",
+        maxScore: 100,
+      },
+      students: [{ studentId: "stu-1", studentName: "Ali Can", score: 80 }],
+    };
+
+    it("yönetkili rolde 'Düzenle' ve 'Arşivle' eylemleri çizilir", () => {
+      const html = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "teacher",
+          onNavigate: vi.fn(),
+          initialSheet: aktifSinav,
+          isDemo: false,
+        })
+      );
+
+      expect(html).toContain("Düzenle");
+      expect(html).toContain("Arşivle");
+    });
+
+    it("öğrenci rolünde bu eylemler KESİNLİKLE çizilmez", () => {
+      const html = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "student",
+          onNavigate: vi.fn(),
+          initialSheet: aktifSinav,
+          isDemo: false,
+        })
+      );
+
+      expect(html).not.toContain("Arşivle");
+    });
+
+    // ⚠️ Uydurma yer tutucunun ("Yeni Sınav", bugünün tarihi, tam puan null)
+    // korumasi bir DEĞİL bir TİP: `onDone` artık `LatestExamDetail` alıyor,
+    // yani diyalog kullanıcının yazdığı değerleri geri vermek zorunda.
+    // İmzayı `(id: string)`e döndürdüğümde `tsc` tam da uydurmanın yapıldığı
+    // satırda patlıyor — statik çizim bunu göremez, derleyici görür.
+    //
+    // Burada gözlenebilen şey, ekranın sınavın GERÇEK adını göstermesi.
+    it("ekran sınavın gerçek adını gösterir, yer tutucu bir ad değil", () => {
+      const html = renderToStaticMarkup(
+        createElement(AssessmentsPage, {
+          role: "teacher",
+          onNavigate: vi.fn(),
+          initialSheet: aktifSinav,
+          isDemo: false,
+        })
+      );
+
+      expect(html).toContain("TYT Deneme 06");
+      // Diyalog kapalıyken düzenleme başlığı çizilmez.
+      expect(html).not.toContain("Sınavı Düzenle");
+    });
+  });
 });

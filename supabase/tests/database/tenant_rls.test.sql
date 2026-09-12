@@ -70,10 +70,23 @@ select is(
   'user A cannot read organization B memberships'
 );
 
-select is(
-  (select count(*) from public.audit_events),
-  1::bigint,
-  'admin A cannot read organization B audit events'
+-- ⚠️ İddia 2026-09-13'te SAYIDAN KAPSAMA çevrildi (v1.4-09, #284).
+--
+-- Eskiden "toplam 1 satır görünür" diyordu ve bu, kurgunun o gün kaç denetim
+-- olayı ürettiğine bağlıydı. v1.4-09 `branches`'a denetim tetikleyicisi
+-- ekleyince kurgudaki şube oluşturma ikinci bir olay yazdı ve iddia kırmızıya
+-- döndü — oysa **ölçmek istediği şey hiç bozulmamıştı**.
+--
+-- Bu testin sorusu "kaç satır" değil, "başka kurumun satırı görünüyor mu".
+-- Artık onu soruyor; yeni bir denetim tetikleyicisi eklendiğinde bir daha
+-- kırmızıya dönmeyecek, ama gerçek bir sızıntıda dönecek.
+select ok(
+  (select count(*) from public.audit_events) > 0
+  and not exists (
+    select 1 from public.audit_events as olay
+    where olay.organization_id <> '11000000-0000-0000-0000-000000000001'::uuid
+  ),
+  'admin A sees audit events — and every one of them belongs to organization A'
 );
 
 select is(

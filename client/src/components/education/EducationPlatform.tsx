@@ -42,6 +42,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSettingsMembers } from "@/settings/settingsQueries";
 import {
   archiveStudent,
+  restoreStudent,
   linkStudentAccount,
   unlinkStudentAccount,
 } from "@/education/studentService";
@@ -76,7 +77,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useOrganizationChannel } from "@/realtime";
 import { DEFAULT_STUDENT_LIMIT } from "@/education/studentService";
-import { archiveClass, DEFAULT_CLASS_LIMIT } from "@/education/classService";
+import {
+  archiveClass,
+  restoreClass,
+  DEFAULT_CLASS_LIMIT,
+} from "@/education/classService";
 import { DEFAULT_SCHEDULE_LIMIT } from "@/education/scheduleService";
 import { DEFAULT_PAYMENT_LIMIT } from "@/education/paymentService";
 import { allNav } from "./navigation";
@@ -217,8 +222,34 @@ export function EducationPlatform({
   const handleArchiveStudent = async (student: Student) => {
     try {
       await archiveStudent(student.id);
+      // v1.4 ara denetimi: `restoreStudent` yazıldığı günden beri çağıransızdı.
+      // Arşivlenmiş öğrenciyi listeleyen bir ekran yok (`loadStudents`
+      // `archived_at is null` süzüyor), dolayısıyla geri almanın tek
+      // gözlenebilir yeri kullanıcının işlemi yaptığı an. Desen uydurma değil:
+      // v1.4-10'da veli bağı koparma tam olarak böyle geri alınıyor.
       toast.success("Öğrenci arşivlendi", {
         description: `${student.name} arşive kaldırıldı.`,
+        action: {
+          label: "Geri al",
+          onClick: () => {
+            void restoreStudent(student.id)
+              .then(async () => {
+                toast.success("Öğrenci geri yüklendi", {
+                  description: `${student.name} arşivden çıkarıldı.`,
+                });
+                await queryClient.invalidateQueries({
+                  queryKey: educationKeys.students(organizationId),
+                });
+              })
+              .catch(err => {
+                toast.error(
+                  err instanceof Error
+                    ? err.message
+                    : "Öğrenci geri yüklenemedi."
+                );
+              });
+          },
+        },
       });
       await queryClient.invalidateQueries({
         queryKey: educationKeys.students(organizationId),
@@ -239,6 +270,25 @@ export function EducationPlatform({
       await archiveClass(cls.id);
       toast.success("Sınıf arşivlendi", {
         description: `${cls.name} arşive kaldırıldı.`,
+        action: {
+          label: "Geri al",
+          onClick: () => {
+            void restoreClass(cls.id)
+              .then(async () => {
+                toast.success("Sınıf geri yüklendi", {
+                  description: `${cls.name} arşivden çıkarıldı.`,
+                });
+                await queryClient.invalidateQueries({
+                  queryKey: educationKeys.classes(organizationId),
+                });
+              })
+              .catch(err => {
+                toast.error(
+                  err instanceof Error ? err.message : "Sınıf geri yüklenemedi."
+                );
+              });
+          },
+        },
       });
       await queryClient.invalidateQueries({
         queryKey: educationKeys.classes(organizationId),

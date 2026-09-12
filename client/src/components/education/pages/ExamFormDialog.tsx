@@ -10,13 +10,26 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createExam, translateExamError } from "@/education/examService";
+import {
+  createExam,
+  updateExam,
+  translateExamError,
+  type LatestExamDetail,
+} from "@/education/examService";
 import type { ClassGroup } from "../types";
 
 export type ExamFormDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onDone: (newExamId: string) => void;
+  /**
+   * ⚠️ `onDone` yalnız kimliği değil **gerçek değerleri** taşıyor ve bu bir
+   * düzeltme (v1.4 ara denetimi). Eskiden `(newExamId: string)` idi ve çağıran
+   * ekran eksik alanları uyduruyordu: ad "Yeni Sınav", tarih bugün, tam puan
+   * null. Kullanıcı o üçünü de az önce yazmıştı (K-03).
+   */
+  onDone: (exam: LatestExamDetail) => void;
+  /** Doluysa diyalog DÜZENLEME kipindedir. */
+  exam?: LatestExamDetail | null;
   organizationId: string;
   classes: ClassGroup[];
 };
@@ -27,6 +40,7 @@ export function ExamFormDialog({
   onDone,
   organizationId,
   classes = [],
+  exam = null,
 }: ExamFormDialogProps) {
   const [name, setName] = useState("");
   const [classId, setClassId] = useState("");
@@ -39,14 +53,14 @@ export function ExamFormDialog({
 
   useEffect(() => {
     if (open) {
-      setName("");
-      setClassId(classes[0]?.id ?? "");
-      setExamDate(new Date().toISOString().split("T")[0]);
-      setMaxScore("");
+      setName(exam?.name ?? "");
+      setClassId(exam?.classId ?? classes[0]?.id ?? "");
+      setExamDate(exam?.examDate ?? new Date().toISOString().split("T")[0]);
+      setMaxScore(exam?.maxScore != null ? String(exam.maxScore) : "");
       setError(null);
       setSubmitting(false);
     }
-  }, [open, classes]);
+  }, [open, classes, exam]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,23 +96,45 @@ export function ExamFormDialog({
     setSubmitting(true);
     setError(null);
     try {
-      const { id } = await createExam({
-        organizationId,
-        classId,
-        name: trimmedName,
-        examDate,
-        maxScore: parsedMaxScore,
-      });
+      let examId: string;
+      if (exam) {
+        await updateExam(organizationId, exam.id, {
+          classId,
+          name: trimmedName,
+          examDate,
+          maxScore: parsedMaxScore,
+        });
+        examId = exam.id;
+      } else {
+        const created = await createExam({
+          organizationId,
+          classId,
+          name: trimmedName,
+          examDate,
+          maxScore: parsedMaxScore,
+        });
+        examId = created.id;
+      }
 
-      toast.success("Sınav oluşturuldu", {
+      toast.success(exam ? "Sınav güncellendi" : "Sınav oluşturuldu", {
         description: `${trimmedName} sınavı kaydedildi.`,
       });
       onOpenChange(false);
-      onDone(id);
+      // Uydurma yok: ekrana giden değerler kullanıcının az önce yazdıkları.
+      onDone({
+        id: examId,
+        name: trimmedName,
+        examDate,
+        maxScore: parsedMaxScore,
+        classId,
+        participantCount: exam?.participantCount ?? null,
+      });
     } catch (err: unknown) {
       const msg = translateExamError(err);
       setError(msg);
-      toast.error("Sınav oluşturulamadı", { description: msg });
+      toast.error(exam ? "Sınav güncellenemedi" : "Sınav oluşturulamadı", {
+        description: msg,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -109,10 +145,13 @@ export function ExamFormDialog({
       <DialogContent className="sm:max-w-[440px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Yeni Sınav Oluştur</DialogTitle>
+            <DialogTitle>
+              {exam ? "Sınavı Düzenle" : "Yeni Sınav Oluştur"}
+            </DialogTitle>
             <DialogDescription>
-              Sınıf için yeni bir sınav kaydı oluşturun ve sonuç girişini
-              başlatın.
+              {exam
+                ? "Sınavın adını, tarihini, sınıfını ve tam puanını güncelleyin."
+                : "Sınıf için yeni bir sınav kaydı oluşturun ve sonuç girişini başlatın."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -211,7 +250,13 @@ export function ExamFormDialog({
               disabled={submitting || !name.trim() || !classId}
               className="rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-50"
             >
-              {submitting ? "Oluşturuluyor…" : "Sınavı Oluştur"}
+              {submitting
+                ? exam
+                  ? "Kaydediliyor…"
+                  : "Oluşturuluyor…"
+                : exam
+                  ? "Değişiklikleri Kaydet"
+                  : "Sınavı Oluştur"}
             </button>
           </DialogFooter>
         </form>
