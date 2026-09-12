@@ -246,7 +246,8 @@ Bu, aşağıdaki bağlantı matrisinin okunuşunu değiştirir: **tablo, RLS ve 
 | Program · Ödeme                                               |   ✅   | ✅ okuma |  ✅   |      ❌      |
 | Mesaj · Gün planı                                             |   ✅   |    ❌    |  ✅   |      ❌      |
 | Otomasyon                                                     |   ❌   |    ❌    |  ✅   |      ❌      |
-| Öğretmen–sınıf ataması · Veli–öğrenci bağı                    |   ❌   |    ❌    |  ❌   |      ❌      |
+| Veli · Veli–öğrenci bağı                                      |   ✅   |    ✅    |  ✅   |      ✅      |
+| Öğretmen–sınıf ataması                                        |   ✅   |    ❌    |  ❌   |      ❌      |
 | Belge (`workspace_documents`)                                 | ☠️ ölü |  ☠️ ölü  |  ❌   |      ❌      |
 
 **On üçüncü düzeltme (2026-09-11, v1.4-01 … v1.4-04):** Yukarıdaki matris **v1.4 boyunca dört kez eskidi ve bu turda toplu olarak düzeltildi.** Eskiden tek bir satır on varlığı birden "❌ ❌ ✅ ❌" diye anlatıyordu; bugün o on varlık **dört farklı durumda** ve tek satırda tutmak K-06'nın tam olarak uyardığı şeydi.
@@ -263,7 +264,13 @@ Bu dilimin kaydı, eklediğinden çok **kaldırdığı** için düşülüyor: `H
 
 ⚠️ Böylece v1.4'ün CRUD dilimleri bitti: matriste "Servis ✅ + Yazma ✅" taşıyan beş varlık var (Öğrenci, Sınıf, Yoklama, Sınav, Ödev). **Program ve Ödeme hâlâ yalnız okuma** — ödeme kurallarının kaynağı yok (#239) ve o karar verilmeden yazma açılamaz.
 
-Son iki satır yalnızca eksik veri değil: **kapsamın kendisi** onlardan gelir. E7.2-B2'de yedi filtrenin üretimde boş küme dönmesinin sebebi budur.
+**On beşinci düzeltme (2026-09-12, v1.4-10):** **Veli** ve **veli–öğrenci bağı** ayrı bir satır oldu ve dört sütunu da ✅. Bu, matrisin en uzun süredir dolmayan satırıydı ve `guardians` tablosu v1.2-03'ten beri duruyordu.
+
+Ölçülerek yazıldı: dilim açılırken `guardians` tablosuna yazan **0** veritabanı fonksiyonu, **0** istemci kodu vardı ve üretimde **0** satır. v1.4-00 dört RPC yazmıştı ama ikisi (`link_guardian_account`, `unlink_guardian_account`) hiç çağrılmıyordu — bağlanacak kayıt olmadığı için. Bu dilim o zinciri kapattı.
+
+⚠️ **Aşağıdaki paragrafın "son iki satır" ifadesi bu düzeltmeyle güncellendi.** Kapsamın kaynağı artık yalnız **öğretmen–sınıf ataması** ve **belge** satırlarıdır; veli–öğrenci bağı o gruptan çıktı. `class_teachers` tablosu var ve RLS'i kurulu (v1.2-02) ama onu yazan ekran yok — karşılığı **v1.4-11**.
+
+Kapsam artık yalnız **öğretmen–sınıf ataması** satırından eksik: tablosu var, yazan ekranı yok. E7.2-B2'de yedi filtrenin üretimde boş küme dönmesinin sebebi bu gruptu ve grup bir satıra indi.
 
 ### Yapısal borçlar
 
