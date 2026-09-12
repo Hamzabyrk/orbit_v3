@@ -2550,3 +2550,65 @@ if cardinality(degisen) = 0 then return null; end if;
 🔴 **Ve bir borç yazıldı:** **v1.4-08** (kurum yöneticisi devri) o admin kapısını **gevşetmek zorunda**. O gün "çağıran kendini hedef alamaz" kontrolü **ayrıca yazılmalı** — bugün gereksiz olması, yarın gereksiz olacağı anlamına gelmiyor. Not migration'ın içinde, kapının tam yanında duruyor.
 
 **Kayda değer olan genel ders:** K-23 bugüne kadar hep **yazanın** testlerinde ateşlendi. Bu, ilk kez **denetleyenin kendi kodunda** ateşlendiği yer — ve kural tam da bunun için var.
+
+---
+
+### Karar: Kurum birden fazla yönetici taşıyabilir; "devir" ayrı bir işlem değildir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam — ölçüldü.** "Kurum başına tek yönetici" bugüne kadar **şemada bir kural değildi**: `organization_memberships` üzerinde admin'e dair **sıfır kısıt, sıfır indeks**. Teklik yalnız yaratma yollarının sonucuydu — yöneticiyi `bootstrap-organization` yaratıyor, `internal_create_membership` ise admin üyeliği açmayı açıkça reddediyor. `admin` geçen 24 fonksiyon tarandı ve **hiçbiri tekliği varsaymıyor**.
+
+**Karar:** Bir yönetici başkasını yönetici yapabilir ve ikisi birden kalabilir. "Devir" ayrı bir işlem değil: **terfi + kendini indirme**.
+
+**Gerekçe ölçülü:** tek yönetici bugün **kurtarma zincirinin tek arıza noktası**. `PLATFORM_SETTINGS`'in zinciri _"öğretmen/öğrenci/veli → kurum yöneticisi → doğrulanmış e-postası → platform operatörü"_ diyor; yönetici kilitlenirse geri dönüş yalnız `reset-admin-password` ile, yani **platform operatöründen** geçiyor. İkinci bir yönetici o noktayı kaldırıyor — ve şemada kırılacak bir şey olmadığı da ölçüldü.
+
+**`internal_create_membership` değişmedi:** yeni bir kullanıcı doğrudan yönetici olarak **açılamaz**. Yöneticilik ancak **terfi** ile verilir ve terfi denetim defterine düşer. Yaratma ile yetkilendirmeyi ayrı tutmak, "kim kimi yönetici yaptı" sorusunun cevabını tek bir yerde tutuyor.
+
+---
+
+### Karar: Son yönetici koruması bir SAYIMDIR, bir yasak değil (`ORB06`)
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-07 bir borç bırakmıştı ve notu şuydu — _"yönetici devri bu kapıyı gevşetmek zorunda; o gün **'çağıran kendini hedef alamaz'** kontrolü ayrıca yazılmalı."_
+
+**Borç ödendi ama ödemesi yazıldığından farklı, ve fark kayda değer.**
+
+**O kontrol yanlış olurdu.** İkinci bir yönetici varken kendini indirmek **meşrudur** — devir tam olarak odur. Yasak iki hatayı birden yapardı: meşru devri engellerdi, ve A'nın B'yi indirmesini serbest bırakırdı. Yani korumak istediği şeyi korumazdı.
+
+**Karar:** Kural durumu değil **sonucu** sınıyor (**K-13**): _işlem sonrası kurumda sıfır aktif yönetici kalacaksa reddet._ Tek kural üç durumu birden kapatıyor:
+
+| Durum                                | Sonuç                                        |
+| ------------------------------------ | -------------------------------------------- |
+| Tek yönetici kendini indirir/çıkarır | ❌ `ORB06`                                   |
+| İki yöneticiden biri kendini indirir | ✅ **geçer — devir budur**                   |
+| Terfi                                | ✅ hiçbir zaman reddedilmez (sayımı artırır) |
+
+**`ORB06` aileye yeni giren kod:** "bu işlem son yöneticiyi götürürdü". `ORB03`'ten ayrıldı çünkü istemcinin cevabı farklı — `ORB03` _"önce şu atamaları arşivle"_ der ve yol kullanıcının elindedir; `ORB06` _"önce başka birini yönetici yap"_ der, yani **çözüm bir başkasını yetkilendirmektir**.
+
+**Kural fonksiyonda, şemada değil.** Sayım **işlem sonrası** duruma bakıyor ve bunu bir `check` kısıtı ifade edemez; tetikleyici ifade ederdi ama her üyelik UPDATE'inde koşardı ve maliyeti ölçülmedi. `authenticated` için bu tabloda **sıfır yazma yetkisi** olduğu ölçüldüğünden (v1.4-07), `service_role` dışında yazan yol yok ve fonksiyon sınırı bugün yeterli sınır.
+
+**İstemcide taklit edilmedi.** Yönetici sayısını istemcide sayıp düğmeyi baştan kapatmak, iki yöneticinin aynı anda inmeye çalıştığı durumda yanlış cevap verirdi. Sunucunun cevabı gösteriliyor.
+
+---
+
+### Karar: Gereksiz ama görünür bir koşul, görünmez bir sıra bağımlılığından iyidir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `internal_change_member_role`'daki son yönetici sayımı `if hedef.role = 'admin' and new_role <> 'admin'` koşuluyla korunuyor. **K-23 mutasyonu `and new_role <> 'admin'` kısmını kaldırdı ve 717 iddia yeşil kaldı.**
+
+**Sebep:** yukarıdaki `ORB04` kapısı (`hedef.role = new_role` → reddet) sayesinde buraya gelindiğinde ikisi eşit olamaz; `hedef.role` `admin` ise `new_role` zorunlu olarak `admin` değildir. Koşul **gereksiz**.
+
+**Karar: kaldırılmadı.** Ve bu, v1.4-07'de aynı durumda verilen karardan **farklı** — orada erişilemez iki dal kaldırılmıştı.
+
+**Fark nerede:** v1.4-07'deki dallar **ayrı `if` blokları**ydı; kaldırılmaları hiçbir şeyi başka bir satıra bağlamıyordu. Buradaki ise bir **koşulun parçası** ve kaldırmak onu yukarıdaki kapının **sırasına** bağlardı: `ORB04` kontrolü bir gün aşağı taşınırsa, blok sessizce terfiyi de saymaya başlar ve terfi reddedilmeye başlardı.
+
+**Kural olarak:** erişilemez bir **dal** kaldırılır (testi yanlış sebeple geçirir); gereksiz ama **görünür bir koşul**, görünmez bir sıra bağımlılığı yaratmıyorsa bırakılır ve **gereksizliği yazılır**. İkisinin ortak noktası şu: mutasyonun kırmızı vermemesi her zaman "testi düzelt" demek değil — bazen "kodun neden böyle olduğunu yaz" demek.

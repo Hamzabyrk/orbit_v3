@@ -131,6 +131,9 @@ Deno.serve(async request => {
     // zemin kaydı bunu işaret ediyordu: tekrarlanan istek arayüzde bir hata
     // gibi görünüyor, oysa hedeflenen durum **zaten sağlanmıştır**. Ekran bunu
     // kırmızı bir kutu değil, nötr bir bilgi olarak göstermeli.
+    // `ORB06` v1.4-08'de eklendi: son yöneticiyi çıkarmak reddediliyor.
+    // `ORB04` gibi 409'a düşüyor ama anlamı farklı — biri "zaten olmuş",
+    // diğeri "bu haliyle olamaz".
     const code = removeError.code ?? "unknown";
     const status = code === "42501" ? 403 : code === "23503" ? 404 : 409;
 

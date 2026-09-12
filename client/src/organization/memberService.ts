@@ -3,7 +3,8 @@ import type { EducationRole } from "@/components/educationAccess";
 import { supabase } from "@/lib/supabaseClient";
 
 export type MemberStatus = "invited" | "active" | "suspended";
-export type MemberRole = Exclude<EducationRole, "admin">;
+export type CreatableMemberRole = Exclude<EducationRole, "admin">;
+export type MemberRole = EducationRole;
 
 export type LinkedPersonInfo = {
   type: "student" | "guardian";
@@ -383,11 +384,17 @@ function formatORB03Message(detail?: string | null): string {
 
 /**
  * Üye işlemleri (rol değiştirme ve çıkarma) Edge Function hatalarını
- * kullanıcının düzeltebileceği Türkçe cümlelere çevirir (#280).
+ * kullanıcının düzeltebileceği Türkçe cümlelere çevirir (#280, #282).
  */
+export type MembershipActionErrorContext = {
+  isSelf?: boolean;
+  targetName?: string | null;
+};
+
 export function translateMembershipActionError(
   err: unknown,
-  action?: "change_role" | "remove"
+  action?: "change_role" | "remove",
+  context?: MembershipActionErrorContext
 ): string {
   if (err instanceof MembershipActionError) {
     return err.message;
@@ -408,6 +415,17 @@ export function translateMembershipActionError(
 
   if (code === "ORB03") {
     return formatORB03Message(detail);
+  }
+
+  if (code === "ORB06") {
+    const isSelf = context?.isSelf ?? true;
+    if (action === "remove") {
+      return "Kurumun tek yöneticisi kurumdan çıkarılamaz. Önce başka bir üyeyi yönetici yapın.";
+    }
+    if (isSelf) {
+      return "Kurumun tek yöneticisisiniz. Rolünüzü değiştirmeden önce başka bir üyeyi yönetici yapın.";
+    }
+    return "Kurumun tek yöneticisinin rolü değiştirilemez. Önce başka bir üyeyi yönetici yapın.";
   }
 
   if (code === "ORB04") {
@@ -688,25 +706,18 @@ export type ChangeMemberRoleResult = {
 };
 
 /**
- * Kurumdaki bir üyenin rolünü değiştirir (v1.4-07 · #280).
+ * Kurumdaki bir üyenin rolünü değiştirir (v1.4-07 · #280, v1.4-08 · #282).
  *
- * Yalnızca 'teacher' | 'student' | 'parent' rollerine geçiş yapılabilir.
- * 'admin' rolü verilemez veya admin'den indirme yapılamaz (v1.4-08).
+ * Yönetici devri ve çoklu yönetici meşrudur; terfi veya kendini indirme
+ * bu fonksiyondan yürütülür. Tek kısıt: son aktif yönetici indirilemez (ORB06).
  *
  * Yazma RLS ile değil, 'change-member-role' Edge Function üzerinden yürütülür.
  */
 export async function changeMemberRole(
   membershipId: string,
-  role: MemberRole,
+  role: EducationRole,
   idempotencyKey?: string
 ): Promise<ChangeMemberRoleResult> {
-  if ((role as string) === "admin") {
-    throw new MembershipActionError(
-      "Kurum yöneticisi rolü atanamaz. Yönetici devri ayrı bir işlemdir.",
-      { code: "42501" }
-    );
-  }
-
   const { data, error } = await supabase.functions.invoke(
     "change-member-role",
     {

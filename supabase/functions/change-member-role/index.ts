@@ -28,7 +28,10 @@ import {
 
 const requestSchema = z.object({
   membershipId: z.string().uuid(),
-  role: z.enum(["teacher", "student", "parent"]),
+  // `admin` v1.4-08'de eklendi: yönetici devri terfi + kendini indirme olarak
+  // yapılıyor ve ikisi de bu fonksiyondan geçiyor. Son yöneticinin gitmesini
+  // engelleyen kural SQL'de bir SAYIM (`ORB06`), burada bir rol yasağı değil.
+  role: z.enum(["admin", "teacher", "student", "parent"]),
 });
 
 Deno.serve(async request => {
@@ -130,6 +133,9 @@ Deno.serve(async request => {
     // kullanıcıya söyleyeceği şey tam olarak o. Buradan genel bir
     // "işlem başarısız" dönmek, v1.2-15'in yazdığı kuralı kullanıcıdan
     // saklamak olurdu.
+    // `ORB06` (son yönetici) 409'a düşüyor: istek geçerli ama kurumun bugünkü
+    // durumu onu kabul edemiyor. Ekranın cevabı "önce başka birini yönetici
+    // yap" — `hint` bunu söylüyor.
     const code = changeError.code ?? "unknown";
     const status = code === "42501" ? 403 : code === "23503" ? 404 : 409;
 

@@ -18,11 +18,11 @@ import { useSettingsBranches } from "@/settings/settingsQueries";
 import {
   createMember,
   resolveBranchSelection,
-  type MemberRole,
+  type CreatableMemberRole,
 } from "@/organization/memberService";
 import { roleMeta } from "../roleMeta";
 
-const MEMBER_ROLES: MemberRole[] = ["teacher", "student", "parent"];
+const MEMBER_ROLES: CreatableMemberRole[] = ["teacher", "student", "parent"];
 
 export function MemberCreateDialog({
   open,
@@ -37,7 +37,7 @@ export function MemberCreateDialog({
 }) {
   const { demoMode } = useAuth();
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<MemberRole>("teacher");
+  const [role, setRole] = useState<CreatableMemberRole>("teacher");
   const [selectedBranchKey, setSelectedBranchKey] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -202,7 +202,9 @@ export function MemberCreateDialog({
             <select
               id="member-role"
               value={role}
-              onChange={event => setRole(event.target.value as MemberRole)}
+              onChange={event =>
+                setRole(event.target.value as CreatableMemberRole)
+              }
               className="h-10 rounded-md border border-input bg-background px-3 text-sm"
             >
               {MEMBER_ROLES.map(memberRole => (

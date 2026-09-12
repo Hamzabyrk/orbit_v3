@@ -116,24 +116,42 @@ select throws_ok(
     '39000000-0000-0000-0000-000000000001',
     'teacher'
   )$sql$,
-  '42501',
+  -- ⚠️ Bu iddianın KODU 2026-09-13'te değişti (v1.4-08, #282), sonucu değil.
+  --
+  -- v1.4-07'de reddin sebebi `42501` idi: "admin rolleri burada ele alınmaz".
+  -- v1.4-08 o kapıyı kaldırdı — yönetici devri tam olarak bunu gerektiriyor.
+  -- Yerine gelen kural bir SAYIM: işlem sonrası kurumda sıfır aktif yönetici
+  -- kalacaksa reddet (`ORB06`).
+  --
+  -- Bu kurguda çağıran kurumun TEK yöneticisi, dolayısıyla kendini indirmesi
+  -- hâlâ reddediliyor — ama artık "kendisi olduğu için" değil, "son yönetici
+  -- olduğu için". İkinci bir yönetici olsaydı GEÇERDİ ve bu istenen davranış:
+  -- devir budur (`last_administrator.test.sql`).
+  'ORB06',
   null,
-  -- Bu iddia artık DOĞRU SEBEPLE geçiyor: çağıranın kendi üyeliği admin
-  -- olduğu için admin kapısı ateşleniyor. İlk yazımda ayrı bir "kendi rolü"
-  -- kapısı vardı ve bu test onu test ettiğini sanıyordu; K-23 mutasyonu
-  -- kapıyı kaldırdığımda test YEŞİL kaldı ve erişilemez olduğu ortaya çıktı.
-  'a caller targeting their own (admin) membership is refused by the admin gate'
+  'the last administrator cannot demote themselves — refused by the count, not by a self-ban'
 );
 
-select throws_ok(
+-- ⚠️ Bu iddia 2026-09-13'te TERSİNE döndü (v1.4-08, #282). v1.4-07'de terfi
+-- reddediliyordu ("kapsamı v1.4-08"); artık serbest ve sayımı ARTIRDIĞI için
+-- hiçbir zaman reddedilmiyor.
+select lives_ok(
   $sql$select public.internal_change_member_role(
     'a1000000-0000-0000-0000-0000000000a1',
     '39000000-0000-0000-0000-000000000003',
     'admin'
   )$sql$,
-  '42501',
-  null,
-  'promoting to admin is not handled here — that is the transfer slice'
+  'promoting a member to administrator is allowed since v1.4-08'
+);
+
+-- Kurgu geri alınıyor ki sonraki iddialar bu terfiden etkilenmesin. pgTAP
+-- dosyası tek bir işlemde koşuyor ve durum taşınır; bunu yapmazsak aşağıdaki
+-- ORB04 iddiası "öğrenci" yerine "yönetici" bir satıra bakar ve yanlış
+-- sebeple kırmızıya döner (ilk koşumda tam olarak bu oldu).
+select public.internal_change_member_role(
+  'a1000000-0000-0000-0000-0000000000a1',
+  '39000000-0000-0000-0000-000000000003',
+  'student'
 );
 
 select throws_ok(
@@ -246,9 +264,12 @@ select throws_ok(
     'a1000000-0000-0000-0000-0000000000a1',
     '39000000-0000-0000-0000-000000000001'
   )$sql$,
-  '42501',
+  -- Aynı değişiklik çıkarma tarafında (v1.4-08): sebep `42501` değil `ORB06`.
+  -- Çağıran kurumun tek yöneticisi olduğu için çıkarılamıyor; iki yönetici
+  -- olsaydı çıkarılabilirdi.
+  'ORB06',
   null,
-  'a caller targeting their own (admin) membership cannot remove it'
+  'the last administrator cannot remove themselves — refused by the count'
 );
 
 select throws_ok(
