@@ -653,6 +653,11 @@ export const organizationMembers: OrganizationMember[] = [
     role: "student",
     branchName: "Çorlu Şube",
     status: "active",
+    linkedPerson: {
+      type: "student",
+      id: "demo-student-1",
+      name: "Zeynep Kaya",
+    },
   },
   {
     membershipId: "demo-mem-5",
@@ -661,6 +666,7 @@ export const organizationMembers: OrganizationMember[] = [
     role: "student",
     branchName: "Çorlu Şube",
     status: "invited",
+    linkedPerson: null,
   },
   {
     membershipId: "demo-mem-6",
@@ -669,6 +675,11 @@ export const organizationMembers: OrganizationMember[] = [
     role: "parent",
     branchName: "Çorlu Şube",
     status: "active",
+    linkedPerson: {
+      type: "guardian",
+      id: "demo-guardian-1",
+      name: "Murat Kaya",
+    },
   },
   {
     membershipId: "demo-mem-7",

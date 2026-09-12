@@ -110,6 +110,21 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
     expect(keys[0]).toEqual(educationKeys.homework(orgId));
   });
 
+  it("12. guardians: hem veli hem öğrenci (veli adı gömülü) sorgusunu tazeler (v1.4-10 #275)", () => {
+    const keys = getAffectedQueryKeys("guardians", orgId);
+    expect(keys).toHaveLength(2);
+    expect(keys).toContainEqual(educationKeys.guardians(orgId));
+    expect(keys).toContainEqual(educationKeys.students(orgId));
+  });
+
+  it("13. student_guardians: veli, öğrenci ve veli bağları sorgularını tazeler (v1.4-10 #275)", () => {
+    const keys = getAffectedQueryKeys("student_guardians", orgId);
+    expect(keys).toHaveLength(3);
+    expect(keys).toContainEqual(educationKeys.guardians(orgId));
+    expect(keys).toContainEqual(educationKeys.students(orgId));
+    expect(keys).toContainEqual(educationKeys.studentGuardians(orgId));
+  });
+
   it("⛔ Hiçbir tekil tablo mesajı toptan tazeleme (educationKeys.all) döndürmez", () => {
     const tables: EducationTable[] = [
       "students",
@@ -123,6 +138,8 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
       "payment_plans",
       "installments",
       "homework_assignments",
+      "guardians",
+      "student_guardians",
     ];
 
     for (const tbl of tables) {

@@ -326,7 +326,7 @@ export function ClassFormDialog({
               <option value="">Seçilmedi</option>
               {eligibleMentors.map(member => (
                 <option key={member.membershipId} value={member.membershipId}>
-                  {member.displayName || "İsimsiz"} (
+                  {member.displayName || "adı okunamadı"} (
                   {member.role === "admin" ? "Yönetici" : "Öğretmen"})
                 </option>
               ))}

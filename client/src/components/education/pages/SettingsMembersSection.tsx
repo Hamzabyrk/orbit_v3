@@ -170,7 +170,7 @@ export function SettingsMembersSection() {
       </div>
 
       {loading ? (
-        <TableSkeleton rows={4} columns={6} className="mt-6" />
+        <TableSkeleton rows={4} columns={7} className="mt-6" />
       ) : loadError ? (
         <ErrorState
           className="mt-6"
@@ -192,6 +192,7 @@ export function SettingsMembersSection() {
                 <th className="px-4 py-3">Ad Soyad</th>
                 <th className="px-4 py-3">Giriş Numarası</th>
                 <th className="px-4 py-3">Rol</th>
+                <th className="px-4 py-3">Bağlı Kişi</th>
                 <th className="px-4 py-3">Şube</th>
                 <th className="px-4 py-3">Durum</th>
                 <th className="px-4 py-3 text-right">İşlem</th>
@@ -223,6 +224,19 @@ export function SettingsMembersSection() {
                   </td>
                   <td className="px-4 py-3 text-slate-700">
                     {roleMeta[member.role]?.label ?? member.role}
+                  </td>
+                  <td className="px-4 py-3 text-slate-700">
+                    {member.role === "student" || member.role === "parent" ? (
+                      member.linkedPerson ? (
+                        <span className="font-semibold text-slate-800">
+                          {member.linkedPerson.name}
+                        </span>
+                      ) : (
+                        <Badge tone="slate">Bağlı değil</Badge>
+                      )
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-slate-600">
                     {member.branchName ?? (

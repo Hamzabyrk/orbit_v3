@@ -26,12 +26,14 @@ import {
 } from "./educationData";
 import {
   useClasses,
+  useGuardians,
   useHomework,
   useLatestAttendanceSession,
   useLatestExam,
   usePaymentOverview,
   usePayments,
   useSchedule,
+  useStudentGuardians,
   useStudents,
   educationKeys,
 } from "@/education/educationQueries";
@@ -43,8 +45,21 @@ import {
   linkStudentAccount,
   unlinkStudentAccount,
 } from "@/education/studentService";
+import {
+  archiveGuardian,
+  restoreGuardian,
+  linkGuardianAccount,
+  unlinkGuardianAccount,
+  linkStudentGuardian,
+  unlinkStudentGuardian,
+  restoreStudentGuardianLink,
+  translateGuardianError,
+  DEFAULT_GUARDIAN_LIMIT,
+  type Guardian,
+} from "@/education/guardianService";
 import { DEFAULT_HOMEWORK_LIMIT } from "@/education/homeworkService";
 import { StudentFormDialog } from "./pages/StudentFormDialog";
+import { GuardianFormDialog } from "./pages/GuardianFormDialog";
 import { ClassFormDialog } from "./pages/ClassFormDialog";
 import { ClassEnrollmentDialog } from "./pages/ClassEnrollmentDialog";
 import {
@@ -249,6 +264,189 @@ export function EducationPlatform({
     ]);
   };
 
+  const [guardianQuery, setGuardianQuery] = useState("");
+  const [guardianFormOpen, setGuardianFormOpen] = useState(false);
+  const [guardianForEdit, setGuardianForEdit] = useState<Guardian | null>(null);
+
+  const parentMembers = useMemo(
+    () => (membersQuery.data ?? []).filter(m => m.role === "parent"),
+    [membersQuery.data]
+  );
+
+  const guardiansQuery = useGuardians({
+    search: guardianQuery,
+    enabled: role === "admin" && !isDemoMode,
+  });
+
+  const studentGuardiansQuery = useStudentGuardians(selectedStudent?.id ?? "", {
+    enabled: Boolean(selectedStudent?.id) && !isDemoMode,
+  });
+
+  const handleArchiveGuardian = async (guardian: Guardian) => {
+    try {
+      await archiveGuardian(organizationId, guardian.id);
+      toast.success("Veli arşivlendi", {
+        description: `${guardian.fullName} arşive kaldırıldı.`,
+        action: {
+          label: "Geri al",
+          onClick: () => {
+            void restoreGuardian(organizationId, guardian.id)
+              .then(async () => {
+                toast.success("Veli geri yüklendi");
+                await Promise.all([
+                  queryClient.invalidateQueries({
+                    queryKey: educationKeys.guardians(organizationId),
+                  }),
+                  queryClient.invalidateQueries({
+                    queryKey: educationKeys.students(organizationId),
+                  }),
+                ]);
+              })
+              .catch(err => {
+                toast.error(translateGuardianError(err));
+              });
+          },
+        },
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: educationKeys.guardians(organizationId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: educationKeys.students(organizationId),
+        }),
+      ]);
+    } catch (err) {
+      toast.error(translateGuardianError(err));
+    }
+  };
+
+  const handleLinkGuardianAccount = async (
+    guardianId: string,
+    membershipId: string
+  ) => {
+    try {
+      await linkGuardianAccount(guardianId, membershipId);
+      toast.success("Hesap bağlandı", {
+        description: "Veliye giriş hesabı bağlandı.",
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: educationKeys.guardians(organizationId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["settings", "members", { organizationId }],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["organization-members", organizationId],
+        }),
+      ]);
+    } catch (err) {
+      toast.error(translateGuardianError(err));
+    }
+  };
+
+  const handleUnlinkGuardianAccount = async (guardianId: string) => {
+    try {
+      await unlinkGuardianAccount(guardianId);
+      toast.success("Hesap bağı çözüldü", {
+        description: "Velinin giriş hesabı bağı kaldırıldı.",
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: educationKeys.guardians(organizationId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["settings", "members", { organizationId }],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["organization-members", organizationId],
+        }),
+      ]);
+    } catch (err) {
+      toast.error(translateGuardianError(err));
+    }
+  };
+
+  const handleLinkGuardianToStudent = async (
+    studentId: string,
+    guardianId: string
+  ) => {
+    try {
+      await linkStudentGuardian(organizationId, studentId, guardianId);
+      toast.success("Veli bağlandı", {
+        description: "Öğrenciye veli kaydı bağlandı.",
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: educationKeys.studentGuardians(organizationId, studentId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: educationKeys.guardians(organizationId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: educationKeys.students(organizationId),
+        }),
+      ]);
+    } catch (err) {
+      toast.error(translateGuardianError(err));
+    }
+  };
+
+  const handleUnlinkGuardianFromStudent = async (
+    linkId: string,
+    guardianName: string
+  ) => {
+    try {
+      await unlinkStudentGuardian(organizationId, linkId);
+      toast.success("Veli bağı koparıldı", {
+        description: `${guardianName} velisinin öğrenci bağı kaldırıldı.`,
+        action: {
+          label: "Geri al",
+          onClick: () => {
+            void restoreStudentGuardianLink(organizationId, linkId)
+              .then(async () => {
+                toast.success("Veli bağı geri yüklendi");
+                await Promise.all([
+                  queryClient.invalidateQueries({
+                    queryKey: educationKeys.studentGuardians(
+                      organizationId,
+                      selectedStudent?.id
+                    ),
+                  }),
+                  queryClient.invalidateQueries({
+                    queryKey: educationKeys.guardians(organizationId),
+                  }),
+                  queryClient.invalidateQueries({
+                    queryKey: educationKeys.students(organizationId),
+                  }),
+                ]);
+              })
+              .catch(err => {
+                toast.error(translateGuardianError(err));
+              });
+          },
+        },
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: educationKeys.studentGuardians(
+            organizationId,
+            selectedStudent?.id
+          ),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: educationKeys.guardians(organizationId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: educationKeys.students(organizationId),
+        }),
+      ]);
+    } catch (err) {
+      toast.error(translateGuardianError(err));
+    }
+  };
+
   const classesQuery = useClasses({ enabled: !isDemoMode });
   const scheduleQuery = useSchedule({ enabled: !isDemoMode });
   const attendanceQuery = useLatestAttendanceSession({ enabled: !isDemoMode });
@@ -302,6 +500,13 @@ export function EducationPlatform({
     }
     return homeworkQuery.data?.rows ?? [];
   }, [homework, homeworkQuery.data?.rows]);
+
+  const activeGuardians = useMemo(() => {
+    if (isDemoMode) {
+      return [];
+    }
+    return guardiansQuery.data?.rows ?? [];
+  }, [guardiansQuery.data?.rows]);
 
   const visibleStudents = useMemo(() => {
     const roleStudents = filterStudentsForRole(
@@ -466,6 +671,46 @@ export function EducationPlatform({
             setStudentForEdit(null);
             setStudentFormOpen(true);
           }}
+          guardians={activeGuardians}
+          guardianQuery={guardianQuery}
+          onGuardianQuery={setGuardianQuery}
+          onAddGuardian={() => {
+            if (isDemoMode) {
+              toast.info("Yeni veli", {
+                description: "Demo modunda veli kaydı devre dışıdır.",
+              });
+              return;
+            }
+            setGuardianForEdit(null);
+            setGuardianFormOpen(true);
+          }}
+          onEditGuardian={guardian => {
+            if (isDemoMode) {
+              toast.info("Veliyi düzenle", {
+                description: "Demo modunda veli düzenleme devre dışıdır.",
+              });
+              return;
+            }
+            setGuardianForEdit(guardian);
+            setGuardianFormOpen(true);
+          }}
+          onArchiveGuardian={!isDemoMode ? handleArchiveGuardian : undefined}
+          onLinkGuardianAccount={
+            !isDemoMode ? handleLinkGuardianAccount : undefined
+          }
+          onUnlinkGuardianAccount={
+            !isDemoMode ? handleUnlinkGuardianAccount : undefined
+          }
+          linkableParentMembers={parentMembers}
+          isGuardiansLoading={!isDemoMode && guardiansQuery.isLoading}
+          guardiansError={!isDemoMode ? guardiansQuery.error : null}
+          onGuardiansRetry={
+            !isDemoMode ? () => void guardiansQuery.refetch() : undefined
+          }
+          guardiansTruncated={
+            !isDemoMode && Boolean(guardiansQuery.data?.truncated)
+          }
+          guardiansLimit={DEFAULT_GUARDIAN_LIMIT}
         />
       );
     if (active === "Sınıflar")
@@ -902,6 +1147,30 @@ export function EducationPlatform({
         <StudentDetail
           student={selectedStudent}
           onClose={() => setSelectedStudent(null)}
+          role={role}
+          studentGuardians={
+            !isDemoMode ? (studentGuardiansQuery.data ?? []) : undefined
+          }
+          availableGuardians={
+            !isDemoMode
+              ? (guardiansQuery.data?.rows ?? []).filter(
+                  g =>
+                    !(studentGuardiansQuery.data ?? []).some(
+                      link => link.guardianId === g.id
+                    )
+                )
+              : []
+          }
+          onLinkGuardian={
+            role === "admin" && !isDemoMode
+              ? handleLinkGuardianToStudent
+              : undefined
+          }
+          onUnlinkGuardian={
+            role === "admin" && !isDemoMode
+              ? handleUnlinkGuardianFromStudent
+              : undefined
+          }
         />
       ) : null}
       {!isDemoMode && (
@@ -912,6 +1181,13 @@ export function EducationPlatform({
             organizationId={organizationId}
             student={studentForEdit}
             onDone={() => setStudentForEdit(null)}
+          />
+          <GuardianFormDialog
+            open={guardianFormOpen}
+            onOpenChange={setGuardianFormOpen}
+            organizationId={organizationId}
+            guardian={guardianForEdit}
+            onDone={() => setGuardianForEdit(null)}
           />
           <ClassFormDialog
             open={classFormOpen}

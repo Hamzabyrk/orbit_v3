@@ -2377,3 +2377,59 @@ if cardinality(degisen) = 0 then return null; end if;
 **Bedeli açıkça yazıldı:** her ödev denetim satırı ödev metnini taşıyor. §4.12 `audit_events`'i zaten _"tek başına en büyük tablo olabilir"_ diye işaretlemişti; bu karar o satırı biraz daha ağırlaştırıyor. Bölümleme borcu yerinde duruyor, tetikleyicisi değişmedi.
 
 **Kayda değer olan asıl şey:** v1.4-03'ün hacim kesmesi bir **izin** değil, iki ölçüye dayanan bir **istisna**ydı. Ödevde o ölçüler tutmuyor — satır sayısı öğrenciyle değil **sınıfla** ölçekleniyor — ve istisna taşınmadı.
+
+---
+
+### Karar: Velinin telefonu kaydın kendisinde durur, giriş hesabında değil
+
+**Durum:** Alındı
+**Tarih:** 2026-09-12
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `PROJECT_STATE` MVP madde 2 şunu söylüyor: _"Öğrenci Yönetimi: Ad-Soyad, Öğrenci No, Sınıf, Telefon, **Veli Adı, Veli Telefonu**"_. Ölçüldü: telefon şemada **yalnız `profiles`'ta** — yani giriş hesabının alanı. `guardians` tablosunda telefon yoktu.
+
+**Sonuç: giriş hesabı olmayan velinin telefonu hiçbir yerde durmuyordu** — oysa bir dershanenin veli verisini asıl kullanım biçimi tam olarak odur ve velilerin çoğunun hesabı olmayacak. Yazılı bir MVP sözü, şemada karşılığı olmadan duruyordu.
+
+**Karar:** `guardians.phone` eklendi. Opsiyonel; kısıt `profiles.phone`'unkiyle **birebir aynı** (7–30 karakter, trim'li).
+
+**Kısıtın aynı olması bilinçli** (**K-06**): aynı kavramın iki tabloda farklı kurallara bağlanması, birinin sessizce eskimesi demektir.
+
+**Biçim doğrulaması bilerek yok.** Ülke kodu, sabit hat, dahili numara ve yurt dışı numarası hepsi meşru; şemaya yazılacak tek bir Türkiye kalıbı yok. İstemcide de maske konmadı — şemanın kabul ettiğini ekranın reddetmesi olurdu. Aynı aile: v1.2-11'in `recovery_email` kararı.
+
+**Telefon zorunlu değil.** Elinde numara olmayan kurum veliyi yine de kaydedebilmeli; boş bırakmak uydurmaktan iyidir (**K-03**). Telefonu olmayan velide ekran "Telefon yok" gibi bir etiket **üretmiyor**, tire çiziyor (**K-22**).
+
+⚠️ **KVKK etkisi kayda geçiyor:** yeni bir veri kategorisi açılmıyor (telefon zaten `profiles`'ta işleniyor) ama artık **giriş hesabı olmayan kişilerin** telefonu da tutuluyor. `PLATFORM_SETTINGS` §5'in KVKK envanteri (v1.5-02) bunu kapsamalı.
+
+---
+
+### Karar: Öğrenci kendi velilerini görür
+
+**Durum:** Alındı
+**Tarih:** 2026-09-12
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `student_guardians` üzerinde üç SELECT politikası vardı — `admin`, `guardian`, `teacher`. **Öğrenci için hiçbiri yoktu**, yani bir öğrenci kendi kaydının kime bağlı olduğunu göremiyordu.
+
+**Bu bir kararın geri alınması DEĞİL — ve ayrım önemli.** Eski davranışı bir pgTAP iddiası çiviliyordu (_"a student does not read the guardian links either"_), ama ardında **yazılı bir gerekçe yoktu**. Kıyas öğretici: hemen üstündeki öğretmen iddiası, kararı değiştiğinde (#228) neden değiştiğini anlatan koca bir blok aldı; bu iddia hiç almadı, çünkü anlatılacak bir karar yoktu. **Politikanın yokluğu test edilmiş, kararı verilmemişti** (**K-11**).
+
+**Karar:** `student_guardians_select_student` politikası eklendi. `current_user_owns_student_record` üzerine kuruludur — öğrenci yalnız `students.auth_user_id`'si kendisine ait satırların bağlarını okur.
+
+**v1.2-03'ün kararı bundan ayrıdır ve yürürlüktedir:** bir veli aynı öğrencinin **diğer velisini** görmez. İki farklı soru ve testte ikisi de ayrıca sınanıyor.
+
+---
+
+### Karar: Bağ koparmak erişimi bitirir; bağ satırının görünmesi ayrı bir şeydir
+
+**Durum:** Alındı (ölçümle)
+**Tarih:** 2026-09-12
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Bir testi yazarken sürpriz bir ölçüm çıktı ve buraya bu yüzden yazılıyor — ikinci kez keşfedilmesin.
+
+`student_guardians` satırı arşivlendikten sonra **veliye görünmeye devam ediyor.** Sebebi `student_guardians_select_guardian` politikasında arşiv süzgecinin **bilerek** olmaması (20260908000000: _"eleme istemcinin işi; iki politika aynı biçimde davranmalı"_).
+
+**Ama asıl soru o satır değil, erişimin bitip bitmediğiydi — ve bitiyor.** `current_user_guards_student` `link.archived_at is null` süzüyor; velinin **bütün** kapsamı o fonksiyona dayandığı için bağ koparıldığında veli öğrenciyi ve ona bağlı hiçbir şeyi göremiyor.
+
+**Karar:** Politika değiştirilmedi. Test, mekanizmayı değil **sonucu** ölçecek şekilde yazıldı (**K-13**): "bağ koparıldı" iddiası, velinin `students` ve `attendance_sessions` üzerinde sıfır satır görmesiyle kanıtlanıyor. Bağ satırının görünmeye devam ettiği de ayrıca test edildi — **davranış kayda geçti, sürpriz olarak kalmadı**.
+
+**Gerekçe:** Arşivlenmiş bir bağ satırı yalnız kimlikler taşıyor ve veli onun üzerinden hiçbir veriye ulaşamıyor. Politikaya süzgeç eklemek, altı politikanın davranışını birbirinden ayırmak olurdu — kazanç görünmezlik, bedel tutarsızlık.

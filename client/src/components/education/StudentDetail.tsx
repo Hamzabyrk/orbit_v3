@@ -1,15 +1,157 @@
+import { useState } from "react";
 import { BarChart3, ClipboardCheck, X } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { formatTrDate } from "@/education/trDate";
 import { Badge, StatCard } from "./shared";
-import type { Student } from "./types";
+import type { Role, Student } from "./types";
+import type {
+  Guardian,
+  StudentGuardianLink,
+} from "@/education/guardianService";
+
+export type StudentDetailProps = {
+  student: Student;
+  onClose: () => void;
+  role?: Role;
+  studentGuardians?: StudentGuardianLink[];
+  availableGuardians?: Guardian[];
+  onLinkGuardian?: (
+    studentId: string,
+    guardianId: string
+  ) => Promise<void> | void;
+  onUnlinkGuardian?: (
+    linkId: string,
+    guardianName: string
+  ) => Promise<void> | void;
+  isLinkGuardianOpen?: boolean;
+};
+
+export type LinkGuardianPopoverProps = {
+  studentId: string;
+  guardians: Guardian[];
+  onLink: (studentId: string, guardianId: string) => Promise<void> | void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
+
+export function LinkGuardianPopover({
+  studentId,
+  guardians,
+  onLink,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: LinkGuardianPopoverProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
+  const setOpen = isControlled
+    ? (controlledOnOpenChange ?? (() => {}))
+    : setUncontrolledOpen;
+  const [selectedGuardianId, setSelectedGuardianId] = useState("");
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  const handleLinkSubmit = async () => {
+    if (!selectedGuardianId || linking) return;
+    setLinking(true);
+    setLinkError(null);
+    try {
+      await onLink(studentId, selectedGuardianId);
+      setOpen(false);
+      setSelectedGuardianId("");
+    } catch (err) {
+      setLinkError(
+        err instanceof Error
+          ? err.message
+          : "Veli bağlama işlemi başarısız oldu."
+      );
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="rounded-lg px-2 py-1 text-[11px] font-semibold text-blue-600 transition hover:bg-blue-50"
+        >
+          + Veli bağla
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-4" align="end">
+        <div className="space-y-3">
+          <div>
+            <h4 className="text-xs font-bold text-slate-800">Veli Bağla</h4>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Öğrenciye bağlanacak veliyi seçin.
+            </p>
+          </div>
+          {guardians.length === 0 ? (
+            <p className="py-1 text-[11px] text-slate-500">
+              Bağlanabilir başka veli kaydı bulunmuyor.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <select
+                value={selectedGuardianId}
+                onChange={e => setSelectedGuardianId(e.target.value)}
+                disabled={linking}
+                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-xs outline-none"
+              >
+                <option value="">Veli seçin…</option>
+                {guardians.map(g => (
+                  <option key={g.id} value={g.id}>
+                    {g.fullName}
+                  </option>
+                ))}
+              </select>
+              {linkError ? (
+                <p className="text-[11px] font-semibold text-rose-600">
+                  {linkError}
+                </p>
+              ) : null}
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  disabled={linking}
+                  className="rounded-md px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+                >
+                  Vazgeç
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleLinkSubmit()}
+                  disabled={!selectedGuardianId || linking}
+                  className="rounded-md bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                >
+                  {linking ? "Bağlanıyor…" : "Bağla"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export function StudentDetail({
   student,
   onClose,
-}: {
-  student: Student;
-  onClose: () => void;
-}) {
+  role,
+  studentGuardians,
+  availableGuardians = [],
+  onLinkGuardian,
+  onUnlinkGuardian,
+  isLinkGuardianOpen,
+}: StudentDetailProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex justify-end bg-slate-950/30 p-0 sm:p-4"
@@ -112,6 +254,75 @@ export function StudentDetail({
             ) : null}
           </div>
         </section>
+        {(studentGuardians !== undefined || role === "admin") && (
+          <section className="mt-6 rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[12px] font-extrabold text-slate-800">
+                Veliler
+              </h3>
+              {role === "admin" && onLinkGuardian ? (
+                <LinkGuardianPopover
+                  studentId={student.id}
+                  guardians={availableGuardians}
+                  onLink={onLinkGuardian}
+                  open={isLinkGuardianOpen}
+                />
+              ) : null}
+            </div>
+            {studentGuardians && studentGuardians.length > 0 ? (
+              <div className="mt-3 divide-y divide-slate-100">
+                {studentGuardians.map(link => (
+                  <div
+                    key={link.id}
+                    className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        {link.guardian?.fullName ? (
+                          <span className="text-[12px] font-semibold text-slate-800">
+                            {link.guardian.fullName}
+                          </span>
+                        ) : (
+                          <span className="font-sans font-normal italic text-slate-400">
+                            adı okunamadı
+                          </span>
+                        )}
+                        {!link.guardian?.hasAccount ? (
+                          <Badge tone="slate">Hesap bağlı değil</Badge>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-slate-500">
+                        {link.guardian?.phone ? (
+                          link.guardian.phone
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </p>
+                    </div>
+                    {role === "admin" && onUnlinkGuardian ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void onUnlinkGuardian(
+                            link.id,
+                            link.guardian?.fullName || "veli"
+                          )
+                        }
+                        className="rounded-lg px-2 py-1 text-[11px] font-semibold text-rose-600 transition hover:bg-rose-50"
+                      >
+                        Bağı kopar
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-[11px] text-slate-400">
+                Kayıtlı veli bağı bulunmuyor.
+              </p>
+            )}
+          </section>
+        )}
       </aside>
     </div>
   );
