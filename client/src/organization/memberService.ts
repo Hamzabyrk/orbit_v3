@@ -287,7 +287,16 @@ const MEMBER_ERROR_MESSAGES: Record<string, string> = {
     "Üye oluşturulamadı. Bilgileri kontrol edip tekrar deneyin.",
 };
 
-async function readFunctionErrorCode(error: unknown): Promise<unknown> {
+export type FunctionErrorPayload = {
+  error?: string;
+  code?: string;
+  detail?: string | null;
+  hint?: string | null;
+};
+
+async function readFunctionErrorPayload(
+  error: unknown
+): Promise<FunctionErrorPayload | undefined> {
   const context = (error as { context?: { json?: () => Promise<unknown> } })
     ?.context;
 
@@ -300,11 +309,16 @@ async function readFunctionErrorCode(error: unknown): Promise<unknown> {
   }
 
   try {
-    const body = (await context.json()) as { error?: unknown };
-    return body?.error;
+    const body = (await context.json()) as FunctionErrorPayload;
+    return body;
   } catch {
     return undefined;
   }
+}
+
+async function readFunctionErrorCode(error: unknown): Promise<unknown> {
+  const payload = await readFunctionErrorPayload(error);
+  return payload?.error;
 }
 
 export function memberErrorMessage(code: unknown, fallback: string): string {
@@ -312,6 +326,159 @@ export function memberErrorMessage(code: unknown, fallback: string): string {
     return MEMBER_ERROR_MESSAGES[code];
   }
   return fallback;
+}
+
+export class MembershipActionError extends Error {
+  readonly code?: string;
+  readonly detail?: string | null;
+  readonly hint?: string | null;
+  readonly isNeutralInfo: boolean;
+
+  constructor(
+    message: string,
+    options?: {
+      code?: string;
+      detail?: string | null;
+      hint?: string | null;
+      isNeutralInfo?: boolean;
+    }
+  ) {
+    super(message);
+    this.name = "MembershipActionError";
+    this.code = options?.code;
+    this.detail = options?.detail;
+    this.hint = options?.hint;
+    this.isNeutralInfo = Boolean(options?.isNeutralInfo);
+  }
+}
+
+/**
+ * ORB03 tetikleyici hatasının detayını ayrıştırır ve Türkçe insan dostu cümleye çevirir.
+ * Ham detail dizgesini ('ders ataması=2, rehberlik=1...') doğrudan kullanıcıya basmaz (K-23).
+ */
+function formatORB03Message(detail?: string | null): string {
+  if (!detail) {
+    return "Bu üyenin üzerinde ayakta duran ders veya rehberlik ataması bulunuyor. Rolü değiştirmek için önce sınıf yönetiminden ilgili atamaları arşivleyin.";
+  }
+
+  const classMatch = detail.match(/ders atamas[ıi]=(\d+)/i);
+  const mentorMatch = detail.match(/rehberlik=(\d+)/i);
+  const scheduleMatch = detail.match(/program sat[ıi]r[ıi]=(\d+)/i);
+
+  const classes = classMatch ? parseInt(classMatch[1], 10) : 0;
+  const mentors = mentorMatch ? parseInt(mentorMatch[1], 10) : 0;
+  const schedules = scheduleMatch ? parseInt(scheduleMatch[1], 10) : 0;
+
+  const parts: string[] = [];
+  if (classes > 0) parts.push(`${classes} ders ataması`);
+  if (mentors > 0) parts.push(`${mentors} rehberlik görevi`);
+  if (schedules > 0) parts.push(`${schedules} ders programı satırı`);
+
+  if (parts.length > 0) {
+    return `Bu üyenin üzerinde aktif ${parts.join(", ")} bulunuyor. Rolü değiştirmek için önce sınıf yönetiminden ilgili atamaları arşivleyin.`;
+  }
+
+  return "Bu üyenin üzerinde ayakta duran ders veya rehberlik ataması bulunuyor. Rolü değiştirmek için önce sınıf yönetiminden ilgili atamaları arşivleyin.";
+}
+
+/**
+ * Üye işlemleri (rol değiştirme ve çıkarma) Edge Function hatalarını
+ * kullanıcının düzeltebileceği Türkçe cümlelere çevirir (#280).
+ */
+export function translateMembershipActionError(
+  err: unknown,
+  action?: "change_role" | "remove"
+): string {
+  if (err instanceof MembershipActionError) {
+    return err.message;
+  }
+
+  const payload =
+    typeof err === "object" && err !== null && "error" in err
+      ? (err as FunctionErrorPayload)
+      : undefined;
+
+  const code = payload?.code ?? (err as { code?: string })?.code;
+  const errorName =
+    payload?.error ??
+    (err as { error?: string })?.error ??
+    (err as Error)?.message;
+  const detail = payload?.detail ?? (err as { detail?: string | null })?.detail;
+  const hint = payload?.hint ?? (err as { hint?: string | null })?.hint;
+
+  if (code === "ORB03") {
+    return formatORB03Message(detail);
+  }
+
+  if (code === "ORB04") {
+    if (
+      action === "change_role" ||
+      hint?.includes("Rol zaten") ||
+      hint?.includes("değerde")
+    ) {
+      return "Rol zaten bu değerde; herhangi bir değişiklik yapılmadı.";
+    }
+    if (
+      action === "remove" ||
+      hint?.includes("çıkarılmış") ||
+      hint?.includes("suspended")
+    ) {
+      return "Bu üyelik zaten kurumdan çıkarılmış durumda.";
+    }
+    return hint || "Hedeflenen durum zaten sağlanmış durumda.";
+  }
+
+  if (code === "42501") {
+    if (
+      hint?.includes("devri") ||
+      hint?.includes("administrator") ||
+      errorName?.includes("admin")
+    ) {
+      return "Kurum yöneticilerinin rolü buradan değiştirilemez veya kurumdan çıkarılamaz. Yönetici devri ayrı bir işlemdir.";
+    }
+    return "Bu işlem için kurum yöneticisi yetkisi gerekiyor.";
+  }
+
+  if (code === "23503") {
+    return "Üyelik kaydı bulunamadı.";
+  }
+
+  if (
+    errorName === "request_in_progress" ||
+    errorName?.includes("request_in_progress")
+  ) {
+    return "İşlem şu anda devam ediyor. Lütfen birkaç saniye sonra tekrar deneyin.";
+  }
+
+  if (errorName === "rate_limited" || errorName?.includes("rate_limited")) {
+    return "Çok fazla istek gönderildi. Lütfen biraz bekleyip tekrar deneyin.";
+  }
+
+  if (errorName === "unauthorized" || errorName?.includes("unauthorized")) {
+    return "Oturumunuz düşmüş görünüyor. Tekrar giriş yapın.";
+  }
+
+  if (
+    errorName === "service_unavailable" ||
+    errorName?.includes("service_unavailable")
+  ) {
+    return "Servis şu anda yanıt vermiyor. Birkaç dakika sonra tekrar deneyin.";
+  }
+
+  if (err instanceof Error && err.message) {
+    return err.message;
+  }
+
+  return "İşlem gerçekleştirilemedi. Lütfen tekrar deneyin.";
+}
+
+export function isNeutralMembershipInfo(err: unknown): boolean {
+  if (err instanceof MembershipActionError) {
+    return err.isNeutralInfo;
+  }
+  const code =
+    (err as { code?: string })?.code ?? (err as { error?: string })?.error;
+  return code === "ORB04";
 }
 
 /**
@@ -512,5 +679,157 @@ export async function resetMemberPassword(
     temporaryPassword,
     passwordLockSet,
     auditWritten,
+  };
+}
+
+export type ChangeMemberRoleResult = {
+  roleChanged: boolean;
+  role: MemberRole;
+};
+
+/**
+ * Kurumdaki bir üyenin rolünü değiştirir (v1.4-07 · #280).
+ *
+ * Yalnızca 'teacher' | 'student' | 'parent' rollerine geçiş yapılabilir.
+ * 'admin' rolü verilemez veya admin'den indirme yapılamaz (v1.4-08).
+ *
+ * Yazma RLS ile değil, 'change-member-role' Edge Function üzerinden yürütülür.
+ */
+export async function changeMemberRole(
+  membershipId: string,
+  role: MemberRole,
+  idempotencyKey?: string
+): Promise<ChangeMemberRoleResult> {
+  if ((role as string) === "admin") {
+    throw new MembershipActionError(
+      "Kurum yöneticisi rolü atanamaz. Yönetici devri ayrı bir işlemdir.",
+      { code: "42501" }
+    );
+  }
+
+  const { data, error } = await supabase.functions.invoke(
+    "change-member-role",
+    {
+      body: { membershipId, role },
+      ...(idempotencyKey
+        ? { headers: { "Idempotency-Key": idempotencyKey } }
+        : {}),
+    }
+  );
+
+  if (error) {
+    const payload = await readFunctionErrorPayload(error);
+    const code = payload?.code;
+    const isNeutral = code === "ORB04";
+    const message = translateMembershipActionError(
+      payload ?? error,
+      "change_role"
+    );
+    throw new MembershipActionError(message, {
+      code: payload?.code,
+      detail: payload?.detail,
+      hint: payload?.hint,
+      isNeutralInfo: isNeutral,
+    });
+  }
+
+  const dataObj = data as {
+    data?: { role_changed?: boolean; role?: MemberRole };
+    error?: string;
+    code?: string;
+    detail?: string | null;
+    hint?: string | null;
+  } | null;
+
+  if (dataObj?.error && !dataObj.data) {
+    const isNeutral = dataObj.code === "ORB04";
+    const message = translateMembershipActionError(dataObj, "change_role");
+    throw new MembershipActionError(message, {
+      code: dataObj.code,
+      detail: dataObj.detail,
+      hint: dataObj.hint,
+      isNeutralInfo: isNeutral,
+    });
+  }
+
+  const payload = dataObj?.data;
+
+  return {
+    roleChanged: payload?.role_changed ?? true,
+    role: payload?.role ?? role,
+  };
+}
+
+export type RemoveMemberResult = {
+  removed: boolean;
+  role: string;
+  unlinkedStudentId: string | null;
+  unlinkedGuardianId: string | null;
+};
+
+/**
+ * Bir üyeliği kurumdan çıkarır (status = suspended) (v1.4-07 · #280).
+ *
+ * DELETE yapılmaz (FK'lar RESTRICT).
+ * Öğrenci ve velide EK OLARAK akademik kaydın hesap bağı koparılır (auth_user_id = null).
+ * Yönetici çıkarılamaz (v1.4-08).
+ *
+ * Yazma RLS ile değil, 'remove-member' Edge Function üzerinden yürütülür.
+ */
+export async function removeMember(
+  membershipId: string,
+  idempotencyKey?: string
+): Promise<RemoveMemberResult> {
+  const { data, error } = await supabase.functions.invoke("remove-member", {
+    body: { membershipId },
+    ...(idempotencyKey
+      ? { headers: { "Idempotency-Key": idempotencyKey } }
+      : {}),
+  });
+
+  if (error) {
+    const payload = await readFunctionErrorPayload(error);
+    const code = payload?.code;
+    const isNeutral = code === "ORB04";
+    const message = translateMembershipActionError(payload ?? error, "remove");
+    throw new MembershipActionError(message, {
+      code: payload?.code,
+      detail: payload?.detail,
+      hint: payload?.hint,
+      isNeutralInfo: isNeutral,
+    });
+  }
+
+  const dataObj = data as {
+    data?: {
+      removed?: boolean;
+      role?: string;
+      unlinked_student_id?: string | null;
+      unlinked_guardian_id?: string | null;
+    };
+    error?: string;
+    code?: string;
+    detail?: string | null;
+    hint?: string | null;
+  } | null;
+
+  if (dataObj?.error && !dataObj.data) {
+    const isNeutral = dataObj.code === "ORB04";
+    const message = translateMembershipActionError(dataObj, "remove");
+    throw new MembershipActionError(message, {
+      code: dataObj.code,
+      detail: dataObj.detail,
+      hint: dataObj.hint,
+      isNeutralInfo: isNeutral,
+    });
+  }
+
+  const outcome = dataObj?.data;
+
+  return {
+    removed: outcome?.removed ?? true,
+    role: outcome?.role ?? "",
+    unlinkedStudentId: outcome?.unlinked_student_id ?? null,
+    unlinkedGuardianId: outcome?.unlinked_guardian_id ?? null,
   };
 }
