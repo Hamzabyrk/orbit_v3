@@ -135,10 +135,15 @@ select ok(
   'the second admin is not locked — the contrast below is real'
 );
 
-select is(
-  (select count(*) from public.audit_events),
-  1::bigint,
-  'an unlocked admin does read the audit log'
+-- ⚠️ İddia 2026-09-13'te SAYIDAN VARLIĞA çevrildi (v1.4-09, #284).
+--
+-- Eskiden "tam 1 satır" diyordu; v1.4-09 `branches`'a denetim tetikleyicisi
+-- ekleyince kurgudaki şube oluşturma ikinci bir olay yazdı. Oysa bu testin
+-- sorusu **kaç satır değil**: kilitli yöneticinin hiçbir şey görmemesi,
+-- kilitsizin görmesi. Karşıtlık bozulmadı, sayı bozuldu.
+select ok(
+  (select count(*) from public.audit_events) > 0,
+  'an unlocked admin does read the audit log — the locked one above read nothing'
 );
 
 select is(
