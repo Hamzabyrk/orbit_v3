@@ -50,6 +50,12 @@ import { formatTrDate } from "./trDate";
 
 export const DEFAULT_PAYMENT_LIMIT = 100;
 
+export type LoadPaymentsOptions = {
+  limit?: number;
+  studentId?: string;
+  search?: string;
+};
+
 export type PaymentListResult = {
   rows: PaymentRow[];
   truncated: boolean;
@@ -59,6 +65,7 @@ export type RawPaymentPlanRow = {
   id: string;
   name: string;
   student_id: string;
+  total_amount?: number | string;
   archived_at?: string | null;
   created_at?: string;
   students?: { full_name: string } | { full_name: string }[] | null;
@@ -133,10 +140,13 @@ export function mapPaymentRow(
   }
 
   return {
+    id: plan.id,
+    studentId: plan.student_id,
     student: studentName,
     plan: plan.name,
     due,
     amount,
+    totalAmount: Number(plan.total_amount) || 0,
     status,
   };
 }
@@ -200,25 +210,43 @@ export async function loadPaymentPlanSummaries(
 /**
  * Aktif kurumun ödeme planlarını listeler ve özetleriyle birleştirir (v1.3-01 · E parçası).
  *
- * Kapsam sorgulanmaz (RLS ile çözülür).
+ * Açık `organization_id` süzgeci şarttır (§4.12, #249).
  * Arşiv filtresi zorunludur: `archived_at is null`.
  */
 export async function loadPayments(
-  limit = DEFAULT_PAYMENT_LIMIT
+  organizationId: string,
+  options?: LoadPaymentsOptions
 ): Promise<PaymentListResult> {
-  const { data, error } = await supabase
+  const limit = options?.limit ?? DEFAULT_PAYMENT_LIMIT;
+
+  let query = supabase
     .from("payment_plans")
     .select(
       `
       id,
       name,
       student_id,
+      total_amount,
       students ( full_name ),
       archived_at,
       created_at
     `
     )
-    .is("archived_at", null)
+    .eq("organization_id", organizationId)
+    .is("archived_at", null);
+
+  if (options?.studentId) {
+    query = query.eq("student_id", options.studentId);
+  }
+
+  if (options?.search) {
+    const trimmed = options.search.trim();
+    if (trimmed.length > 0) {
+      query = query.ilike("name", `%${trimmed}%`);
+    }
+  }
+
+  const { data, error } = await query
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(limit);
@@ -328,4 +356,465 @@ export async function loadPaymentOverviewCounts(): Promise<PaymentOverviewCounts
     upcomingCount: Number.isNaN(upcoming) ? 0 : upcoming,
     overdueCount: Number.isNaN(overdue) ? 0 : overdue,
   };
+}
+
+// =========================================================================
+// v1.4-06 Ödeme Planı ve Taksit Yönetimi (Yazma & Detay Yolları)
+// =========================================================================
+
+export type Installment = {
+  id: string;
+  organizationId: string;
+  planId: string;
+  sequenceNo: number;
+  dueDate: string;
+  amount: number;
+  paidAt?: string | null;
+  archivedAt?: string | null;
+  createdAt?: string;
+};
+
+export type CreatePaymentPlanInput = {
+  organizationId: string;
+  studentId: string;
+  name: string;
+  totalAmount: number;
+};
+
+export type UpdatePaymentPlanInput = {
+  name?: string;
+  totalAmount?: number;
+};
+
+export type CreateInstallmentInput = {
+  organizationId: string;
+  planId: string;
+  sequenceNo: number;
+  dueDate: string;
+  amount: number;
+};
+
+export type UpdateInstallmentInput = {
+  amount?: number;
+  dueDate?: string;
+};
+
+export const PAYMENT_ERROR_MESSAGES: Record<string, string> = {
+  "23503": "Öğrenci veya ödeme planı kaydı bulunamadı.",
+  "23505":
+    "Bu plana ait aynı sıra numarasına sahip aktif bir taksit zaten mevcut.",
+  "23514": "Girilen ödeme veya taksit bilgileri kısıtları karşılamıyor.",
+  "42501":
+    "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya şifre değişimi bekleniyor.",
+};
+
+/**
+ * Veritabanı ve PostgREST hata kodlarını kullanıcı dostu Türkçe mesajlara dönüştürür.
+ * Ham hata kodları kullanıcı arayüzüne sızdırılmaz.
+ */
+export function translatePaymentError(error: unknown): string {
+  if (!error) {
+    return "Beklenmeyen bir hata oluştu.";
+  }
+
+  let code: string | undefined;
+  let message = "";
+
+  if (typeof error === "object" && error !== null) {
+    if (
+      "code" in error &&
+      typeof (error as { code: unknown }).code === "string"
+    ) {
+      code = (error as { code: string }).code;
+    }
+    if (
+      "message" in error &&
+      typeof (error as { message: unknown }).message === "string"
+    ) {
+      message = (error as { message: string }).message;
+    }
+  } else if (error instanceof Error) {
+    message = error.message;
+    for (const known of ["42501", "23505", "23514", "23503"]) {
+      if (error.message.includes(known)) {
+        code = known;
+        break;
+      }
+    }
+  }
+
+  if (code === "23505") {
+    if (message.includes("installments") || message.includes("sequence")) {
+      return "Bu plana ait aynı sıra numarasına sahip aktif bir taksit zaten mevcut.";
+    }
+    if (message.includes("payment_plans")) {
+      return "Bu ödeme planı zaten mevcut.";
+    }
+    return PAYMENT_ERROR_MESSAGES["23505"];
+  }
+
+  if (code === "23514") {
+    if (message.includes("installments_amount_check")) {
+      return "Taksit tutarı sıfırdan büyük olmalıdır.";
+    }
+    if (message.includes("installments_sequence_check")) {
+      return "Taksit sıra numarası 1 veya daha büyük olmalıdır.";
+    }
+    if (message.includes("payment_plans_name_check")) {
+      return "Plan adı 1 ile 160 karakter arasında olmalıdır.";
+    }
+    if (message.includes("payment_plans_total_check")) {
+      return "Plan toplam tutarı negatif olamaz.";
+    }
+    return "Girilen bilgiler kısıtları karşılamıyor (tutar > 0, sıra no >= 1, plan adı 1–160 karakter).";
+  }
+
+  if (code && PAYMENT_ERROR_MESSAGES[code]) {
+    return PAYMENT_ERROR_MESSAGES[code];
+  }
+
+  if (message && !message.includes("PGRST") && !message.includes("PostgREST")) {
+    return message;
+  }
+
+  return "İşlem gerçekleştirilemedi. Lütfen tekrar deneyin.";
+}
+
+/**
+ * Yeni bir ödeme planı oluşturur.
+ * `id` salt okunurdur, yüke KESİNLİKLE konmaz.
+ */
+export async function createPaymentPlan(
+  input: CreatePaymentPlanInput
+): Promise<{ id: string }> {
+  const payload: {
+    organization_id: string;
+    student_id: string;
+    name: string;
+    total_amount: number;
+  } = {
+    organization_id: input.organizationId,
+    student_id: input.studentId,
+    name: input.name.trim(),
+    total_amount: Number(input.totalAmount),
+  };
+
+  const { data, error } = await supabase
+    .from("payment_plans")
+    .insert(payload)
+    .select("id")
+    .single();
+
+  if (error) {
+    throw new Error(translatePaymentError(error));
+  }
+
+  return data;
+}
+
+/**
+ * Mevcut bir ödeme planını günceller.
+ * `id`, `organization_id` ve `student_id` yüke konmaz.
+ * Sıfır satır etkileyen yazma hata fırlatır (K-14).
+ */
+export async function updatePaymentPlan(
+  organizationId: string,
+  planId: string,
+  input: UpdatePaymentPlanInput
+): Promise<void> {
+  const payload: {
+    name?: string;
+    total_amount?: number;
+  } = {};
+
+  if (input.name !== undefined) {
+    payload.name = input.name.trim();
+  }
+
+  if (input.totalAmount !== undefined) {
+    payload.total_amount = Number(input.totalAmount);
+  }
+
+  const { data, error } = await supabase
+    .from("payment_plans")
+    .update(payload)
+    .eq("organization_id", organizationId)
+    .eq("id", planId)
+    .select("id");
+
+  if (error) {
+    throw new Error(translatePaymentError(error));
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("Ödeme planı bulunamadı veya güncellenemedi.");
+  }
+}
+
+/**
+ * Bir ödeme planını arşivler (`archived_at` ile, satır silmez).
+ * İki parçalı açık imza (`organizationId, planId`) taşır (§4.12).
+ * Sıfır satır etkileyen yazma hata fırlatır (K-14).
+ */
+export async function archivePaymentPlan(
+  organizationId: string,
+  planId: string
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("payment_plans")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("organization_id", organizationId)
+    .eq("id", planId)
+    .select("id");
+
+  if (error) {
+    throw new Error(translatePaymentError(error));
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("Ödeme planı bulunamadı veya arşivlenemedi.");
+  }
+}
+
+/**
+ * Arşivlenmiş bir ödeme planını geri yükler (`archived_at: null`).
+ * Sıfır satır etkileyen yazma hata fırlatır (K-14).
+ */
+export async function restorePaymentPlan(
+  organizationId: string,
+  planId: string
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("payment_plans")
+    .update({ archived_at: null })
+    .eq("organization_id", organizationId)
+    .eq("id", planId)
+    .select("id");
+
+  if (error) {
+    throw new Error(translatePaymentError(error));
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("Ödeme planı bulunamadı veya geri yüklenemedi.");
+  }
+}
+
+/**
+ * Bir plana ait aktif taksitleri yükler.
+ * Açık `organization_id` ve `plan_id` süzgeçleri taşır.
+ * `archived_at is null` ile arşivlenmiş taksitler hesaba katılmaz.
+ */
+export async function loadPlanInstallments(
+  organizationId: string,
+  planId: string
+): Promise<Installment[]> {
+  const { data, error } = await supabase
+    .from("installments")
+    .select(
+      `
+      id,
+      organization_id,
+      plan_id,
+      sequence_no,
+      due_date,
+      amount,
+      paid_at,
+      archived_at,
+      created_at
+    `
+    )
+    .eq("organization_id", organizationId)
+    .eq("plan_id", planId)
+    .is("archived_at", null)
+    .order("sequence_no", { ascending: true })
+    .order("due_date", { ascending: true });
+
+  if (error) {
+    throw new Error(translatePaymentError(error));
+  }
+
+  return (data ?? []).map(row => ({
+    id: row.id,
+    organizationId: row.organization_id,
+    planId: row.plan_id,
+    sequenceNo: Number(row.sequence_no),
+    dueDate: row.due_date,
+    amount: Number(row.amount),
+    paidAt: row.paid_at ?? null,
+    archivedAt: row.archived_at ?? null,
+    createdAt: row.created_at,
+  }));
+}
+
+/**
+ * Yeni bir taksit oluşturur.
+ * `id` salt okunurdur, yüke konmaz.
+ */
+export async function createInstallment(
+  input: CreateInstallmentInput
+): Promise<{ id: string }> {
+  const payload: {
+    organization_id: string;
+    plan_id: string;
+    sequence_no: number;
+    due_date: string;
+    amount: number;
+  } = {
+    organization_id: input.organizationId,
+    plan_id: input.planId,
+    sequence_no: Number(input.sequenceNo),
+    due_date: input.dueDate,
+    amount: Number(input.amount),
+  };
+
+  const { data, error } = await supabase
+    .from("installments")
+    .insert(payload)
+    .select("id")
+    .single();
+
+  if (error) {
+    throw new Error(translatePaymentError(error));
+  }
+
+  return data;
+}
+
+/**
+ * Mevcut bir taksiti günceller (tutar ve vade tarihi).
+ * `sequence_no` update sütunlarında yoktur, değiştirilemez.
+ * `id` ve `organization_id` yüke konmaz.
+ * Sıfır satır etkileyen yazma hata fırlatır (K-14).
+ */
+export async function updateInstallment(
+  organizationId: string,
+  installmentId: string,
+  input: UpdateInstallmentInput
+): Promise<void> {
+  const payload: {
+    amount?: number;
+    due_date?: string;
+  } = {};
+
+  if (input.amount !== undefined) {
+    payload.amount = Number(input.amount);
+  }
+
+  if (input.dueDate !== undefined) {
+    payload.due_date = input.dueDate;
+  }
+
+  const { data, error } = await supabase
+    .from("installments")
+    .update(payload)
+    .eq("organization_id", organizationId)
+    .eq("id", installmentId)
+    .select("id");
+
+  if (error) {
+    throw new Error(translatePaymentError(error));
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("Taksit bulunamadı veya güncellenemedi.");
+  }
+}
+
+/**
+ * Bir taksiti arşivler (`archived_at` ile, satır silmez).
+ * Sıra numarası arşivle serbest kalır (kısmi tekillik indeksi).
+ * Sıfır satır etkileyen yazma hata fırlatır (K-14).
+ */
+export async function archiveInstallment(
+  organizationId: string,
+  installmentId: string
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("installments")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("organization_id", organizationId)
+    .eq("id", installmentId)
+    .select("id");
+
+  if (error) {
+    throw new Error(translatePaymentError(error));
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("Taksit bulunamadı veya arşivlenemedi.");
+  }
+}
+
+/**
+ * Arşivlenmiş bir taksiti geri yükler (`archived_at: null`).
+ * Sıfır satır etkileyen yazma hata fırlatır (K-14).
+ */
+export async function restoreInstallment(
+  organizationId: string,
+  installmentId: string
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("installments")
+    .update({ archived_at: null })
+    .eq("organization_id", organizationId)
+    .eq("id", installmentId)
+    .select("id");
+
+  if (error) {
+    throw new Error(translatePaymentError(error));
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("Taksit bulunamadı veya geri yüklenemedi.");
+  }
+}
+
+/**
+ * Bir taksiti ödendi olarak işaretler (`paid_at` zaman damgası koyar).
+ * Sıfır satır etkileyen yazma hata fırlatır (K-14).
+ */
+export async function markInstallmentPaid(
+  organizationId: string,
+  installmentId: string,
+  paidAt?: string
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("installments")
+    .update({ paid_at: paidAt || new Date().toISOString() })
+    .eq("organization_id", organizationId)
+    .eq("id", installmentId)
+    .select("id");
+
+  if (error) {
+    throw new Error(translatePaymentError(error));
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("Taksit bulunamadı veya ödendi olarak işaretlenemedi.");
+  }
+}
+
+/**
+ * Bir taksitin ödeme işaretini geri alır (`paid_at: null`).
+ * Sıfır satır etkileyen yazma hata fırlatır (K-14).
+ */
+export async function unmarkInstallmentPaid(
+  organizationId: string,
+  installmentId: string
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("installments")
+    .update({ paid_at: null })
+    .eq("organization_id", organizationId)
+    .eq("id", installmentId)
+    .select("id");
+
+  if (error) {
+    throw new Error(translatePaymentError(error));
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("Taksit bulunamadı veya ödeme işareti kaldırılamadı.");
+  }
 }

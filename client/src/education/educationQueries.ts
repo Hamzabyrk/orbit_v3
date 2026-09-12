@@ -32,11 +32,12 @@ import {
   type ExamSheet,
 } from "./examService";
 import {
-  DEFAULT_PAYMENT_LIMIT,
   loadPaymentOverviewCounts,
   loadPayments,
+  loadPlanInstallments,
   type PaymentListResult,
   type PaymentOverviewCounts,
+  type Installment,
 } from "./paymentService";
 import {
   DEFAULT_HOMEWORK_LIMIT,
@@ -97,8 +98,19 @@ export const educationKeys = {
     ["education", "exams", { organizationId }] as const,
   examSheet: (organizationId: string, examId: string) =>
     ["education", "examSheet", { organizationId, examId }] as const,
-  payments: (organizationId: string) =>
-    ["education", "payments", { organizationId }] as const,
+  payments: (
+    organizationId: string,
+    options?: { studentId?: string; search?: string }
+  ) => {
+    return options
+      ? (["education", "payments", { organizationId, ...options }] as const)
+      : (["education", "payments", { organizationId }] as const);
+  },
+  planInstallments: (organizationId: string, planId?: string) => {
+    return planId
+      ? (["education", "planInstallments", { organizationId, planId }] as const)
+      : (["education", "planInstallments", { organizationId }] as const);
+  },
   paymentOverview: (organizationId: string) =>
     ["education", "paymentOverview", { organizationId }] as const,
   homework: (organizationId: string) =>
@@ -402,6 +414,8 @@ export function useExamSheet(
 export type UsePaymentsOptions = {
   organizationId?: string;
   limit?: number;
+  studentId?: string;
+  search?: string;
   enabled?: boolean;
 };
 
@@ -415,14 +429,21 @@ export function usePayments(options?: UsePaymentsOptions) {
   const { identity } = useAuth();
   const organizationId =
     options?.organizationId ?? identity?.membership?.organizationId;
-  const limit = options?.limit ?? DEFAULT_PAYMENT_LIMIT;
   const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
 
   return useQuery<PaymentListResult, Error>({
     queryKey: organizationId
-      ? educationKeys.payments(organizationId)
+      ? educationKeys.payments(organizationId, {
+          studentId: options?.studentId,
+          search: options?.search,
+        })
       : (["education", "payments", { organizationId: "" }] as const),
-    queryFn: () => loadPayments(limit),
+    queryFn: () =>
+      loadPayments(organizationId!, {
+        limit: options?.limit,
+        studentId: options?.studentId,
+        search: options?.search,
+      }),
     enabled: isEnabled,
   });
 }
@@ -449,6 +470,33 @@ export function usePaymentOverview(options?: UsePaymentOverviewOptions) {
       ? educationKeys.paymentOverview(organizationId)
       : (["education", "paymentOverview", { organizationId: "" }] as const),
     queryFn: () => loadPaymentOverviewCounts(),
+    enabled: isEnabled,
+  });
+}
+
+export type UsePlanInstallmentsOptions = {
+  organizationId?: string;
+  planId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Bir ödeme planına ait aktif taksitleri getiren React Query hook'u (v1.4-06 · #277).
+ */
+export function usePlanInstallments(options?: UsePlanInstallmentsOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const planId = options?.planId;
+  const isEnabled =
+    (options?.enabled ?? true) && Boolean(organizationId) && Boolean(planId);
+
+  return useQuery<Installment[], Error>({
+    queryKey:
+      organizationId && planId
+        ? educationKeys.planInstallments(organizationId, planId)
+        : (["education", "planInstallments", { organizationId: "" }] as const),
+    queryFn: () => loadPlanInstallments(organizationId!, planId!),
     enabled: isEnabled,
   });
 }

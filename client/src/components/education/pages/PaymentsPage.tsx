@@ -18,6 +18,20 @@ import {
 } from "../shared";
 import type { PaymentRow, Role } from "../types";
 
+export type PaymentsPageProps = {
+  role: Role;
+  paymentRows?: PaymentRow[];
+  overviewStats?: OverviewStat[];
+  isLoading?: boolean;
+  error?: Error | null;
+  onRetry?: () => void;
+  truncated?: boolean;
+  limit?: number;
+  isDemo?: boolean;
+  onAddPlan?: () => void;
+  onSelectPlan?: (plan: PaymentRow) => void;
+};
+
 export function PaymentsPage({
   role,
   paymentRows: propPaymentRows,
@@ -28,17 +42,9 @@ export function PaymentsPage({
   truncated = false,
   limit = DEFAULT_PAYMENT_LIMIT,
   isDemo = isDemoMode,
-}: {
-  role: Role;
-  paymentRows?: PaymentRow[];
-  overviewStats?: OverviewStat[];
-  isLoading?: boolean;
-  error?: Error | null;
-  onRetry?: () => void;
-  truncated?: boolean;
-  limit?: number;
-  isDemo?: boolean;
-}) {
+  onAddPlan,
+  onSelectPlan,
+}: PaymentsPageProps) {
   // Güvenlik kapısı (K-06): isDemo prop'u üretimde (isDemoMode === false) demoyu AÇAMAZ.
   // Prop yalnızca test ortamında veya demo modunda demoyu KAPATMAK (isDemo={false}) için kullanılabilir.
   const activeDemo = isDemoMode && isDemo;
@@ -61,14 +67,24 @@ export function PaymentsPage({
             ? "Kayıt paketleri ve yaklaşan taksit detaylarını takip edin."
             : "Kayıt paketleri, taksit planları ve takip gerektiren ödemeler."
         }
-        action={activeDemo && role === "admin" ? "Yeni kayıt" : undefined}
+        action={
+          role === "admin"
+            ? activeDemo
+              ? "Yeni kayıt"
+              : onAddPlan
+                ? "Yeni plan"
+                : undefined
+            : undefined
+        }
         onAction={
-          activeDemo && role === "admin"
-            ? () =>
-                toast.info("Yeni kayıt", {
-                  description:
-                    "Demo MVP’de kayıt paketleri ve taksit planı yerel veri ile sonraki iterasyonda oluşturulabilir.",
-                })
+          role === "admin"
+            ? activeDemo
+              ? () =>
+                  toast.info("Yeni kayıt", {
+                    description:
+                      "Demo MVP’de kayıt paketleri ve taksit planı yerel veri ile sonraki iterasyonda oluşturulabilir.",
+                  })
+              : onAddPlan
             : undefined
         }
       />
@@ -89,7 +105,10 @@ export function PaymentsPage({
       ) : null}
 
       {truncated ? (
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[11px] font-semibold text-amber-800">
+        <div
+          data-testid="payments-truncated-banner"
+          className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-[11px] font-semibold text-amber-800"
+        >
           Liste üst sınıra ({limit} kayıt) ulaştı. Kalan kayıtları görmek için
           filtreleri kullanın.
         </div>
@@ -159,21 +178,36 @@ export function PaymentsPage({
                       ) : null}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      {activeDemo &&
-                      role === "admin" &&
-                      item.status !== "Güncel" ? (
-                        <button
-                          onClick={() =>
-                            toast.info("Ödeme hatırlatması henüz aktif değil", {
-                              description:
-                                "Hatırlatma gönderimi e-posta sağlayıcısı kurulduğunda çalışacaktır; şu an bir kayıt oluşturulmadı.",
-                            })
-                          }
-                          className="text-[11px] font-bold text-blue-600"
-                        >
-                          Hatırlat
-                        </button>
-                      ) : null}
+                      <div className="flex items-center justify-end gap-2">
+                        {onSelectPlan ? (
+                          <button
+                            type="button"
+                            onClick={() => onSelectPlan(item)}
+                            className="text-[11px] font-bold text-blue-600 hover:text-blue-700"
+                          >
+                            Detay
+                          </button>
+                        ) : null}
+                        {activeDemo &&
+                        role === "admin" &&
+                        item.status !== "Güncel" ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              toast.info(
+                                "Ödeme hatırlatması henüz aktif değil",
+                                {
+                                  description:
+                                    "Hatırlatma gönderimi e-posta sağlayıcısı kurulduğunda çalışacaktır; şu an bir kayıt oluşturulmadı.",
+                                }
+                              )
+                            }
+                            className="text-[11px] font-bold text-blue-600 hover:text-blue-700"
+                          >
+                            Hatırlat
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}

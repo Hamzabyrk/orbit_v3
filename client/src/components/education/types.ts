@@ -77,10 +77,13 @@ export type Automation = {
 };
 
 export type PaymentRow = {
+  id: string;
+  studentId: string;
   student: string;
   plan: string;
   due: string;
   amount: string;
+  totalAmount: number;
   status?: "Güncel" | "Hatırlatma gerekli" | "Gecikme riski" | "Takip gerekli";
 };
 

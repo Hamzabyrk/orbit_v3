@@ -62,6 +62,8 @@ import { StudentFormDialog } from "./pages/StudentFormDialog";
 import { GuardianFormDialog } from "./pages/GuardianFormDialog";
 import { ClassFormDialog } from "./pages/ClassFormDialog";
 import { ClassEnrollmentDialog } from "./pages/ClassEnrollmentDialog";
+import { PaymentPlanFormDialog } from "./pages/PaymentPlanFormDialog";
+import { PaymentPlanDetailDialog } from "./pages/PaymentPlanDetailDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -174,6 +176,21 @@ export function EducationPlatform({
   const [classEnrollmentOpen, setClassEnrollmentOpen] = useState(false);
   const [classForEnrollment, setClassForEnrollment] =
     useState<ClassGroup | null>(null);
+  const [paymentPlanFormOpen, setPaymentPlanFormOpen] = useState(false);
+  const [paymentPlanForEdit, setPaymentPlanForEdit] = useState<{
+    id: string;
+    studentId: string;
+    name: string;
+    totalAmount: number;
+  } | null>(null);
+  const [paymentPlanDetailOpen, setPaymentPlanDetailOpen] = useState(false);
+  const [selectedPaymentPlan, setSelectedPaymentPlan] = useState<{
+    id: string;
+    studentId?: string;
+    studentName?: string;
+    name: string;
+    totalAmount?: number;
+  } | null>(null);
 
   // Kaydedilmemiş veri koruması (v1.4-03 Revizyon 1 & v1.4-04 #270)
   const [isAttendanceDirty, setIsAttendanceDirty] = useState(false);
@@ -887,6 +904,20 @@ export function EducationPlatform({
           }
           truncated={!isDemoMode && Boolean(paymentsQuery.data?.truncated)}
           limit={DEFAULT_PAYMENT_LIMIT}
+          onAddPlan={() => {
+            setPaymentPlanForEdit(null);
+            setPaymentPlanFormOpen(true);
+          }}
+          onSelectPlan={item => {
+            setSelectedPaymentPlan({
+              id: item.id || "",
+              studentId: item.studentId,
+              studentName: item.student,
+              name: item.plan,
+              totalAmount: item.totalAmount,
+            });
+            setPaymentPlanDetailOpen(true);
+          }}
         />
       );
     if (active === "Otomasyonlar")
@@ -1202,6 +1233,28 @@ export function EducationPlatform({
               onOpenChange={setClassEnrollmentOpen}
               organizationId={organizationId}
               classData={classForEnrollment}
+            />
+          )}
+          <PaymentPlanFormDialog
+            open={paymentPlanFormOpen}
+            onOpenChange={setPaymentPlanFormOpen}
+            organizationId={organizationId}
+            students={activeStudents.map(s => ({ id: s.id, name: s.name }))}
+            plan={paymentPlanForEdit}
+            onDone={() => setPaymentPlanForEdit(null)}
+          />
+          {selectedPaymentPlan && (
+            <PaymentPlanDetailDialog
+              open={paymentPlanDetailOpen}
+              onOpenChange={setPaymentPlanDetailOpen}
+              organizationId={organizationId}
+              role={role}
+              plan={selectedPaymentPlan}
+              onEditPlan={plan => {
+                setPaymentPlanForEdit(plan);
+                setPaymentPlanFormOpen(true);
+              }}
+              onPlanArchived={() => setSelectedPaymentPlan(null)}
             />
           )}
         </>

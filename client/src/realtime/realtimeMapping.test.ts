@@ -96,10 +96,11 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
     expect(keys).toContainEqual(educationKeys.students(orgId));
   });
 
-  it("10. installments: hem ödeme hem özet hem öğrenci (Student.payment) sorgusunu tazeler", () => {
+  it("10. installments: ödeme, taksitler, özet ve öğrenci (Student.payment) sorgusunu tazeler", () => {
     const keys = getAffectedQueryKeys("installments", orgId);
-    expect(keys).toHaveLength(3);
+    expect(keys).toHaveLength(4);
     expect(keys).toContainEqual(educationKeys.payments(orgId));
+    expect(keys).toContainEqual(educationKeys.planInstallments(orgId));
     expect(keys).toContainEqual(educationKeys.paymentOverview(orgId));
     expect(keys).toContainEqual(educationKeys.students(orgId));
   });

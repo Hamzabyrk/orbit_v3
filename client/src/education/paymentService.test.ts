@@ -8,6 +8,18 @@ import {
   loadPayments,
   loadStudentPaymentStatuses,
   mapPaymentRow,
+  createPaymentPlan,
+  updatePaymentPlan,
+  archivePaymentPlan,
+  restorePaymentPlan,
+  loadPlanInstallments,
+  createInstallment,
+  updateInstallment,
+  archiveInstallment,
+  restoreInstallment,
+  markInstallmentPaid,
+  unmarkInstallmentPaid,
+  translatePaymentError,
   type PaymentPlanSummary,
   type RawPaymentPlanRow,
 } from "./paymentService";
@@ -40,7 +52,9 @@ function createQueryChain(
   result: QueryResult,
   spy?: {
     selectArg?: string;
+    eqArgs?: [string, unknown][];
     isArgs?: [string, unknown];
+    ilikeArgs?: [string, unknown][];
     orderArgs?: [string, { ascending?: boolean }][];
     limitArg?: number;
   }
@@ -50,8 +64,22 @@ function createQueryChain(
     if (spy) spy.selectArg = columns;
     return chain;
   });
+  chain.eq = vi.fn((col: string, val: unknown) => {
+    if (spy) {
+      if (!spy.eqArgs) spy.eqArgs = [];
+      spy.eqArgs.push([col, val]);
+    }
+    return chain;
+  });
   chain.is = vi.fn((col: string, val: unknown) => {
     if (spy) spy.isArgs = [col, val];
+    return chain;
+  });
+  chain.ilike = vi.fn((col: string, val: unknown) => {
+    if (spy) {
+      if (!spy.ilikeArgs) spy.ilikeArgs = [];
+      spy.ilikeArgs.push([col, val]);
+    }
     return chain;
   });
   chain.order = vi.fn((col: string, opts: { ascending?: boolean }) => {
@@ -272,9 +300,10 @@ describe("paymentService (v1.3-01 · E parçası)", () => {
   });
 
   describe("loadPayments (Plan Listesi & Sayfalama)", () => {
-    it("payment_plans tablosunu sorgular, özetleri bağlar ve arşivliyi eler", async () => {
+    it("payment_plans tablosunu sorgular, açık organization_id süzgeci uygular, özetleri bağlar ve arşivliyi eler (§4.12, #249)", async () => {
       const spy: {
         selectArg?: string;
+        eqArgs?: [string, unknown][];
         isArgs?: [string, unknown];
         orderArgs?: [string, { ascending?: boolean }][];
         limitArg?: number;
@@ -309,17 +338,17 @@ describe("paymentService (v1.3-01 · E parçası)", () => {
         error: null,
       });
 
-      const result = await loadPayments(DEFAULT_PAYMENT_LIMIT);
+      const result = await loadPayments("org-1", {
+        limit: DEFAULT_PAYMENT_LIMIT,
+      });
 
       expect(fromMock).toHaveBeenCalledWith("payment_plans");
       // ⛔ installments tablosuna doğrudan sorgu atılmaz
       expect(fromMock).not.toHaveBeenCalledWith("installments");
-      // ⛔ Ve GÖMÜLÜ olarak da çekilmez. Bu ayrı bir kapı: gömülü satırlar
-      // `from("installments")` çağırmaz, select dizgesinin içinde gelirler ve
-      // RLS ile süzülürler. D parçasında katılımcı sayısı tam olarak böyle
-      // yanlış hesaplanmıştı (v1.3-14) — aynı hata ödemede kurulmasın.
       expect(spy.selectArg).not.toContain("installments");
 
+      // Açık organization_id süzgeci şarttır (§4.12)
+      expect(spy.eqArgs).toContainEqual(["organization_id", "org-1"]);
       expect(spy.isArgs).toEqual(["archived_at", null]);
       expect(spy.orderArgs).toEqual([
         ["created_at", { ascending: false }],
@@ -336,6 +365,33 @@ describe("paymentService (v1.3-01 · E parçası)", () => {
       expect(result.truncated).toBe(false);
     });
 
+    it("studentId ve search parametrelerini filtre olarak ekler", async () => {
+      const spy: {
+        eqArgs?: [string, unknown][];
+        ilikeArgs?: [string, unknown][];
+      } = {};
+
+      fromMock.mockReturnValue(
+        createQueryChain(
+          {
+            data: [],
+            error: null,
+          },
+          spy
+        )
+      );
+      rpcMock.mockResolvedValue({ data: [], error: null });
+
+      await loadPayments("org-1", {
+        studentId: "stu-1",
+        search: " Paket ",
+      });
+
+      expect(spy.eqArgs).toContainEqual(["organization_id", "org-1"]);
+      expect(spy.eqArgs).toContainEqual(["student_id", "stu-1"]);
+      expect(spy.ilikeArgs).toContainEqual(["name", "%Paket%"]);
+    });
+
     it("satır sayısı limite ulaştığında truncated true döner (K-03)", async () => {
       fromMock.mockReturnValue(
         createQueryChain({
@@ -345,7 +401,7 @@ describe("paymentService (v1.3-01 · E parçası)", () => {
       );
       rpcMock.mockResolvedValue({ data: [], error: null });
 
-      const result = await loadPayments(1);
+      const result = await loadPayments("org-1", { limit: 1 });
       expect(result.truncated).toBe(true);
     });
 
@@ -357,7 +413,7 @@ describe("paymentService (v1.3-01 · E parçası)", () => {
         })
       );
 
-      await expect(loadPayments()).rejects.toThrow(
+      await expect(loadPayments("org-1")).rejects.toThrow(
         "Ödeme listesi yüklenemedi."
       );
     });
@@ -446,10 +502,13 @@ describe("paymentService (v1.3-01 · E parçası)", () => {
     it("üretimde (isDemo: false) yazma butonları (Yeni kayıt ve Hatırlat) KESİNLİKLE ÇİZİLMEZ", () => {
       const rows: PaymentRow[] = [
         {
+          id: "plan-test-1",
+          studentId: "stu-1",
           student: "Aras Öztürk",
           plan: "YKS Eşit Ağırlık Paket",
           due: "18 Ağustos 2026",
           amount: "₺6.800",
+          totalAmount: 68000,
           status: "Takip gerekli",
         },
       ];
@@ -514,10 +573,13 @@ describe("paymentService (v1.3-01 · E parçası)", () => {
     it("status undefined iken rozet çizilmez (K-22)", () => {
       const rows: PaymentRow[] = [
         {
+          id: "plan-test-2",
+          studentId: "stu-2",
           student: "Ahmet Demir",
           plan: "Temel Paket",
           due: "",
           amount: "",
+          totalAmount: 20000,
           status: undefined,
         },
       ];
@@ -545,6 +607,530 @@ describe("paymentService (v1.3-01 · E parçası)", () => {
       expect(elementString).toContain("Hatırlat");
       expect(elementString).toContain("₺248.600");
       expect(elementString).toContain("Planlanan tahsilatın %82’si");
+    });
+  });
+
+  describe("v1.4-06 Ödeme Planı ve Taksit Servisleri (Yazma & Detay)", () => {
+    const orgId = "org-1";
+
+    describe("createPaymentPlan", () => {
+      it("yükte id KESİNLİKLE bulunmaz ve doğru alanlar gönderilir", async () => {
+        let capturedPayload: unknown = null;
+        fromMock.mockReturnValueOnce({
+          insert: vi.fn((payload: unknown) => {
+            capturedPayload = payload;
+            return {
+              select: vi.fn(() => ({
+                single: vi.fn(() =>
+                  Promise.resolve({ data: { id: "plan-1" }, error: null })
+                ),
+              })),
+            };
+          }),
+        });
+
+        const result = await createPaymentPlan({
+          organizationId: orgId,
+          studentId: "stu-1",
+          name: "  LGS Hazırlık Paketi  ",
+          totalAmount: 30000,
+        });
+
+        expect(result).toEqual({ id: "plan-1" });
+        expect(capturedPayload).not.toHaveProperty("id");
+        expect(capturedPayload).toEqual({
+          organization_id: orgId,
+          student_id: "stu-1",
+          name: "LGS Hazırlık Paketi",
+          total_amount: 30000,
+        });
+      });
+
+      it("veritabanı hatasında kullanıcı dostu Türkçe hata fırlatır", async () => {
+        fromMock.mockReturnValueOnce({
+          insert: vi.fn(() => ({
+            select: vi.fn(() => ({
+              single: vi.fn(() =>
+                Promise.resolve({
+                  data: null,
+                  error: { code: "42501", message: "permission denied" },
+                })
+              ),
+            })),
+          })),
+        });
+
+        await expect(
+          createPaymentPlan({
+            organizationId: orgId,
+            studentId: "stu-1",
+            name: "Paket",
+            totalAmount: 10000,
+          })
+        ).rejects.toThrow(
+          "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya şifre değişimi bekleniyor."
+        );
+      });
+    });
+
+    describe("updatePaymentPlan", () => {
+      it("yükte id, organization_id, student_id bulunmaz", async () => {
+        let capturedPayload: unknown = null;
+        const eqCalls: [string, unknown][] = [];
+        fromMock.mockReturnValueOnce({
+          update: vi.fn((payload: unknown) => {
+            capturedPayload = payload;
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn((col: string, val: unknown) => {
+              eqCalls.push([col, val]);
+              return chain;
+            });
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [{ id: "plan-1" }], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await updatePaymentPlan(orgId, "plan-1", {
+          name: "  Güncellenmiş Paket  ",
+          totalAmount: 35000,
+        });
+
+        expect(capturedPayload).not.toHaveProperty("id");
+        expect(capturedPayload).not.toHaveProperty("organization_id");
+        expect(capturedPayload).not.toHaveProperty("student_id");
+        expect(capturedPayload).toEqual({
+          name: "Güncellenmiş Paket",
+          total_amount: 35000,
+        });
+        expect(eqCalls).toEqual([
+          ["organization_id", orgId],
+          ["id", "plan-1"],
+        ]);
+      });
+
+      it("sıfır satır güncellendiğinde hata fırlatır (K-14)", async () => {
+        fromMock.mockReturnValueOnce({
+          update: vi.fn(() => {
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await expect(
+          updatePaymentPlan(orgId, "plan-nonexistent", { name: "Ad" })
+        ).rejects.toThrow("Ödeme planı bulunamadı veya güncellenemedi.");
+      });
+    });
+
+    describe("archivePaymentPlan & restorePaymentPlan", () => {
+      it("archivePaymentPlan: archived_at zaman damgası koyar, satır silmez", async () => {
+        let capturedPayload: unknown = null;
+        fromMock.mockReturnValueOnce({
+          update: vi.fn((payload: unknown) => {
+            capturedPayload = payload;
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [{ id: "plan-1" }], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await archivePaymentPlan(orgId, "plan-1");
+
+        expect(capturedPayload).toHaveProperty("archived_at");
+        expect(
+          (capturedPayload as { archived_at: string }).archived_at
+        ).toBeTruthy();
+      });
+
+      it("archivePaymentPlan: sıfır satır etkilendiğinde hata fırlatır (K-14)", async () => {
+        fromMock.mockReturnValueOnce({
+          update: vi.fn(() => {
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await expect(archivePaymentPlan(orgId, "plan-missing")).rejects.toThrow(
+          "Ödeme planı bulunamadı veya arşivlenemedi."
+        );
+      });
+
+      it("restorePaymentPlan: archived_at null yapar", async () => {
+        let capturedPayload: unknown = null;
+        fromMock.mockReturnValueOnce({
+          update: vi.fn((payload: unknown) => {
+            capturedPayload = payload;
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [{ id: "plan-1" }], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await restorePaymentPlan(orgId, "plan-1");
+
+        expect(capturedPayload).toEqual({ archived_at: null });
+      });
+
+      it("restorePaymentPlan: sıfır satır etkilendiğinde hata fırlatır (K-14)", async () => {
+        fromMock.mockReturnValueOnce({
+          update: vi.fn(() => {
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await expect(restorePaymentPlan(orgId, "plan-missing")).rejects.toThrow(
+          "Ödeme planı bulunamadı veya geri yüklenemedi."
+        );
+      });
+    });
+
+    describe("loadPlanInstallments", () => {
+      it("organization_id ve plan_id süzgeciyle aktif taksitleri sıra no'ya göre yükler", async () => {
+        const eqCalls: [string, unknown][] = [];
+        let isFilter: [string, unknown] | null = null;
+
+        fromMock.mockReturnValueOnce({
+          select: vi.fn(() => {
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn((col: string, val: unknown) => {
+              eqCalls.push([col, val]);
+              return chain;
+            });
+            chain.is = vi.fn((col: string, val: unknown) => {
+              isFilter = [col, val];
+              return chain;
+            });
+            chain.order = vi.fn(() => chain);
+            chain.then = (
+              onfulfilled?: ((value: unknown) => unknown) | null,
+              onrejected?: ((reason: unknown) => unknown) | null
+            ) =>
+              Promise.resolve({
+                data: [
+                  {
+                    id: "inst-1",
+                    organization_id: orgId,
+                    plan_id: "plan-1",
+                    sequence_no: 1,
+                    due_date: "2026-10-15",
+                    amount: 15000,
+                    paid_at: null,
+                    archived_at: null,
+                    created_at: "2026-09-01T10:00:00Z",
+                  },
+                  {
+                    id: "inst-2",
+                    organization_id: orgId,
+                    plan_id: "plan-1",
+                    sequence_no: 2,
+                    due_date: "2026-11-15",
+                    amount: 15000,
+                    paid_at: "2026-09-10T12:00:00Z",
+                    archived_at: null,
+                    created_at: "2026-09-01T10:00:00Z",
+                  },
+                ],
+                error: null,
+              }).then(onfulfilled, onrejected);
+            return chain;
+          }),
+        });
+
+        const installments = await loadPlanInstallments(orgId, "plan-1");
+
+        expect(eqCalls).toEqual([
+          ["organization_id", orgId],
+          ["plan_id", "plan-1"],
+        ]);
+        expect(isFilter).toEqual(["archived_at", null]);
+        expect(installments).toHaveLength(2);
+        expect(installments[0].sequenceNo).toBe(1);
+        expect(installments[0].paidAt).toBeNull();
+        expect(installments[1].sequenceNo).toBe(2);
+        expect(installments[1].paidAt).toBe("2026-09-10T12:00:00Z");
+      });
+    });
+
+    describe("createInstallment", () => {
+      it("yükte id KESİNLİKLE bulunmaz ve doğru alanlar gönderilir", async () => {
+        let capturedPayload: unknown = null;
+        fromMock.mockReturnValueOnce({
+          insert: vi.fn((payload: unknown) => {
+            capturedPayload = payload;
+            return {
+              select: vi.fn(() => ({
+                single: vi.fn(() =>
+                  Promise.resolve({ data: { id: "inst-1" }, error: null })
+                ),
+              })),
+            };
+          }),
+        });
+
+        const result = await createInstallment({
+          organizationId: orgId,
+          planId: "plan-1",
+          sequenceNo: 1,
+          dueDate: "2026-10-15",
+          amount: 10000,
+        });
+
+        expect(result).toEqual({ id: "inst-1" });
+        expect(capturedPayload).not.toHaveProperty("id");
+        expect(capturedPayload).toEqual({
+          organization_id: orgId,
+          plan_id: "plan-1",
+          sequence_no: 1,
+          due_date: "2026-10-15",
+          amount: 10000,
+        });
+      });
+    });
+
+    describe("updateInstallment", () => {
+      it("yükte id ve sequence_no KESİNLİKLE bulunmaz (sequence_no değiştirilemez)", async () => {
+        let capturedPayload: unknown = null;
+        fromMock.mockReturnValueOnce({
+          update: vi.fn((payload: unknown) => {
+            capturedPayload = payload;
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [{ id: "inst-1" }], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await updateInstallment(orgId, "inst-1", {
+          amount: 12000,
+          dueDate: "2026-10-20",
+        });
+
+        expect(capturedPayload).not.toHaveProperty("id");
+        expect(capturedPayload).not.toHaveProperty("sequence_no");
+        expect(capturedPayload).toEqual({
+          amount: 12000,
+          due_date: "2026-10-20",
+        });
+      });
+
+      it("sıfır satır güncellendiğinde hata fırlatır (K-14)", async () => {
+        fromMock.mockReturnValueOnce({
+          update: vi.fn(() => {
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await expect(
+          updateInstallment(orgId, "inst-missing", { amount: 5000 })
+        ).rejects.toThrow("Taksit bulunamadı veya güncellenemedi.");
+      });
+    });
+
+    describe("archiveInstallment & restoreInstallment", () => {
+      it("archiveInstallment: archived_at zaman damgası koyar, satır silmez", async () => {
+        let capturedPayload: unknown = null;
+        fromMock.mockReturnValueOnce({
+          update: vi.fn((payload: unknown) => {
+            capturedPayload = payload;
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [{ id: "inst-1" }], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await archiveInstallment(orgId, "inst-1");
+
+        expect(capturedPayload).toHaveProperty("archived_at");
+        expect(
+          (capturedPayload as { archived_at: string }).archived_at
+        ).toBeTruthy();
+      });
+
+      it("archiveInstallment: sıfır satır etkilendiğinde hata fırlatır (K-14)", async () => {
+        fromMock.mockReturnValueOnce({
+          update: vi.fn(() => {
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await expect(archiveInstallment(orgId, "inst-missing")).rejects.toThrow(
+          "Taksit bulunamadı veya arşivlenemedi."
+        );
+      });
+
+      it("restoreInstallment: archived_at null yapar", async () => {
+        let capturedPayload: unknown = null;
+        fromMock.mockReturnValueOnce({
+          update: vi.fn((payload: unknown) => {
+            capturedPayload = payload;
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [{ id: "inst-1" }], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await restoreInstallment(orgId, "inst-1");
+
+        expect(capturedPayload).toEqual({ archived_at: null });
+      });
+
+      it("restoreInstallment: sıfır satır etkilendiğinde hata fırlatır (K-14)", async () => {
+        fromMock.mockReturnValueOnce({
+          update: vi.fn(() => {
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await expect(restoreInstallment(orgId, "inst-missing")).rejects.toThrow(
+          "Taksit bulunamadı veya geri yüklenemedi."
+        );
+      });
+    });
+
+    describe("markInstallmentPaid & unmarkInstallmentPaid", () => {
+      it("markInstallmentPaid: paid_at zaman damgası koyar", async () => {
+        let capturedPayload: unknown = null;
+        fromMock.mockReturnValueOnce({
+          update: vi.fn((payload: unknown) => {
+            capturedPayload = payload;
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [{ id: "inst-1" }], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await markInstallmentPaid(orgId, "inst-1");
+
+        expect(capturedPayload).toHaveProperty("paid_at");
+        expect((capturedPayload as { paid_at: string }).paid_at).toBeTruthy();
+      });
+
+      it("unmarkInstallmentPaid: paid_at'i null yapar", async () => {
+        let capturedPayload: unknown = null;
+        fromMock.mockReturnValueOnce({
+          update: vi.fn((payload: unknown) => {
+            capturedPayload = payload;
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [{ id: "inst-1" }], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await unmarkInstallmentPaid(orgId, "inst-1");
+
+        expect(capturedPayload).toEqual({ paid_at: null });
+      });
+
+      it("unmarkInstallmentPaid: sıfır satır etkilendiğinde hata fırlatır (K-14)", async () => {
+        fromMock.mockReturnValueOnce({
+          update: vi.fn(() => {
+            const chain: Record<string, unknown> = {};
+            chain.eq = vi.fn(() => chain);
+            chain.select = vi.fn(() =>
+              Promise.resolve({ data: [], error: null })
+            );
+            return chain;
+          }),
+        });
+
+        await expect(
+          unmarkInstallmentPaid(orgId, "inst-missing")
+        ).rejects.toThrow(
+          "Taksit bulunamadı veya ödeme işareti kaldırılamadı."
+        );
+      });
+    });
+
+    describe("translatePaymentError", () => {
+      it("23505 tekillik hatasını anlaşılır Türkçe cümleye çevirir (ham kod sızmaz)", () => {
+        const error = {
+          code: "23505",
+          message:
+            'duplicate key value violates unique constraint "installments_plan_sequence_key"',
+        };
+        const msg = translatePaymentError(error);
+        expect(msg).toBe(
+          "Bu plana ait aynı sıra numarasına sahip aktif bir taksit zaten mevcut."
+        );
+        expect(msg).not.toContain("23505");
+      });
+
+      it("23514 tutar veya sıra kısıtı hatasını anlaşılır Türkçe cümleye çevirir", () => {
+        expect(
+          translatePaymentError({
+            code: "23514",
+            message: 'violates check constraint "installments_amount_check"',
+          })
+        ).toBe("Taksit tutarı sıfırdan büyük olmalıdır.");
+
+        expect(
+          translatePaymentError({
+            code: "23514",
+            message: 'violates check constraint "installments_sequence_check"',
+          })
+        ).toBe("Taksit sıra numarası 1 veya daha büyük olmalıdır.");
+      });
+
+      it("42501 yetki hatasını açıkça bildirir", () => {
+        expect(
+          translatePaymentError({
+            code: "42501",
+            message: "permission denied for table payment_plans",
+          })
+        ).toBe(
+          "Bu işlem için kurum yöneticisi yetkisi gerekiyor veya şifre değişimi bekleniyor."
+        );
+      });
     });
   });
 });
