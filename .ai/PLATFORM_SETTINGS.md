@@ -111,12 +111,14 @@ Son doğrulama: **2026-08-23**, Issue #20.
 
 ### 3.3 Supabase — Edge Functions
 
-| Öğe                      | Değer                               | Doğrulama                                                    |
-| ------------------------ | ----------------------------------- | ------------------------------------------------------------ |
-| `bootstrap-organization` | ACTIVE, `verify_jwt = true`         | API (2026-08-23)                                             |
-| `reset-admin-password`   | ACTIVE, `verify_jwt = true`         | Issue #61 — `config.toml`'a kaydedildikten sonra deploy oldu |
-| `delete-organization`    | ACTIVE, `verify_jwt = true`         | Issue #63                                                    |
-| `ALLOWED_ORIGINS` secret | `https://orbit-v3-topaz.vercel.app` | Origin sondası: yalnızca bu origin geçiyor                   |
+| Öğe                      | Değer                               | Doğrulama                                                        |
+| ------------------------ | ----------------------------------- | ---------------------------------------------------------------- |
+| `bootstrap-organization` | ACTIVE, `verify_jwt = true`         | API (2026-08-23)                                                 |
+| `change-member-role`     | `verify_jwt = true`                 | v1.4-07'de eklendi (#280); bildirim kapısı mutasyonla doğrulandı |
+| `remove-member`          | `verify_jwt = true`                 | v1.4-07'de eklendi (#280); bildirim kapısı mutasyonla doğrulandı |
+| `reset-admin-password`   | ACTIVE, `verify_jwt = true`         | Issue #61 — `config.toml`'a kaydedildikten sonra deploy oldu     |
+| `delete-organization`    | ACTIVE, `verify_jwt = true`         | Issue #63                                                        |
+| `ALLOWED_ORIGINS` secret | `https://orbit-v3-topaz.vercel.app` | Origin sondası: yalnızca bu origin geçiyor                       |
 
 > **Sonradan düzeltme (2026-08-25):** Bu tablo uzun süre yalnızca `bootstrap-organization`'ı listeledi; diğer iki fonksiyon 2026-08-24'te canlıya çıktı ve tabloya işlenmedi. Yani bu dosya, tam olarak önlemek için var olduğu hatayı kendisi yaptı — bkz. bölüm 1. Issue #77 belge denetiminde yakalandı.
 >
@@ -533,6 +535,8 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 > 📌 **v1.4-04 için tahmin: 28.** `record_exam_results` `authenticated`'a açık ve listede **çıkmalı** (yetki kontrolü fonksiyonun içinde, `42501` ile); `enforce_exam_score_within_max` **çıkmamalı** — `revoke all` uygulandı ve tetikleyici fonksiyonu. **Bu bir tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **#270 merge edildikten sonra** (**K-12**).
 >
 > ✅ **Merge sonrası ölçüldü (2026-09-10, PR #262): 26 — tahminin aynısı.** Dağılım: **23** × `0029` + 1 × sızmış şifre + 2 × `rls_enabled_no_policy`. Dört yeni fonksiyon (`link_/unlink_student_account`, `link_/unlink_guardian_account`) listede çıktı ve bu bilinçli — yetki kontrolü fonksiyonun içinde, `42501` ile. Beşincisi `membership_may_be_linked` **çıkmadı**: `revoke all` tuttu. Tahminin doğrulanması ayrıca şunu söylüyor: bu sayı artık kör bir sayaç değil, bileşimi bilinen bir taban.
+>
+> 📌 **v1.4-07 için tahmin: değişmez (28).** İki yeni fonksiyon `security definer` ama `authenticated`'dan **revoke** edildi ve yalnız `service_role`'a verildi — `0029` lint'i yalnız `authenticated`'ın çağırabildiklerini sayıyor. Aynı gerekçe v1.4-00'ın `membership_may_be_linked`'inde ve v1.4-04'ün `enforce_exam_score_within_max`'inde ölçülerek doğrulanmıştı. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **#280 merge edildikten sonra** (**K-12**).
 >
 > 📌 **v1.4-06 için tahmin: değişmez (28).** Dilim bir sütun, bir kısmi indeks, üç RPC gövdesi ve dört denetim tetikleyicisi ekliyor. Üç RPC **zaten listede değil** ve olmamalı: hiçbiri `security definer` değil (`DECISION_LOG` — ödeme yalnız yönetici ve velinin; definer olsaydı öğretmene açılırdı). **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **#277 merge edildikten sonra** (**K-12**).
 >

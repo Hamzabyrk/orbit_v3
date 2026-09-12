@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useAuth } from "@/auth/useAuth";
 import {
   Dialog,
@@ -14,14 +15,26 @@ import type { IssuedCredentials } from "@/components/credentials/IssuedCredentia
 import { DEMO_TEMPORARY_PASSWORD } from "@/components/credentials/IssuedCredentials";
 import { MemberCreateDialog } from "./MemberCreateDialog";
 import { settingsKeys, useSettingsMembers } from "@/settings/settingsQueries";
+import { educationKeys } from "@/education/educationQueries";
 import {
   resetMemberPassword,
+  changeMemberRole,
+  removeMember,
+  translateMembershipActionError,
+  isNeutralMembershipInfo,
+  type MemberRole,
   type MemberStatus,
   type OrganizationMember,
 } from "@/organization/memberService";
 import { roleMeta } from "../roleMeta";
 import { organizationMembers as demoMembers } from "../educationData";
 import { Badge, ErrorState, TableSkeleton } from "../shared";
+
+const ASSIGNABLE_ROLES: { value: MemberRole; label: string }[] = [
+  { value: "teacher", label: "Öğretmen" },
+  { value: "student", label: "Öğrenci" },
+  { value: "parent", label: "Veli" },
+];
 
 const STATUS_META: Record<
   MemberStatus,
@@ -56,6 +69,8 @@ export function SettingsMembersSection() {
   const { identity, demoMode } = useAuth();
   const queryClient = useQueryClient();
   const organizationId = identity?.membership?.organizationId;
+  const currentRole = identity?.membership?.role;
+  const isAdmin = currentRole === "admin";
 
   const {
     data: serverMembers = [],
@@ -83,6 +98,12 @@ export function SettingsMembersSection() {
     null
   );
   const [createOpen, setCreateOpen] = useState(false);
+
+  const [changeRoleTarget, setChangeRoleTarget] =
+    useState<OrganizationMember | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<OrganizationMember | null>(
+    null
+  );
 
   const handleOpenReset = (member: OrganizationMember) => {
     setResetTarget(member);
@@ -251,19 +272,42 @@ export function SettingsMembersSection() {
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenReset(member)}
-                      disabled={!member.loginNumber}
-                      title={
-                        member.loginNumber
-                          ? undefined
-                          : "Giriş numarası olmayan üyenin şifresi sıfırlanamaz"
-                      }
-                      className="rounded-lg px-2.5 py-1 text-[11px] font-bold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-700"
-                    >
-                      Şifre sıfırla
-                    </button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenReset(member)}
+                        disabled={!member.loginNumber}
+                        title={
+                          member.loginNumber
+                            ? undefined
+                            : "Giriş numarası olmayan üyenin şifresi sıfırlanamaz"
+                        }
+                        className="rounded-lg px-2.5 py-1 text-[11px] font-bold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-700"
+                      >
+                        Şifre sıfırla
+                      </button>
+                      {isAdmin &&
+                      member.role !== "admin" &&
+                      member.membershipId !==
+                        identity?.membership?.membershipId ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setChangeRoleTarget(member)}
+                            className="rounded-lg px-2.5 py-1 text-[11px] font-bold text-blue-600 transition hover:bg-blue-50 hover:text-blue-700"
+                          >
+                            Rol değiştir
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRemoveTarget(member)}
+                            className="rounded-lg px-2.5 py-1 text-[11px] font-bold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700"
+                          >
+                            Kurumdan çıkar
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -350,6 +394,22 @@ export function SettingsMembersSection() {
         </Dialog>
       ) : null}
 
+      <ChangeRoleDialog
+        key={changeRoleTarget?.membershipId}
+        member={changeRoleTarget}
+        open={Boolean(changeRoleTarget)}
+        onClose={() => setChangeRoleTarget(null)}
+        organizationId={organizationId}
+      />
+
+      <RemoveMemberDialog
+        key={removeTarget?.membershipId}
+        member={removeTarget}
+        open={Boolean(removeTarget)}
+        onClose={() => setRemoveTarget(null)}
+        organizationId={organizationId}
+      />
+
       <MemberCreateDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
@@ -364,5 +424,321 @@ export function SettingsMembersSection() {
         }}
       />
     </>
+  );
+}
+
+export function ChangeRoleDialog({
+  member,
+  open,
+  onClose,
+  initialError,
+  organizationId,
+}: {
+  member: OrganizationMember | null;
+  open: boolean;
+  onClose: () => void;
+  initialError?: string;
+  organizationId?: string;
+}) {
+  const { demoMode } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [selectedRole, setSelectedRole] = useState<MemberRole>(() => {
+    if (!member || member.role === "admin") return "teacher";
+    return member.role as MemberRole;
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(initialError ?? null);
+  const idempotencyKeyRef = useRef<string | null>(null);
+
+  if (!open || !member) return null;
+
+  const handleConfirm = async () => {
+    if (submitting) return;
+
+    if (demoMode) {
+      toast.info("Demo modunda rol değişikliği uygulandı.", {
+        description: `${member.displayName ?? "Üye"} için yeni rol ${roleMeta[selectedRole]?.label ?? selectedRole} olarak ayarlandı.`,
+      });
+      onClose();
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    if (idempotencyKeyRef.current === null) {
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
+
+    try {
+      await changeMemberRole(
+        member.membershipId,
+        selectedRole,
+        idempotencyKeyRef.current ?? undefined
+      );
+      idempotencyKeyRef.current = null;
+      toast.success("Üye rolü güncellendi", {
+        description: `${member.displayName ?? "Üye"} için yeni rol ${roleMeta[selectedRole]?.label ?? selectedRole} olarak ayarlandı.`,
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: organizationId
+            ? settingsKeys.members(organizationId)
+            : settingsKeys.all,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: organizationId
+            ? educationKeys.students(organizationId)
+            : educationKeys.all,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: organizationId
+            ? educationKeys.guardians(organizationId)
+            : educationKeys.all,
+        }),
+      ]);
+      onClose();
+    } catch (err) {
+      if (isNeutralMembershipInfo(err)) {
+        toast.info(translateMembershipActionError(err, "change_role"));
+        onClose();
+      } else {
+        const msg = translateMembershipActionError(err, "change_role");
+        setError(msg);
+        toast.error(msg);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={isOpen => {
+        if (!isOpen) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>Üye Rolünü Değiştir</DialogTitle>
+          <DialogDescription>
+            {getResetTargetSubjectName(member)} için yeni bir rol seçin.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2 text-[12px] leading-5 text-muted-foreground">
+          <p>
+            Rol değişikliği üyenin sisteme giriş yetkilerini ve kurum içi erişim
+            kapsamını anında günceller.
+          </p>
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor="member-role-select"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+            >
+              Yeni Rol
+            </label>
+            <select
+              id="member-role-select"
+              value={selectedRole}
+              onChange={e => setSelectedRole(e.target.value as MemberRole)}
+              disabled={submitting}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            >
+              {ASSIGNABLE_ROLES.map(r => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {error ? (
+            <div
+              role="alert"
+              data-testid="change-role-error"
+              className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[12px] leading-5 text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
+            >
+              <p className="font-bold">Rol değiştirilemedi</p>
+              <p className="mt-0.5 text-[11px] text-rose-700 dark:text-rose-400">
+                {error}
+              </p>
+            </div>
+          ) : null}
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="rounded-xl px-4 py-2.5 text-[12px] font-bold text-muted-foreground transition hover:bg-muted disabled:opacity-50"
+          >
+            Vazgeç
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleConfirm()}
+            disabled={submitting}
+            className="rounded-xl bg-slate-900 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-slate-800 disabled:opacity-40 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300"
+          >
+            {submitting ? "Güncelleniyor…" : "Rolü Değiştir"}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function RemoveMemberDialog({
+  member,
+  open,
+  onClose,
+  initialError,
+  organizationId,
+}: {
+  member: OrganizationMember | null;
+  open: boolean;
+  onClose: () => void;
+  initialError?: string;
+  organizationId?: string;
+}) {
+  const { demoMode } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(initialError ?? null);
+  const idempotencyKeyRef = useRef<string | null>(null);
+
+  if (!open || !member) return null;
+
+  const handleConfirm = async () => {
+    if (submitting) return;
+
+    if (demoMode) {
+      toast.info("Demo modunda üyelik çıkarma işlemi uygulandı.");
+      onClose();
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    if (idempotencyKeyRef.current === null) {
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
+
+    try {
+      await removeMember(
+        member.membershipId,
+        idempotencyKeyRef.current ?? undefined
+      );
+      idempotencyKeyRef.current = null;
+      const isStudentOrParent =
+        member.role === "student" || member.role === "parent";
+      toast.success("Üye kurumdan çıkarıldı", {
+        description: isStudentOrParent
+          ? "Üyelik askıya alındı ve akademik kaydının hesap bağı koparıldı."
+          : "Üyelik askıya alındı; kişi kuruma giriş yapamayacak.",
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: organizationId
+            ? settingsKeys.members(organizationId)
+            : settingsKeys.all,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: organizationId
+            ? educationKeys.students(organizationId)
+            : educationKeys.all,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: organizationId
+            ? educationKeys.guardians(organizationId)
+            : educationKeys.all,
+        }),
+      ]);
+      onClose();
+    } catch (err) {
+      if (isNeutralMembershipInfo(err)) {
+        toast.info(translateMembershipActionError(err, "remove"));
+        onClose();
+      } else {
+        const msg = translateMembershipActionError(err, "remove");
+        setError(msg);
+        toast.error(msg);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={isOpen => {
+        if (!isOpen) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-[460px]">
+        <DialogHeader>
+          <DialogTitle>Üyeyi Kurumdan Çıkar</DialogTitle>
+          <DialogDescription>
+            {getResetTargetSubjectName(member)} kurumdan çıkarılacak.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-2 text-[12px] leading-5 text-slate-600 dark:text-slate-300">
+          {member.role === "student" || member.role === "parent" ? (
+            <p>
+              Üyelik askıya alınacak{" "}
+              <strong>ve akademik kaydının hesap bağı koparılacak.</strong>{" "}
+              Kayıt silinmiyor; istenirse yeniden bağlanabilir.
+            </p>
+          ) : (
+            <p>Üyelik askıya alınacak; kişi kuruma giriş yapamayacak.</p>
+          )}
+
+          <p className="text-[11px] text-muted-foreground">
+            İşlem kurum denetim kaydına yazılır ve yetkiler derhal durdurulur.
+          </p>
+
+          {error ? (
+            <div
+              role="alert"
+              data-testid="remove-member-error"
+              className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[12px] leading-5 text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300"
+            >
+              <p className="font-bold">Üye çıkarılamadı</p>
+              <p className="mt-0.5 text-[11px] text-rose-700 dark:text-rose-400">
+                {error}
+              </p>
+            </div>
+          ) : null}
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="rounded-xl px-4 py-2.5 text-[12px] font-bold text-muted-foreground transition hover:bg-muted disabled:opacity-50"
+          >
+            Vazgeç
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleConfirm()}
+            disabled={submitting}
+            className="rounded-xl bg-rose-600 px-4 py-2.5 text-[12px] font-extrabold text-white transition hover:bg-rose-700 disabled:opacity-40"
+          >
+            {submitting ? "Çıkarılıyor…" : "Kurumdan Çıkar"}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

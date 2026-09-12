@@ -2483,3 +2483,70 @@ if cardinality(degisen) = 0 then return null; end if;
 **Ve bekletmenin bedeli yok:** üretimde iki kartın değerleri sabit sıfır ve `ReportCard` hepsi sıfır olduğunda çubuk çizmek yerine dürüstçe _"Rapor verisi henüz yok"_ diyor.
 
 ⚠️ **O dilim açılırken düzeltilecek bir kusur ölçüldü ve #278'e yazıldı:** `ReportCard`'ın koşulu `values.every(v => v === 0)`, yani **"veri yok" ile "veri sıfır"ı karıştırıyor**. Bugün ateşlenemiyor; kartlar gerçek veriye bağlandığı gün tatil dönemindeki bir sınıf "veri yok" görür (**K-22**).
+
+---
+
+### Karar: Kurumdan çıkarma role göre iki farklı iş yapar
+
+**Durum:** Alındı
+**Tarih:** 2026-09-12
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam — üç ölçüm.**
+
+**1. Çıkarma DELETE olamaz.** Üyeliğe bakan **sekiz yabancı anahtarın sekizi de `RESTRICT`** (`attendance_sessions.recorded_by_membership_id`, `class_teachers`, `classes.mentor_membership_id`, `schedule_entries`, `homework_assignments`, `daily_feed_posts`, `tasks`, `calendar_events`). Bir kez iş yapmış üyelik fiziksel olarak silinemiyor ve bu doğru: yoklamayı kimin aldığını silmek defteri bozar.
+
+**2. Geriye `status` kalıyor ve `suspended` bugüne kadar hiç kullanılmamıştı** — üretimde 0 satır, hiçbir fonksiyonda geçmiyor. Bu dilim onu ilk kez çalıştırıyor.
+
+**3. Ama `suspended` her rol için erişimi kesmiyor.** On beş kapsam yardımcısı tek tek okundu:
+
+| Yol                                                                                         | `status = 'active'` süzülüyor mu       |
+| ------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Yönetici — `current_user_has_membership`                                                    | ✅                                     |
+| Öğretmen — `teaches_class`; `teaches_student` ve `can_record_attendance` ona **devrediyor** | ✅                                     |
+| **Öğrenci** — `owns_student_record`, `attends_class`                                        | ❌ `students.auth_user_id`'ye bakıyor  |
+| **Veli** — `guards_student`, `guards_class`, `can_see_payment_plan`'in veli dalı            | ❌ `guardians.auth_user_id`'ye bakıyor |
+
+Öğrenci ve velinin kapsamı üyelikten değil **bağdan** geliyor — v1.4-00 ve v1.4-10'un kurduğu yol.
+
+**Karar:** Çıkarma **her rolde `status = 'suspended'`** yazar (üye listesinin dürüst kalması için — ayrılmış birinin "aktif" görünmesi yanlış söyler) ve **öğrenci ile velide ek olarak bağı koparır** (erişimi fiilen kesen tek şey o).
+
+**Reddedilen alternatif: beş kapsam yardımcısına `status` süzgeci eklemek.** Onlar RLS'in en sıcak yolu; üstelik v1.4-00'ın _"kapsam bağdan gelir"_ kararıyla çelişirdi. Bir kavramı iki eksene birden bağlamak, ikisinin ne zaman ayrıştığını kimsenin bilmemesi demektir.
+
+⚠️ **Bedeli açıkça yazılıyor:** "çıkarma" role göre farklı şey yapıyor ve **ekran bunu söylemek zorunda**. Yoksa yönetici bir öğrenciyi çıkarır ve akademik kaydının hesaptan koptuğunu bilmez. Onay diyaloğu iki ayrı cümle kuruyor ve bu bir süs değil, kararın taşıyıcısı.
+
+**Dördüncü bir `status` değeri (`removed`) açılmadı.** "Geçici askı" ile "kurumdan ayrılma" ayrımı bugün bir ihtiyaç değil — ikisinde de kişi üye olarak iş yapamaz ve farkı **denetim defteri** söyler. Enum'a değer eklemek geri alması zor bir iştir.
+
+---
+
+### Karar: Üyelik yazma yolu RLS değil Edge Function'dır — ve bu ölçülerek doğrulandı
+
+**Durum:** Alındı (mevcut kararın doğrulanması)
+**Tarih:** 2026-09-12
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4'ün her dilimi bugüne kadar bir migration + RLS işiydi. v1.4-07 açılırken ölçüldü: `organization_memberships` üzerinde `authenticated` için **sıfır yazma yetkisi** ve yalnız **iki SELECT politikası**; INSERT/UPDATE/DELETE politikası **hiç yok**.
+
+**Karar:** Rol değiştirme ve çıkarma iki `internal_*` `security definer` fonksiyonunda yaşıyor, iki ince Edge Function onları çağırıyor. Bu yeni bir karar değil — `DECISION_LOG`'un _"İş verisi RLS ile yazılır, kimlik işlemleri Edge Function'da kalır"_ kararının bu dilimdeki karşılığı; kayda geçme sebebi, **v1.4'ün ilk kez migration olmayan dilimi** olması.
+
+**Çağıranın kimliği parametreyle geçiyor, `auth.uid()`'den okunmuyor.** `service_role` bağlamında `auth.uid()` boştur; denetim kaydının failini doğru yazmanın tek yolu onu Edge Function'ın doğrulanmış jetonundan alıp parametre vermektir.
+
+---
+
+### Karar: Erişilemez bir koruma, koruma değildir — K-23 kendi kodumuzda ateşlendi
+
+**Durum:** Alındı
+**Tarih:** 2026-09-12
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `internal_change_member_role` ve `internal_remove_member`'a _"çağıran kendini hedef alamaz"_ kapıları yazılmıştı. Gerekçe sağlamdı: son yönetici kendini indirirse kurum sıfır yöneticiyle kalır.
+
+**K-23 mutasyonu onları kaldırdı ve 695 pgTAP iddiası YEŞİL kaldı.**
+
+**Sebep:** çağıran zorunlu olarak **aktif bir yöneticidir** (fonksiyonun ilk kapısı bunu sınıyor), dolayısıyla kendi üyeliğinin rolü de `admin`'dir — ve `hedef.role = 'admin'` kapısı her zaman **önce** ateşleniyor. Kendi-hedef kapısı hiçbir zaman sebep olamıyordu; testi de **yanlış sebeple** geçiyordu.
+
+**Karar:** İki erişilemez dal kaldırıldı. Gerekçe admin kapısının yorumuna taşındı.
+
+🔴 **Ve bir borç yazıldı:** **v1.4-08** (kurum yöneticisi devri) o admin kapısını **gevşetmek zorunda**. O gün "çağıran kendini hedef alamaz" kontrolü **ayrıca yazılmalı** — bugün gereksiz olması, yarın gereksiz olacağı anlamına gelmiyor. Not migration'ın içinde, kapının tam yanında duruyor.
+
+**Kayda değer olan genel ders:** K-23 bugüne kadar hep **yazanın** testlerinde ateşlendi. Bu, ilk kez **denetleyenin kendi kodunda** ateşlendiği yer — ve kural tam da bunun için var.

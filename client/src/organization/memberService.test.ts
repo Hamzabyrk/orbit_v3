@@ -1,19 +1,28 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  changeMemberRole,
   formatLoginNumber,
   isMemberStatus,
+  isNeutralMembershipInfo,
   loadOrganizationMembers,
   memberErrorMessage,
+  MembershipActionError,
+  removeMember,
   resolveBranchSelection,
   sortMembers,
+  translateMembershipActionError,
   type OrganizationMember,
 } from "./memberService";
 
 const fromMock = vi.fn();
+const invokeMock = vi.fn();
 
 vi.mock("@/lib/supabaseClient", () => ({
   supabase: {
     from: (table: string) => fromMock(table),
+    functions: {
+      invoke: (...args: unknown[]) => invokeMock(...args),
+    },
   },
 }));
 
@@ -398,6 +407,278 @@ describe("memberService", () => {
         id: "g-rec-1",
         name: "Fatma Veli",
       });
+    });
+  });
+
+  describe("translateMembershipActionError (v1.4-07 · #280)", () => {
+    it("ORB03 geldiğinde atama sayılarını okur ve ham detail dizgesini basmaz (K-23)", () => {
+      const rawDetail = "ders ataması=2, rehberlik=1, program satırı=0";
+      const message = translateMembershipActionError({
+        code: "ORB03",
+        detail: rawDetail,
+        hint: "Önce ilgili atamaları arşivleyin, sonra rolü değiştirin.",
+      });
+
+      // K-23: Ham detail dizgesi doğrudan basılmaz
+      expect(message).not.toContain(rawDetail);
+      // Sayılar okunarak insani Türkçe mesaja dönüştürülür
+      expect(message).toContain("2 ders ataması");
+      expect(message).toContain("1 rehberlik görevi");
+      expect(message).toContain(
+        "sınıf yönetiminden ilgili atamaları arşivleyin"
+      );
+    });
+
+    it("ORB03 farklı atama kombinasyonlarını doğru ayrıştırır", () => {
+      const msg = translateMembershipActionError({
+        code: "ORB03",
+        detail: "ders ataması=0, rehberlik=0, program satırı=3",
+      });
+      expect(msg).toContain("3 ders programı satırı");
+      expect(msg).not.toContain("ders ataması");
+      expect(msg).not.toContain("rehberlik görevi");
+    });
+
+    it("ORB03 detail null veya boş olduğunda genel yönlendirme cümlesi kurar", () => {
+      const msg = translateMembershipActionError({
+        code: "ORB03",
+        detail: null,
+      });
+      expect(msg).toContain("ayakta duran ders veya rehberlik ataması");
+      expect(msg).toContain("sınıf yönetiminden");
+    });
+
+    it("ORB04 rol değiştirme ve çıkarma için nötr bilgi mesajı üretir", () => {
+      const roleMsg = translateMembershipActionError(
+        { code: "ORB04" },
+        "change_role"
+      );
+      expect(roleMsg).toBe(
+        "Rol zaten bu değerde; herhangi bir değişiklik yapılmadı."
+      );
+
+      const removeMsg = translateMembershipActionError(
+        { code: "ORB04" },
+        "remove"
+      );
+      expect(removeMsg).toBe("Bu üyelik zaten kurumdan çıkarılmış durumda.");
+    });
+
+    it("42501 hedef yönetici olduğunda yönetici devri uyarısı döner (v1.4-08)", () => {
+      const msg = translateMembershipActionError({
+        code: "42501",
+        hint: "Yönetici devri v1.4-08 kapsamında yapılmalıdır.",
+      });
+      expect(msg).toBe(
+        "Kurum yöneticilerinin rolü buradan değiştirilemez veya kurumdan çıkarılamaz. Yönetici devri ayrı bir işlemdir."
+      );
+    });
+
+    it("42501 çağıran yönetici olmadığında yetki uyarısı döner", () => {
+      const msg = translateMembershipActionError({
+        code: "42501",
+        hint: "Yalnızca aktif yöneticiler üye rollerini değiştirebilir.",
+      });
+      expect(msg).toBe("Bu işlem için kurum yöneticisi yetkisi gerekiyor.");
+    });
+
+    it("23503 için üyelik kaydı bulunamadı mesajı döner", () => {
+      const msg = translateMembershipActionError({ code: "23503" });
+      expect(msg).toBe("Üyelik kaydı bulunamadı.");
+    });
+
+    it("request_in_progress ve rate_limited için tekrar deneme yönlendirmesi yapar", () => {
+      expect(
+        translateMembershipActionError({ error: "request_in_progress" })
+      ).toContain("İşlem şu anda devam ediyor");
+
+      expect(
+        translateMembershipActionError({ error: "rate_limited" })
+      ).toContain("Çok fazla istek gönderildi");
+    });
+
+    it("unauthorized ve service_unavailable için ilgili açıklamaları döner", () => {
+      expect(
+        translateMembershipActionError({ error: "unauthorized" })
+      ).toContain("Oturumunuz düşmüş görünüyor");
+
+      expect(
+        translateMembershipActionError({ error: "service_unavailable" })
+      ).toContain("Servis şu anda yanıt vermiyor");
+    });
+
+    it("MembershipActionError doğrudan kendi mesajını korur", () => {
+      const customErr = new MembershipActionError("Özel üyelik hatası", {
+        code: "CUSTOM",
+      });
+      expect(translateMembershipActionError(customErr)).toBe(
+        "Özel üyelik hatası"
+      );
+    });
+  });
+
+  describe("isNeutralMembershipInfo (v1.4-07 · #280)", () => {
+    it("ORB04 kodunu nötr bilgi olarak doğrular", () => {
+      expect(isNeutralMembershipInfo({ code: "ORB04" })).toBe(true);
+      expect(isNeutralMembershipInfo({ error: "ORB04" })).toBe(true);
+    });
+
+    it("MembershipActionError isNeutralInfo bayrağını okur", () => {
+      const neutralErr = new MembershipActionError("Bilgi", {
+        isNeutralInfo: true,
+      });
+      expect(isNeutralMembershipInfo(neutralErr)).toBe(true);
+
+      const blockingErr = new MembershipActionError("Hata", {
+        isNeutralInfo: false,
+      });
+      expect(isNeutralMembershipInfo(blockingErr)).toBe(false);
+    });
+
+    it("ORB03 veya 42501 gibi gerçek hatalarda false döner", () => {
+      expect(isNeutralMembershipInfo({ code: "ORB03" })).toBe(false);
+      expect(isNeutralMembershipInfo({ code: "42501" })).toBe(false);
+      expect(isNeutralMembershipInfo(new Error("Bağlantı koptu"))).toBe(false);
+    });
+  });
+
+  describe("changeMemberRole (v1.4-07 · #280)", () => {
+    it("admin rolü verilmek istendiğinde 42501 fırlatır ve sunucu fonksiyonunu çağırmaz", async () => {
+      invokeMock.mockReset();
+
+      await expect(
+        // @ts-expect-error Derleme kısıtı dışında çalışma anı korumasını test ediyoruz
+        changeMemberRole("mem-1", "admin")
+      ).rejects.toThrow("Kurum yöneticisi rolü atanamaz");
+
+      expect(invokeMock).not.toHaveBeenCalled();
+    });
+
+    it("geçerli rol geçişinde change-member-role fonksiyonunu çağırır ve idempotencyKey iletir", async () => {
+      invokeMock.mockReset();
+      invokeMock.mockResolvedValue({
+        data: { data: { role_changed: true, role: "teacher" } },
+        error: null,
+      });
+
+      const result = await changeMemberRole("mem-1", "teacher", "idem-123");
+
+      expect(invokeMock).toHaveBeenCalledWith("change-member-role", {
+        body: { membershipId: "mem-1", role: "teacher" },
+        headers: { "Idempotency-Key": "idem-123" },
+      });
+      expect(result).toEqual({ roleChanged: true, role: "teacher" });
+    });
+
+    it("sunucu ORB03 döndüğünde atama detayını ayrıştırıp MembershipActionError fırlatır", async () => {
+      invokeMock.mockReset();
+      const mockError = {
+        message: "Edge Function returned a non-2xx status code",
+        context: {
+          json: () =>
+            Promise.resolve({
+              error: "role_change_refused",
+              code: "ORB03",
+              detail: "ders ataması=2, rehberlik=1, program satırı=0",
+              hint: "Önce ilgili atamaları arşivleyin, sonra rolü değiştirin.",
+            }),
+        },
+      };
+      invokeMock.mockResolvedValue({
+        data: null,
+        error: mockError,
+      });
+
+      await expect(changeMemberRole("mem-t1", "student")).rejects.toThrow(
+        "2 ders ataması, 1 rehberlik görevi"
+      );
+    });
+
+    it("sunucu ORB04 döndüğünde isNeutralInfo=true ile MembershipActionError fırlatır", async () => {
+      invokeMock.mockReset();
+      const mockError = {
+        context: {
+          json: () =>
+            Promise.resolve({
+              error: "role_change_refused",
+              code: "ORB04",
+              hint: "Rol zaten bu değerde",
+            }),
+        },
+      };
+      invokeMock.mockResolvedValue({
+        data: null,
+        error: mockError,
+      });
+
+      try {
+        await changeMemberRole("mem-1", "teacher");
+        expect.fail("Hata fırlatılmalıydı");
+      } catch (err) {
+        expect(err).toBeInstanceOf(MembershipActionError);
+        expect((err as MembershipActionError).isNeutralInfo).toBe(true);
+        expect((err as MembershipActionError).code).toBe("ORB04");
+      }
+    });
+  });
+
+  describe("removeMember (v1.4-07 · #280)", () => {
+    it("remove-member fonksiyonunu çağırır ve unlinked alanlarını camelCase nesneye dönüştürür", async () => {
+      invokeMock.mockReset();
+      invokeMock.mockResolvedValue({
+        data: {
+          data: {
+            removed: true,
+            role: "student",
+            unlinked_student_id: "stu-101",
+            unlinked_guardian_id: null,
+          },
+        },
+        error: null,
+      });
+
+      const result = await removeMember("mem-s1", "idem-rem-1");
+
+      expect(invokeMock).toHaveBeenCalledWith("remove-member", {
+        body: { membershipId: "mem-s1" },
+        headers: { "Idempotency-Key": "idem-rem-1" },
+      });
+      expect(result).toEqual({
+        removed: true,
+        role: "student",
+        unlinkedStudentId: "stu-101",
+        unlinkedGuardianId: null,
+      });
+    });
+
+    it("sunucu ORB04 döndüğünde isNeutralInfo=true taşır", async () => {
+      invokeMock.mockReset();
+      const mockError = {
+        context: {
+          json: () =>
+            Promise.resolve({
+              error: "removal_refused",
+              code: "ORB04",
+              hint: "Bu üyelik zaten çıkarılmış",
+            }),
+        },
+      };
+      invokeMock.mockResolvedValue({
+        data: null,
+        error: mockError,
+      });
+
+      try {
+        await removeMember("mem-s1");
+        expect.fail("Hata fırlatılmalıydı");
+      } catch (err) {
+        expect(err).toBeInstanceOf(MembershipActionError);
+        expect((err as MembershipActionError).isNeutralInfo).toBe(true);
+        expect((err as MembershipActionError).code).toBe("ORB04");
+        expect((err as MembershipActionError).message).toContain(
+          "Bu üyelik zaten kurumdan çıkarılmış durumda."
+        );
+      }
     });
   });
 });
