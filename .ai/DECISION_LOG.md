@@ -2612,3 +2612,65 @@ if cardinality(degisen) = 0 then return null; end if;
 **Fark nerede:** v1.4-07'deki dallar **ayrı `if` blokları**ydı; kaldırılmaları hiçbir şeyi başka bir satıra bağlamıyordu. Buradaki ise bir **koşulun parçası** ve kaldırmak onu yukarıdaki kapının **sırasına** bağlardı: `ORB04` kontrolü bir gün aşağı taşınırsa, blok sessizce terfiyi de saymaya başlar ve terfi reddedilmeye başlardı.
 
 **Kural olarak:** erişilemez bir **dal** kaldırılır (testi yanlış sebeple geçirir); gereksiz ama **görünür bir koşul**, görünmez bir sıra bağımlılığı yaratmıyorsa bırakılır ve **gereksizliği yazılır**. İkisinin ortak noktası şu: mutasyonun kırmızı vermemesi her zaman "testi düzelt" demek değil — bazen "kodun neden böyle olduğunu yaz" demek.
+
+---
+
+### Karar: Ara denetim bir dilim değil, kapanmış dilimlerin yeniden ölçülmesidir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-09 yazana verilmişken, denetleyen aynı anda **kapanmış dokuz dilimi** ve alınmış kararları taradı. Arda'nın isteği: _"agy bu işi yaparken sen de agy'nin önceden yaptığı tüm işlere ve aldığımız kararları kontrol et — bir ara kontrol noktası uygulayalım."_
+
+**Bulguların tek bir örüntüsü vardı ve asıl kayda değer şey o:** uygulanan standartlar dilim dilim **sıkılaştı**, eski dilimler hiç geri dönülüp hizalanmadı. Bulunan her kusur bu örüntünün bir örneğiydi:
+
+| Ne bulundu                                                             | Neden orada kaldı                                             |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `updateExam` / `archiveExam` çağıransız — sınav düzenleme hiç açılmadı | "Çağıranı var mı" kontrolü **v1.4-05'te** başladı; bu v1.4-04 |
+| Dokuz serviste sıfır satırlı yazma "başarılı" sayılıyordu (K-14)       | K-14 koruması yalnız v1.4-05 sonrası servislerde vardı        |
+| `class_teachers` ve `schedule_entries` iz bırakmıyordu                 | Denetim v1.4-02'de geldi, o turda bu iki tablo atlandı        |
+| Platform defterinde ad çözülemeyince ham kimlik basılıyordu (K-22)     | Aynı kusurun ikizi v1.4-10'da düzeltilmişti, buraya bakılmadı |
+| `student_count` / `guardian_count` yok                                 | K-12 kontrol noktası v1.4-01'e çapalıydı; **kimse bakmadı**   |
+
+**Karar: bu bir dilim numarası almaz** (**K-15**). Ara denetim bir iş kalemi değil bir **tur**; numaralandırılsaydı §4.6'daki sıra "yapılacak işler" listesi olmaktan çıkardı. İzi iki commit ve bu kayıttır.
+
+**Çıkan kural: K-24.** Sıkılaşan bir standart geriye uygulanmazsa standart değildir — ve karşılığı iki maddelidir: geriye tara **ve** kuralı kapıya taşı.
+
+---
+
+### Karar: Elle üç kez yapılan kontrol kapıya taşınır — çağıranı olmayan servis kalamaz
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Teslim incelemesinin yazılı adımlarından biri şu: _"İhraç ettiğin her fonksiyonun çağıranı olduğunu ayrıca kontrol edeceğim."_ Üç kez yapıldı, üçünde de bir şey buldu (v1.4-04 sınav, v1.4-05 ödev, ve `restoreStudent`/`restoreClass`).
+
+**Karar:** kontrol `client/src/lib/deadServiceExports.test.ts` ile kapıya taşındı. Gerekçe K-19'un iki kez ölçtüğü ders: **hatırlatma kapı değildir** — ve bu kez hatırlatmayı unutan ajan değil, kuralı koyan kişiydi.
+
+**Kapsam bilerek dar (K-19).** Yalnız `export async function` sayılıyor: `async` bir ihraç neredeyse her zaman bir ağ çağrısıdır, yani bir **servis**; çağıranı olmayan servis, ekranda karşılığı olmayan bir yetenektir. Senkron ihraçlar dışarıda, çünkü saf bir yardımcıyı yalnız kendi birim testi için ihraç etmek meşru bir desendir — ölçüldü, bugün depoda dördü öyle (`buildLoginNumber`, `weekDayToIso`, `dateToIsoWeekDay`, `__writeRawForTest`). Kapsasaydı test kuralı değil **gürültüyü** zorunlu kılardı.
+
+**Muafiyet listesi tek satır ve kendisi de sınanıyor:** `lib/documents.ts` (`PROJECT_STATE`'te kayıtlı, v1.6-01'e ertelenmiş ölü modül). İkinci bir iddia o dosyanın **hâlâ ölü** olduğunu kontrol ediyor; kullanıldığı gün kırmızıya döner ve satırın silinmesini ister. Sınanmayan bir muafiyet listesi, bir süre sonra kuralı sessizce yiyen bir çöplüktür.
+
+⚠️ **Testin kendisi de bir ölçüm gerektirdi ve iki kez yanıldı.** İlk hâli 87 sağlam fonksiyonu "ölü" gösterdi (`/g` bayraklı regex `.test()` çağrıları arasında `lastIndex` taşıyor; ayrıca düz şablon dizisinde `\b` kelime sınırı değil **backspace** karakteri). K-23 mutasyonu üçüncü bir zaafı gösterdi: adı yalnız bir **yorumda** geçen fonksiyonu "çağrılıyor" sayıyordu — oysa ölü bir fonksiyonun en sık bulunduğu yer onu anlatan yorumdur.
+
+---
+
+### Karar: Arşivlemenin geri alınması, arşiv ekranı değil işlemin kendisidir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `restoreStudent` ve `restoreClass` yazıldıkları günden beri çağıransızdı. Çağıran yazmak için önce şu soru cevaplanmalıydı: **kullanıcı arşivlenmiş bir kaydı nerede görüyor?** Cevap: hiçbir yerde — `loadStudents` ve `loadClasses` `archived_at is null` süzüyor ve bu süzgeç seçenekli değil.
+
+**Üç yol vardı:**
+
+1. **Arşiv ekranı açmak** — liste, süzgeç, geri al düğmesi. Bu bir **dilim**, denetim düzeltmesi değil; brifing ister.
+2. **Ölü ihracı silmek** — v1.4-05'teki ölü kart şablonlarında verilen karar buydu. Ama oradaki şablonlar **uydurma**ydı; bunlar çalışan, sınanmış, sunucu karşılığı olan fonksiyonlar.
+3. **İşlemin kendisinde geri almak** — kullanıcı arşivledi, bildirim "Geri al" sunuyor.
+
+**Karar: üçüncüsü.** Ve seçilme sebebi kısalığı değil, **deseni depoda zaten karara bağlanmış olması**: v1.4-10'da veli bağı koparma tam olarak böyle geri alınıyor. Yani bu yeni bir ürün yüzeyi değil, mevcut desenin uygulanmadığı iki yere uygulanması — ara denetimin tanımı.
+
+⚠️ **Arşiv ekranı yine de yok ve bu bir sınır.** Bildirim kapandıktan sonra geri almanın yolu kalmıyor. Kayda geçiyor: arşivlenmiş kayıtları listeleyen bir ekran gerektiğinde bu bir dilim olarak açılır; bugün gerekliliği **ölçülmedi**, varsayılmadı.
