@@ -507,6 +507,35 @@ describe("memberService", () => {
       ).toContain("Servis şu anda yanıt vermiyor");
     });
 
+    it("ORB06 rol değiştirme hatasında tek yönetici uyarısı döner (kendisi için)", () => {
+      const msg = translateMembershipActionError(
+        { code: "ORB06" },
+        "change_role",
+        { isSelf: true }
+      );
+      expect(msg).toBe(
+        "Kurumun tek yöneticisisiniz. Rolünüzü değiştirmeden önce başka bir üyeyi yönetici yapın."
+      );
+    });
+
+    it("ORB06 rol değiştirme hatasında hedef başkasıysa üçüncü şahıs uyarısı döner", () => {
+      const msg = translateMembershipActionError(
+        { code: "ORB06" },
+        "change_role",
+        { isSelf: false }
+      );
+      expect(msg).toBe(
+        "Kurumun tek yöneticisinin rolü değiştirilemez. Önce başka bir üyeyi yönetici yapın."
+      );
+    });
+
+    it("ORB06 çıkarma hatasında tek yönetici kurumdan çıkarılamaz uyarısı döner", () => {
+      const msg = translateMembershipActionError({ code: "ORB06" }, "remove");
+      expect(msg).toBe(
+        "Kurumun tek yöneticisi kurumdan çıkarılamaz. Önce başka bir üyeyi yönetici yapın."
+      );
+    });
+
     it("MembershipActionError doğrudan kendi mesajını korur", () => {
       const customErr = new MembershipActionError("Özel üyelik hatası", {
         code: "CUSTOM",
@@ -535,23 +564,33 @@ describe("memberService", () => {
       expect(isNeutralMembershipInfo(blockingErr)).toBe(false);
     });
 
-    it("ORB03 veya 42501 gibi gerçek hatalarda false döner", () => {
+    it("ORB03, ORB06 veya 42501 gibi gerçek hatalarda false döner", () => {
       expect(isNeutralMembershipInfo({ code: "ORB03" })).toBe(false);
+      expect(isNeutralMembershipInfo({ code: "ORB06" })).toBe(false);
       expect(isNeutralMembershipInfo({ code: "42501" })).toBe(false);
       expect(isNeutralMembershipInfo(new Error("Bağlantı koptu"))).toBe(false);
     });
   });
 
-  describe("changeMemberRole (v1.4-07 · #280)", () => {
-    it("admin rolü verilmek istendiğinde 42501 fırlatır ve sunucu fonksiyonunu çağırmaz", async () => {
+  describe("changeMemberRole (v1.4-07 · #280, v1.4-08 · #282)", () => {
+    // ⚠️ Bu iddia 2026-09-13'te TERSİNE döndü (v1.4-08, #282).
+    // v1.4-07'de terfi/admin ataması istemcide 42501 ile engelleniyordu ("admin rolleri burada ele alınmaz").
+    // v1.4-08 o kapıyı kaldırdı — yönetici devri ve çoklu yönetici meşru olduğu için admin rolüne
+    // geçiş sunucu fonksiyonuna iletilir. Son aktif yönetici koruması (ORB06) sunucuda bir sayım ile yürütülür.
+    it("admin rolüne geçiş isteği sunucu fonksiyonuna iletilir (v1.4-08 · #282)", async () => {
       invokeMock.mockReset();
+      invokeMock.mockResolvedValue({
+        data: { data: { role_changed: true, role: "admin" } },
+        error: null,
+      });
 
-      await expect(
-        // @ts-expect-error Derleme kısıtı dışında çalışma anı korumasını test ediyoruz
-        changeMemberRole("mem-1", "admin")
-      ).rejects.toThrow("Kurum yöneticisi rolü atanamaz");
+      const result = await changeMemberRole("mem-1", "admin", "idem-admin-1");
 
-      expect(invokeMock).not.toHaveBeenCalled();
+      expect(invokeMock).toHaveBeenCalledWith("change-member-role", {
+        body: { membershipId: "mem-1", role: "admin" },
+        headers: { "Idempotency-Key": "idem-admin-1" },
+      });
+      expect(result).toEqual({ roleChanged: true, role: "admin" });
     });
 
     it("geçerli rol geçişinde change-member-role fonksiyonunu çağırır ve idempotencyKey iletir", async () => {

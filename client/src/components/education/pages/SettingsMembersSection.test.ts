@@ -11,6 +11,7 @@ import {
   ChangeRoleDialog,
   RemoveMemberDialog,
 } from "./SettingsMembersSection";
+import { MemberCreateDialog } from "./MemberCreateDialog";
 import type { OrganizationMember } from "@/organization/memberService";
 import { translateMembershipActionError } from "@/organization/memberService";
 import { useSettingsMembers } from "@/settings/settingsQueries";
@@ -53,6 +54,12 @@ vi.mock("@/components/ui/dialog", () => ({
     createElement("p", { "data-slot": "dialog-description" }, children),
   DialogFooter: ({ children }: { children?: React.ReactNode }) =>
     createElement("div", { "data-slot": "dialog-footer" }, children),
+  useDialogComposition: () => ({
+    isComposing: () => false,
+    setComposing: () => {},
+    justEndedComposing: () => false,
+    markCompositionEnd: () => {},
+  }),
 }));
 
 function renderWithAuth(
@@ -174,7 +181,11 @@ describe("SettingsMembersSection (v1.4-07 · #280)", () => {
     expect(html).toContain("Kurumdan çıkar");
   });
 
-  it("hedef bir yönetici (admin) olduğunda rol değiştirme ve çıkarma eylemleri ÇİZİLMEZ (v1.4-08)", () => {
+  // ⚠️ Bu iddia 2026-09-13'te TERSİNE döndü (v1.4-08, #282).
+  // v1.4-07'de yönetici hedefinde eylemler çizilmiyordu ("kapsamı v1.4-08");
+  // artık yönetici devri ve çoklu yönetici meşru olduğu için başka bir yöneticinin
+  // rolü değiştirilebilir veya kurumdan çıkarılabilir (son yönetici koruması ORB06 sunucuda).
+  it("hedef bir yönetici (admin) olduğunda rol değiştirme ve çıkarma eylemleri ÇİZİLİR (v1.4-08 · #282)", () => {
     // Yalnızca admin olan bir liste sunuyoruz
     vi.mocked(useSettingsMembers).mockReturnValue({
       data: [
@@ -198,12 +209,16 @@ describe("SettingsMembersSection (v1.4-07 · #280)", () => {
     });
 
     expect(html).toContain("Başka Yönetici");
-    // Admin hedefinde bu işlemler çizilmez
-    expect(html).not.toContain("Rol değiştir");
-    expect(html).not.toContain("Kurumdan çıkar");
+    // Admin hedefinde artık bu eylemler çizilir
+    expect(html).toContain("Rol değiştir");
+    expect(html).toContain("Kurumdan çıkar");
   });
 
-  it("kullanıcı kendi üyeliğini hedef aldığında rol değiştirme ve çıkarma eylemleri ÇİZİLMEZ (v1.4-08)", () => {
+  // ⚠️ Bu iddia 2026-09-13'te TERSİNE döndü (v1.4-08, #282).
+  // v1.4-07'de yöneticinin kendi satırında eylemler çizilmiyordu ("çağıran kendini hedef alamaz");
+  // oysa yönetici devri tam olarak yöneticinin kendi satırından rolünü indirmesiyle yapılır.
+  // Bu nedenle kendi satırında da eylemler çizilir.
+  it("kullanıcı kendi üyeliğini hedef aldığında rol değiştirme ve çıkarma eylemleri ÇİZİLİR (v1.4-08 · #282)", () => {
     vi.mocked(useSettingsMembers).mockReturnValue({
       data: [
         {
@@ -226,8 +241,8 @@ describe("SettingsMembersSection (v1.4-07 · #280)", () => {
     });
 
     expect(html).toContain("Kendim");
-    expect(html).not.toContain("Rol değiştir");
-    expect(html).not.toContain("Kurumdan çıkar");
+    expect(html).toContain("Rol değiştir");
+    expect(html).toContain("Kurumdan çıkar");
   });
 
   it("yönetici olmayan rolde (ör. teacher) bu eylemler hiçbir satırda ÇİZİLMEZ", () => {
@@ -241,7 +256,7 @@ describe("SettingsMembersSection (v1.4-07 · #280)", () => {
   });
 });
 
-describe("ChangeRoleDialog (v1.4-07 · #280)", () => {
+describe("ChangeRoleDialog (v1.4-07 · #280, v1.4-08 · #282)", () => {
   const teacherMember: OrganizationMember = {
     membershipId: "mem-t1",
     displayName: "Ayşe Öğretmen",
@@ -251,7 +266,19 @@ describe("ChangeRoleDialog (v1.4-07 · #280)", () => {
     status: "active",
   };
 
-  it("admin rolü seçilebilir bir değer olarak hiçbir yerde sunulmaz", () => {
+  const adminMember: OrganizationMember = {
+    membershipId: "mem-a1",
+    displayName: "Ali Yönetici",
+    loginNumber: "10011000",
+    role: "admin",
+    branchName: null,
+    status: "active",
+  };
+
+  // ⚠️ Bu iddia 2026-09-13'te TERSİNE döndü (v1.4-08, #282).
+  // v1.4-07'de admin rolü seçicide gizlenmişti;
+  // v1.4-08 ile yönetici devri ve çoklu yönetici (terfi) amacıyla admin rolü seçilebilir bir değer olarak sunulur.
+  it("admin rolü seçilebilir bir değer olarak ChangeRoleDialog seçicisinde SUNULUR (v1.4-08 · #282)", () => {
     const html = renderWithAuth(
       createElement(ChangeRoleDialog, {
         member: teacherMember,
@@ -260,13 +287,71 @@ describe("ChangeRoleDialog (v1.4-07 · #280)", () => {
       })
     );
 
-    // Seçeneklerde teacher, student, parent olmalı
+    // Seçeneklerde hem admin hem de diğer roller olmalı
+    expect(html).toContain('value="admin"');
+    expect(html).toContain("Yönetici");
     expect(html).toContain('value="teacher"');
     expect(html).toContain('value="student"');
     expect(html).toContain('value="parent"');
-    // Admin asla seçilemez
-    expect(html).not.toContain('value="admin"');
-    expect(html).not.toContain("Yönetici");
+  });
+
+  it("kendi rolünü değiştirme onayında 'yöneticiliği bırakıyorsunuz' uyarısı VARDIR (v1.4-08 · #282)", () => {
+    // Admin olan yönetici kendi rolünü teacher yaparken uyarı çizilmeli
+    const html = renderWithAuth(
+      createElement(ChangeRoleDialog, {
+        member: adminMember,
+        open: true,
+        onClose: vi.fn(),
+        isSelf: true,
+      })
+    );
+
+    // Başlangıçta teacher seçildiğinden veya admin dışında bir role geçtiğinden:
+    // adminMember.role === "admin", default state teacher veya admin harici seçildiğinde uyarı çıkar
+    expect(html).toContain("Yöneticiliği bırakıyorsunuz");
+    expect(html).toContain(
+      "Bu işlemden sonra üye yönetimi yetkiniz kalmayacak ve rolünüzü yalnız başka bir yönetici geri verebilecek."
+    );
+  });
+
+  it("başkasının rolünü değiştirirken 'yöneticiliği bırakıyorsunuz' uyarısı KESİNLİKLE YOKTUR", () => {
+    const html = renderWithAuth(
+      createElement(ChangeRoleDialog, {
+        member: teacherMember,
+        open: true,
+        onClose: vi.fn(),
+        isSelf: false,
+      })
+    );
+
+    expect(html).not.toContain("Yöneticiliği bırakıyorsunuz");
+    expect(html).not.toContain(
+      "Bu işlemden sonra üye yönetimi yetkiniz kalmayacak"
+    );
+  });
+
+  it("ORB06 geldiğinde ekran 'önce başka birini yönetici yapın' der ve kırmızı hata olarak gösterir (K-23)", () => {
+    const orb06Message = translateMembershipActionError(
+      { code: "ORB06" },
+      "change_role",
+      { isSelf: true }
+    );
+
+    const html = renderWithAuth(
+      createElement(ChangeRoleDialog, {
+        member: adminMember,
+        open: true,
+        onClose: vi.fn(),
+        initialError: orb06Message,
+      })
+    );
+
+    // Kırmızı hata kutusu role="alert" ve data-testid="change-role-error" ile çizilir (nötr bilgi değil)
+    expect(html).toContain('role="alert"');
+    expect(html).toContain('data-testid="change-role-error"');
+    expect(html).toContain("Rol değiştirilemedi");
+    expect(html).toContain("önce başka bir üyeyi yönetici yapın");
+    expect(html).toContain("Kurumun tek yöneticisisiniz");
   });
 
   it("ORB03 geldiğinde ekran atama sayılarını söyler ve ham detail dizgesini basmaz (K-23)", () => {
@@ -386,5 +471,77 @@ describe("RemoveMemberDialog (v1.4-07 · #280)", () => {
     expect(html).toContain(
       "Üyelik askıya alınacak; kişi kuruma giriş yapamayacak."
     );
+  });
+
+  it("kendi üyeliğini (admin) çıkarma onayında yöneticilik ve kurumu bırakma uyarısı VARDIR (v1.4-08 · #282)", () => {
+    const adminMember: OrganizationMember = {
+      membershipId: "mem-a1",
+      displayName: "Ali Yönetici",
+      loginNumber: "10011000",
+      role: "admin",
+      branchName: null,
+      status: "active",
+    };
+
+    const html = renderWithAuth(
+      createElement(RemoveMemberDialog, {
+        member: adminMember,
+        open: true,
+        onClose: vi.fn(),
+        isSelf: true,
+      })
+    );
+
+    expect(html).toContain("Yöneticiliği ve kurumu bırakıyorsunuz");
+    expect(html).not.toContain("akademik kaydının hesap bağı koparılacak");
+  });
+
+  it("RemoveMemberDialog ORB06 geldiğinde ekran tek yönetici uyarısını kırmızı hata olarak gösterir (K-23)", () => {
+    const adminMember: OrganizationMember = {
+      membershipId: "mem-a1",
+      displayName: "Ali Yönetici",
+      loginNumber: "10011000",
+      role: "admin",
+      branchName: null,
+      status: "active",
+    };
+    const orb06Message = translateMembershipActionError(
+      { code: "ORB06" },
+      "remove"
+    );
+
+    const html = renderWithAuth(
+      createElement(RemoveMemberDialog, {
+        member: adminMember,
+        open: true,
+        onClose: vi.fn(),
+        initialError: orb06Message,
+      })
+    );
+
+    expect(html).toContain('role="alert"');
+    expect(html).toContain('data-testid="remove-member-error"');
+    expect(html).toContain("Üye çıkarılamadı");
+    expect(html).toContain("Kurumun tek yöneticisi kurumdan çıkarılamaz");
+    expect(html).toContain("Önce başka bir üyeyi yönetici yapın");
+  });
+});
+
+describe("MemberCreateDialog admin kısıtı (v1.4-08 · #282)", () => {
+  it("üye ekleme ekranında admin rolü HÂLÂ SUNULMAZ (internal_create_membership kısıtı)", () => {
+    const html = renderWithAuth(
+      createElement(MemberCreateDialog, {
+        open: true,
+        onOpenChange: vi.fn(),
+        onDone: vi.fn(),
+        organizationId: "org-1",
+      })
+    );
+
+    // Üye eklemede yalnızca öğretmen, öğrenci, veli seçilebilir; admin sunulmaz
+    expect(html).toContain('value="teacher"');
+    expect(html).toContain('value="student"');
+    expect(html).toContain('value="parent"');
+    expect(html).not.toContain('value="admin"');
   });
 });

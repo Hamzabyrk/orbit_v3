@@ -31,6 +31,7 @@ import { organizationMembers as demoMembers } from "../educationData";
 import { Badge, ErrorState, TableSkeleton } from "../shared";
 
 const ASSIGNABLE_ROLES: { value: MemberRole; label: string }[] = [
+  { value: "admin", label: "Yönetici" },
   { value: "teacher", label: "Öğretmen" },
   { value: "student", label: "Öğrenci" },
   { value: "parent", label: "Veli" },
@@ -286,10 +287,7 @@ export function SettingsMembersSection() {
                       >
                         Şifre sıfırla
                       </button>
-                      {isAdmin &&
-                      member.role !== "admin" &&
-                      member.membershipId !==
-                        identity?.membership?.membershipId ? (
+                      {isAdmin ? (
                         <>
                           <button
                             type="button"
@@ -400,6 +398,9 @@ export function SettingsMembersSection() {
         open={Boolean(changeRoleTarget)}
         onClose={() => setChangeRoleTarget(null)}
         organizationId={organizationId}
+        isSelf={
+          changeRoleTarget?.membershipId === identity?.membership?.membershipId
+        }
       />
 
       <RemoveMemberDialog
@@ -408,6 +409,9 @@ export function SettingsMembersSection() {
         open={Boolean(removeTarget)}
         onClose={() => setRemoveTarget(null)}
         organizationId={organizationId}
+        isSelf={
+          removeTarget?.membershipId === identity?.membership?.membershipId
+        }
       />
 
       <MemberCreateDialog
@@ -433,15 +437,26 @@ export function ChangeRoleDialog({
   onClose,
   initialError,
   organizationId,
+  isSelf: isSelfProp,
 }: {
   member: OrganizationMember | null;
   open: boolean;
   onClose: () => void;
   initialError?: string;
   organizationId?: string;
+  isSelf?: boolean;
 }) {
-  const { demoMode } = useAuth();
+  const { identity, demoMode } = useAuth();
   const queryClient = useQueryClient();
+
+  const isSelf =
+    isSelfProp !== undefined
+      ? isSelfProp
+      : Boolean(
+          member &&
+          identity?.membership?.membershipId &&
+          member.membershipId === identity.membership.membershipId
+        );
 
   const [selectedRole, setSelectedRole] = useState<MemberRole>(() => {
     if (!member || member.role === "admin") return "teacher";
@@ -452,6 +467,9 @@ export function ChangeRoleDialog({
   const idempotencyKeyRef = useRef<string | null>(null);
 
   if (!open || !member) return null;
+
+  const isSelfDemotion =
+    isSelf && member.role === "admin" && selectedRole !== "admin";
 
   const handleConfirm = async () => {
     if (submitting) return;
@@ -501,10 +519,14 @@ export function ChangeRoleDialog({
       onClose();
     } catch (err) {
       if (isNeutralMembershipInfo(err)) {
-        toast.info(translateMembershipActionError(err, "change_role"));
+        toast.info(
+          translateMembershipActionError(err, "change_role", { isSelf })
+        );
         onClose();
       } else {
-        const msg = translateMembershipActionError(err, "change_role");
+        const msg = translateMembershipActionError(err, "change_role", {
+          isSelf,
+        });
         setError(msg);
         toast.error(msg);
       }
@@ -533,6 +555,21 @@ export function ChangeRoleDialog({
             Rol değişikliği üyenin sisteme giriş yetkilerini ve kurum içi erişim
             kapsamını anında günceller.
           </p>
+
+          {isSelfDemotion ? (
+            <div
+              data-testid="self-demotion-warning"
+              className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] leading-5 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200"
+            >
+              <p className="font-bold text-amber-950 dark:text-amber-100">
+                Yöneticiliği bırakıyorsunuz.
+              </p>
+              <p className="mt-0.5 text-[11px] text-amber-800 dark:text-amber-300">
+                Bu işlemden sonra üye yönetimi yetkiniz kalmayacak ve rolünüzü
+                yalnız başka bir yönetici geri verebilecek.
+              </p>
+            </div>
+          ) : null}
 
           <div className="space-y-1.5">
             <label
@@ -599,15 +636,26 @@ export function RemoveMemberDialog({
   onClose,
   initialError,
   organizationId,
+  isSelf: isSelfProp,
 }: {
   member: OrganizationMember | null;
   open: boolean;
   onClose: () => void;
   initialError?: string;
   organizationId?: string;
+  isSelf?: boolean;
 }) {
-  const { demoMode } = useAuth();
+  const { identity, demoMode } = useAuth();
   const queryClient = useQueryClient();
+
+  const isSelf =
+    isSelfProp !== undefined
+      ? isSelfProp
+      : Boolean(
+          member &&
+          identity?.membership?.membershipId &&
+          member.membershipId === identity.membership.membershipId
+        );
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
@@ -664,10 +712,10 @@ export function RemoveMemberDialog({
       onClose();
     } catch (err) {
       if (isNeutralMembershipInfo(err)) {
-        toast.info(translateMembershipActionError(err, "remove"));
+        toast.info(translateMembershipActionError(err, "remove", { isSelf }));
         onClose();
       } else {
-        const msg = translateMembershipActionError(err, "remove");
+        const msg = translateMembershipActionError(err, "remove", { isSelf });
         setError(msg);
         toast.error(msg);
       }
@@ -698,6 +746,20 @@ export function RemoveMemberDialog({
               <strong>ve akademik kaydının hesap bağı koparılacak.</strong>{" "}
               Kayıt silinmiyor; istenirse yeniden bağlanabilir.
             </p>
+          ) : isSelf && member.role === "admin" ? (
+            <div
+              data-testid="self-removal-warning"
+              className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[12px] leading-5 text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200"
+            >
+              <p className="font-bold text-rose-950 dark:text-rose-100">
+                Yöneticiliği ve kurumu bırakıyorsunuz.
+              </p>
+              <p className="mt-0.5 text-[11px] text-rose-800 dark:text-rose-300">
+                Üyeliğiniz askıya alınacak ve bu işlemden sonra kuruma giriş
+                yapamayacaksınız. Bu işlemi yalnız başka bir yönetici geri
+                alabilir.
+              </p>
+            </div>
           ) : (
             <p>Üyelik askıya alınacak; kişi kuruma giriş yapamayacak.</p>
           )}
