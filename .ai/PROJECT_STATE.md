@@ -242,9 +242,9 @@ Bu, aşağıdaki bağlantı matrisinin okunuşunu değiştirir: **tablo, RLS ve 
 | ------------------------------------------------------------- | :----: | :------: | :---: | :----------: |
 | Kurum · Şube · Üyelik · Profil · Operatör · Platform denetimi |   ✅   |    ✅    |  ✅   |  ✅ / kısmi  |
 | Kurum denetim kaydı                                           |   ✅   |    ❌    |  ❌   | ✅ yazılıyor |
-| Öğrenci · Sınıf · Yoklama · Sınav                             |   ✅   |    ✅    |  ✅   |      ✅      |
+| Öğrenci · Sınıf · Yoklama · Sınav · Ödev                      |   ✅   |    ✅    |  ✅   |      ✅      |
 | Program · Ödeme                                               |   ✅   | ✅ okuma |  ✅   |      ❌      |
-| Ödev · Mesaj · Gün planı                                      |   ✅   |    ❌    |  ✅   |      ❌      |
+| Mesaj · Gün planı                                             |   ✅   |    ❌    |  ✅   |      ❌      |
 | Otomasyon                                                     |   ❌   |    ❌    |  ✅   |      ❌      |
 | Öğretmen–sınıf ataması · Veli–öğrenci bağı                    |   ❌   |    ❌    |  ❌   |      ❌      |
 | Belge (`workspace_documents`)                                 | ☠️ ölü |  ☠️ ölü  |  ❌   |      ❌      |
@@ -256,6 +256,12 @@ Bu, aşağıdaki bağlantı matrisinin okunuşunu değiştirir: **tablo, RLS ve 
 Dört varlık v1.4'te uçtan uca bağlandı — **Öğrenci** (v1.4-01), **Sınıf** (v1.4-02), **Yoklama** (v1.4-03) ve **Sınav** (v1.4-04). Bunların ekranı artık `educationData.ts`'ten değil veritabanından besleniyor ve **yazma da gerçek**: yoklama ve sınav sonucu birer RPC ile (`record_attendance`, `record_exam_results`), öğrenci ve sınıf doğrudan tablo yazımıyla.
 
 ⚠️ **"Ekran ✅" hâlâ ekranın doğru şeyi gösterdiği anlamına gelmiyor** — yalnız bir ekranın var olduğunu söylüyor. **Otomasyon** satırının tablosu yok ve ekranı duruyor; bu bir eksiklik değil, kapsam kararıdır (`ROADMAP.md` §5 — otomasyon ayrı bir roadmap kararına bağlı).
+
+**On dördüncü düzeltme (2026-09-11, v1.4-05):** **Ödev** satırı ayrıldı; "Servis" ve "Yazma" sütunları ✅ oldu. `homeworkService` geldi ve ekran `educationData.ts` yerine gerçek sorgudan besleniyor.
+
+Bu dilimin kaydı, eklediğinden çok **kaldırdığı** için düşülüyor: `HomeworkStatus`'tan `"Tamamlandı"`, `Student` tipinden `homework` (`"7/9"` teslim oranı) ve rapor ekranından "Ödev tamamlama" kartı silindi. Sebep matrisin kendisinde görünüyor — ödev teslimi için **tablo yok**, dolayısıyla o üç öğe bir veriyi değil bir **beklentiyi** gösteriyordu. Teslim takibi **v1.4-15**'te açılacak (`DECISION_LOG`); o gün bu satırın hiçbir sütunu değişmeyecek ama **yeni bir satır** eklenecek.
+
+⚠️ Böylece v1.4'ün CRUD dilimleri bitti: matriste "Servis ✅ + Yazma ✅" taşıyan beş varlık var (Öğrenci, Sınıf, Yoklama, Sınav, Ödev). **Program ve Ödeme hâlâ yalnız okuma** — ödeme kurallarının kaynağı yok (#239) ve o karar verilmeden yazma açılamaz.
 
 Son iki satır yalnızca eksik veri değil: **kapsamın kendisi** onlardan gelir. E7.2-B2'de yedi filtrenin üretimde boş küme dönmesinin sebebi budur.
 

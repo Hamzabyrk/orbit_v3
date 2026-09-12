@@ -4,8 +4,6 @@ import {
   reportAttendanceValues,
   reportExamLabels,
   reportExamValues,
-  reportHomeworkLabels,
-  reportHomeworkValues,
 } from "../educationData";
 import { ActionLine, PageHeader, ReportCard } from "../shared";
 import type { Role } from "../types";
@@ -20,11 +18,11 @@ export function ReportsPage({ role }: { role: Role }) {
         title={isTeacher ? "Sınıf raporları" : "Kurum raporları"}
         description={
           isTeacher
-            ? "Sınıflarınızın devam, deneme ve ödev tamamlanma görünümünü kurum ortalamalarıyla izleyin."
+            ? "Sınıflarınızın devam ve deneme görünümünü kurum ortalamalarıyla izleyin."
             : "Akademik, devam ve operasyon görünümünü karar vermeyi kolaylaştıracak şekilde izleyin."
         }
       />
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
         <ReportCard
           title="Devam görünümü"
           subtitle="Son 4 hafta"
@@ -40,13 +38,6 @@ export function ReportsPage({ role }: { role: Role }) {
           values={reportExamValues}
           labels={reportExamLabels}
           color="bg-violet-500"
-        />
-        <ReportCard
-          title="Ödev tamamlama"
-          subtitle={isTeacher ? "Sorumlu sınıflar" : "Aktif gruplar"}
-          values={reportHomeworkValues}
-          labels={reportHomeworkLabels}
-          color="bg-blue-500"
         />
       </div>
       {reportActions.length > 0 ? (

@@ -38,6 +38,13 @@ import {
   type PaymentListResult,
   type PaymentOverviewCounts,
 } from "./paymentService";
+import {
+  DEFAULT_HOMEWORK_LIMIT,
+  loadHomework,
+  loadSubjects,
+  type HomeworkListResult,
+  type SubjectDetail,
+} from "./homeworkService";
 
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
@@ -87,6 +94,10 @@ export const educationKeys = {
     ["education", "payments", { organizationId }] as const,
   paymentOverview: (organizationId: string) =>
     ["education", "paymentOverview", { organizationId }] as const,
+  homework: (organizationId: string) =>
+    ["education", "homework", { organizationId }] as const,
+  subjects: (organizationId: string) =>
+    ["education", "subjects", { organizationId }] as const,
 };
 
 export type UseStudentsOptions = {
@@ -412,6 +423,54 @@ export function usePaymentOverview(options?: UsePaymentOverviewOptions) {
       ? educationKeys.paymentOverview(organizationId)
       : (["education", "paymentOverview", { organizationId: "" }] as const),
     queryFn: () => loadPaymentOverviewCounts(),
+    enabled: isEnabled,
+  });
+}
+
+export type UseHomeworkOptions = {
+  organizationId?: string;
+  limit?: number;
+  enabled?: boolean;
+};
+
+/**
+ * Aktif kurumun ödevlerini getiren React Query hook'u (v1.4-05 · #273).
+ */
+export function useHomework(options?: UseHomeworkOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const limit = options?.limit ?? DEFAULT_HOMEWORK_LIMIT;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<HomeworkListResult, Error>({
+    queryKey: organizationId
+      ? educationKeys.homework(organizationId)
+      : (["education", "homework", { organizationId: "" }] as const),
+    queryFn: () => loadHomework(organizationId!, { limit }),
+    enabled: isEnabled,
+  });
+}
+
+export type UseSubjectsOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Aktif kurumun derslerini getiren React Query hook'u.
+ */
+export function useSubjects(options?: UseSubjectsOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<SubjectDetail[], Error>({
+    queryKey: organizationId
+      ? educationKeys.subjects(organizationId)
+      : (["education", "subjects", { organizationId: "" }] as const),
+    queryFn: () => loadSubjects(organizationId!),
     enabled: isEnabled,
   });
 }

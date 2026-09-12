@@ -269,7 +269,6 @@ describe("studentService", () => {
       expect(mapped.score).toBeUndefined();
       expect(mapped.payment).toBeUndefined();
       expect(mapped.risk).toBeUndefined();
-      expect(mapped.homework).toBeUndefined();
     });
   });
 

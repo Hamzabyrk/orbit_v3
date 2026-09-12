@@ -42,3 +42,21 @@ export function formatTrDate(dateStr?: string | null): string {
   const monthName = TR_MONTHS[monthIdx] || parts[1];
   return `${day} ${monthName} ${year}`;
 }
+
+/**
+ * Kurum saatindeki (Europe/Istanbul) takvim gününü ISO formatında (YYYY-MM-DD) döner (v1.3-15 & orbit_today).
+ *
+ * Sunucunun TimeZone ayarı UTC olduğu için her gece 00:00-03:00 arası
+ * `current_date` Türkiye'nin bir gün gerisindedir.
+ *
+ * Kural veritabanında yaşar (`orbit_today()`); buradaki onun istemci kopyasıdır.
+ * İleride kurum saat dilimi ayarlanabilir olursa bu fonksiyon o ayarı okumak zorundadır (K-06).
+ */
+export function getOrbitToday(referenceDate: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(referenceDate);
+}

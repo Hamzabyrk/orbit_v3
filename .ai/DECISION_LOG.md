@@ -2330,3 +2330,50 @@ Türkiye'de net puanlamada yanlış, doğruyu götürür; net eksiye düşebilir
 **Bir kartı silmek de bir karardır ve bu yüzden burada.** "Henüz öneri oluşmadı" yazan boş bir kart, olmayan bir özelliğin geleceğini iddia eder (**K-22**).
 
 **Kapsam dışı bırakılan:** `Student.homework` ("7/9" teslim oranı) türetilemiyor çünkü şemada **teslim tablosu yok**. #237 bunu zaten §4.7'nin açık sorusuna bağlamıştı; kontrol noktası **v1.4-05** (ödev akışı).
+
+---
+
+### Karar: Ödev teslim takibi kendi dilimidir; ama takip edilmeyen şey bugün iddia edilmez
+
+**Durum:** Alındı
+**Tarih:** 2026-09-11
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `ROADMAP` §4.7 bir K-12 borcu bırakmıştı: _"Ödev sınıfa verilir, öğrenciye değil. Bu v1.2-08'de bilinçli olarak kararlaştırıldı ve kayıtlı. Ama **kişiye özel ödev** ve **teslim etti/etmedi takibi** yol haritasının hiçbir yerinde yok. Kararın 'şimdilik' mi 'kalıcı' mı olduğu yazılmamış."_ Kontrol noktası v1.4-05 açılışıydı ve geldi.
+
+**Karar — iki parça:**
+
+1. **Teslim takibi ayrı bir dilim: v1.4-15.** Kendi tablosu, kendi RLS'i ve öğretmene işaretleme ekranı demek; v1.4-05'e sıkıştırmak iki dilimlik işi tek dilim gibi göstermek olurdu.
+2. **Ama bugün türetilemeyen üç iddia ŞİMDİ kalktı** — `HomeworkStatus`'tan `"Tamamlandı"`, `Student.homework` (`"7/9"`) ve rapor ekranının "Ödev tamamlama" kartı (`reportHomeworkValues`/`Labels` dahil).
+
+**Gerekçe — erteleme ile iddia etmeyi birbirinden ayırmak:** v1.4-15'in ne zaman geleceği belli değil. "Nasılsa yakında gelecek" diyerek bırakılan bir etiket, o güne kadar her gün yalan söyler. Bir ödevin "tamamlandığını" sistem **bilemez**: ödev sınıfa veriliyor ve teslim tablosu yok. Kart ve etiket, olmayan bir bilgiyi varmış gibi gösteriyordu.
+
+**Bu, v1.4-04'ün #237 kararının aynı ailesi ve aynı yöntemi** (`DECISION_LOG` — "Kuralı olmayan kart, kural yazılarak değil kaldırılarak kapandı"): kod da kaldırıldı, yalnız ekran değil. Yoksa testler ölü kodu korumaya devam eder.
+
+**Kişiye özel ödev: şimdilik hayır.** Ödev sınıfa verilmeye devam ediyor; v1.2-08'in kararı korunuyor. Değişen tek şey, kararın artık **"şimdilik"** olduğunun yazılı olması. Açılması gerekirse yol belli: `homework_assignments`'a nullable bir `student_id`, RLS'in o durumu da kapsaması ve ekranda "sınıfa mı kişiye mi" seçimi — ve doğal yeri teslim takibiyle **aynı** dilim, çünkü ikisi aynı soruyu soruyor.
+
+---
+
+### Karar: Ödevin metni de denetlenir — izlenmeyen alan iz bırakmaz
+
+**Durum:** Alındı
+**Tarih:** 2026-09-11
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `audit_row_change` tetikleyiciye izlenecek alanları argüman olarak alıyor. `homework_assignments` için ilk yazımda `description` **dışarıda** bırakılmıştı; gerekçe makuldü: serbest metin, uzun olabilir, denetim defterini şişirir.
+
+**Ölçüldü — gerekçe çöktü.** Fonksiyonun gövdesi yeniden okundu:
+
+```sql
+if cardinality(degisen) = 0 then return null; end if;
+```
+
+İzlenen alanlardan hiçbiri değişmediyse fonksiyon **hiçbir satır yazmıyor**. Yani `description` izlenmeseydi, yalnız ödev metninin değiştiği bir güncelleme **hiç iz bırakmayacaktı**. "İçeriği yazmayalım ama değiştiğini görelim" diye bir orta yol bu fonksiyonda yok: `ayrinti`, izlenen alanların **değerlerinden** kuruluyor.
+
+**Karar:** `description` izleniyor. İzlenen alanlar: `title`, `description`, `due_date`, `subject_id`, `class_id`.
+
+**Gerekçe:** **Ödevin metni ödevin kendisidir.** Teslim tarihinden sonra sessizce yeniden yazılan bir ödev, velinin itiraz edeceği asıl durumdur — v1.4-03'te "yok iken izinli olmak" neyse burada bu.
+
+**Bedeli açıkça yazıldı:** her ödev denetim satırı ödev metnini taşıyor. §4.12 `audit_events`'i zaten _"tek başına en büyük tablo olabilir"_ diye işaretlemişti; bu karar o satırı biraz daha ağırlaştırıyor. Bölümleme borcu yerinde duruyor, tetikleyicisi değişmedi.
+
+**Kayda değer olan asıl şey:** v1.4-03'ün hacim kesmesi bir **izin** değil, iki ölçüye dayanan bir **istisna**ydı. Ödevde o ölçüler tutmuyor — satır sayısı öğrenciyle değil **sınıfla** ölçekleniyor — ve istisna taşınmadı.
