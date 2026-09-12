@@ -296,10 +296,29 @@ select is(
   'a student still sees only their own record'
 );
 
-select is(
-  (select count(*) from public.student_guardians),
-  0::bigint,
-  'a student does not read the guardian links either'
+-- ⚠️ Bu iddianın SONUCU 2026-09-12'de değişti (v1.4-10, #275) — ve gerekçesi
+-- değil, **gerekçesizliği** değiştirdi.
+--
+-- Eskiden 0 dönüyordu ve mesajı "a student does not read the guardian links
+-- either" idi. Ama bu bir ürün kararı değildi: `student_guardians` üzerinde
+-- öğrenci için hiç SELECT politikası **yazılmamıştı** ve test o yokluğu
+-- çivilemişti. Hemen yukarıdaki öğretmen iddiasıyla kıyas öğretici — o,
+-- kararı değiştiğinde (#228) neden değiştiğini anlatan bir blok aldı; bu
+-- iddia hiç almadı, çünkü ardında anlatılacak bir karar yoktu (**K-11**).
+--
+-- 2026-09-12'de karar verildi: öğrenci **kendi** velilerini görür.
+-- `student_guardians_select_student` politikası `current_user_owns_student_record`
+-- üzerine kuruludur, yani öğrenci yalnız kendi kaydının bağlarını okur.
+--
+-- v1.2-03'ün kararı bundan **ayrıdır ve yürürlüktedir**: bir veli aynı
+-- öğrencinin diğer velisini görmez. İkisi farklı sorular.
+select ok(
+  (select count(*) from public.student_guardians) > 0
+  and not exists (
+    select 1 from public.student_guardians as link
+    where link.student_id <> 'e5000000-0000-0000-0000-000000000501'
+  ),
+  'a student reads the links of their own record — and every visible row is their own'
 );
 
 -- Yönetici yazma --------------------------------------------------------------------
