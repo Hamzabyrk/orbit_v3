@@ -12,10 +12,16 @@ import {
   extractClassName,
   extractSubjectName,
   loadHomework,
+  loadHomeworkSubmissions,
   loadStaffNames,
+  loadStudentHomeworkRatios,
   mapHomeworkRow,
+  markSubmission,
   restoreHomework,
+  setSubmissionsRecorded,
   translateHomeworkError,
+  translateHomeworkSubmissionError,
+  unmarkSubmission,
   updateHomework,
   type RawHomeworkRow,
 } from "./homeworkService";
@@ -102,6 +108,8 @@ function createQueryChain(
     if (spy) spy.isArgs = [col, val];
     return chain;
   });
+  chain.in = vi.fn(() => chain);
+  chain.not = vi.fn(() => chain);
   chain.order = vi.fn((col: string, opts: { ascending?: boolean }) => {
     if (spy) {
       if (!spy.orderArgs) spy.orderArgs = [];
@@ -554,7 +562,7 @@ describe("K-23 Regresyon Korumaları (Arayüz & Şema Sözleşmeleri)", () => {
     expect(markup).not.toContain("Tamamlandı");
   });
 
-  it("4. 'Ödev tamamlama' kartı ReportsPage üzerinde hiçbir yerde yok", () => {
+  it("4. v1.4-15: 'Ödev tamamlama' kartı ReportsPage üzerinde hem öğretmen hem yönetici için çizilir", () => {
     const teacherReports = renderToStaticMarkup(
       createElement(ReportsPage, { role: "teacher" })
     );
@@ -562,8 +570,8 @@ describe("K-23 Regresyon Korumaları (Arayüz & Şema Sözleşmeleri)", () => {
       createElement(ReportsPage, { role: "admin" })
     );
 
-    expect(teacherReports).not.toContain("Ödev tamamlama");
-    expect(adminReports).not.toContain("Ödev tamamlama");
+    expect(teacherReports).toContain("Ödev tamamlama");
+    expect(adminReports).toContain("Ödev tamamlama");
   });
 
   it("5. R1 regresyonu: truncated: true olduğunda HomeworkPage üst sınır uyarısını ve arşivleme öğüdünü gösterir (K-22)", () => {
@@ -689,5 +697,412 @@ describe("K-23 Regresyon Korumaları (Arayüz & Şema Sözleşmeleri)", () => {
     expect(markup).toContain(
       "Sınıf bilgisi ödev oluşturulduktan sonra değiştirilemez."
     );
+  });
+});
+
+describe("v1.4-15 Ödev Teslim Takibi (homework_submissions & K-23)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("translateHomeworkSubmissionError", () => {
+    it("ORB02 kodunu 'Öğrenci bu ödevin sınıfına kayıtlı değil.' olarak çevirir", () => {
+      const err = {
+        code: "ORB02",
+        message: "ORB02: constraint failed",
+        details: "student_id=c9... class_id=cf...",
+      };
+      expect(translateHomeworkSubmissionError(err)).toBe(
+        "Öğrenci bu ödevin sınıfına kayıtlı değil."
+      );
+    });
+
+    it("23505 tekil indeks hatasını 'Bu öğrencinin ödev teslimi zaten işaretlenmiş.' olarak çevirir", () => {
+      const err = {
+        code: "23505",
+        message:
+          "duplicate key value violates unique constraint homework_submissions_active_idx",
+        details: "Key (homework_id, student_id)=(...) already exists.",
+      };
+      expect(translateHomeworkSubmissionError(err)).toBe(
+        "Bu öğrencinin ödev teslimi zaten işaretlenmiş."
+      );
+    });
+
+    it("42501 yetki hatasını kullanıcı dostu yetki mesajına çevirir", () => {
+      const err = {
+        code: "42501",
+        message: "permission denied for table homework_submissions",
+      };
+      expect(translateHomeworkSubmissionError(err)).toBe(
+        "Bu işlem için yetkiniz yok veya şifre değişimi bekleniyor. Ödev teslimini yalnızca kurum yöneticisi veya sınıfın öğretmeni işaretleyebilir."
+      );
+    });
+
+    it("⛔ ham details ve veritabanı kısıt adı sızdırılmaz (K-19)", () => {
+      const err = {
+        code: "ORB02",
+        message: "ORB02: constraint failed",
+        details:
+          "student_id=c9000000-0000-0000-0000-000000000001 ödevin class_id=cf000000-0000-0000-0000-000000000001",
+      };
+      const result = translateHomeworkSubmissionError(err);
+      expect(result).not.toContain("student_id=c9");
+      expect(result).not.toContain("class_id=cf");
+      expect(result).toBe("Öğrenci bu ödevin sınıfına kayıtlı değil.");
+    });
+  });
+
+  describe("markSubmission (K-23 Tuzak Korumaları)", () => {
+    it("yüke id ve recorded_by_membership_id KOYMAZ; yalnız organization_id, homework_id, student_id gönderir", async () => {
+      const spy: { insertArg?: unknown } = {};
+      fromMock.mockImplementation(() =>
+        createQueryChain({ data: { id: "sub-1" }, error: null }, spy)
+      );
+
+      const res = await markSubmission("org-1", "hw-1", "stu-1");
+
+      expect(res).toEqual({ id: "sub-1" });
+      const payload = spy.insertArg as Record<string, unknown>;
+      expect(payload).toBeDefined();
+      expect(payload).toEqual({
+        organization_id: "org-1",
+        homework_id: "hw-1",
+        student_id: "stu-1",
+      });
+      // ⛔ Sunucu yazar, istemci gönderemez!
+      expect(payload).not.toHaveProperty("id");
+      expect(payload).not.toHaveProperty("recorded_by_membership_id");
+    });
+  });
+
+  describe("unmarkSubmission (K-14 ve Arşiv Deseni)", () => {
+    it("silme yapmaz, archived_at sütununa zaman damgası koyar", async () => {
+      const spy: { updateArg?: unknown; eqArgs?: [string, unknown][] } = {};
+      fromMock.mockImplementation(() =>
+        createQueryChain({ data: [{ id: "sub-1" }], error: null }, spy)
+      );
+
+      await unmarkSubmission("org-1", "sub-1");
+
+      expect(spy.updateArg).toHaveProperty("archived_at");
+      expect(
+        (spy.updateArg as { archived_at: string }).archived_at
+      ).toBeTruthy();
+      expect(spy.eqArgs).toContainEqual(["organization_id", "org-1"]);
+      expect(spy.eqArgs).toContainEqual(["id", "sub-1"]);
+    });
+
+    it("sıfır satır etkilendiğinde hata fırlatır (K-14: gerçekleşmemiş yazma başarılı raporlanmaz)", async () => {
+      fromMock.mockImplementation(() =>
+        createQueryChain({ data: [], error: null })
+      );
+
+      await expect(unmarkSubmission("org-1", "non-existent")).rejects.toThrow(
+        "Ödev teslimi bulunamadı veya işareti kaldırılamadı."
+      );
+    });
+  });
+
+  describe("loadHomeworkSubmissions (Açık Süzgeçler ve Tavan Yönetimi)", () => {
+    it("açık organization_id, homework_id ve archived_at süzgeçleri uygular", async () => {
+      const spy: {
+        eqArgs?: [string, unknown][];
+        isArgs?: [string, unknown];
+        limitArg?: number;
+      } = {};
+      fromMock.mockImplementation(() =>
+        createQueryChain({ data: [], error: null }, spy)
+      );
+
+      const res = await loadHomeworkSubmissions("org-1", "hw-1", { limit: 50 });
+
+      expect(spy.eqArgs).toContainEqual(["organization_id", "org-1"]);
+      expect(spy.eqArgs).toContainEqual(["homework_id", "hw-1"]);
+      expect(spy.isArgs).toEqual(["archived_at", null]);
+      expect(spy.limitArg).toBe(50);
+      expect(res.truncated).toBe(false);
+    });
+
+    it("satır sayısı limite eşit olduğunda truncated bayrağı true döner", async () => {
+      const mockRows = [
+        {
+          id: "sub-1",
+          organization_id: "org-1",
+          homework_id: "hw-1",
+          student_id: "stu-1",
+          recorded_by_membership_id: "mem-1",
+          archived_at: null,
+          created_at: "2026-09-13T10:00:00Z",
+          updated_at: "2026-09-13T10:00:00Z",
+        },
+      ];
+      fromMock.mockImplementation(() =>
+        createQueryChain({ data: mockRows, error: null })
+      );
+
+      const res = await loadHomeworkSubmissions("org-1", "hw-1", { limit: 1 });
+      expect(res.rows).toHaveLength(1);
+      expect(res.truncated).toBe(true);
+    });
+  });
+
+  describe("setSubmissionsRecorded (v1.4-15 R1: Öğretmen Bitirdiğini Söyler)", () => {
+    it("recorded=true olduğunda submissions_recorded_at sütununa zaman damgası koyar", async () => {
+      const spy: { updateArg?: unknown; eqArgs?: [string, unknown][] } = {};
+      fromMock.mockImplementation(() =>
+        createQueryChain(
+          {
+            data: [
+              {
+                id: "hw-1",
+                submissions_recorded_at: "2026-09-13T12:00:00Z",
+              },
+            ],
+            error: null,
+          },
+          spy
+        )
+      );
+
+      const res = await setSubmissionsRecorded("org-1", "hw-1", true);
+      expect(res.submissionsRecordedAt).toBeDefined();
+      expect(typeof res.submissionsRecordedAt).toBe("string");
+      const updatePayload = spy.updateArg as Record<string, unknown>;
+      expect(updatePayload).toBeDefined();
+      expect(updatePayload.submissions_recorded_at).toBeDefined();
+      expect(spy.eqArgs).toContainEqual(["organization_id", "org-1"]);
+      expect(spy.eqArgs).toContainEqual(["id", "hw-1"]);
+    });
+
+    it("recorded=false olduğunda submissions_recorded_at sütununu null yapar", async () => {
+      const spy: { updateArg?: unknown; eqArgs?: [string, unknown][] } = {};
+      fromMock.mockImplementation(() =>
+        createQueryChain(
+          {
+            data: [{ id: "hw-1", submissions_recorded_at: null }],
+            error: null,
+          },
+          spy
+        )
+      );
+
+      const res = await setSubmissionsRecorded("org-1", "hw-1", false);
+      expect(res.submissionsRecordedAt).toBeNull();
+      const updatePayload = spy.updateArg as Record<string, unknown>;
+      expect(updatePayload.submissions_recorded_at).toBeNull();
+    });
+
+    it("sıfır satır etkilendiğinde hata fırlatır (K-14: gerçekleşmemiş yazma başarılı raporlanmaz)", async () => {
+      fromMock.mockImplementation(() =>
+        createQueryChain({ data: [], error: null })
+      );
+
+      await expect(
+        setSubmissionsRecorded("org-1", "hw-non-existent", true)
+      ).rejects.toThrow(
+        "Ödev kaydı bulunamadı veya güncelleme gerçekleştirilemedi."
+      );
+    });
+  });
+
+  describe("loadStudentHomeworkRatios (v1.4-15 R1: submissions_recorded_at & K-22)", () => {
+    it("🔴 R1: yarım işaretlenmiş ödev orana GİRMİYOR (submissions_recorded_at boş, 3 teslim var)", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "class_enrollments") {
+          return createQueryChain({
+            data: [{ student_id: "stu-1", class_id: "cls-1" }],
+            error: null,
+          });
+        }
+        if (table === "homework_assignments") {
+          // Ödev var ve 3 teslimi var, ama öğretmen henüz bitirmedim demiş (submissions_recorded_at: null)
+          return createQueryChain({
+            data: [
+              {
+                id: "hw-partial",
+                class_id: "cls-1",
+                submissions_recorded_at: null,
+              },
+            ],
+            error: null,
+          });
+        }
+        if (table === "homework_submissions") {
+          return createQueryChain({
+            data: [
+              { homework_id: "hw-partial", student_id: "stu-other-1" },
+              { homework_id: "hw-partial", student_id: "stu-other-2" },
+              { homework_id: "hw-partial", student_id: "stu-other-3" },
+            ],
+            error: null,
+          });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+
+      const map = await loadStudentHomeworkRatios("org-1", ["stu-1"]);
+      // Yarım işaretlenmiş ödev orana HİÇ girmez; başka bitirilmiş ödev yoksa undefined kalır
+      expect(map.get("stu-1")).toBeUndefined();
+    });
+
+    it("bitirilmiş ödev oranda: işaretlenmiş öğrenci 1/1, işaretlenmemiş öğrenci 0/1 olur", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "class_enrollments") {
+          return createQueryChain({
+            data: [
+              { student_id: "stu-submitted", class_id: "cls-1" },
+              { student_id: "stu-unsubmitted", class_id: "cls-1" },
+            ],
+            error: null,
+          });
+        }
+        if (table === "homework_assignments") {
+          // Öğretmen işaretlemeyi bitirmiş (submissions_recorded_at dolu)
+          return createQueryChain({
+            data: [
+              {
+                id: "hw-finished",
+                class_id: "cls-1",
+                submissions_recorded_at: "2026-09-13T12:00:00Z",
+              },
+            ],
+            error: null,
+          });
+        }
+        if (table === "homework_submissions") {
+          return createQueryChain({
+            data: [{ homework_id: "hw-finished", student_id: "stu-submitted" }],
+            error: null,
+          });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+
+      const map = await loadStudentHomeworkRatios("org-1", [
+        "stu-submitted",
+        "stu-unsubmitted",
+      ]);
+      // Teslim eden öğrenci: 1/1
+      expect(map.get("stu-submitted")).toBe("1/1");
+      // Bitirilmiş ödevde teslim etmeyen öğrenci artık gerçekten getirmedi sayılır: 0/1
+      expect(map.get("stu-unsubmitted")).toBe("0/1");
+    });
+
+    it("birden fazla bitirilmiş ödev varsa 'M/N' oranını doğru hesaplar", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "class_enrollments") {
+          return createQueryChain({
+            data: [{ student_id: "stu-1", class_id: "cls-1" }],
+            error: null,
+          });
+        }
+        if (table === "homework_assignments") {
+          return createQueryChain({
+            data: [
+              {
+                id: "hw-1",
+                class_id: "cls-1",
+                submissions_recorded_at: "2026-09-13T10:00:00Z",
+              },
+              {
+                id: "hw-2",
+                class_id: "cls-1",
+                submissions_recorded_at: "2026-09-13T11:00:00Z",
+              },
+            ],
+            error: null,
+          });
+        }
+        if (table === "homework_submissions") {
+          return createQueryChain({
+            data: [
+              { homework_id: "hw-1", student_id: "stu-1" },
+              { homework_id: "hw-2", student_id: "stu-other" },
+            ],
+            error: null,
+          });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+
+      const map = await loadStudentHomeworkRatios("org-1", ["stu-1"]);
+      expect(map.get("stu-1")).toBe("1/2");
+    });
+  });
+
+  describe("HomeworkCard & Durum 'Tamamlandı'", () => {
+    it("ödev tamamlandığında ve işaretleme bitirildiğinde rozet 'Tamamlandı' ve sayı çizilir", () => {
+      const hwCompleted: Homework = {
+        id: "hw-done",
+        classGroup: "12-A",
+        subject: "Fizik",
+        title: "Dinamik",
+        description: "Test",
+        assignedDate: "10 Eylül 2026",
+        dueDate: "15 Eylül 2026",
+        rawDueDate: "2026-09-15",
+        status: "Tamamlandı",
+        submissionCount: 20,
+        totalStudents: 20,
+        submissionsRecordedAt: "2026-09-13T12:00:00Z",
+      };
+
+      const markup = renderToStaticMarkup(
+        createElement(HomeworkCard, { homework: hwCompleted })
+      );
+
+      expect(markup).toContain("Tamamlandı");
+      expect(markup).toContain("20 / 20 teslim");
+    });
+
+    it("submissionsRecordedAt boşken teslim sayısı hiç çizilmez (R1 & K-22)", () => {
+      const hwUnrecorded: Homework = {
+        id: "hw-partial",
+        classGroup: "12-A",
+        subject: "Fizik",
+        title: "Dinamik",
+        description: "Test",
+        assignedDate: "10 Eylül 2026",
+        dueDate: "15 Eylül 2026",
+        rawDueDate: "2026-09-15",
+        status: "Aktif",
+        submissionCount: 5,
+        totalStudents: 20,
+        submissionsRecordedAt: null,
+      };
+
+      const markup = renderToStaticMarkup(
+        createElement(HomeworkCard, { homework: hwUnrecorded })
+      );
+
+      expect(markup).not.toContain("5 / 20 teslim");
+      expect(markup).not.toMatch(/\d+\s*\/\s*\d+\s*teslim/);
+    });
+
+    it("⛔ teslim sayısı 0 olduğunda ve işaretleme bitmemişken '0/20' veya '0 teslim' uydurulmaz (K-22)", () => {
+      const hwNoSubmissions: Homework = {
+        id: "hw-empty",
+        classGroup: "12-A",
+        subject: "Kimya",
+        title: "Gazlar",
+        description: "Test",
+        assignedDate: "10 Eylül 2026",
+        dueDate: "15 Eylül 2026",
+        rawDueDate: "2026-09-15",
+        status: "Aktif",
+        submissionCount: 0,
+        totalStudents: 20,
+        submissionsRecordedAt: null,
+      };
+
+      const markup = renderToStaticMarkup(
+        createElement(HomeworkCard, { homework: hwNoSubmissions })
+      );
+
+      expect(markup).not.toContain("0 / 20 teslim");
+      expect(markup).not.toContain("0/20");
+      expect(markup).not.toContain("0 teslim");
+    });
   });
 });

@@ -6,6 +6,7 @@ import {
   type StudentLatestExamScore,
 } from "./examService";
 import { loadStudentPaymentStatuses } from "./paymentService";
+import { loadStudentHomeworkRatios } from "./homeworkService";
 
 /**
  * Öğrenci listesi ve CRUD servis katmanı (v1.3-01 & v1.4-01 · #264).
@@ -200,7 +201,8 @@ export function mapStudentRow(
   row: RawStudentRow,
   attendancePercentage?: number,
   latestExamScore?: StudentLatestExamScore | number,
-  paymentStatus?: "Güncel" | "Takip gerekli"
+  paymentStatus?: "Güncel" | "Takip gerekli",
+  homeworkRatio?: string
 ): Student {
   let score: number | undefined;
   let latestExamId: string | undefined;
@@ -234,6 +236,7 @@ export function mapStudentRow(
     latestExamDate,
     latestExamMaxScore,
     payment: paymentStatus,
+    homework: homeworkRatio,
     // Kaynağı olmayan ve henüz türetilmeyen alanlar dürüstçe undefined bırakılır:
     // risk: hesaplama kuralı henüz tanımlanmadı
   };
@@ -286,11 +289,12 @@ export async function loadStudents(
 
   const rawRows = (data ?? []) as RawStudentRow[];
   const studentIds = rawRows.map(r => r.id);
-  const [attendancePercentages, latestScores, paymentStatuses] =
+  const [attendancePercentages, latestScores, paymentStatuses, homeworkRatios] =
     await Promise.all([
       loadStudentAttendancePercentages(studentIds),
       loadStudentLatestExamScores(studentIds),
       loadStudentPaymentStatuses(studentIds),
+      loadStudentHomeworkRatios(organizationId, studentIds),
     ]);
 
   const rows = rawRows.map(r =>
@@ -298,7 +302,8 @@ export async function loadStudents(
       r,
       attendancePercentages.get(r.id),
       latestScores.get(r.id),
-      paymentStatuses.get(r.id)
+      paymentStatuses.get(r.id),
+      homeworkRatios.get(r.id)
     )
   );
 

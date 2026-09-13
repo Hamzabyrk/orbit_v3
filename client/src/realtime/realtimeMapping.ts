@@ -19,6 +19,7 @@ export type EducationTable =
   | "payment_plans"
   | "installments"
   | "homework_assignments"
+  | "homework_submissions"
   | "guardians"
   | "student_guardians"
   | "branches"
@@ -155,6 +156,14 @@ export function getAffectedQueryKeys(
     case "homework_assignments":
       // Ödev listesi sorgusunu tazeler (v1.4-05 · #273)
       return [educationKeys.homework(organizationId)];
+
+    case "homework_submissions":
+      // Ödev teslimi işaretlendiğinde veya kaldırıldığında ödev listesi (Tamamlandı / teslim sayıları)
+      // ve öğrenci listesi (Student.homework oranı) etkilenir (v1.4-15 · #294)
+      return [
+        educationKeys.homework(organizationId),
+        educationKeys.students(organizationId),
+      ];
 
     case "guardians":
       // Veli listesi ve öğrenci listesi — öğrenci listesi veli adını gömülü okuyor

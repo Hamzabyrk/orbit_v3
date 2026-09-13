@@ -35,6 +35,8 @@ import {
   demoReportAttendanceValues,
   demoReportExamLabels,
   demoReportExamValues,
+  demoReportHomeworkLabels,
+  demoReportHomeworkValues,
   demoStudentOverviewStatValues,
   demoTeacherOverviewStatValues,
   initialAttendances as demoInitialAttendances,
@@ -387,6 +389,43 @@ export const reportExamValues = isDemoMode
 export const reportExamLabels = isDemoMode
   ? demoReportExamLabels
   : ["1. deneme", "2. deneme", "3. deneme", "Son deneme"];
+
+/**
+ * Son dört ayın kısa adları.
+ *
+ * demoData.ts'te değil burada duruyor: yalnızca üretim dalında kullanılıyor ve
+ * üretimin demo modülünden canlı bir değer alması kapının ters yönü olurdu.
+ */
+function getLastFourMonths(referenceDate: Date = new Date()): string[] {
+  const months = [
+    "Oca",
+    "Şub",
+    "Mar",
+    "Nis",
+    "May",
+    "Haz",
+    "Tem",
+    "Ağu",
+    "Eyl",
+    "Eki",
+    "Kas",
+    "Ara",
+  ];
+  const currentMonth = referenceDate.getMonth();
+  return [
+    months[(currentMonth - 3 + 12) % 12],
+    months[(currentMonth - 2 + 12) % 12],
+    months[(currentMonth - 1 + 12) % 12],
+    months[currentMonth],
+  ];
+}
+
+export const reportHomeworkValues = isDemoMode
+  ? demoReportHomeworkValues
+  : [0, 0, 0, 0];
+export const reportHomeworkLabels = isDemoMode
+  ? demoReportHomeworkLabels
+  : getLastFourMonths();
 
 export const reportActions = isDemoMode ? demoReportActions : [];
 

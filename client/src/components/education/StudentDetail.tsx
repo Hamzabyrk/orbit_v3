@@ -236,6 +236,14 @@ export function StudentDetail({
                 </span>
               </div>
             ) : null}
+            {student.homework !== undefined ? (
+              <div className="flex justify-between">
+                <span className="text-slate-400">Ödev tamamlama</span>
+                <span className="font-bold text-slate-700">
+                  {student.homework}
+                </span>
+              </div>
+            ) : null}
             {student.payment ? (
               <div className="flex justify-between">
                 <span className="text-slate-400">Ödeme durumu</span>
