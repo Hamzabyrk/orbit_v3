@@ -513,6 +513,7 @@ Sık görülen iki boş biçim:
 
 - **Test, test ettiği fonksiyonu kendi gövdesinde yeniden yazar.** O zaman sınanan şey gerçek kod değil, testin kendi kopyasıdır; gerçek kod silinse bile yeşil kalır.
 - **Test, olamayacak bir şeyin yokluğunu iddia eder.** `expect(html).not.toContain("window.confirm")` gibi: render edilmiş HTML hiçbir koşulda o dizeyi içermez, dolayısıyla iddia her zaman geçer.
+- **Test, bir dış sistemin cevabını taklit eder ama o cevabı hiç ölçmemiştir.** Kod `err.detail` okuyorsa ve test de `{ detail: … }` kuruyorsa ikisi birbirini doğrular; gerçek sistem `details` gönderiyordur ve kimse fark etmez. Bir dış gövdeye dayanan her çeviri, o gövdenin **ölçülmüş** bir örneğiyle sınanır.
 
 **Pratik karşılığı:** kararı saf bir fonksiyona çıkar, onu doğrudan sına; bileşen tarafını da gerçekten render et. Depoda ikisinin de deseni var (`scopeFilters`, `attendanceStatus`, `navigationGuards` · `pages/extraStates.test.ts`).
 
