@@ -261,9 +261,6 @@ export async function createFeedPost(
   input: CreateFeedPostInput
 ): Promise<FeedPost> {
   const trimmedTitle = input.title.trim();
-  if (!trimmedTitle || trimmedTitle.length > 200) {
-    throw new Error("Duyuru başlığı 1 ile 200 karakter arasında olmalıdır.");
-  }
 
   const payload = {
     organization_id: input.organizationId,
@@ -328,9 +325,6 @@ export async function updateFeedPost(
 
   if (input.title !== undefined) {
     const trimmedTitle = input.title.trim();
-    if (!trimmedTitle || trimmedTitle.length > 200) {
-      throw new Error("Duyuru başlığı 1 ile 200 karakter arasında olmalıdır.");
-    }
     payload.title = trimmedTitle;
   }
 

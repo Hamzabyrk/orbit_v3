@@ -248,7 +248,20 @@ describe("feedService", () => {
       expect(result.id).toBe("new-post-1");
     });
 
-    it("başlık boş olduğunda veritabanına gitmeden hata fırlatır", async () => {
+    it("geçersiz başlıklı duyuru oluşturulduğunda sunucuya gider ve 23514 hatası çevrilir (#292 / B)", async () => {
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: "23514",
+          details: "Failing row contains (..., ...)",
+          message:
+            'new row for relation "daily_feed_posts" violates check constraint "daily_feed_posts_title_check"',
+        },
+      });
+      const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+      const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+      fromMock.mockReturnValue({ insert: mockInsert });
+
       await expect(
         createFeedPost({
           organizationId: "org-1",
@@ -257,19 +270,15 @@ describe("feedService", () => {
       ).rejects.toThrow(
         "Duyuru başlığı 1 ile 200 karakter arasında olmalıdır."
       );
-      expect(fromMock).not.toHaveBeenCalled();
-    });
 
-    it("başlık 200 karakteri aştığında hata fırlatır", async () => {
-      await expect(
-        createFeedPost({
-          organizationId: "org-1",
-          title: "a".repeat(201),
+      // 🔴 B iddiası: Sunucuya gitti
+      expect(fromMock).toHaveBeenCalledWith("daily_feed_posts");
+      expect(mockInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "",
+          organization_id: "org-1",
         })
-      ).rejects.toThrow(
-        "Duyuru başlığı 1 ile 200 karakter arasında olmalıdır."
       );
-      expect(fromMock).not.toHaveBeenCalled();
     });
   });
 
@@ -334,6 +343,45 @@ describe("feedService", () => {
         updateFeedPost("org-1", "post-1", { title: "Yeni" })
       ).rejects.toThrow(
         "Duyuru güncellenemedi veya bu işlem için yetkiniz bulunmuyor."
+      );
+    });
+
+    it("kurum veya duyuru kimliği boşsa veritabanına gitmeden hata fırlatır (fail-closed / K-04)", async () => {
+      await expect(
+        updateFeedPost("", "post-1", { title: "Yeni" })
+      ).rejects.toThrow("Kurum ve duyuru kimliği gereklidir.");
+      expect(fromMock).not.toHaveBeenCalled();
+
+      await expect(
+        updateFeedPost("org-1", "", { title: "Yeni" })
+      ).rejects.toThrow("Kurum ve duyuru kimliği gereklidir.");
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("geçersiz başlıklı duyuru güncellendiğinde sunucuya gider ve 23514 hatası çevrilir (#292 / B)", async () => {
+      const mockSelect = vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: "23514",
+          details: "Failing row contains (..., ...)",
+          message:
+            'new row for relation "daily_feed_posts" violates check constraint "daily_feed_posts_title_check"',
+        },
+      });
+      const mockEqPost = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockEqOrg = vi.fn().mockReturnValue({ eq: mockEqPost });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqOrg });
+      fromMock.mockReturnValue({ update: mockUpdate });
+
+      await expect(
+        updateFeedPost("org-1", "post-1", { title: "   " })
+      ).rejects.toThrow(
+        "Duyuru başlığı 1 ile 200 karakter arasında olmalıdır."
+      );
+
+      expect(fromMock).toHaveBeenCalledWith("daily_feed_posts");
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "" })
       );
     });
   });

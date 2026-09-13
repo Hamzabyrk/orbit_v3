@@ -185,13 +185,13 @@ export function translateDayPlanError(error: unknown): string {
   }
 
   if (code === "23514") {
-    if (details.includes("tasks_title_check")) {
+    if (message.includes("tasks_title_check")) {
       return "Görev başlığı 1 ile 200 karakter arasında olmalıdır.";
     }
-    if (details.includes("calendar_events_title_check")) {
+    if (message.includes("calendar_events_title_check")) {
       return "Etkinlik başlığı 1 ile 200 karakter arasında olmalıdır.";
     }
-    if (details.includes("calendar_events_time_check")) {
+    if (message.includes("calendar_events_time_check")) {
       return "Bitiş saati başlangıç saatinden sonra olmalıdır.";
     }
     return "Başlık 1 ile 200 karakter arasında olmalı veya saat aralığı geçerli olmalıdır.";
@@ -274,9 +274,6 @@ export async function createTask(input: CreateTaskInput): Promise<TaskItem> {
   }
 
   const trimmedTitle = input.title.trim();
-  if (!trimmedTitle || trimmedTitle.length > 200) {
-    throw new Error("Görev başlığı 1 ile 200 karakter arasında olmalıdır.");
-  }
 
   const payload = {
     organization_id: input.organizationId,
@@ -336,9 +333,6 @@ export async function updateTask(
 
   if (input.title !== undefined) {
     const trimmedTitle = input.title.trim();
-    if (!trimmedTitle || trimmedTitle.length > 200) {
-      throw new Error("Görev başlığı 1 ile 200 karakter arasında olmalıdır.");
-    }
     payload.title = trimmedTitle;
   }
 
@@ -582,13 +576,6 @@ export async function createCalendarEvent(
   }
 
   const trimmedTitle = input.title.trim();
-  if (!trimmedTitle || trimmedTitle.length > 200) {
-    throw new Error("Etkinlik başlığı 1 ile 200 karakter arasında olmalıdır.");
-  }
-
-  if (input.endsAt && new Date(input.endsAt) <= new Date(input.startsAt)) {
-    throw new Error("Bitiş saati başlangıç saatinden sonra olmalıdır.");
-  }
 
   const payload = {
     organization_id: input.organizationId,
@@ -649,11 +636,6 @@ export async function updateCalendarEvent(
 
   if (input.title !== undefined) {
     const trimmedTitle = input.title.trim();
-    if (!trimmedTitle || trimmedTitle.length > 200) {
-      throw new Error(
-        "Etkinlik başlığı 1 ile 200 karakter arasında olmalıdır."
-      );
-    }
     payload.title = trimmedTitle;
   }
 
