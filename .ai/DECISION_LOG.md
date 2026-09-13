@@ -2962,3 +2962,28 @@ Zod bu depoda **sınırda** duruyor ve kuralı tekrar etmiyor; kaldırılsaydı 
 **Genel ders — ve bu, K-22'nin bir katmanı:** K-22 "bir yokluk etiketi de bir iddiadır" der. Buradaki daha derin: **yokluğun kendisi belirsizse, ondan üretilen her sayı belirsizdir.** Bir modelde "kayıt yok"un birden fazla anlamı varsa, çözüm ekranda bir cümle bulmak değil, **şemaya ayırt edici bir sinyal koymaktır**.
 
 ⚠️ Kabul edilen bedel yazılı: "bitirdim" demeyi unutan öğretmende oran **hiç çıkmaz**. Yanlış çıkmasından iyidir.
+
+---
+
+### Karar: Payda ile pay aynı kümeden gelir; gelmiyorsa oran yayımlanmaz
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-15'te ödev kartındaki `X / Y teslim` oranının iki sayısı **farklı kümelerden** geliyordu: payda sınıfın **aktif** öğrencilerini sayıyor, pay ise sınıftan ayrılmış öğrencilerin teslimlerini de sayıyordu (tetikleyici onları bilerek kabul ediyor). 10 aktif öğrencilik bir sınıfta **"12 / 10 teslim"** çıkabiliyordu.
+
+**İlk düzeltme yanlıştı ve yeni bir kusur açtı.** Payda `Math.max(totalStudents, submissionCount)` ile şişirildi ki "12 / 10" görünmesin. İki sonucu oldu:
+
+1. **Payda uyduruldu.** 10 aktif + 2 ayrılmış teslimci = gerçekte 12 kişilik bir kümede ekran **"7 / 10"** yazıyordu. **Makul görünen ve yanlış olan bir sayı, saçma görünen ve doğru olandan kötüdür** — ilki sorgulanmaz.
+2. **Durum bozuldu.** Türetme de o paydayı kullanıyordu: `submissionCount > totalStudents` olduğu an `submissionCount >= effectiveTotalStudents` **her zaman** doğru oluyor ve ödev **"Tamamlandı"** görünüyordu — mevcut sınıfın yarısı getirmemişken.
+
+**Karar iki parçalı:**
+
+**1. Payda birleşimdir.** Sınıfın aktif öğrencileri **∪** o ödevi teslim edenler. Bunun için sayaçlar sayı değil **kimlik** döndürüyor; birleşimin boyutu tek doğru paydadır.
+
+**2. Tutarsız çiftten oran üretilmez.** `mapHomeworkRow`'a pay > payda gelirse iki sayı aynı kümeden gelmiyor demektir: payda **yayımlanmaz** ve "Tamamlandı" **türetilmez**. Bilinmeyen bir şeyi iddia etmektense hiçbir şey söylememek doğrudur (**K-22**).
+
+**Kural olarak:** bir oranın iki sayısı **aynı kümeden** gelmek zorundadır. Gelmiyorsa çözüm, küçük olanı büyütmek ya da büyüğünü kırpmak **değildir** — ya küme düzeltilir ya oran yayımlanmaz. Bu, v1.3-01/D'nin (`exam_participant_count`) ve v1.3-01/C'nin (devam yüzdesi) aynı ailesi: **bir sayı, neyi saydığı bilinmeden gösterilemez.**
+
+⚠️ Üçüncü bir ayrım da kayda geçti: sayaçlar artık `null` ("ölçülemedi" — tavan ya da hata) ile boş küme ("ölçüldü, kimse yok") arasında ayrım yapıyor. İlki sayı üretmez, ikincisi `0` üretir. İkisini birbirine karıştırmak, `submissions_recorded_at` kararının kaldırdığı belirsizliği geri getirirdi.

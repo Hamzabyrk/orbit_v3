@@ -1029,9 +1029,260 @@ describe("v1.4-15 Ödev Teslim Takibi (homework_submissions & K-23)", () => {
       const map = await loadStudentHomeworkRatios("org-1", ["stu-1"]);
       expect(map.get("stu-1")).toBe("1/2");
     });
+
+    it("Ek madde 3: Öğrencinin sınıfa kayıt tarihinden önce verilen ödev orana girmez (Mart'ta gelen Eylül'den sorumlu olmaz)", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "class_enrollments") {
+          return createQueryChain({
+            data: [
+              {
+                student_id: "stu-late",
+                class_id: "cls-1",
+                created_at: "2026-03-01T09:00:00Z", // Mart'ta kayıt olmuş
+              },
+            ],
+            error: null,
+          });
+        }
+        if (table === "homework_assignments") {
+          return createQueryChain({
+            data: [
+              {
+                id: "hw-old",
+                class_id: "cls-1",
+                assigned_on: "2025-09-15", // Mart'tan önce verilmiş
+                submissions_recorded_at: "2025-09-20T12:00:00Z",
+              },
+              {
+                id: "hw-new",
+                class_id: "cls-1",
+                assigned_on: "2026-03-10", // Mart'tan sonra verilmiş
+                submissions_recorded_at: "2026-03-15T12:00:00Z",
+              },
+            ],
+            error: null,
+          });
+        }
+        if (table === "homework_submissions") {
+          return createQueryChain({
+            data: [
+              // Yalnızca yeni ödevi teslim etmiş
+              { homework_id: "hw-new", student_id: "stu-late" },
+            ],
+            error: null,
+          });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+
+      const map = await loadStudentHomeworkRatios("org-1", ["stu-late"]);
+      // Eski ödev hesaba katılmadığı için 1/2 değil, 1/1 olmalıdır
+      expect(map.get("stu-late")).toBe("1/1");
+    });
+  });
+
+  describe("🔴 R2-B: Üç sorguda sessiz tavan (POSTGREST_MAX_ROWS)", () => {
+    it("loadHomework: class_enrollments tavana (1000 satır) ulaştığında totalStudents undefined bırakılır", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "homework_assignments") {
+          return createQueryChain({
+            data: [
+              {
+                id: "hw-1",
+                organization_id: "org-1",
+                class_id: "cls-1",
+                title: "Ödev",
+                assigned_on: "2026-09-10",
+                due_date: "2026-09-20",
+                submissions_recorded_at: "2026-09-13T12:00:00Z",
+              },
+            ],
+            error: null,
+          });
+        }
+        if (table === "class_enrollments") {
+          // 1000 satır döndürerek tavana ulaşıldığını simüle et
+          const fullRows = Array.from({ length: 1000 }, (_, i) => ({
+            class_id: "cls-1",
+            student_id: `stu-${i}`,
+          }));
+          return createQueryChain({ data: fullRows, error: null });
+        }
+        if (table === "homework_submissions") {
+          return createQueryChain({ data: [], error: null });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+
+      const res = await loadHomework("org-1");
+      // Tavana ulaşıldığında yarım/kesik sayı üretilmez, undefined bırakılır
+      expect(res.rows[0].totalStudents).toBeUndefined();
+    });
+
+    it("loadHomework: homework_submissions tavana (1000 satır) ulaştığında submissionCount undefined bırakılır", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "homework_assignments") {
+          return createQueryChain({
+            data: [
+              {
+                id: "hw-1",
+                organization_id: "org-1",
+                class_id: "cls-1",
+                title: "Ödev",
+                assigned_on: "2026-09-10",
+                due_date: "2026-09-20",
+                submissions_recorded_at: "2026-09-13T12:00:00Z",
+              },
+            ],
+            error: null,
+          });
+        }
+        if (table === "class_enrollments") {
+          return createQueryChain({
+            data: [{ class_id: "cls-1", student_id: "stu-1" }],
+            error: null,
+          });
+        }
+        if (table === "homework_submissions") {
+          const fullRows = Array.from({ length: 1000 }, (_, i) => ({
+            homework_id: "hw-1",
+            student_id: `stu-${i}`,
+          }));
+          return createQueryChain({ data: fullRows, error: null });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+
+      const res = await loadHomework("org-1");
+      expect(res.rows[0].submissionCount).toBeUndefined();
+    });
+
+    it("loadStudentHomeworkRatios: herhangi bir sorgu tavana (1000 satır) dayandığında oran üretilmez (undefined)", async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === "class_enrollments") {
+          const fullRows = Array.from({ length: 1000 }, (_, i) => ({
+            student_id: `stu-${i}`,
+            class_id: "cls-1",
+          }));
+          return createQueryChain({ data: fullRows, error: null });
+        }
+        return createQueryChain({ data: [], error: null });
+      });
+
+      const map = await loadStudentHomeworkRatios("org-1", ["stu-1"]);
+      expect(map.get("stu-1")).toBeUndefined();
+    });
   });
 
   describe("HomeworkCard & Durum 'Tamamlandı'", () => {
+    it("🔴 R2-C: submissions_recorded_at boşken submissionCount >= totalStudents olsa bile durum 'Tamamlandı' OLAMAZ", () => {
+      const rawRow: RawHomeworkRow = {
+        id: "hw-1",
+        organization_id: "org-1",
+        class_id: "cls-1",
+        title: "Test Ödevi",
+        assigned_on: "2026-09-10",
+        due_date: "2026-09-20",
+        submissions_recorded_at: null, // İşaretleme bitmemiş
+        archived_at: null,
+      };
+
+      // 20 öğrenciden 20'si de teslim edilmiş görünse bile öğretmen bitirmedim dediği sürece Tamamlandı olamaz
+      const hw = mapHomeworkRow(rawRow, new Map(), "2026-09-13", 20, 20);
+      expect(hw.status).not.toBe("Tamamlandı");
+      expect(hw.status).toBe("Aktif");
+    });
+
+    it("Ek madde 2: submissions_recorded_at doluyken ve submissionCount === 0 iken 0 korunur", () => {
+      const rawRow: RawHomeworkRow = {
+        id: "hw-1",
+        organization_id: "org-1",
+        class_id: "cls-1",
+        title: "Test Ödevi",
+        assigned_on: "2026-09-10",
+        due_date: "2026-09-20",
+        submissions_recorded_at: "2026-09-13T12:00:00Z",
+        archived_at: null,
+      };
+
+      const hw = mapHomeworkRow(rawRow, new Map(), "2026-09-13", 0, 20);
+      expect(hw.submissionCount).toBe(0);
+    });
+
+    it("🔴 payda UYDURULMAZ: pay paydadan büyük gelirse durum 'Tamamlandı' OLAMAZ", () => {
+      // İlk düzeltmede payda `Math.max(totalStudents, submissionCount)` ile
+      // şişirilmişti ki kartta "12 / 10" görünmesin. İki kusur üretiyordu:
+      //   1. Payda uyduruluyordu (10 aktif + 2 ayrılmış teslimci = gerçekte 12
+      //      kişilik kümede "7 / 10" yazıyordu).
+      //   2. `submissionCount > totalStudents` olduğu an koşul HER ZAMAN doğru
+      //      oluyor ve ödev "Tamamlandı" görünüyordu — sınıfın yarısı
+      //      getirmemişken.
+      // Payda artık çağıranda BİRLEŞİM olarak kuruluyor; `mapHomeworkRow`'a
+      // tutarsız bir çift gelirse uydurmaz, "Tamamlandı" demez.
+      const rawRow: RawHomeworkRow = {
+        id: "hw-1",
+        organization_id: "org-1",
+        class_id: "cls-1",
+        title: "Test Ödevi",
+        assigned_on: "2026-09-10",
+        due_date: "2026-09-20",
+        submissions_recorded_at: "2026-09-13T12:00:00Z",
+        archived_at: null,
+      };
+
+      const hw = mapHomeworkRow(rawRow, new Map(), "2026-09-13", 12, 10);
+      expect(hw.submissionCount).toBe(12);
+      // Payda ŞİŞİRİLMİYOR ve YAYIMLANMIYOR: iki sayı aynı kümeden gelmiyorsa
+      // gösterilecek dürüst bir oran yoktur. Kart sayıyı hiç çizmez.
+      expect(hw.totalStudents).toBeUndefined();
+      expect(hw.status).not.toBe("Tamamlandı");
+    });
+
+    it("🔴 payda BİRLEŞİM olarak kuruluyor: ayrılmış teslimci paydaya da girer", async () => {
+      // 2 aktif öğrenci (s1, s2) + ayrılmış s3'ün teslimi → payda 3, pay 2.
+      fromMock.mockImplementation((table: string) => {
+        if (table === "class_enrollments") {
+          return createQueryChain({
+            data: [
+              { class_id: "cls-1", student_id: "s1" },
+              { class_id: "cls-1", student_id: "s2" },
+            ],
+            error: null,
+          });
+        }
+        if (table === "homework_submissions") {
+          return createQueryChain({
+            data: [
+              { homework_id: "hw-1", student_id: "s1" },
+              { homework_id: "hw-1", student_id: "s3" },
+            ],
+            error: null,
+          });
+        }
+        return createQueryChain({
+          data: [
+            {
+              id: "hw-1",
+              organization_id: "org-1",
+              class_id: "cls-1",
+              title: "Test",
+              assigned_on: "2026-09-10",
+              due_date: "2026-09-20",
+              submissions_recorded_at: "2026-09-13T12:00:00Z",
+              archived_at: null,
+            },
+          ],
+          error: null,
+        });
+      });
+      rpcMock.mockResolvedValue({ data: [], error: null });
+
+      const res = await loadHomework("org-1");
+      expect(res.rows[0].submissionCount).toBe(2);
+      expect(res.rows[0].totalStudents).toBe(3);
+      expect(res.rows[0].status).not.toBe("Tamamlandı");
+    });
+
     it("ödev tamamlandığında ve işaretleme bitirildiğinde rozet 'Tamamlandı' ve sayı çizilir", () => {
       const hwCompleted: Homework = {
         id: "hw-done",

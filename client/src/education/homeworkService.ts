@@ -27,6 +27,7 @@ import { formatTrDate, getOrbitToday } from "./trDate";
  */
 
 export const DEFAULT_HOMEWORK_LIMIT = 100;
+export const POSTGREST_MAX_ROWS = 1000;
 
 export type HomeworkListResult = {
   rows: Homework[];
@@ -245,12 +246,24 @@ export async function loadStaffNames(
   return result;
 }
 
-async function loadClassStudentCounts(
+/**
+ * Sınıfların AKTİF öğrenci KİMLİKLERİ.
+ *
+ * ⚠️ Sayı değil **kimlik** döner ve sebebi bir kusurun düzeltilmesi: payda ile
+ * pay farklı kümelerden geliyordu. Sınıftan ayrılmış bir öğrencinin geçmiş
+ * teslimi sayılıyor ama kendisi paydaya girmiyordu; 10 aktif öğrencilik bir
+ * sınıfta 12 teslim çıkabiliyordu. Kimlik döndürünce payda **birleşim** olarak
+ * kurulabiliyor ve uydurulmuş bir sayı olmuyor.
+ */
+async function loadClassStudentIds(
   organizationId: string,
-  classIds: string[]
-): Promise<Map<string, number>> {
+  classIds: string[],
+  limit = POSTGREST_MAX_ROWS
+): Promise<Map<string, Set<string>> | null> {
   const unique = Array.from(new Set(classIds.filter(Boolean)));
   if (unique.length === 0 || !organizationId) return new Map();
+  // null = "ölçülemedi" (tavan ya da hata). Boş Map = "ölçüldü, kimse yok".
+  // İkisi ayrı şeyler: ilki sayı ÜRETTİRMEZ, ikincisi 0 üretir.
 
   try {
     const query = supabase.from("class_enrollments");
@@ -260,25 +273,38 @@ async function loadClassStudentCounts(
       .select("class_id, student_id")
       .eq("organization_id", organizationId)
       .in("class_id", unique)
-      .is("archived_at", null);
+      .is("archived_at", null)
+      .limit(limit);
 
-    if (error || !data) return new Map();
+    if (error || !data) return null;
 
-    const countMap = new Map<string, number>();
-    for (const row of data as { class_id: string; student_id: string }[]) {
-      if (!row.class_id) continue;
-      countMap.set(row.class_id, (countMap.get(row.class_id) ?? 0) + 1);
+    // R2-B: Tavana dayanıldığında veri kesilmiş olabilir; yarım sayı üretmektense ÖLÇÜLEMEDİ denir.
+    if (data.length >= limit) {
+      return null;
     }
-    return countMap;
+
+    const idMap = new Map<string, Set<string>>();
+    for (const row of data as { class_id: string; student_id: string }[]) {
+      if (!row.class_id || !row.student_id) continue;
+      let set = idMap.get(row.class_id);
+      if (!set) {
+        set = new Set();
+        idMap.set(row.class_id, set);
+      }
+      set.add(row.student_id);
+    }
+    return idMap;
   } catch {
-    return new Map();
+    return null;
   }
 }
 
-async function loadHomeworkSubmissionCounts(
+/** Ödevlerin teslim eden öğrenci KİMLİKLERİ (bkz. `loadClassStudentIds`). */
+async function loadHomeworkSubmitterIds(
   organizationId: string,
-  homeworkIds: string[]
-): Promise<Map<string, number>> {
+  homeworkIds: string[],
+  limit = POSTGREST_MAX_ROWS
+): Promise<Map<string, Set<string>> | null> {
   const unique = Array.from(new Set(homeworkIds.filter(Boolean)));
   if (unique.length === 0 || !organizationId) return new Map();
 
@@ -290,18 +316,29 @@ async function loadHomeworkSubmissionCounts(
       .select("homework_id, student_id")
       .eq("organization_id", organizationId)
       .in("homework_id", unique)
-      .is("archived_at", null);
+      .is("archived_at", null)
+      .limit(limit);
 
-    if (error || !data) return new Map();
+    if (error || !data) return null;
 
-    const countMap = new Map<string, number>();
-    for (const row of data as { homework_id: string; student_id: string }[]) {
-      if (!row.homework_id) continue;
-      countMap.set(row.homework_id, (countMap.get(row.homework_id) ?? 0) + 1);
+    // R2-B: Tavana dayanıldığında veri kesilmiş olabilir; yarım sayı üretmektense ÖLÇÜLEMEDİ denir.
+    if (data.length >= limit) {
+      return null;
     }
-    return countMap;
+
+    const idMap = new Map<string, Set<string>>();
+    for (const row of data as { homework_id: string; student_id: string }[]) {
+      if (!row.homework_id || !row.student_id) continue;
+      let set = idMap.get(row.homework_id);
+      if (!set) {
+        set = new Set();
+        idMap.set(row.homework_id, set);
+      }
+      set.add(row.student_id);
+    }
+    return idMap;
   } catch {
-    return new Map();
+    return null;
   }
 }
 
@@ -318,13 +355,37 @@ export function mapHomeworkRow(
     ? (staffNames.get(row.assigned_by_membership_id) ?? null)
     : null;
 
+  const isRecorded = Boolean(row.submissions_recorded_at);
   const isOverdue = row.due_date < today;
-  let status: HomeworkStatus;
-  if (
+
+  // ⚠️ Burada `Math.max(totalStudents, submissionCount)` YOK ve olmamalı.
+  // İlk düzeltmede "12 / 10" görünmesin diye payda öyle şişirilmişti; bu
+  // **uydurulmuş bir payda** üretiyordu (10 aktif + 2 ayrılmış teslimci =
+  // gerçekte 12 kişilik kümede "7 / 10" yazıyordu) ve daha kötüsü, durumu
+  // bozuyordu: `submissionCount > totalStudents` olduğu an koşul HER ZAMAN
+  // doğru oluyor ve ödev "Tamamlandı" görünüyordu — mevcut sınıfın yarısı
+  // getirmemişken. Payda artık çağıranda **birleşim** olarak kuruluyor.
+  // ⚠️ Tutarsız çift savunması: pay paydadan büyükse iki sayı **aynı kümeden
+  // gelmiyor** demektir. Böyle bir çiftten "Tamamlandı" türetmek bilinmeyen bir
+  // şeyi iddia etmek olur; payda da uydurulmaz, olduğu gibi bırakılır.
+  const tutarsiz =
     totalStudents !== undefined &&
-    totalStudents > 0 &&
     submissionCount !== undefined &&
-    submissionCount >= totalStudents
+    submissionCount > totalStudents;
+
+  const effectiveTotalStudents =
+    totalStudents !== undefined && totalStudents > 0 && !tutarsiz
+      ? totalStudents
+      : undefined;
+
+  let status: HomeworkStatus;
+  // R2-C: submissions_recorded_at boşken durum "Tamamlandı" OLAMAZ!
+  if (
+    isRecorded &&
+    effectiveTotalStudents !== undefined &&
+    effectiveTotalStudents > 0 &&
+    submissionCount !== undefined &&
+    submissionCount >= effectiveTotalStudents
   ) {
     status = "Tamamlandı";
   } else {
@@ -344,14 +405,16 @@ export function mapHomeworkRow(
     dueDate: formatTrDate(row.due_date),
     rawDueDate: row.due_date,
     status,
+    // Ek madde 2: İşaretlemesi bitmiş bir ödevde 0 teslim dürüst bir bilgidir, korunur.
     submissionCount:
-      submissionCount !== undefined && submissionCount > 0
-        ? submissionCount
+      submissionCount !== undefined
+        ? isRecorded
+          ? submissionCount
+          : submissionCount > 0
+            ? submissionCount
+            : undefined
         : undefined,
-    totalStudents:
-      totalStudents !== undefined && totalStudents > 0
-        ? totalStudents
-        : undefined,
+    totalStudents: effectiveTotalStudents,
     submissionsRecordedAt: row.submissions_recorded_at ?? null,
   };
 }
@@ -401,22 +464,36 @@ export async function loadHomework(
   const homeworkIds = rawRows.map(r => r.id);
   const today = getOrbitToday();
 
-  const [staffNames, classStudentCounts, homeworkSubmissionCounts] =
-    await Promise.all([
+  const [staffNames, classStudentIds, homeworkSubmitterIds] = await Promise.all(
+    [
       loadStaffNames(classIds),
-      loadClassStudentCounts(organizationId, classIds),
-      loadHomeworkSubmissionCounts(organizationId, homeworkIds),
-    ]);
+      loadClassStudentIds(organizationId, classIds),
+      loadHomeworkSubmitterIds(organizationId, homeworkIds),
+    ]
+  );
 
-  const rows = rawRows.map(row =>
-    mapHomeworkRow(
+  const rows = rawRows.map(row => {
+    const submitters = homeworkSubmitterIds?.get(row.id);
+    const classStudents = classStudentIds?.get(row.class_id);
+    const olculdu = homeworkSubmitterIds !== null && classStudentIds !== null;
+
+    // Payda, payın geldiği kümeyle AYNI olmak zorunda: sınıfın aktif
+    // öğrencileri **birleşim** teslim edenler. Sınıftan ayrılmış bir öğrencinin
+    // teslimi sayılıyorsa kendisi de paydaya girer; girmezse "12 / 10" gibi bir
+    // oran ya da uydurulmuş bir payda çıkar (**K-03**).
+    const total =
+      !olculdu || classStudents === undefined
+        ? undefined
+        : new Set([...classStudents, ...(submitters ?? [])]).size;
+
+    return mapHomeworkRow(
       row,
       staffNames,
       today,
-      homeworkSubmissionCounts.get(row.id),
-      classStudentCounts.get(row.class_id)
-    )
-  );
+      olculdu ? (submitters?.size ?? 0) : undefined,
+      total
+    );
+  });
 
   return {
     rows,
@@ -734,7 +811,8 @@ export async function setSubmissionsRecorded(
  */
 export async function loadStudentHomeworkRatios(
   organizationId: string,
-  studentIds: string[]
+  studentIds: string[],
+  options?: { limit?: number }
 ): Promise<Map<string, string>> {
   const uniqueStudentIds = Array.from(
     new Set(studentIds.filter(id => Boolean(id) && typeof id === "string"))
@@ -743,22 +821,35 @@ export async function loadStudentHomeworkRatios(
     return new Map();
   }
 
+  const limit = options?.limit ?? POSTGREST_MAX_ROWS;
+
   // 1. Öğrencilerin aktif sınıf kayıtlarını çek
   const { data: enrollData, error: enrollError } = await supabase
     .from("class_enrollments")
-    .select("student_id, class_id")
+    .select("student_id, class_id, created_at")
     .eq("organization_id", organizationId)
     .in("student_id", uniqueStudentIds)
-    .is("archived_at", null);
+    .is("archived_at", null)
+    .limit(limit);
 
   if (enrollError || !enrollData) {
     return new Map();
   }
 
+  // R2-B: Tavana dayanıldığında veri kesilmiş olabilir; yarım sayı üretmektense undefined bırakılır.
+  if (enrollData.length >= limit) {
+    return new Map();
+  }
+
   const studentClassesMap = new Map<string, Set<string>>();
+  const studentEnrollmentDates = new Map<string, Map<string, string>>();
   const classIdsSet = new Set<string>();
 
-  for (const row of enrollData as { student_id: string; class_id: string }[]) {
+  for (const row of enrollData as {
+    student_id: string;
+    class_id: string;
+    created_at?: string | null;
+  }[]) {
     if (!row.student_id || !row.class_id) continue;
     let classes = studentClassesMap.get(row.student_id);
     if (!classes) {
@@ -767,6 +858,15 @@ export async function loadStudentHomeworkRatios(
     }
     classes.add(row.class_id);
     classIdsSet.add(row.class_id);
+
+    if (row.created_at) {
+      let dates = studentEnrollmentDates.get(row.student_id);
+      if (!dates) {
+        dates = new Map();
+        studentEnrollmentDates.set(row.student_id, dates);
+      }
+      dates.set(row.class_id, row.created_at.slice(0, 10));
+    }
   }
 
   if (classIdsSet.size === 0) {
@@ -776,13 +876,19 @@ export async function loadStudentHomeworkRatios(
   // 2. Bu sınıflara ait aktif ve teslim işaretlemesi bitirilmiş ödevleri çek (R1)
   const { data: hwData, error: hwError } = await supabase
     .from("homework_assignments")
-    .select("id, class_id, submissions_recorded_at")
+    .select("id, class_id, assigned_on, submissions_recorded_at")
     .eq("organization_id", organizationId)
     .in("class_id", Array.from(classIdsSet))
     .is("archived_at", null)
-    .not("submissions_recorded_at", "is", null);
+    .not("submissions_recorded_at", "is", null)
+    .limit(limit);
 
   if (hwError || !hwData) {
+    return new Map();
+  }
+
+  // R2-B: Tavana dayanıldığında veri kesilmiş olabilir; yarım sayı üretmektense undefined bırakılır.
+  if (hwData.length >= limit) {
     return new Map();
   }
 
@@ -791,6 +897,7 @@ export async function loadStudentHomeworkRatios(
     hwData as {
       id: string;
       class_id: string;
+      assigned_on?: string;
       submissions_recorded_at?: string | null;
     }[]
   ).filter(
@@ -811,9 +918,15 @@ export async function loadStudentHomeworkRatios(
     .select("homework_id, student_id")
     .eq("organization_id", organizationId)
     .in("homework_id", homeworkIds)
-    .is("archived_at", null);
+    .is("archived_at", null)
+    .limit(limit);
 
   if (subError || !subData) {
+    return new Map();
+  }
+
+  // R2-B: Tavana dayanıldığında veri kesilmiş olabilir; yarım sayı üretmektense undefined bırakılır.
+  if (subData.length >= limit) {
     return new Map();
   }
 
@@ -829,11 +942,14 @@ export async function loadStudentHomeworkRatios(
     submitted.add(row.homework_id);
   }
 
-  // Sınıf -> o sınıfa ait ve işaretlemesi bitirilmiş ödevlerin kimlikleri
-  const classRecordedHomeworksMap = new Map<string, string[]>();
+  // Sınıf -> o sınıfa ait ve işaretlemesi bitirilmiş ödevler
+  const classRecordedHomeworksMap = new Map<
+    string,
+    { id: string; assignedOn?: string }[]
+  >();
   for (const hw of recordedHomeworkRows) {
     const list = classRecordedHomeworksMap.get(hw.class_id) ?? [];
-    list.push(hw.id);
+    list.push({ id: hw.id, assignedOn: hw.assigned_on });
     classRecordedHomeworksMap.set(hw.class_id, list);
   }
 
@@ -845,26 +961,39 @@ export async function loadStudentHomeworkRatios(
       continue;
     }
 
-    const studentRecordedHwIds = new Set<string>();
+    const submittedSet = studentSubmittedHomeworks.get(studentId);
+    const enrollmentDateMap = studentEnrollmentDates.get(studentId);
+    const studentApplicableHwIds = new Set<string>();
+
     for (const cId of studentClasses) {
-      const hwIds = classRecordedHomeworksMap.get(cId);
-      if (hwIds) {
-        for (const hid of hwIds) {
-          studentRecordedHwIds.add(hid);
+      const hwList = classRecordedHomeworksMap.get(cId);
+      if (!hwList) continue;
+
+      const enrolledOn = enrollmentDateMap?.get(cId);
+
+      for (const hw of hwList) {
+        if (submittedSet?.has(hw.id)) {
+          studentApplicableHwIds.add(hw.id);
+        } else {
+          // Ek madde 3: Ödev öğrencinin sınıfa kayıt tarihinden önce verilmişse
+          // öğrenci sorumlu tutulmaz (K-03/K-22).
+          if (enrolledOn && hw.assignedOn && hw.assignedOn < enrolledOn) {
+            continue;
+          }
+          studentApplicableHwIds.add(hw.id);
         }
       }
     }
 
-    const totalRecorded = studentRecordedHwIds.size;
-    // R1 & K-22: İşaretlemesi bitirilmiş ödev yoksa "0/0" veya "0/9" uydurulmaz, undefined kalır
+    const totalRecorded = studentApplicableHwIds.size;
+    // R1 & K-22: Öğrencinin sorumlu olduğu bitirilmiş ödev yoksa "0/0" veya "0/9" uydurulmaz, undefined kalır
     if (totalRecorded === 0) {
       continue;
     }
 
-    const submittedSet = studentSubmittedHomeworks.get(studentId);
     let submittedCount = 0;
     if (submittedSet) {
-      for (const hid of studentRecordedHwIds) {
+      for (const hid of studentApplicableHwIds) {
         if (submittedSet.has(hid)) {
           submittedCount++;
         }
