@@ -15,7 +15,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(17);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -27,6 +27,14 @@ values
    'authenticated', 'authenticated', 'akis-ogretmen-a@example.test', '', now(), now()),
   ('f3000000-0000-0000-0000-0000000000f3', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'akis-ogretmen-b@example.test', '', now(), now());
+
+-- `on_auth_user_created` profili kendisi yaratıyor; adları deterministik yap.
+update public.profiles set display_name = 'Müdür Hanım'
+where id = 'f1000000-0000-0000-0000-0000000000f1';
+update public.profiles set display_name = 'Öğretmen A'
+where id = 'f2000000-0000-0000-0000-0000000000f2';
+update public.profiles set display_name = 'Öğretmen B'
+where id = 'f3000000-0000-0000-0000-0000000000f3';
 
 insert into public.organizations (id, name, slug, code)
 values ('ff000000-0000-0000-0000-0000000000ff', 'Kurum Akis', 'kurum-akis-v1412', 7941);
@@ -195,6 +203,83 @@ select is(
   0::bigint,
   'but the notice BODY never enters the ledger — deliberate, the ledger is permanent'
 );
+
+-- =========================================================================
+-- 5. 🔴 Yazarın bir adı var — ve kurum geneli duyuruda da çözülüyor
+-- =========================================================================
+--
+-- İnceleme turunun engelleyici bulgusu: istemci yazar adını
+-- `class_staff_names`'ten çözüyordu ve o fonksiyon yalnız SINIF personelini
+-- döndürüyor. Kurum geneli duyuruda sınıf yok, yazarı da yalnız yönetici
+-- olabiliyor — yani müdürün her duyurusu ekranda "adı okunamadı" diyordu.
+--
+-- `feed_post_authors` onun yerine geçiyor ve kapsamı DUYURU.
+
+-- Yönetici kendi yazdığı kurum geneli duyurunun yazarını görüyor.
+select set_config('request.jwt.claim.sub', 'f1000000-0000-0000-0000-0000000000f1', true);
+set local role authenticated;
+
+select is(
+  (select display_name from public.feed_post_authors(
+     array(select id from public.daily_feed_posts where class_id is null)
+   )),
+  'Müdür Hanım',
+  'an administrator resolves the author of their own organization-wide notice'
+);
+
+-- 🔴 ASIL İDDİA: öğretmen de kurum geneli duyurunun yazarını görebiliyor.
+-- Eski yol (`class_staff_names`) burada boş dönerdi: sınıf yok.
+select set_config('request.jwt.claim.sub', 'f2000000-0000-0000-0000-0000000000f2', true);
+
+select is(
+  (select display_name from public.feed_post_authors(
+     array(select id from public.daily_feed_posts where class_id is null)
+   )),
+  'Müdür Hanım',
+  'a TEACHER also resolves the author of an organization-wide notice — the defect this replaces'
+);
+
+-- Öğretmen kendi sınıf duyurusunun yazarını da görüyor (kendisi).
+select is(
+  (select display_name from public.feed_post_authors(
+     array(select id from public.daily_feed_posts
+           where class_id = 'fc000000-0000-0000-0000-0000000000fc')
+   )),
+  'Öğretmen A',
+  'and the author of their own class notice'
+);
+
+-- Kapsam gerçekten sınırlı: okutmadığı bir sınıfın duyurusunu çözemiyor.
+reset role;
+
+insert into public.classes (id, organization_id, branch_id, name)
+values ('fd000000-0000-0000-0000-0000000000fd', 'ff000000-0000-0000-0000-0000000000ff',
+        'ff100000-0000-0000-0000-000000000011', '9-D');
+
+insert into public.daily_feed_posts (id, organization_id, class_id, author_membership_id, title)
+values ('fe000000-0000-0000-0000-0000000000fe', 'ff000000-0000-0000-0000-0000000000ff',
+        'fd000000-0000-0000-0000-0000000000fd', '5a000000-0000-0000-0000-000000000001',
+        'Baska sinifin duyurusu');
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'f2000000-0000-0000-0000-0000000000f2', true);
+
+select is(
+  (select count(*) from public.feed_post_authors(
+     array['fe000000-0000-0000-0000-0000000000fe'::uuid]
+   )),
+  0::bigint,
+  'but a teacher canNOT resolve the author of a notice in a class they do not teach'
+);
+
+select is(
+  (select count(*) from public.daily_feed_posts
+   where id = 'fe000000-0000-0000-0000-0000000000fe'),
+  0::bigint,
+  'consistent with RLS: they cannot see that notice at all'
+);
+
+reset role;
 
 select * from finish();
 rollback;
