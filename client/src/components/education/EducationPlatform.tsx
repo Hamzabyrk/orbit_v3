@@ -942,6 +942,8 @@ export function EducationPlatform({
           role={role}
           message={message}
           setMessage={setMessage}
+          organizationId={organizationId}
+          classes={activeClasses}
         />
       );
     if (active === "Kayıt ve Ödemeler")

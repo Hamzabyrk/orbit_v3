@@ -2816,3 +2816,25 @@ Engellenen şey bugün birine erişim veren atama ve bu hafta okutulan program s
 Ekranda "Düzenle" düğmesi **yok**. Olsaydı, arkasında yapılacak tek şey yine kaldır+ekle olurdu ve kullanıcıya tek bir işlem yapıyormuş gibi görünürdü.
 
 ⚠️ **Ölçüm notu:** bu kısıtın bir **sütun yetkisi** olduğunu görmek için `role_column_grants`'a bakmak gerekti. `role_table_grants` üç tabloda da yalnız `SELECT` gösteriyor ve ona bakıp "politikalar var ama GRANT yok, yani politikalar ölü" sonucuna varmak üzereydim. v1.4-09'daki `is_default` hatasıyla aynı aile: **doğru yere bakmadan yokluk iddia edilmez.**
+
+---
+
+### Karar: Yazarın adı bir RPC'den gelir — çünkü RLS onu kimseye vermiyor
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-12 duyuru panosunu açtı ve ilk teslimde **kurum geneli her duyuru ekranda "adı okunamadı" diyordu.** Ölçüldü (istemci birim testi): kurum geneli bir duyuruda ad çözen RPC **hiç çağrılmıyor**, yazar yedeğe düşüyor.
+
+Sebep bir kod hatası değil, **yanlış kaynağa sorulmasıydı**: ad `class_staff_names`'ten çözülüyordu ve o fonksiyon tanımı gereği yalnız **sınıfın** mentorunu, atanmış öğretmenlerini ve programdaki vekilini döndürür. Kurum geneli duyuruda sınıf yoktur — ve onu yalnız yönetici yazabilir.
+
+**Ve istemcide çözülemiyor.** `profiles`'ın SELECT politikaları üç tane: kişinin kendisi, kurum yöneticisi, platform operatörü. Bir öğrenci, veli veya öğretmen başka bir üyenin profilini **okuyamaz** — bu v1.3-01'de bilinçle çizilmiş bir sınır (#228 tam oradan doğdu).
+
+**Karar: `feed_post_authors(uuid[])`.** `class_staff_names`'in aynası — `security definer`, `authenticated`'a açık, ve çağıranın **görebildiği** kapsamla sınırlı. Farkı kapsamın birimi: sınıf değil **duyuru**.
+
+⚠️ **Görünürlük koşulu uydurulmadı, `daily_feed_posts`'un beş SELECT politikasından kopyalandı.** `security definer` RLS'i atladığı için bu kopya **zorunlu** — bir politikayı fonksiyondan çağırmanın yolu yok. Bu, K-06'nın ("aynı olgu iki yerde tutulursa biri eskir") bilinçli kabul edilmiş bir istisnası ve bedeli yazılı: bir politika değişirse burası da değişmeli. Karşılığı test — `feed_post_authorship.test.sql` beş rolü de sınıyor.
+
+**Advisor sayısı 28'den 29'a çıktı ve bu kararın parçası.** `0029` `authenticated` tarafından çağrılabilen her `security definer` fonksiyonu sayar; bu fonksiyonun çağrılabilir olması işin **tanımı**. Artışın kendisi uyarı değildir; **açıklanamayan** artış uyarıdır (`PLATFORM_SETTINGS` §6).
+
+**Kayda değer ikinci şey — testler kusuru neden kaçırdı.** Mevcut testler **yedeği** sınıyordu: _"ad çözülemediğinde `adı okunamadı` döner"_. Doğruydu ve geçiyordu. Ama kusur tam da **her zaman** yedeğe düşülmesiydi. **Doğru davranışı çivileyen bir test, yanlış olanı yakalamaz.** K-23'ün bir akrabası: test kodun yaptığı şeyi değil, kodun yapması gerekeni ölçmeli.

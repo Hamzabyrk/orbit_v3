@@ -152,6 +152,12 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
     expect(keys).toContainEqual(educationKeys.schedule(orgId));
   });
 
+  it("16. daily_feed_posts: günlük akış duyuru panosu sorgusunu tazeler (#288)", () => {
+    const keys = getAffectedQueryKeys("daily_feed_posts", orgId);
+    expect(keys).toHaveLength(1);
+    expect(keys).toContainEqual(educationKeys.feed(orgId));
+  });
+
   it("⛔ Hiçbir tekil tablo mesajı toptan tazeleme (educationKeys.all) döndürmez", () => {
     const tables: EducationTable[] = [
       "students",
@@ -170,6 +176,7 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
       "branches",
       "subjects",
       "class_teachers",
+      "daily_feed_posts",
     ];
 
     for (const tbl of tables) {

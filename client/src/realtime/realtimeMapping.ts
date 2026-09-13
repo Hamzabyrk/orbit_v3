@@ -23,7 +23,8 @@ export type EducationTable =
   | "student_guardians"
   | "branches"
   | "subjects"
-  | "class_teachers";
+  | "class_teachers"
+  | "daily_feed_posts";
 
 /**
  * Toplu tetikleyici veya içe aktarma sırasındaki mesajları birleştirme süresi (ms).
@@ -197,6 +198,10 @@ export function getAffectedQueryKeys(
         educationKeys.classes(organizationId),
         educationKeys.schedule(organizationId),
       ];
+
+    case "daily_feed_posts":
+      // Günlük akış duyurusu eklenince, güncellenince veya arşivlenince pano sorgusu etkilenir (#288)
+      return [educationKeys.feed(organizationId)];
 
     default:
       // Bilinmeyen veya dinlenmeyen tablolar sessizce yoksayılır

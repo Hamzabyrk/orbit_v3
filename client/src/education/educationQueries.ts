@@ -47,6 +47,11 @@ import {
   type GuardianListResult,
   type StudentGuardianLink,
 } from "./guardianService";
+import {
+  DEFAULT_FEED_LIMIT,
+  loadFeedPosts,
+  type FeedPostListResult,
+} from "./feedService";
 
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
@@ -144,6 +149,20 @@ export const educationKeys = {
           { organizationId, studentId },
         ] as const)
       : (["education", "studentGuardians", { organizationId }] as const);
+  },
+  feed: (
+    organizationId: string,
+    options?: { classId?: string | null; includeArchived?: boolean }
+  ) => {
+    return [
+      "education",
+      "feed",
+      {
+        organizationId,
+        classId: options?.classId,
+        includeArchived: options?.includeArchived,
+      },
+    ] as const;
   },
 };
 
@@ -587,6 +606,41 @@ export function useStudentGuardians(
           { organizationId: "", studentId },
         ] as const),
     queryFn: () => loadStudentGuardianLinks(organizationId!, studentId),
+    enabled: isEnabled,
+  });
+}
+
+export type UseFeedPostsOptions = {
+  organizationId?: string;
+  classId?: string | null;
+  includeArchived?: boolean;
+  limit?: number;
+  enabled?: boolean;
+};
+
+/**
+ * Aktif kurumun günlük akış duyurularını getiren React Query hook'u (#288).
+ */
+export function useFeedPosts(options?: UseFeedPostsOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const limit = options?.limit ?? DEFAULT_FEED_LIMIT;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<FeedPostListResult, Error>({
+    queryKey: organizationId
+      ? educationKeys.feed(organizationId, {
+          classId: options?.classId,
+          includeArchived: options?.includeArchived,
+        })
+      : (["education", "feed", { organizationId: "" }] as const),
+    queryFn: () =>
+      loadFeedPosts(organizationId!, {
+        classId: options?.classId,
+        includeArchived: options?.includeArchived,
+        limit,
+      }),
     enabled: isEnabled,
   });
 }
