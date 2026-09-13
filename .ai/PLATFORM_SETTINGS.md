@@ -548,6 +548,10 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 >
 > ✅ **28 on ikinci kez ölçüldü (2026-09-13, #287 merge sonrası).** `enforce_subject_is_unused_before_archive` listede **çıkmadı** — `revoke` tuttu. Bu turda advisor API'si yerine lint'lerin hesaplandığı **şema olguları** ölçüldü: `0029` için 25, `rls_enabled_no_policy` için 2 (`internal_function_calls`, `workspace_documents`), üçüncüsü dokunulmamış bir Auth ayarı.
 >
+> ✅ **29 ölçüldü (2026-09-13, #289 merge sonrası) — bilerek bozulan tahmin tam beklenen yerde bozuldu.** Dağılım: **26** × `0029` + 1 sızmış şifre + 2 × `rls_enabled_no_policy`. `feed_post_authors` listede, üç kardeşiyle (`class_staff_names`, `exam_ranking`, `exam_participant_count`) birlikte.
+>
+> 📌 **v1.4-13 için tahmin: değişmez (29).** Dilimin **migration'ı yok** — şema eksiksizdi. Çıktı yalnız bir pgTAP testi; test advisor üretmez.
+>
 > 🔴 **v1.4-12 için tahmin: 28 → 29. Sayı BİLEREK artıyor ve on iki turluk seri burada bitiyor.**
 >
 > Sebep `feed_post_authors(uuid[])`: `security definer` **ve** `authenticated`'a açık olmak **zorunda**, çünkü işi tam olarak "RLS'in vermediği bir veriyi kontrollü biçimde vermek". `profiles` bir öğrenciye, veliye veya öğretmene başka bir üyenin adını vermiyor (bilinçli sınır, #228); duyurunun yazarının adı ise görünmek zorunda. `class_staff_names`, `exam_ranking` ve `exam_participant_count` aynı ailedendir ve üçü de o 25'in içinde.

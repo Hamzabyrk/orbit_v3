@@ -701,6 +701,10 @@ export function EducationPlatform({
                   : updater,
             }))
           }
+          isDemo={isDemoMode}
+          organizationId={organizationId}
+          membershipId={identity?.membership?.membershipId}
+          schedule={activeSchedule}
         />
       );
     }

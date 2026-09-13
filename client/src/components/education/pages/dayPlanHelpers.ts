@@ -2,12 +2,36 @@ import {
   eachDayOfInterval,
   endOfMonth,
   endOfWeek,
+  format,
   isSameDay,
   parseISO,
   startOfMonth,
   startOfWeek,
 } from "date-fns";
-import type { DayPlanEvent, DayPlanTask } from "../types";
+import type { CalendarEventItem } from "@/education/dayPlanService";
+import { getOrbitToday } from "@/education/trDate";
+import { dateToIsoWeekDay } from "@/education/weekDays";
+import type {
+  DayPlanAppointmentMode,
+  DayPlanAppointmentType,
+  DayPlanEvent,
+  DayPlanTask,
+  ScheduleItem,
+} from "../types";
+
+export type DayPlanDisplayEvent = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  startTime: string;
+  endTime?: string | null;
+  title: string;
+  subtitle?: string | null;
+  isLesson: boolean;
+  rawEvent?: CalendarEventItem;
+  rawLesson?: ScheduleItem;
+  mode?: DayPlanAppointmentMode;
+  type?: DayPlanAppointmentType;
+};
 
 export function getMonthGridDays(month: Date): Date[] {
   return eachDayOfInterval({
@@ -21,6 +45,110 @@ export function getEventsForDay(
   day: Date
 ): DayPlanEvent[] {
   return events.filter(event => isSameDay(parseISO(event.date), day));
+}
+
+export function getDisplayEventsForDay(
+  events: DayPlanDisplayEvent[],
+  day: Date
+): DayPlanDisplayEvent[] {
+  const targetDateStr = format(day, "yyyy-MM-dd");
+  return events
+    .filter(event => event.date === targetDateStr)
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+}
+
+/**
+ * Gün Planı takvimi için ders satırlarını role göre süzer (§5).
+ *
+ * ⚠️ Öğretmende `membership_id` süzgeci zorunludur: okuttuğu sınıfın başka
+ * öğretmenlerinin dersleri kendi gününde çizilmez.
+ * Öğrenci ve veli ise sınıfın tüm derslerini görür.
+ */
+export function filterLessonsForDayPlan(
+  schedule: ScheduleItem[],
+  role: string,
+  membershipId?: string | null
+): ScheduleItem[] {
+  if (role === "teacher" || role === "admin") {
+    if (!membershipId) return [];
+    return schedule.filter(item => item.membershipId === membershipId);
+  }
+  return schedule;
+}
+
+/**
+ * Belirli bir ay aralığı için kişisel etkinlikler ile ders programını birleştirir (§5).
+ */
+export function buildMonthDisplayEvents(
+  month: Date,
+  personalEvents: CalendarEventItem[],
+  schedule: ScheduleItem[]
+): DayPlanDisplayEvent[] {
+  const days = getMonthGridDays(month);
+  const result: DayPlanDisplayEvent[] = [];
+
+  // Kişisel etkinlikleri tarihlerine göre haritala (Europe/Istanbul gününe göre)
+  for (const event of personalEvents) {
+    const eventDate = new Date(event.startsAt);
+    const dateStr = getOrbitToday(eventDate);
+    const startTime = new Intl.DateTimeFormat("tr-TR", {
+      timeZone: "Europe/Istanbul",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(eventDate);
+    const endTime = event.endsAt
+      ? new Intl.DateTimeFormat("tr-TR", {
+          timeZone: "Europe/Istanbul",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(new Date(event.endsAt))
+      : null;
+
+    result.push({
+      id: `personal-${event.id}`,
+      date: dateStr,
+      startTime,
+      endTime,
+      title: event.title,
+      subtitle: event.subtitle,
+      isLesson: false,
+      rawEvent: event,
+    });
+  }
+
+  // Takvimde görünen her gün için haftalık tekrarlayan dersleri ekle
+  for (const day of days) {
+    const dateStr = format(day, "yyyy-MM-dd");
+    const dayIso = dateToIsoWeekDay(day);
+
+    const dayLessons = schedule.filter(lesson => lesson.dayOfWeek === dayIso);
+    for (const lesson of dayLessons) {
+      const startTime =
+        lesson.startsAt ??
+        (lesson.time ? lesson.time.split("-")[0].trim() : "09:00");
+      const endTime =
+        lesson.endsAt ??
+        (lesson.time && lesson.time.includes("-")
+          ? lesson.time.split("-")[1].trim()
+          : null);
+
+      result.push({
+        id: `lesson-${lesson.id ?? lesson.title}-${dateStr}-${startTime}`,
+        date: dateStr,
+        startTime,
+        endTime,
+        title: lesson.title,
+        subtitle:
+          [lesson.group, lesson.teacher, lesson.room]
+            .filter(Boolean)
+            .join(" · ") || null,
+        isLesson: true,
+        rawLesson: lesson,
+      });
+    }
+  }
+
+  return result;
 }
 
 export function getTodayTaskCount(tasks: DayPlanTask[]): number {

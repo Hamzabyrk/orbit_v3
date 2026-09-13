@@ -1,13 +1,40 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { addMonths, format, startOfMonth, subMonths } from "date-fns";
 import { tr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { DayPlanEvent } from "../types";
+import type { CalendarEventItem } from "@/education/dayPlanService";
+import type { DayPlanEvent, ScheduleItem } from "../types";
 import { DayPlanAgenda } from "./DayPlanAgenda";
 import { DayPlanMonthGrid } from "./DayPlanMonthGrid";
-import { getEventsForDay } from "./dayPlanHelpers";
+import {
+  buildMonthDisplayEvents,
+  type DayPlanDisplayEvent,
+  filterLessonsForDayPlan,
+  getDisplayEventsForDay,
+  getEventsForDay,
+} from "./dayPlanHelpers";
 
-export function DayPlanCalendar({ events }: { events: DayPlanEvent[] }) {
+export type DayPlanCalendarProps = {
+  events?: DayPlanEvent[];
+  personalEvents?: CalendarEventItem[];
+  schedule?: ScheduleItem[];
+  role?: string;
+  organizationId?: string;
+  membershipId?: string;
+  isDemo?: boolean;
+  onEditEvent?: (event: CalendarEventItem) => void;
+};
+
+export function DayPlanCalendar({
+  events,
+  personalEvents,
+  schedule,
+  role = "",
+  organizationId = "",
+  membershipId = "",
+  isDemo = false,
+  onEditEvent,
+}: DayPlanCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(() =>
     startOfMonth(new Date())
   );
@@ -18,6 +45,45 @@ export function DayPlanCalendar({ events }: { events: DayPlanEvent[] }) {
     setCurrentMonth(startOfMonth(today));
     setSelectedDate(today);
   };
+
+  const displayEvents: (DayPlanEvent | DayPlanDisplayEvent)[] = useMemo(() => {
+    if (isDemo || events) {
+      return events ?? [];
+    }
+
+    const filteredSchedule = filterLessonsForDayPlan(
+      schedule ?? [],
+      role,
+      membershipId
+    );
+
+    return buildMonthDisplayEvents(
+      currentMonth,
+      personalEvents ?? [],
+      filteredSchedule
+    );
+  }, [
+    isDemo,
+    events,
+    personalEvents,
+    schedule,
+    role,
+    membershipId,
+    currentMonth,
+  ]);
+
+  const selectedDateEvents = useMemo(() => {
+    if (isDemo || events) {
+      return getEventsForDay(
+        (displayEvents as DayPlanEvent[]) ?? [],
+        selectedDate
+      );
+    }
+    return getDisplayEventsForDay(
+      displayEvents as DayPlanDisplayEvent[],
+      selectedDate
+    );
+  }, [isDemo, events, displayEvents, selectedDate]);
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
@@ -53,7 +119,7 @@ export function DayPlanCalendar({ events }: { events: DayPlanEvent[] }) {
           <DayPlanMonthGrid
             currentMonth={currentMonth}
             selectedDate={selectedDate}
-            events={events}
+            events={displayEvents}
             onSelectDate={setSelectedDate}
           />
         </div>
@@ -61,7 +127,10 @@ export function DayPlanCalendar({ events }: { events: DayPlanEvent[] }) {
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
         <DayPlanAgenda
           selectedDate={selectedDate}
-          events={getEventsForDay(events, selectedDate)}
+          events={selectedDateEvents}
+          organizationId={organizationId}
+          membershipId={membershipId}
+          onEditEvent={onEditEvent}
         />
       </section>
     </div>

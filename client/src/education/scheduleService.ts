@@ -7,10 +7,8 @@ import { isoToWeekDay } from "./weekDays";
  *
  * `schedule_entries` tablosunu gerçek Supabase sorgusuna bağlar.
  *
- * **Kapsam sorgulanmıyor (K-06):** `organization_id` filtresi sorguya yazılmaz.
- * Kapsam veritabanı düzeyinde RLS ile çözülür (`schedule_entries_select_admin`,
- * `schedule_entries_select_teacher`, `schedule_entries_select_student`,
- * `schedule_entries_select_guardian`).
+ * **Açık organization_id süzgeci (K-24 / v1.4-13 R2):** Sorguda açıkça
+ * `organization_id` filtresi yer alır; RLS ve servis katmanı birlikte korur.
  *
  * **Arşiv filtresi zorunludur:** `archived_at is null` filtresi uygulanır.
  *
@@ -217,8 +215,13 @@ export function mapScheduleRow(
 }
 
 export async function loadSchedule(
+  organizationId: string,
   limit = DEFAULT_SCHEDULE_LIMIT
 ): Promise<ScheduleListResult> {
+  if (!organizationId) {
+    return { rows: [], truncated: false };
+  }
+
   const { data, error } = await supabase
     .from("schedule_entries")
     .select(
@@ -236,6 +239,7 @@ export async function loadSchedule(
       subjects ( id, name, archived_at )
     `
     )
+    .eq("organization_id", organizationId)
     .is("archived_at", null)
     .order("day_of_week", { ascending: true })
     .order("starts_at", { ascending: true })

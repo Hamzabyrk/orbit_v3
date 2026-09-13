@@ -2838,3 +2838,45 @@ Sebep bir kod hatası değil, **yanlış kaynağa sorulmasıydı**: ad `class_st
 **Advisor sayısı 28'den 29'a çıktı ve bu kararın parçası.** `0029` `authenticated` tarafından çağrılabilen her `security definer` fonksiyonu sayar; bu fonksiyonun çağrılabilir olması işin **tanımı**. Artışın kendisi uyarı değildir; **açıklanamayan** artış uyarıdır (`PLATFORM_SETTINGS` §6).
 
 **Kayda değer ikinci şey — testler kusuru neden kaçırdı.** Mevcut testler **yedeği** sınıyordu: _"ad çözülemediğinde `adı okunamadı` döner"_. Doğruydu ve geçiyordu. Ama kusur tam da **her zaman** yedeğe düşülmesiydi. **Doğru davranışı çivileyen bir test, yanlış olanı yakalamaz.** K-23'ün bir akrabası: test kodun yaptığı şeyi değil, kodun yapması gerekeni ölçmeli.
+
+---
+
+### Karar: Kişisel kayıt iz bırakmaz ve yayılmaz — deseni uygulamamak da bir karardır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-05'ten bu yana **dokuz** tabloya üst üste denetim ve yayın tetikleyicisi eklendi. v1.4-13 bu desenin yanlış olduğu ilk yeri getirdi.
+
+`tasks` ve `calendar_events` **kesin kişisel**: altı politikanın altısı da `current_user_owns_membership(owner_membership_id)`. Kurum yöneticisi bile başkasının görevini okuyamıyor.
+
+| Ne                    | Karar       | Gerekçe                                                                                                        |
+| --------------------- | ----------- | -------------------------------------------------------------------------------------------------------------- |
+| Denetim tetikleyicisi | **yok**     | `audit_events` kurum yöneticisine açık; koymak RLS'in bilerek sakladığı şeyi deftere taşımak olurdu            |
+| Yayın tetikleyicisi   | **yok**     | Kanal `org:<kurum>` ve kurumun **her** üyesi abone; kişisel bir kaydı oraya yazmak herkese haber vermek olurdu |
+| `set_updated_at`      | **duruyor** | Yokluk **seçici**, toptan değil                                                                                |
+
+**Bu dilimin sunucu yarısı bu yüzden bir migration değil, bir pgTAP testi.** Şema zaten eksiksizdi — politikalar, sütun yetkileri ve indeksler v1.2-09'da doğru yazılmış. Gereken tek şey kararı **korumak**: `personal_records_stay_personal.test.sql` hem yokluğun kendisini (alışkanlıkla tetikleyici eklendiği gün kırmızıya döner) hem de kararın **dayanağını** (yönetici gerçekten okuyamıyor mu) sınıyor.
+
+**Kayda geçen genel ders:** bir deseni dokuz kez uygulamak onu kural yapmaz. Onuncu tabloda sorulacak soru "desen ne diyor" değil, **"bu tablo ne"** olmalı. K-23 mutasyonu bu kez tersine koşuldu: beklenen tetikleyiciler **eklendi** ve üç iddia kırmızıya döndü.
+
+---
+
+### Karar: K-23'ün istediği şey testin kırmızıya dönmesi kadar ne söylediğidir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-13'ün R2 mutasyonu (`loadSchedule`'dan `organization_id` süzgecini kaldırmak) testi gerçekten kırmızıya döndürüyordu — ama çıktı şuydu:
+
+```
+TypeError: undefined is not iterable (cannot read property Symbol(Symbol.iterator))
+```
+
+Sebebi testin kendisiydi: spy `eqCalls`'ı `undefined` ile başlatıyor, `.eq()` hiç çağrılmayınca iddia bir tip hatasıyla patlıyordu. **Koruma gerçekti, mesajı işe yaramazdı** — o kırmızıyı gören biri süzgecin kaybolduğunu değil, testin bozulduğunu düşünürdü.
+
+**Karar:** spy boş diziyle başlatıldı; kırmızı artık `expected [] to deep equally contain [ 'organization_id', … ]` diyor.
+
+**Kural olarak:** K-23 bir mutasyonun testi kırmızıya döndürmesini ister; bu kayıt onu bir adım ileri götürüyor — **kırmızının nedeni okunabilir olmalı.** Bir `TypeError` "koruma çalıştı" demez, "test çöktü" der; ikisi bir sonraki kişi için aynı şey değildir.

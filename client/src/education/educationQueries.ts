@@ -52,6 +52,13 @@ import {
   loadFeedPosts,
   type FeedPostListResult,
 } from "./feedService";
+import {
+  DEFAULT_DAY_PLAN_LIMIT,
+  loadTasks,
+  loadCalendarEvents,
+  type TaskListResult,
+  type CalendarEventListResult,
+} from "./dayPlanService";
 
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
@@ -160,6 +167,36 @@ export const educationKeys = {
       {
         organizationId,
         classId: options?.classId,
+        includeArchived: options?.includeArchived,
+      },
+    ] as const;
+  },
+  tasks: (
+    organizationId: string,
+    membershipId: string,
+    options?: { includeArchived?: boolean }
+  ) => {
+    return [
+      "education",
+      "tasks",
+      {
+        organizationId,
+        membershipId,
+        includeArchived: options?.includeArchived,
+      },
+    ] as const;
+  },
+  calendarEvents: (
+    organizationId: string,
+    membershipId: string,
+    options?: { includeArchived?: boolean }
+  ) => {
+    return [
+      "education",
+      "calendarEvents",
+      {
+        organizationId,
+        membershipId,
         includeArchived: options?.includeArchived,
       },
     ] as const;
@@ -287,7 +324,7 @@ export function useSchedule(options?: UseScheduleOptions) {
     queryKey: organizationId
       ? educationKeys.schedule(organizationId)
       : (["education", "schedule", { organizationId: "" }] as const),
-    queryFn: () => loadSchedule(limit),
+    queryFn: () => loadSchedule(organizationId!, limit),
     enabled: isEnabled,
   });
 }
@@ -638,6 +675,86 @@ export function useFeedPosts(options?: UseFeedPostsOptions) {
     queryFn: () =>
       loadFeedPosts(organizationId!, {
         classId: options?.classId,
+        includeArchived: options?.includeArchived,
+        limit,
+      }),
+    enabled: isEnabled,
+  });
+}
+
+export type UseTasksOptions = {
+  organizationId?: string;
+  membershipId?: string;
+  includeArchived?: boolean;
+  limit?: number;
+  enabled?: boolean;
+};
+
+export function useTasks(options?: UseTasksOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const membershipId =
+    options?.membershipId ?? identity?.membership?.membershipId;
+  const limit = options?.limit ?? DEFAULT_DAY_PLAN_LIMIT;
+  const isEnabled =
+    (options?.enabled ?? true) &&
+    Boolean(organizationId) &&
+    Boolean(membershipId);
+
+  return useQuery<TaskListResult, Error>({
+    queryKey:
+      organizationId && membershipId
+        ? educationKeys.tasks(organizationId, membershipId, {
+            includeArchived: options?.includeArchived,
+          })
+        : ([
+            "education",
+            "tasks",
+            { organizationId: "", membershipId: "" },
+          ] as const),
+    queryFn: () =>
+      loadTasks(organizationId!, membershipId!, {
+        includeArchived: options?.includeArchived,
+        limit,
+      }),
+    enabled: isEnabled,
+  });
+}
+
+export type UseCalendarEventsOptions = {
+  organizationId?: string;
+  membershipId?: string;
+  includeArchived?: boolean;
+  limit?: number;
+  enabled?: boolean;
+};
+
+export function useCalendarEvents(options?: UseCalendarEventsOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const membershipId =
+    options?.membershipId ?? identity?.membership?.membershipId;
+  const limit = options?.limit ?? DEFAULT_DAY_PLAN_LIMIT;
+  const isEnabled =
+    (options?.enabled ?? true) &&
+    Boolean(organizationId) &&
+    Boolean(membershipId);
+
+  return useQuery<CalendarEventListResult, Error>({
+    queryKey:
+      organizationId && membershipId
+        ? educationKeys.calendarEvents(organizationId, membershipId, {
+            includeArchived: options?.includeArchived,
+          })
+        : ([
+            "education",
+            "calendarEvents",
+            { organizationId: "", membershipId: "" },
+          ] as const),
+    queryFn: () =>
+      loadCalendarEvents(organizationId!, membershipId!, {
         includeArchived: options?.includeArchived,
         limit,
       }),

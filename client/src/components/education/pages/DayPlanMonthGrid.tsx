@@ -1,6 +1,11 @@
 import { isSameDay, isSameMonth, isToday } from "date-fns";
 import type { DayPlanEvent } from "../types";
-import { getEventsForDay, getMonthGridDays } from "./dayPlanHelpers";
+import {
+  type DayPlanDisplayEvent,
+  getDisplayEventsForDay,
+  getEventsForDay,
+  getMonthGridDays,
+} from "./dayPlanHelpers";
 
 const dayNames = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 
@@ -20,10 +25,14 @@ export function DayPlanMonthGrid({
 }: {
   currentMonth: Date;
   selectedDate: Date;
-  events: DayPlanEvent[];
+  events: (DayPlanEvent | DayPlanDisplayEvent)[];
   onSelectDate: (date: Date) => void;
 }) {
   const days = getMonthGridDays(currentMonth);
+
+  const isDisplayList =
+    events.length > 0 && "isLesson" in (events[0] as DayPlanDisplayEvent);
+
   return (
     <div>
       <div className="grid grid-cols-7 gap-1.5 text-center text-[10px] font-extrabold uppercase tracking-[.08em] text-slate-400">
@@ -35,11 +44,15 @@ export function DayPlanMonthGrid({
       </div>
       <div className="mt-1.5 grid grid-cols-7 gap-1.5">
         {days.map(day => {
-          const dayEvents = getEventsForDay(events, day);
+          const dayEvents = isDisplayList
+            ? getDisplayEventsForDay(events as DayPlanDisplayEvent[], day)
+            : getEventsForDay(events as DayPlanEvent[], day);
+
           const visibleEvents = dayEvents.slice(0, 2);
           const overflow = dayEvents.length - visibleEvents.length;
           const inMonth = isSameMonth(day, currentMonth);
           const selected = isSameDay(day, selectedDate);
+
           return (
             <button
               key={day.toISOString()}
@@ -51,22 +64,49 @@ export function DayPlanMonthGrid({
               } ${!inMonth && !selected ? "text-slate-300" : ""}`}
             >
               <span
-                className={`text-[11px] font-bold ${selected ? "text-white" : isToday(day) ? "text-blue-600" : inMonth ? "text-slate-700" : "text-slate-300"}`}
+                className={`text-[11px] font-bold ${
+                  selected
+                    ? "text-white"
+                    : isToday(day)
+                      ? "text-blue-600"
+                      : inMonth
+                        ? "text-slate-700"
+                        : "text-slate-300"
+                }`}
               >
                 {day.getDate()}
               </span>
               <div className="mt-1.5 space-y-1">
-                {visibleEvents.map(event => (
-                  <span
-                    key={event.id}
-                    className={`block truncate rounded-md px-1.5 py-0.5 text-[9px] font-bold ${selected ? "bg-white/15 text-white" : eventTone[event.type]}`}
-                  >
-                    {event.startTime} {event.title}
-                  </span>
-                ))}
+                {visibleEvents.map(event => {
+                  const isLesson = "isLesson" in event && event.isLesson;
+                  const isPersonal =
+                    "rawEvent" in event && Boolean(event.rawEvent);
+                  const demoType = "type" in event ? event.type : undefined;
+
+                  const toneClass = isLesson
+                    ? "bg-blue-50 text-blue-700"
+                    : isPersonal
+                      ? "bg-violet-50 text-violet-700"
+                      : demoType && eventTone[demoType]
+                        ? eventTone[demoType]
+                        : "bg-slate-100 text-slate-700";
+
+                  return (
+                    <span
+                      key={event.id}
+                      className={`block truncate rounded-md px-1.5 py-0.5 text-[9px] font-bold ${
+                        selected ? "bg-white/15 text-white" : toneClass
+                      }`}
+                    >
+                      {event.startTime} {event.title}
+                    </span>
+                  );
+                })}
                 {overflow > 0 ? (
                   <span
-                    className={`block text-[9px] font-bold ${selected ? "text-white/70" : "text-slate-400"}`}
+                    className={`block text-[9px] font-bold ${
+                      selected ? "text-white/70" : "text-slate-400"
+                    }`}
                   >
                     +{overflow} daha
                   </span>
