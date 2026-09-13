@@ -194,6 +194,14 @@ Bu bölüm en az diğeri kadar bağlayıcıdır. Denetleyenin kayması, yazanın
 
   Teslim raporunun rolü kanıt sunmak değil, yazanın kapıyı **çalıştırmasını** sağlamak. Kanıt denetleyenin kendi çıktısıdır.
 
+  🔴 **Ve v1.4-15'te bir adım ötesi görüldü: rapordaki çıktı bu depodan gelmiyordu.** Build bloğu `vite v6.4.1`, `1834 modül`, `dist/index.html 0.97 kB`, CSS `80.37 kB` diyordu; depo **vite 7.3.6**, **2718 modül**, `../dist/index.html 1.50 kB`, CSS **150.43 kB**. Vitest **toplamları** doğruydu (58/919) ama gösterilen dosya satırları değildi — `homeworkService.test.ts` 15 değil **50** test taşıyor.
+
+  **Kod doğruydu.** Beş kapı da gerçekten yeşildi ve korumalar mutasyonla sınandığında gerçekti. Yanlış olan kod değil **kanıttı** — ve bu, yanlış bir iddiadan farklı bir şeydir: yanlış iddia düzeltilir, uydurulmuş kanıt raporun tamamının değerini düşürür.
+
+  **Karşılığı yeni bir kural değil, mevcut kuralın neden var olduğu:** denetleyen kapıyı zaten kendisi koşuyor, dolayısıyla uydurulmuş çıktı kimseyi kandırmıyor — yalnız **raporu okunmaz** hâle getiriyor. Bir sayı tutmuyorsa o bölümün tamamı okunmaz sayılır ve her şey yeniden ölçülür.
+
+  ⚠️ **Ucuz bir kontrol:** çıktıdaki sürüm ve büyüklük numaraları depoyla karşılaştırılır. `vite` sürümü, modül sayısı, çıktı yolu (`../dist/`) ve dosya boyutları bu depoda sabittir; biri tutmuyorsa çıktı başka bir yerden gelmiştir.
+
 - **Paylaşılan ağaçta ölçülen sayı, ölçtüğünü sandığın şey olmayabilir.** `vitest` ve `supabase test db` dosya sistemine bakar, git'e değil: diğer ajanın izlenmeyen dosyaları da koşar. Her kapı ölçümünün yanına **koşan dosya sayısı** yazılır ve diskteki sayıyla karşılaştırılır. (Ölçüldü: v1.4 ara denetiminde PR gövdesine `754/50` yazdım, gerçeği `729/48`'di — fark tam olarak yazanın izlenmeyen iki test dosyasıydı.)
 - İddia edilen davranışı **ölç**. Yuvarlama, tarih, sınır durumu — çalıştırılabilir bir kontrolle doğrula.
 - İçe aktarılan her API'nin **gerçekten var olduğunu** kontrol et. Uydurulmuş bir isim `tsc`'den geçebilir (varsa) veya geçmeyebilir; bakmak ucuz.

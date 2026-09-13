@@ -550,6 +550,10 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 >
 > ✅ **29 ölçüldü (2026-09-13, #289 merge sonrası) — bilerek bozulan tahmin tam beklenen yerde bozuldu.** Dağılım: **26** × `0029` + 1 sızmış şifre + 2 × `rls_enabled_no_policy`. `feed_post_authors` listede, üç kardeşiyle (`class_staff_names`, `exam_ranking`, `exam_participant_count`) birlikte.
 >
+> ✅ **29 iki kez daha ölçüldü (2026-09-13, #291 ve #293 merge sonrası).** İkisinde de migration yoktu; sayı beklendiği gibi sabit kaldı.
+>
+> 📌 **v1.4-15 için tahmin: 29 → 30.** `current_user_can_record_homework(uuid)` `security definer` **ve** `authenticated`'a açık olmak zorunda: RLS politikası içinden `homework_assignments` satırına bakıyor ve politika kendisi o tablonun RLS'ine tabi olurdu. `current_user_can_record_attendance` tam olarak bu yüzden listede ve bu fonksiyon onun aynası. Dilimin ikinci migration'ı yalnız bir sütun ve tetikleyici ekliyor; ikisi de `0029` üretmez. Beklenen dağılım: **27** × `0029` + 1 + 2. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **#294 merge edildikten sonra** (**K-12**).
+>
 > 📌 **v1.4-13 için tahmin: değişmez (29).** Dilimin **migration'ı yok** — şema eksiksizdi. Çıktı yalnız bir pgTAP testi; test advisor üretmez.
 >
 > 🔴 **v1.4-12 için tahmin: 28 → 29. Sayı BİLEREK artıyor ve on iki turluk seri burada bitiyor.**
