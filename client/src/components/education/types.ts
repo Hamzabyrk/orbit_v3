@@ -21,6 +21,7 @@ export type Student = {
   latestExamName?: string;
   latestExamDate?: string;
   latestExamMaxScore?: number | null;
+  homework?: string;
   payment?: "Güncel" | "Takip gerekli";
   risk?: "Dengeli" | "Takip gerekli";
   hasAccount?: boolean;
@@ -133,7 +134,7 @@ export type DayPlanEvent = {
   subtitle: string;
 };
 
-export type HomeworkStatus = "Aktif" | "Süresi Doldu";
+export type HomeworkStatus = "Aktif" | "Süresi Doldu" | "Tamamlandı";
 
 export type Homework = {
   id: string;
@@ -154,4 +155,7 @@ export type Homework = {
    */
   rawDueDate: string;
   status: HomeworkStatus;
+  submissionCount?: number;
+  totalStudents?: number;
+  submissionsRecordedAt?: string | null;
 };

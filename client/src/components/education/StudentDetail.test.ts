@@ -113,6 +113,20 @@ describe("StudentDetail — uydurma veri yok (K-03 / K-22)", () => {
     expect(html).toContain("84 / 100");
     expect(html).toContain("TYT Deneme 01 · 10 Eylül 2026");
   });
+
+  it("v1.4-15: gerçek ödev teslim oranı dolu olduğunda 'Ödev tamamlama' ve oran çizilir", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudentDetail, {
+        student: ogrenci({
+          homework: "7/9",
+        }),
+        onClose: vi.fn(),
+      })
+    );
+
+    expect(html).toContain("Ödev tamamlama");
+    expect(html).toContain("7/9");
+  });
 });
 
 describe("StudentDetail — Veliler Bölümü (v1.4-10 R1 / R2)", () => {

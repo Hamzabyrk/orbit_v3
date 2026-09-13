@@ -362,9 +362,10 @@ export async function restoreClass(classId: string): Promise<void> {
 
 export async function loadClassEnrollments(
   organizationId: string,
-  classId: string
+  classId: string,
+  options?: { includeArchived?: boolean }
 ): Promise<ClassEnrollmentItem[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("class_enrollments")
     .select(
       `
@@ -380,9 +381,13 @@ export async function loadClassEnrollments(
     `
     )
     .eq("organization_id", organizationId)
-    .eq("class_id", classId)
-    .is("archived_at", null)
-    .order("created_at", { ascending: true });
+    .eq("class_id", classId);
+
+  if (!options?.includeArchived) {
+    query = query.is("archived_at", null);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: true });
 
   if (error) {
     throw new Error(translateClassError(error, "enrollment"));

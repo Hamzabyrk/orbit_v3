@@ -2939,3 +2939,26 @@ Zod bu depoda **sınırda** duruyor ve kuralı tekrar etmiyor; kaldırılsaydı 
 **Sonuç 2 ve daha önemlisi:** `details` **asla ham basılmaz**. `23514`'te bu, kullanıcıya kendi satırının tamamını — kimlikler ve diğer sütunlar dahil — göstermek olurdu.
 
 **Kural olarak:** bir dış sistemin hata gövdesinden okunan her alan, **o hata sınıfı için** ölçülerek doğrulanır. "Alan adı doğru" yetmez; o alanın **ne taşıdığı** da sınıfa bağlıdır.
+
+---
+
+### Karar: Bir satırın yokluğu tek anlama gelmeli — "bitirdim" bir sinyaldir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `homework_submissions` "satırın **varlığı** teslimi anlatır" modeliyle tasarlandı ve tasarım denetleyenindi. O modelde bir satırın **yokluğu iki farklı şey** demek:
+
+1. Öğretmen sınıfı işaretledi, bu öğrenci getirmedi.
+2. Öğretmen henüz bu öğrenciyi işaretlemedi.
+
+İlk teslim bunu bir sezgiyle çözdü — _"bir ödevde en az bir teslim varsa o ödev takip ediliyor sayılır"_ — ve sezgi **"hiç işaretlenmemiş" durumunu doğru kapatıyordu**. Kapatmadığı şey **yarım** işaretlenmiş ödevdi: öğretmen 15 öğrencinin 3'ünü işaretleyip bıraktığında kalan 12'si "getirmedi" sayılıyordu. Ve o sayı öğrencinin kartında duruyor, **veliye de görünüyor** (**K-03**).
+
+**Karar: öğretmen bitirdiğini söyler.** `homework_assignments.submissions_recorded_at` — boş bırakılabilir, geri alınabilir. `null` iken ekran o ödev için oran **üretmez**.
+
+**Alan adı bilerek `completed_at` değil:** tamamlanan şey ödev değil **işaretleme işi**. Ad, iddia ettiği şeyi doğru söylemeli.
+
+**Genel ders — ve bu, K-22'nin bir katmanı:** K-22 "bir yokluk etiketi de bir iddiadır" der. Buradaki daha derin: **yokluğun kendisi belirsizse, ondan üretilen her sayı belirsizdir.** Bir modelde "kayıt yok"un birden fazla anlamı varsa, çözüm ekranda bir cümle bulmak değil, **şemaya ayırt edici bir sinyal koymaktır**.
+
+⚠️ Kabul edilen bedel yazılı: "bitirdim" demeyi unutan öğretmende oran **hiç çıkmaz**. Yanlış çıkmasından iyidir.

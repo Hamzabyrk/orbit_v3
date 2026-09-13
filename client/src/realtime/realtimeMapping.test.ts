@@ -112,14 +112,21 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
     expect(keys[0]).toEqual(educationKeys.homework(orgId));
   });
 
-  it("12. guardians: hem veli hem öğrenci (veli adı gömülü) sorgusunu tazeler (v1.4-10 #275)", () => {
+  it("12. homework_submissions: hem ödev hem öğrenci (Student.homework) sorgusunu tazeler (v1.4-15 · #294)", () => {
+    const keys = getAffectedQueryKeys("homework_submissions", orgId);
+    expect(keys).toHaveLength(2);
+    expect(keys).toContainEqual(educationKeys.homework(orgId));
+    expect(keys).toContainEqual(educationKeys.students(orgId));
+  });
+
+  it("13. guardians: hem veli hem öğrenci (veli adı gömülü) sorgusunu tazeler (v1.4-10 #275)", () => {
     const keys = getAffectedQueryKeys("guardians", orgId);
     expect(keys).toHaveLength(2);
     expect(keys).toContainEqual(educationKeys.guardians(orgId));
     expect(keys).toContainEqual(educationKeys.students(orgId));
   });
 
-  it("13. student_guardians: veli, öğrenci ve veli bağları sorgularını tazeler (v1.4-10 #275)", () => {
+  it("14. student_guardians: veli, öğrenci ve veli bağları sorgularını tazeler (v1.4-10 #275)", () => {
     const keys = getAffectedQueryKeys("student_guardians", orgId);
     expect(keys).toHaveLength(3);
     expect(keys).toContainEqual(educationKeys.guardians(orgId));
@@ -127,14 +134,14 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
     expect(keys).toContainEqual(educationKeys.studentGuardians(orgId));
   });
 
-  it("14. branches: şube ve üye (şube adı görünür) sorgularını tazeler (v1.4-09 #284)", () => {
+  it("15. branches: şube ve üye (şube adı görünür) sorgularını tazeler (v1.4-09 #284)", () => {
     const keys = getAffectedQueryKeys("branches", orgId);
     expect(keys).toHaveLength(2);
     expect(keys).toContainEqual(settingsKeys.branches(orgId));
     expect(keys).toContainEqual(settingsKeys.members(orgId));
   });
 
-  it("15. subjects: ders, program, ödev ve sınav sorgularını tazeler (#287)", () => {
+  it("16. subjects: ders, program, ödev ve sınav sorgularını tazeler (#287)", () => {
     const keys = getAffectedQueryKeys("subjects", orgId);
     expect(keys).toHaveLength(5);
     expect(keys).toContainEqual(educationKeys.subjects(orgId));
@@ -144,7 +151,7 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
     expect(keys).toContainEqual(educationKeys.exams(orgId));
   });
 
-  it("16. class_teachers: atama, sınıf ve program sorgularını tazeler (#287)", () => {
+  it("17. class_teachers: atama, sınıf ve program sorgularını tazeler (#287)", () => {
     const keys = getAffectedQueryKeys("class_teachers", orgId);
     expect(keys).toHaveLength(3);
     expect(keys).toContainEqual(educationKeys.classTeachers(orgId));
@@ -152,7 +159,7 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
     expect(keys).toContainEqual(educationKeys.schedule(orgId));
   });
 
-  it("16. daily_feed_posts: günlük akış duyuru panosu sorgusunu tazeler (#288)", () => {
+  it("18. daily_feed_posts: günlük akış duyuru panosu sorgusunu tazeler (#288)", () => {
     const keys = getAffectedQueryKeys("daily_feed_posts", orgId);
     expect(keys).toHaveLength(1);
     expect(keys).toContainEqual(educationKeys.feed(orgId));
@@ -171,6 +178,7 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
       "payment_plans",
       "installments",
       "homework_assignments",
+      "homework_submissions",
       "guardians",
       "student_guardians",
       "branches",

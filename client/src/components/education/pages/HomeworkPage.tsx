@@ -11,6 +11,7 @@ import { CardSkeleton, ErrorState, PageHeader } from "../shared";
 import type { Homework, Role, ClassGroup } from "../types";
 import { HomeworkCard } from "./HomeworkCard";
 import { HomeworkCreateDialog } from "./HomeworkCreateDialog";
+import { HomeworkSubmissionsDialog } from "./HomeworkSubmissionsDialog";
 
 export type HomeworkPageProps = {
   role: Role;
@@ -47,6 +48,8 @@ export function HomeworkPage({
 }: HomeworkPageProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingHomework, setEditingHomework] = useState<Homework | null>(null);
+  const [submissionsHomework, setSubmissionsHomework] =
+    useState<Homework | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const activeDemo = isDemoMode && isDemo;
 
@@ -175,11 +178,25 @@ export function HomeworkPage({
               homework={item}
               onEdit={canManage ? () => handleEdit(item) : undefined}
               onArchive={canManage ? () => void handleArchive(item) : undefined}
+              onManageSubmissions={() => setSubmissionsHomework(item)}
               isArchiving={archivingId === item.id}
             />
           ))}
         </div>
       )}
+
+      {submissionsHomework ? (
+        <HomeworkSubmissionsDialog
+          open={Boolean(submissionsHomework)}
+          onOpenChange={open => {
+            if (!open) setSubmissionsHomework(null);
+          }}
+          organizationId={organizationId}
+          homework={submissionsHomework}
+          role={role}
+          onSaved={onSaved}
+        />
+      ) : null}
 
       {canManage ? (
         <HomeworkCreateDialog

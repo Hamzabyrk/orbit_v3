@@ -55,6 +55,7 @@ export const students: Student[] = [
     parent: "Murat Kaya",
     attendance: 96,
     score: 84,
+    homework: "8/9",
     payment: "Güncel",
     risk: "Dengeli",
   },
@@ -67,6 +68,7 @@ export const students: Student[] = [
     parent: "Elif Demir",
     attendance: 88,
     score: 71,
+    homework: "5/9",
     payment: "Güncel",
     risk: "Takip gerekli",
   },
@@ -79,6 +81,7 @@ export const students: Student[] = [
     parent: "Selin Yıldız",
     attendance: 94,
     score: 78,
+    homework: "7/9",
     payment: "Takip gerekli",
     risk: "Dengeli",
   },
@@ -91,6 +94,7 @@ export const students: Student[] = [
     parent: "Berna Öztürk",
     attendance: 82,
     score: 63,
+    homework: "3/9",
     payment: "Güncel",
     risk: "Takip gerekli",
   },
@@ -103,6 +107,7 @@ export const students: Student[] = [
     parent: "Emre Akın",
     attendance: 98,
     score: 89,
+    homework: "9/9",
     payment: "Güncel",
     risk: "Dengeli",
   },
@@ -345,7 +350,9 @@ export const initialHomework: Homework[] = [
     assignedDate: "12 Ağustos 2026",
     dueDate: "19 Ağustos 2026",
     rawDueDate: "2026-08-19",
-    status: "Süresi Doldu",
+    status: "Tamamlandı",
+    submissionCount: 20,
+    totalStudents: 20,
   },
   {
     id: "hw-4",
@@ -998,6 +1005,8 @@ export const demoAssessmentFollowUp: AssessmentFollowUp = {
 export const demoReportAttendanceValues = [92, 94, 90, 93];
 export const demoReportExamValues = [68, 71, 69, 72];
 export const demoReportExamLabels = ["D-03", "D-04", "D-05", "D-06"];
+export const demoReportHomeworkValues = [78, 82, 86, 84];
+export const demoReportHomeworkLabels = ["May", "Haz", "Tem", "Ağu"];
 
 export const demoReportActions: ReportActionItem[] = [
   {

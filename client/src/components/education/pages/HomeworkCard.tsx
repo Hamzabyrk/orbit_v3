@@ -2,15 +2,17 @@ import { NotebookPen } from "lucide-react";
 import { Badge } from "../shared";
 import type { Homework, HomeworkStatus } from "../types";
 
-const statusTone: Record<HomeworkStatus, "blue" | "rose"> = {
+const statusTone: Record<HomeworkStatus, "blue" | "rose" | "green"> = {
   Aktif: "blue",
   "Süresi Doldu": "rose",
+  Tamamlandı: "green",
 };
 
 export type HomeworkCardProps = {
   homework: Homework;
   onEdit?: (item: Homework) => void;
   onArchive?: (item: Homework) => void | Promise<void>;
+  onManageSubmissions?: (item: Homework) => void;
   isArchiving?: boolean;
 };
 
@@ -18,6 +20,7 @@ export function HomeworkCard({
   homework,
   onEdit,
   onArchive,
+  onManageSubmissions,
   isArchiving = false,
 }: HomeworkCardProps) {
   return (
@@ -56,9 +59,28 @@ export function HomeworkCard({
             <p className="mt-1 text-[10px] font-bold text-slate-700">
               Son teslim: {homework.dueDate}
             </p>
+            {homework.submissionsRecordedAt &&
+            homework.submissionCount !== undefined ? (
+              <p className="mt-0.5 text-[10px] font-semibold text-emerald-600">
+                {homework.submissionCount}
+                {homework.totalStudents !== undefined
+                  ? ` / ${homework.totalStudents}`
+                  : ""}{" "}
+                teslim
+              </p>
+            ) : null}
           </div>
-          {onEdit || onArchive ? (
+          {onEdit || onArchive || onManageSubmissions ? (
             <div className="flex items-center gap-2 text-[11px]">
+              {onManageSubmissions ? (
+                <button
+                  type="button"
+                  onClick={() => onManageSubmissions(homework)}
+                  className="font-semibold text-blue-600 hover:text-blue-800"
+                >
+                  Teslimler
+                </button>
+              ) : null}
               {onEdit ? (
                 <button
                   type="button"
