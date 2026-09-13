@@ -134,6 +134,24 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
     expect(keys).toContainEqual(settingsKeys.members(orgId));
   });
 
+  it("15. subjects: ders, program, ödev ve sınav sorgularını tazeler (#287)", () => {
+    const keys = getAffectedQueryKeys("subjects", orgId);
+    expect(keys).toHaveLength(5);
+    expect(keys).toContainEqual(educationKeys.subjects(orgId));
+    expect(keys).toContainEqual(educationKeys.schedule(orgId));
+    expect(keys).toContainEqual(educationKeys.homework(orgId));
+    expect(keys).toContainEqual(educationKeys.exam(orgId));
+    expect(keys).toContainEqual(educationKeys.exams(orgId));
+  });
+
+  it("16. class_teachers: atama, sınıf ve program sorgularını tazeler (#287)", () => {
+    const keys = getAffectedQueryKeys("class_teachers", orgId);
+    expect(keys).toHaveLength(3);
+    expect(keys).toContainEqual(educationKeys.classTeachers(orgId));
+    expect(keys).toContainEqual(educationKeys.classes(orgId));
+    expect(keys).toContainEqual(educationKeys.schedule(orgId));
+  });
+
   it("⛔ Hiçbir tekil tablo mesajı toptan tazeleme (educationKeys.all) döndürmez", () => {
     const tables: EducationTable[] = [
       "students",
@@ -150,6 +168,8 @@ describe("realtimeMapping (K-06 ve K-19 Sorgu Anahtarı Eşlemesi)", () => {
       "guardians",
       "student_guardians",
       "branches",
+      "subjects",
+      "class_teachers",
     ];
 
     for (const tbl of tables) {

@@ -24,6 +24,7 @@ export function ClassesPage({
   onEdit,
   onArchive,
   onManageEnrollments,
+  onManageTeachers,
 }: {
   role: Role;
   classes: ClassGroup[];
@@ -38,6 +39,7 @@ export function ClassesPage({
   onEdit?: (cls: ClassGroup) => void;
   onArchive?: (cls: ClassGroup) => void | Promise<void>;
   onManageEnrollments?: (cls: ClassGroup) => void;
+  onManageTeachers?: (cls: ClassGroup) => void;
 }) {
   const shown = filterClassesForRole(classList, role, isDemoMode);
   const [archivingId, setArchivingId] = useState<string | null>(null);
@@ -157,6 +159,15 @@ export function ClassesPage({
                           className="font-bold text-blue-600 hover:text-blue-700"
                         >
                           Öğrenciler
+                        </button>
+                      ) : null}
+                      {onManageTeachers ? (
+                        <button
+                          type="button"
+                          onClick={() => onManageTeachers(group)}
+                          className="font-bold text-indigo-600 hover:text-indigo-700"
+                        >
+                          Öğretmenler
                         </button>
                       ) : null}
                       {onEdit ? (

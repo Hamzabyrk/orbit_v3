@@ -33,6 +33,7 @@ import {
 import { settingsKeys, useBranches } from "@/settings/settingsQueries";
 import { Badge } from "../shared";
 import { SettingsFormField } from "./SettingsFormField";
+import { SettingsSubjectsSection } from "./SettingsSubjectsSection";
 
 export function SettingsInstitutionSection() {
   const { identity } = useAuth();
@@ -583,6 +584,9 @@ export function SettingsInstitutionSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Ders Yönetimi Bölümü (#287) */}
+      <SettingsSubjectsSection />
     </>
   );
 }

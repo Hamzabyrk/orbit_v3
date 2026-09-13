@@ -33,10 +33,13 @@ import {
 import {
   DEFAULT_HOMEWORK_LIMIT,
   loadHomework,
-  loadSubjects,
   type HomeworkListResult,
-  type SubjectDetail,
 } from "./homeworkService";
+import { loadSubjects, type SubjectListResult } from "./subjectService";
+import {
+  loadClassTeachers,
+  type ClassTeacherListResult,
+} from "./classTeacherService";
 import {
   DEFAULT_GUARDIAN_LIMIT,
   loadGuardians,
@@ -106,8 +109,23 @@ export const educationKeys = {
     ["education", "paymentOverview", { organizationId }] as const,
   homework: (organizationId: string) =>
     ["education", "homework", { organizationId }] as const,
-  subjects: (organizationId: string) =>
-    ["education", "subjects", { organizationId }] as const,
+  subjects: (
+    organizationId: string,
+    options?: { includeArchived?: boolean }
+  ) => {
+    return options?.includeArchived
+      ? ([
+          "education",
+          "subjects",
+          { organizationId, includeArchived: true },
+        ] as const)
+      : (["education", "subjects", { organizationId }] as const);
+  },
+  classTeachers: (organizationId: string, classId?: string) => {
+    return classId
+      ? (["education", "classTeachers", { organizationId, classId }] as const)
+      : (["education", "classTeachers", { organizationId }] as const);
+  },
   guardians: (organizationId: string, search?: string) => {
     const trimmed = search?.trim();
     return trimmed
@@ -441,6 +459,8 @@ export function useHomework(options?: UseHomeworkOptions) {
 
 export type UseSubjectsOptions = {
   organizationId?: string;
+  includeArchived?: boolean;
+  limit?: number;
   enabled?: boolean;
 };
 
@@ -453,11 +473,54 @@ export function useSubjects(options?: UseSubjectsOptions) {
     options?.organizationId ?? identity?.membership?.organizationId;
   const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
 
-  return useQuery<SubjectDetail[], Error>({
+  return useQuery<SubjectListResult, Error>({
     queryKey: organizationId
-      ? educationKeys.subjects(organizationId)
+      ? educationKeys.subjects(organizationId, {
+          includeArchived: options?.includeArchived,
+        })
       : (["education", "subjects", { organizationId: "" }] as const),
-    queryFn: () => loadSubjects(organizationId!),
+    queryFn: () =>
+      loadSubjects(organizationId!, {
+        includeArchived: options?.includeArchived,
+        limit: options?.limit,
+      }),
+    enabled: isEnabled,
+  });
+}
+
+export type UseClassTeachersOptions = {
+  organizationId?: string;
+  limit?: number;
+  includeArchived?: boolean;
+  enabled?: boolean;
+};
+
+/**
+ * Sınıfın öğretmen atamalarını getiren React Query hook'u.
+ */
+export function useClassTeachers(
+  classId: string,
+  options?: UseClassTeachersOptions
+) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled =
+    (options?.enabled ?? true) && Boolean(organizationId) && Boolean(classId);
+
+  return useQuery<ClassTeacherListResult, Error>({
+    queryKey: organizationId
+      ? educationKeys.classTeachers(organizationId, classId)
+      : ([
+          "education",
+          "classTeachers",
+          { organizationId: "", classId },
+        ] as const),
+    queryFn: () =>
+      loadClassTeachers(organizationId!, classId, {
+        limit: options?.limit,
+        includeArchived: options?.includeArchived,
+      }),
     enabled: isEnabled,
   });
 }

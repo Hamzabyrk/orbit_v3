@@ -63,6 +63,7 @@ import { StudentFormDialog } from "./pages/StudentFormDialog";
 import { GuardianFormDialog } from "./pages/GuardianFormDialog";
 import { ClassFormDialog } from "./pages/ClassFormDialog";
 import { ClassEnrollmentDialog } from "./pages/ClassEnrollmentDialog";
+import { ClassTeachersDialog } from "./pages/ClassTeachersDialog";
 import { PaymentPlanFormDialog } from "./pages/PaymentPlanFormDialog";
 import { PaymentPlanDetailDialog } from "./pages/PaymentPlanDetailDialog";
 import {
@@ -181,6 +182,10 @@ export function EducationPlatform({
   const [classEnrollmentOpen, setClassEnrollmentOpen] = useState(false);
   const [classForEnrollment, setClassForEnrollment] =
     useState<ClassGroup | null>(null);
+  const [classTeachersOpen, setClassTeachersOpen] = useState(false);
+  const [classForTeachers, setClassForTeachers] = useState<ClassGroup | null>(
+    null
+  );
   const [paymentPlanFormOpen, setPaymentPlanFormOpen] = useState(false);
   const [paymentPlanForEdit, setPaymentPlanForEdit] = useState<{
     id: string;
@@ -816,6 +821,14 @@ export function EducationPlatform({
                 }
               : undefined
           }
+          onManageTeachers={
+            !isDemoMode && role === "admin"
+              ? cls => {
+                  setClassForTeachers(cls);
+                  setClassTeachersOpen(true);
+                }
+              : undefined
+          }
         />
       );
     if (active === "Ders Programı")
@@ -828,6 +841,8 @@ export function EducationPlatform({
           onRetry={!isDemoMode ? () => void scheduleQuery.refetch() : undefined}
           truncated={!isDemoMode && Boolean(scheduleQuery.data?.truncated)}
           limit={DEFAULT_SCHEDULE_LIMIT}
+          organizationId={organizationId}
+          classes={activeClasses}
         />
       );
     if (active === "Yoklama")
@@ -1283,6 +1298,14 @@ export function EducationPlatform({
               onOpenChange={setClassEnrollmentOpen}
               organizationId={organizationId}
               classData={classForEnrollment}
+            />
+          )}
+          {classForTeachers && (
+            <ClassTeachersDialog
+              open={classTeachersOpen}
+              onOpenChange={setClassTeachersOpen}
+              organizationId={organizationId}
+              classData={classForTeachers}
             />
           )}
           <PaymentPlanFormDialog
