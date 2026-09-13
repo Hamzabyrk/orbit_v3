@@ -264,6 +264,10 @@ Bu dilimin kaydı, eklediğinden çok **kaldırdığı** için düşülüyor: `H
 
 ⚠️ Böylece v1.4'ün CRUD dilimleri bitti: matriste "Servis ✅ + Yazma ✅" taşıyan beş varlık var (Öğrenci, Sınıf, Yoklama, Sınav, Ödev). **Program ve Ödeme hâlâ yalnız okuma** — ödeme kurallarının kaynağı yok (#239) ve o karar verilmeden yazma açılamaz.
 
+**v1.4-11 düzeltmesi (2026-09-13):** **Program** satırı da yazma grubuna geçti (#287) ve matrise **Ders (`subjects`)** ile **Öğretmen ataması (`class_teachers`)** girdi. Üçünün de yazma yüzeyi (politika + **sütun yetkileri**) şemada zaten hazırdı; eksik olan ekrandı ve `subjects`'in denetim izi.
+
+⚠️ Dersin üretimde **0 satırı** vardı ve onu yaratan hiçbir yol yoktu; `class_teachers.subject_id` NOT NULL olduğu için öğretmen ataması da imkânsızdı. Bu yüzden ders CRUD ayrı bir dilim değil, bu dilimin parçası oldu (`DECISION_LOG`).
+
 **v1.4 ara denetimi düzeltmesi (2026-09-13):** Yukarıdaki _"**Sınav** (v1.4-04) uçtan uca bağlandı"_ cümlesi **eksikti**. Sınav **sonucu** girişi gerçekten bağlıydı; sınavın kendisini **düzenlemek ve arşivlemek** bağlı değildi — `updateExam` ve `archiveExam` yazılmış, sınanmış ve hiçbir yerden çağrılmamıştı. Üstelik ekran yeni sınav oluşturulduğunda kullanıcının az önce yazdığı adı, tarihi ve tam puanı değil `"Yeni Sınav"`, bugünün tarihi ve boş puan gösteriyordu (**K-03**). İkisi de denetimde kapandı. **"Ekran ✅" satırının yukarıdaki uyarısının somut örneği budur.**
 
 **On altıncı düzeltme (2026-09-12, v1.4-06):** **Ödeme** satırı yazma grubuna geçti; "Servis" ve "Yazma" sütunları ✅ oldu. Yazma yüzeyi v1.2-06'dan beri açıktı, eksik olan ekrandı.
