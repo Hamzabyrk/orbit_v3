@@ -12,7 +12,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(15);
+select plan(22);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, created_at, updated_at
@@ -278,6 +278,78 @@ select is(
   'c9000000-0000-0000-0000-000000000001',
   'and the ledger says which student it was about'
 );
+
+-- =========================================================================
+-- 7. 🔴 İşaretleme, öğretmen bitirdiğini söyleyince biter
+-- =========================================================================
+--
+-- Bu küme bir tasarım boşluğunun kapatılmasını çiviliyor. Teslim satırının
+-- YOKLUĞU iki şey demekti: "getirmedi" ve "henüz işaretlenmedi". Artık
+-- `submissions_recorded_at` ikisini ayırıyor: alan boşken ekran oran
+-- ÜRETMEZ; dolduğunda yokluk "getirmedi" anlamına gelir.
+
+select is(
+  (select submissions_recorded_at from public.homework_assignments
+   where id = 'cb000000-0000-0000-0000-000000000001'),
+  null::timestamptz,
+  'a homework starts with marking NOT finished — absence of a submission means "not marked yet"'
+);
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'c1000000-0000-0000-0000-0000000000c1', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+
+-- ⚠️ `lives_ok` ile sarılı ve bu bir K-23 dersinin sonucu: sütun yetkisini
+-- kaldıran mutasyon, çıplak bir UPDATE'te `42501` fırlatıp **betiği
+-- çökertiyordu** — okunabilir bir kırmızı yerine hard abort. Sarmalanınca
+-- aynı mutasyon "bu iddia düştü" diyor.
+select lives_ok(
+  $sql$update public.homework_assignments set submissions_recorded_at = now()
+       where id = 'cb000000-0000-0000-0000-000000000001'$sql$,
+  'the teacher of the class can declare the marking finished'
+);
+
+select isnt(
+  (select submissions_recorded_at from public.homework_assignments
+   where id = 'cb000000-0000-0000-0000-000000000001'),
+  null::timestamptz,
+  'and the declaration actually took — the write was not silently dropped by RLS (K-14)'
+);
+
+-- Geri alınabilir: yanlışlıkla basan öğretmen temizleyebilmeli.
+select lives_ok(
+  $sql$update public.homework_assignments set submissions_recorded_at = null
+       where id = 'cb000000-0000-0000-0000-000000000001'$sql$,
+  'and can take it back — a mis-click must be correctable'
+);
+
+select is(
+  (select submissions_recorded_at from public.homework_assignments
+   where id = 'cb000000-0000-0000-0000-000000000001'),
+  null::timestamptz,
+  'and taking it back really cleared the field'
+);
+
+-- Öğrenci bu alanı yazamıyor: ödev yazma politikası zaten onu dışarıda
+-- bırakıyor ve bu sütun yeni bir kapı açmadı.
+select set_config('request.jwt.claim.sub', 'c2000000-0000-0000-0000-0000000000c2', true);
+
+-- Bu da sarmalı: doğru durumda öğrenci hata ALMAZ, RLS satırı gizler ve sıfır
+-- satır etkilenir. Sarmalanmasının sebebi yine mutasyon okunabilirliği.
+select lives_ok(
+  $sql$update public.homework_assignments set submissions_recorded_at = now()
+       where id = 'cb000000-0000-0000-0000-000000000001'$sql$,
+  'a student''s attempt does not error — RLS simply hides the row'
+);
+
+select is(
+  (select submissions_recorded_at from public.homework_assignments
+   where id = 'cb000000-0000-0000-0000-000000000001'),
+  null::timestamptz,
+  'and it changed nothing — the new column opened no new door'
+);
+
+reset role;
 
 select * from finish();
 rollback;
