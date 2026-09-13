@@ -201,6 +201,7 @@ export async function setDefaultBranch(
     .update({ is_default: true })
     .eq("organization_id", organizationId)
     .eq("id", branchId)
+    .is("archived_at", null)
     .select(
       "id, organization_id, name, is_default, archived_at, created_at, updated_at"
     );
@@ -287,12 +288,13 @@ export function translateBranchError(error: unknown): string {
 
   let code: string | undefined;
   let message = "";
-  let detail: string | undefined;
+  let details: string | undefined;
 
   if (typeof error === "object" && error !== null) {
     const errObj = error as {
       code?: unknown;
       message?: unknown;
+      details?: unknown;
       detail?: unknown;
     };
     if (typeof errObj.code === "string") {
@@ -301,11 +303,13 @@ export function translateBranchError(error: unknown): string {
     if (typeof errObj.message === "string") {
       message = errObj.message;
     }
-    if (typeof errObj.detail === "string") {
-      detail = errObj.detail;
+    // R1: PostgREST PostgrestError formatında alan adı 'details'tir.
+    // 'detail' geriye dönük tolerans olarak ikinci sırada tutulur.
+    if (typeof errObj.details === "string") {
+      details = errObj.details;
+    } else if (typeof errObj.detail === "string") {
+      details = errObj.detail;
     }
-  } else if (error instanceof Error) {
-    message = error.message;
   }
 
   if (!code && message) {
@@ -318,26 +322,26 @@ export function translateBranchError(error: unknown): string {
   }
 
   if (code === "ORB03") {
-    // Hal 1: Son şube kuralı
+    // Hal 1: Son şube kuralı (öncelik details; details boşsa ikincil çare message.includes)
     if (
-      detail?.includes("kalacak aktif şube sayısı=0") ||
+      details?.includes("kalacak aktif şube sayısı=0") ||
       message.includes("son şubesi")
     ) {
       return "Kurumun son şubesi kapatılamaz. Kapatmadan önce başka bir şube açın.";
     }
 
-    // Hal 2: Varsayılan şube kuralı
+    // Hal 2: Varsayılan şube kuralı (öncelik details; details boşsa ikincil çare message.includes)
     if (
-      detail?.includes("varsayılan şubesi") ||
+      details?.includes("varsayılan şubesi") ||
       message.includes("Varsayılan şube")
     ) {
       return "Varsayılan şube kapatılamaz. Önce başka bir şubeyi varsayılan yapın, sonra bu şubeyi kapatın.";
     }
 
     // Hal 3: Şube dolu (aktif öğrenci, sınıf veya üyelik var)
-    const ogrenciMatch = detail?.match(/öğrenci=(\d+)/i);
-    const sinifMatch = detail?.match(/sınıf=(\d+)/i);
-    const uyelikMatch = detail?.match(/üyelik=(\d+)/i);
+    const ogrenciMatch = details?.match(/öğrenci=(\d+)/i);
+    const sinifMatch = details?.match(/sınıf=(\d+)/i);
+    const uyelikMatch = details?.match(/üyelik=(\d+)/i);
 
     const ogrenci = ogrenciMatch ? parseInt(ogrenciMatch[1], 10) : 0;
     const sinif = sinifMatch ? parseInt(sinifMatch[1], 10) : 0;
@@ -352,7 +356,8 @@ export function translateBranchError(error: unknown): string {
       return `Bu şube kapatılamaz: içinde aktif ${parts.join(", ")} kaydı bulunuyor. Önce bu kayıtları başka bir şubeye taşıyın veya arşivleyin.`;
     }
 
-    return "Bu şube kapatılamaz: içinde aktif kayıtlar bulunuyor. Önce bu kayıtları başka bir şubeye taşıyın veya arşivleyin.";
+    // R5: Tanınmayan ORB03 hatasında sebep uydurma (K-22). Yalan söylemeyen nötr cümle:
+    return "Bu şube şu anda kapatılamıyor.";
   }
 
   if (code === "23505") {
@@ -367,5 +372,6 @@ export function translateBranchError(error: unknown): string {
     return "Bu işlem için kurum yöneticisi yetkisi gerekiyor.";
   }
 
-  return message || "Şube işlemi gerçekleştirilemedi. Lütfen tekrar deneyin.";
+  // R5: Ham Postgres mesajı arayüze basılmaz; güvenli genel hata mesajı dönülür.
+  return "Şube işlemi gerçekleştirilemedi. Lütfen tekrar deneyin.";
 }
