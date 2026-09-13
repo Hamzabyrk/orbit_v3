@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import * as React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -278,5 +280,33 @@ describe("SettingsInstitutionSection (v1.4-09 · #284)", () => {
     expect(html).toContain("Kapatıldı");
     expect(html).toContain("Yeniden Aç");
     expect(html).not.toContain("Varsayılan Yap");
+  });
+
+  describe("hata cümlesi ekrana taşınır, yeniden çevrilmez (denetleyen turu)", () => {
+    // ⚠️ Bu iddia YAPISAL ve öyle olmak zorunda: kusur yalnız bir yazma
+    // BAŞARISIZ olduğunda ortaya çıkıyor, statik çizimde ise hiçbir yazma
+    // koşmuyor. Bileşenin `catch` bloğunu çalıştırmadan gözlenemiyor.
+    //
+    // Ölçülen kusur: `branchService` her yazmada hatayı çevirip
+    // `new Error(çeviri)` fırlatıyor. Ekran o `Error`'ı bir daha
+    // `translateBranchError`'dan geçirince cümle tanınmıyor ve genel yedeğe
+    // düşüyordu — "içinde aktif 3 öğrenci, 2 sınıf, 1 üye kaydı bulunuyor"
+    // ekrana "Şube işlemi gerçekleştirilemedi" olarak çıkıyordu. K-14
+    // mesajları da aynı yerde kayboluyordu.
+    //
+    // Çevirmenin bu davranışı `branchService.test.ts`'te ayrıca çivili;
+    // burada çivilenen şey ekranın ikinci çeviriyi YAPMAMASI.
+    it("bileşen `translateBranchError` çağırmaz — servisin cümlesini olduğu gibi taşır", () => {
+      const kaynak = readFileSync(
+        path.join(import.meta.dirname, "SettingsInstitutionSection.tsx"),
+        "utf8"
+      );
+      const kod = kaynak
+        .replace(/\/\*[\s\S]*?\*\//g, " ")
+        .replace(/(^|[^:])\/\/[^\n]*/gm, "$1");
+
+      expect(kod).not.toContain("translateBranchError");
+      expect(kod).toContain("err instanceof Error");
+    });
   });
 });

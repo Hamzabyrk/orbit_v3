@@ -252,8 +252,8 @@ describe("branchService (v1.4-09 · #284)", () => {
     });
   });
 
-  describe("setDefaultBranch (Tek UPDATE & K-14)", () => {
-    it("tek bir UPDATE atarak is_default = true yapar (iki adım yapmaz)", async () => {
+  describe("setDefaultBranch (Tek UPDATE, .is('archived_at', null) & K-14)", () => {
+    it("tek bir UPDATE atarak is_default = true yapar ve arşivli şubeleri dışlar", async () => {
       let updateArg: unknown;
       let updateCallsCount = 0;
 
@@ -269,7 +269,8 @@ describe("branchService (v1.4-09 · #284)", () => {
         ],
         error: null,
       });
-      const mockEqId = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockIs = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockEqId = vi.fn().mockReturnValue({ is: mockIs });
       const mockEqOrg = vi.fn().mockReturnValue({ eq: mockEqId });
       const mockUpdate = vi.fn().mockImplementation((arg: unknown) => {
         updateCallsCount++;
@@ -288,15 +289,18 @@ describe("branchService (v1.4-09 · #284)", () => {
       expect(updateArg).toEqual({ is_default: true });
       expect(mockEqOrg).toHaveBeenCalledWith("organization_id", "org-1");
       expect(mockEqId).toHaveBeenCalledWith("id", "b-2");
+      // R4: Arşivli şubeler varsayılan yapılamaz
+      expect(mockIs).toHaveBeenCalledWith("archived_at", null);
       expect(result.isDefault).toBe(true);
     });
 
-    it("sıfır satır etkilendiğinde hata fırlatır (K-14)", async () => {
+    it("sıfır satır etkilendiğinde hata fırlatır (K-14 / arşivli veya yok)", async () => {
       const mockSelect = vi.fn().mockResolvedValue({
         data: [],
         error: null,
       });
-      const mockEqId = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockIs = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockEqId = vi.fn().mockReturnValue({ is: mockIs });
       const mockEqOrg = vi.fn().mockReturnValue({ eq: mockEqId });
       const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqOrg });
 
@@ -381,12 +385,14 @@ describe("branchService (v1.4-09 · #284)", () => {
     });
   });
 
-  describe("translateBranchError (ORB03'ün 3 hali & ham detail basılmaması)", () => {
-    it("Hal 1: Şube dolu hatasında sayıları okur ve insani cümle kurar (ham detail basmaz)", () => {
+  describe("translateBranchError (R1 gerçek PostgREST gövdesi, ORB03'ün 3 hali, R5)", () => {
+    it("Hal 1: Şube dolu hatasında sayıları okur ve insani cümle kurar (ham details basmaz)", () => {
+      // R1: PostgREST'ten dönen gerçek gövde: 'details' alanı kullanılır
       const err = {
         code: "ORB03",
+        details: "öğrenci=3, sınıf=2, üyelik=1",
+        hint: "Önce bu kayıtları başka bir şubeye taşıyın veya arşivleyin.",
         message: "Bu şube kapatılamaz: içinde aktif kayıtlar var.",
-        detail: "öğrenci=3, sınıf=2, üyelik=1",
       };
 
       const translated = translateBranchError(err);
@@ -399,7 +405,7 @@ describe("branchService (v1.4-09 · #284)", () => {
         "Önce bu kayıtları başka bir şubeye taşıyın"
       );
 
-      // ⚠️ Ham detail asla arayüze sızmamalı!
+      // ⚠️ Ham details asla arayüze sızmamalı!
       expect(translated).not.toContain("öğrenci=3");
       expect(translated).not.toContain("sınıf=2");
       expect(translated).not.toContain("üyelik=1");
@@ -408,8 +414,9 @@ describe("branchService (v1.4-09 · #284)", () => {
     it("Hal 2: Son şube kapatılmaya çalışıldığında doğru cümleye çevrilir", () => {
       const err = {
         code: "ORB03",
-        message: "Kurumun son şubesi kapatılamaz.",
-        detail: "işlem sonrası kalacak aktif şube sayısı=0",
+        details: "işlem sonrası kalacak aktif şube sayısı=0",
+        hint: "Kapatmadan önce başka bir şube açın.",
+        message: "Bu şube kapatılamaz: içinde aktif kayıtlar var.",
       };
 
       const translated = translateBranchError(err);
@@ -417,15 +424,16 @@ describe("branchService (v1.4-09 · #284)", () => {
       expect(translated).toBe(
         "Kurumun son şubesi kapatılamaz. Kapatmadan önce başka bir şube açın."
       );
-      // Ham detail sızmamalı
+      // Ham details sızmamalı
       expect(translated).not.toContain("kalacak aktif şube sayısı=0");
     });
 
     it("Hal 3: Varsayılan şube kapatılmaya çalışıldığında doğru cümleye çevrilir", () => {
       const err = {
         code: "ORB03",
-        message: "Varsayılan şube kapatılamaz.",
-        detail: "kapatılmak istenen şube kurumun varsayılan şubesi",
+        details: "kapatılmak istenen şube kurumun varsayılan şubesi",
+        hint: "Önce başka bir şubeyi varsayılan yapın, sonra bu şubeyi kapatın.",
+        message: "Bu şube kapatılamaz: içinde aktif kayıtlar var.",
       };
 
       const translated = translateBranchError(err);
@@ -433,8 +441,27 @@ describe("branchService (v1.4-09 · #284)", () => {
       expect(translated).toBe(
         "Varsayılan şube kapatılamaz. Önce başka bir şubeyi varsayılan yapın, sonra bu şubeyi kapatın."
       );
-      // Ham detail sızmamalı
+      // Ham details sızmamalı
       expect(translated).not.toContain("kapatılmak istenen şube");
+    });
+
+    it("R1: details boş olduğunda ikincil yol (message) üzerinden doğru çevrilir", () => {
+      const err = {
+        code: "ORB03",
+        message: "Kurumun son şubesi kapatılamaz.",
+      };
+      expect(translateBranchError(err)).toBe(
+        "Kurumun son şubesi kapatılamaz. Kapatmadan önce başka bir şube açın."
+      );
+    });
+
+    it("R5: Tanınmayan ORB03 detayında sebep uydurmaz, nötr cümle döner (K-22)", () => {
+      const err = {
+        code: "ORB03",
+        details: "bilinmeyen_yeni_kural=true",
+        message: "Bu şube kapatılamaz.",
+      };
+      expect(translateBranchError(err)).toBe("Bu şube şu anda kapatılamıyor.");
     });
 
     it("23505 tekil ad çakışmasını kullanıcı dostu mesaja çevirir", () => {
@@ -455,6 +482,58 @@ describe("branchService (v1.4-09 · #284)", () => {
       const err = { code: "42501", message: "permission denied" };
       expect(translateBranchError(err)).toBe(
         "Bu işlem için kurum yöneticisi yetkisi gerekiyor."
+      );
+    });
+
+    it("R5: Bilinmeyen genel hatada ham Postgres mesajı basmaz, genel mesaj döner", () => {
+      const err = {
+        code: "XXXXX",
+        message: "FATAL: database connection closed unexpectedly",
+      };
+      expect(translateBranchError(err)).toBe(
+        "Şube işlemi gerçekleştirilemedi. Lütfen tekrar deneyin."
+      );
+    });
+  });
+
+  describe("ekranın gördüğü cümle — çeviri İKİ KEZ yapılmaz (denetleyen turu)", () => {
+    // R5 bir regresyon doğurdu ve kökü brifingin kendisiydi: son satırdaki
+    // `return message` kaldırılınca, `translateBranchError`'dan bir daha
+    // geçirilen —ve zaten çevrilmiş— bir `Error` genel yedeğe düşmeye başladı.
+    //
+    // Servis her yazmada `throw new Error(translateBranchError(raw))` yapıyor,
+    // yani ekranın elindeki hata ZATEN Türkçe bir cümle. Ekran onu yeniden
+    // çevirmeye kalkarsa ORB03'ün sayıları da K-14 mesajları da kaybolur.
+    //
+    // Bu iddia çevirmenin bu özelliğini çiviliyor; ekranın `err.message`
+    // okuduğunu `SettingsInstitutionSection` tarafındaki `hataCumlesi`
+    // yardımcısı sağlıyor.
+    it("zaten çevrilmiş bir cümle ikinci geçişte GENEL YEDEĞE düşer — bu yüzden ekran ikinci geçişi yapmaz", () => {
+      const servisCumlesi = translateBranchError({
+        code: "ORB03",
+        details: "öğrenci=3, sınıf=2, üyelik=1",
+        hint: "Önce bu kayıtları başka bir şubeye taşıyın veya arşivleyin.",
+        message: "Bu şube kapatılamaz: içinde aktif kayıtlar var.",
+      });
+
+      expect(servisCumlesi).toContain("3 öğrenci");
+
+      // Ekran BUNU yapsaydı sayılar kaybolurdu:
+      expect(translateBranchError(new Error(servisCumlesi))).toBe(
+        "Şube işlemi gerçekleştirilemedi. Lütfen tekrar deneyin."
+      );
+
+      // Ekranın yaptığı şey ise cümleyi olduğu gibi taşımak:
+      const err: unknown = new Error(servisCumlesi);
+      const ekranda =
+        err instanceof Error && err.message ? err.message : "yedek";
+      expect(ekranda).toBe(servisCumlesi);
+    });
+
+    it("K-14 mesajı da ikinci çeviriden sağ çıkmaz", () => {
+      const k14 = new Error("Şube bulunamadı veya güncelleme yetkiniz yok.");
+      expect(translateBranchError(k14)).toBe(
+        "Şube işlemi gerçekleştirilemedi. Lütfen tekrar deneyin."
       );
     });
   });

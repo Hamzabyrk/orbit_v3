@@ -124,6 +124,24 @@ function anahtarla(yol: string): string {
   return yol.replace(/[.](ts|tsx)$/, "");
 }
 
+/**
+ * Bir dosyanın hangi adlarla içe aktarılabileceğini döner.
+ *
+ * ⚠️ `index.ts` İKİ ADLA aranır: kendi yolu **ve bulunduğu dizin**. Çünkü
+ * `import { x } from "@/realtime"` bir dizin importudur ve derleyici onu
+ * `realtime/index.ts`'e çözer — bu testin ilk hali çözmüyordu ve
+ * `client/src/realtime/index.ts`'in **kullanılan** re-export'larını "sahipsiz"
+ * gösterdi (ölçüldü: sekiz yanlış pozitif, biri gerçekten çağrılan
+ * `useOrganizationChannel`).
+ */
+function olasiAnahtarlar(yol: string): string[] {
+  const kendi = anahtarla(yol);
+  if (/^index[.](ts|tsx)$/.test(path.basename(yol))) {
+    return [kendi, anahtarla(path.dirname(yol))];
+  }
+  return [kendi];
+}
+
 describe("servis katmanında ölü ihraç kalmaz (v1.4 ara denetimi)", () => {
   const dosyalar = kaynakDosyalar(istemciKoku);
   const icerikler = new Map(
@@ -211,7 +229,8 @@ describe("servis katmanında ölü ihraç kalmaz (v1.4 ara denetimi)", () => {
             .trim()
             .split(/\s+as\s+/)[0];
           if (!ad) continue;
-          if (istenenler.has(`${anahtarla(yol)}::${ad}`)) continue;
+          if (olasiAnahtarlar(yol).some(k => istenenler.has(`${k}::${ad}`)))
+            continue;
           sahipsiz.push(
             `${ad} :: ${path.relative(istemciKoku, yol).split(path.sep).join("/")}`
           );

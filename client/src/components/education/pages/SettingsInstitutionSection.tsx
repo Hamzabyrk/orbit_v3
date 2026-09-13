@@ -27,7 +27,6 @@ import {
   createBranch,
   restoreBranch,
   setDefaultBranch,
-  translateBranchError,
   updateBranch,
   type Branch,
 } from "@/organization/branchService";
@@ -128,7 +127,7 @@ export function SettingsInstitutionSection() {
       toast.success("Şube başarıyla eklendi.");
       setAddOpen(false);
     } catch (err) {
-      setAddError(translateBranchError(err));
+      setAddError(hataCumlesi(err, "Şube eklenemedi."));
     } finally {
       setAddLoading(false);
     }
@@ -161,11 +160,26 @@ export function SettingsInstitutionSection() {
       toast.success("Şube bilgileri güncellendi.");
       setEditingBranch(null);
     } catch (err) {
-      setEditError(translateBranchError(err));
+      setEditError(hataCumlesi(err, "Şube güncellenemedi."));
     } finally {
       setEditLoading(false);
     }
   };
+
+  /**
+   * Servisten gelen hatanın cümlesi.
+   *
+   * ⚠️ `translateBranchError`'ı BURADA bir daha çağırma. `branchService`'in
+   * bütün yazmaları hatayı zaten çevirip `new Error(çeviri)` fırlatıyor;
+   * ikinci bir çeviri o cümleyi tanımaz ve çevirmenin genel yedeğine düşer —
+   * ölçüldü: "içinde aktif 3 öğrenci, 2 sınıf, 1 üye kaydı bulunuyor" cümlesi
+   * ekrana "Şube işlemi gerçekleştirilemedi" olarak çıkıyordu. K-14 mesajları
+   * da aynı yerde kayboluyordu.
+   *
+   * Depodaki desen bu: öğrenci ve sınıf tarafı da `err.message` okuyor.
+   */
+  const hataCumlesi = (err: unknown, yedek: string) =>
+    err instanceof Error && err.message ? err.message : yedek;
 
   const handleSetDefault = async (target: Branch) => {
     if (!organizationId || settingDefaultId) return;
@@ -176,7 +190,7 @@ export function SettingsInstitutionSection() {
       await invalidateBranchQueries();
       toast.success(`"${target.name}" varsayılan şube yapıldı.`);
     } catch (err) {
-      toast.error(translateBranchError(err));
+      toast.error(hataCumlesi(err, "Varsayılan şube değiştirilemedi."));
     } finally {
       setSettingDefaultId(null);
     }
@@ -199,7 +213,7 @@ export function SettingsInstitutionSection() {
       toast.success(`"${branchToArchive.name}" şubesi kapatıldı.`);
       setBranchToArchive(null);
     } catch (err) {
-      setArchiveError(translateBranchError(err));
+      setArchiveError(hataCumlesi(err, "Şube kapatılamadı."));
     } finally {
       setArchiveLoading(false);
     }
@@ -214,7 +228,7 @@ export function SettingsInstitutionSection() {
       await invalidateBranchQueries();
       toast.success(`"${target.name}" şubesi yeniden açıldı.`);
     } catch (err) {
-      toast.error(translateBranchError(err));
+      toast.error(hataCumlesi(err, "Şube yeniden açılamadı."));
     } finally {
       setRestoringId(null);
     }
