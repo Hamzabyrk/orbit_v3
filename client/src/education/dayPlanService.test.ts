@@ -158,7 +158,42 @@ describe("dayPlanService", () => {
       expect(result.id).toBe("new-task-1");
     });
 
-    it("başlık boş olduğunda veritabanına gitmeden hata fırlatır", async () => {
+    it("kurum veya üyelik kimliği boşsa veritabanına gitmeden hata fırlatır (fail-closed / K-04)", async () => {
+      await expect(
+        createTask({
+          organizationId: "",
+          ownerMembershipId: "mem-1",
+          title: "Görev",
+        })
+      ).rejects.toThrow("Kurum ve üyelik bilgisi zorunludur.");
+      expect(fromMock).not.toHaveBeenCalled();
+
+      await expect(
+        createTask({
+          organizationId: "org-1",
+          ownerMembershipId: "",
+          title: "Görev",
+        })
+      ).rejects.toThrow("Kurum ve üyelik bilgisi zorunludur.");
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("geçersiz başlıklı görev oluşturulduğunda sunucuya gider ve 23514 hatası çevrilir (#292 / B)", async () => {
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: "23514",
+          details:
+            "Failing row contains (8fe72462-87c1-4ba2-bb52-5a21ff11b7df, bb000000-0000-0000-0000-000000000001, bb300000-0000-0000-0000-000000000001,    , null, null, null, null, 2026-09-13 16:30:00+00, 2026-09-13 16:30:00+00)",
+          hint: null,
+          message:
+            'new row for relation "tasks" violates check constraint "tasks_title_check"',
+        },
+      });
+      const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+      const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+      fromMock.mockReturnValue({ insert: mockInsert });
+
       await expect(
         createTask({
           organizationId: "org-1",
@@ -166,18 +201,16 @@ describe("dayPlanService", () => {
           title: "   ",
         })
       ).rejects.toThrow("Görev başlığı 1 ile 200 karakter arasında olmalıdır.");
-      expect(fromMock).not.toHaveBeenCalled();
-    });
 
-    it("başlık 200 karakteri aştığında hata fırlatır", async () => {
-      await expect(
-        createTask({
-          organizationId: "org-1",
-          ownerMembershipId: "mem-1",
-          title: "a".repeat(201),
+      // 🔴 B iddiası: İstemci baştan reddetmedi, veritabanına gitti
+      expect(fromMock).toHaveBeenCalledWith("tasks");
+      expect(mockInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "",
+          organization_id: "org-1",
+          owner_membership_id: "mem-1",
         })
-      ).rejects.toThrow("Görev başlığı 1 ile 200 karakter arasında olmalıdır.");
-      expect(fromMock).not.toHaveBeenCalled();
+      );
     });
   });
 
@@ -239,6 +272,32 @@ describe("dayPlanService", () => {
         updateTask("org-1", "task-1", { title: "Test" })
       ).rejects.toThrow(
         "Görev güncellenemedi veya bu işlem için yetkiniz bulunmuyor."
+      );
+    });
+
+    it("geçersiz başlıklı görev güncellendiğinde sunucuya gider ve 23514 hatası çevrilir (#292 / B)", async () => {
+      const mockSelect = vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: "23514",
+          details: "Failing row contains (..., ...)",
+          hint: null,
+          message:
+            'new row for relation "tasks" violates check constraint "tasks_title_check"',
+        },
+      });
+      const mockEqTask = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockEqOrg = vi.fn().mockReturnValue({ eq: mockEqTask });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqOrg });
+      fromMock.mockReturnValue({ update: mockUpdate });
+
+      await expect(
+        updateTask("org-1", "task-1", { title: "   " })
+      ).rejects.toThrow("Görev başlığı 1 ile 200 karakter arasında olmalıdır.");
+
+      expect(fromMock).toHaveBeenCalledWith("tasks");
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "" })
       );
     });
   });
@@ -428,7 +487,26 @@ describe("dayPlanService", () => {
       expect(res.id).toBe("ev-new");
     });
 
-    it("bitiş saati başlangıçtan önce veya eşitse hata fırlatır", async () => {
+    it("bitiş saati başlangıçtan önceyse SUNUCUYA gider ve 23514 çevrilir (#292 / B)", async () => {
+      // Bu kontrol eskiden istemcideydi ve `calendar_events_time_check`
+      // kısıtının kopyasıydı — başlık kontrolleriyle aynı sınıf. Altı başlık
+      // kopyası kaldırılırken bunun bırakılması aynı dosyada iki farklı kural
+      // demekti (**K-06**). Kural tek yerde: şema.
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: "23514",
+          details:
+            "Failing row contains (ev-1, org-1, mem-1, Toplantı, null, 2026-09-15 14:00:00+00, 2026-09-15 13:00:00+00, null, …)",
+          hint: null,
+          message:
+            'new row for relation "calendar_events" violates check constraint "calendar_events_time_check"',
+        },
+      });
+      const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+      const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+      fromMock.mockReturnValue({ insert: mockInsert });
+
       await expect(
         createCalendarEvent({
           organizationId: "org-1",
@@ -438,7 +516,58 @@ describe("dayPlanService", () => {
           endsAt: "2026-09-15T13:00:00Z",
         })
       ).rejects.toThrow("Bitiş saati başlangıç saatinden sonra olmalıdır.");
+
+      // 🔴 İddia: istemci baştan reddetmedi, kararı sunucu verdi.
+      expect(fromMock).toHaveBeenCalledWith("calendar_events");
+    });
+
+    it("kurum veya üyelik kimliği boşsa veritabanına gitmeden hata fırlatır (fail-closed / K-04)", async () => {
+      await expect(
+        createCalendarEvent({
+          organizationId: "",
+          ownerMembershipId: "mem-1",
+          title: "Toplantı",
+          startsAt: "2026-09-15T14:00:00Z",
+        })
+      ).rejects.toThrow("Kurum ve üyelik bilgisi zorunludur.");
       expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("geçersiz başlıklı etkinlik oluşturulduğunda sunucuya gider ve 23514 hatası çevrilir (#292 / B)", async () => {
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: "23514",
+          details:
+            "Failing row contains (8fe72462-87c1-4ba2-bb52-5a21ff11b7df, bb000000-0000-0000-0000-000000000001, bb300000-0000-0000-0000-000000000001,    , null, 2026-09-15 10:00:00+00, null, null, 2026-09-13 16:30:00+00, 2026-09-13 16:30:00+00)",
+          hint: null,
+          message:
+            'new row for relation "calendar_events" violates check constraint "calendar_events_title_check"',
+        },
+      });
+      const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+      const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+      fromMock.mockReturnValue({ insert: mockInsert });
+
+      await expect(
+        createCalendarEvent({
+          organizationId: "org-1",
+          ownerMembershipId: "mem-1",
+          title: "   ",
+          startsAt: "2026-09-15T14:00:00Z",
+        })
+      ).rejects.toThrow(
+        "Etkinlik başlığı 1 ile 200 karakter arasında olmalıdır."
+      );
+
+      expect(fromMock).toHaveBeenCalledWith("calendar_events");
+      expect(mockInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "",
+          organization_id: "org-1",
+          owner_membership_id: "mem-1",
+        })
+      );
     });
   });
 
@@ -455,6 +584,34 @@ describe("dayPlanService", () => {
         updateCalendarEvent("org-1", "ev-1", { title: "Yeni Başlık" })
       ).rejects.toThrow(
         "Etkinlik güncellenemedi veya bu işlem için yetkiniz bulunmuyor."
+      );
+    });
+
+    it("geçersiz başlıklı etkinlik güncellendiğinde sunucuya gider ve 23514 hatası çevrilir (#292 / B)", async () => {
+      const mockSelect = vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: "23514",
+          details: "Failing row contains (..., ...)",
+          hint: null,
+          message:
+            'new row for relation "calendar_events" violates check constraint "calendar_events_title_check"',
+        },
+      });
+      const mockEqEv = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockEqOrg = vi.fn().mockReturnValue({ eq: mockEqEv });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqOrg });
+      fromMock.mockReturnValue({ update: mockUpdate });
+
+      await expect(
+        updateCalendarEvent("org-1", "ev-1", { title: "   " })
+      ).rejects.toThrow(
+        "Etkinlik başlığı 1 ile 200 karakter arasında olmalıdır."
+      );
+
+      expect(fromMock).toHaveBeenCalledWith("calendar_events");
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "" })
       );
     });
 
@@ -479,22 +636,48 @@ describe("dayPlanService", () => {
       expect(msg).toContain("Bu işlem için yetkiniz yok");
     });
 
-    it("23514 tasks_title_check hatasını açıklar", () => {
-      const msg = translateDayPlanError({
+    it("23514 tasks_title_check gerçek PostgREST hatasını (kısıt message içinde) doğru çevirir ve details sızmaz (A)", () => {
+      const error = {
         code: "23514",
-        details: "violates tasks_title_check constraint",
-      });
-      expect(msg).toContain(
-        "Görev başlığı 1 ile 200 karakter arasında olmalıdır"
-      );
+        details:
+          "Failing row contains (8fe72462-87c1-4ba2-bb52-5a21ff11b7df, bb000000-0000-0000-0000-000000000001, bb300000-0000-0000-0000-000000000001,    , null, null, null, null, 2026-09-13 16:30:00+00, 2026-09-13 16:30:00+00)",
+        hint: null,
+        message:
+          'new row for relation "tasks" violates check constraint "tasks_title_check"',
+      };
+      const msg = translateDayPlanError(error);
+      expect(msg).toBe("Görev başlığı 1 ile 200 karakter arasında olmalıdır.");
+      expect(msg).not.toContain("Failing row contains");
     });
 
-    it("23514 calendar_events_time_check hatasını açıklar", () => {
-      const msg = translateDayPlanError({
+    it("23514 calendar_events_title_check gerçek PostgREST hatasını (kısıt message içinde) doğru çevirir ve details sızmaz (A)", () => {
+      const error = {
         code: "23514",
-        details: "violates calendar_events_time_check constraint",
-      });
-      expect(msg).toContain("Bitiş saati başlangıç saatinden sonra olmalıdır");
+        details:
+          "Failing row contains (8fe72462-87c1-4ba2-bb52-5a21ff11b7df, bb000000-0000-0000-0000-000000000001, bb300000-0000-0000-0000-000000000001,    , null, 2026-09-15 10:00:00+00, null, null, 2026-09-13 16:30:00+00, 2026-09-13 16:30:00+00)",
+        hint: null,
+        message:
+          'new row for relation "calendar_events" violates check constraint "calendar_events_title_check"',
+      };
+      const msg = translateDayPlanError(error);
+      expect(msg).toBe(
+        "Etkinlik başlığı 1 ile 200 karakter arasında olmalıdır."
+      );
+      expect(msg).not.toContain("Failing row contains");
+    });
+
+    it("23514 calendar_events_time_check gerçek PostgREST hatasını (kısıt message içinde) doğru çevirir ve details sızmaz (A)", () => {
+      const error = {
+        code: "23514",
+        details:
+          "Failing row contains (8fe72462-87c1-4ba2-bb52-5a21ff11b7df, bb000000-0000-0000-0000-000000000001, bb300000-0000-0000-0000-000000000001, Toplantı, null, 2026-09-15 14:00:00+00, 2026-09-15 13:00:00+00, null, 2026-09-13 16:30:00+00, 2026-09-13 16:30:00+00)",
+        hint: null,
+        message:
+          'new row for relation "calendar_events" violates check constraint "calendar_events_time_check"',
+      };
+      const msg = translateDayPlanError(error);
+      expect(msg).toBe("Bitiş saati başlangıç saatinden sonra olmalıdır.");
+      expect(msg).not.toContain("Failing row contains");
     });
 
     it("details çoğul alanından hata kodu çözer (K-23)", () => {

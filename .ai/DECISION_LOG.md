@@ -2880,3 +2880,62 @@ Sebebi testin kendisiydi: spy `eqCalls`'ı `undefined` ile başlatıyor, `.eq()`
 **Karar:** spy boş diziyle başlatıldı; kırmızı artık `expected [] to deep equally contain [ 'organization_id', … ]` diyor.
 
 **Kural olarak:** K-23 bir mutasyonun testi kırmızıya döndürmesini ister; bu kayıt onu bir adım ileri götürüyor — **kırmızının nedeni okunabilir olmalı.** Bir `TypeError` "koruma çalıştı" demez, "test çöktü" der; ikisi bir sonraki kişi için aynı şey değildir.
+
+---
+
+### Karar: İş kuralı şemada, biçim doğrulaması sınırda, servis yalnız çevirir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-14 "Zod doğrulama" diye açılmıştı. Soru şuydu: istemci servislerine Zod girsin mi?
+
+**Karar: hayır.** İş kuralı tek yerde kalır — **şema**. Servis sunucunun cevabını çevirir, kuralı taklit etmez. Karşılığı olarak yedi kopya doğrulama kaldırıldı (altı `length > 200` başlık kontrolü + bir `endsAt <= startsAt`); hepsi şemadaki CHECK kısıtlarının kopyasıydı (**K-06**).
+
+**Duran şeyler:** `trim()` normalleştirmesi (kural değil, gönderilecek değerin hazırlanması) ve fail-closed kimlik korumaları (`!organizationId` → sorgu atma; **K-04**). İkisinin de şemada karşılığı yok.
+
+🔴 **Ama kararın gerekçesindeki bir ölçüm yanlıştı ve yazan reddetti.**
+
+Denetleyen "zod depoda hiç kullanılmıyor, bağımlılığı kaldıralım" dedi. Yazan uygulamayı denedi, K-19 kapısı kırmızıya döndü ve kanıtla geri geldi:
+
+- `supabase/functions/_shared/deps.ts:20` → `export { z } from "npm:zod@4.5.4";`
+- **7 Edge Function'ın 7'si de** `z.` kullanıyor
+- `edgeDependencyPins.test.ts` `deps.ts` ↔ `package.json` paritesini zorunlu tutuyor
+- `@hookform/resolvers` zod'u **peer** olarak istiyor
+
+Hatanın kaynağı bir grep deseni: `from "zod"` arandı; oysa fonksiyonlar `{ z }`'yi deps barrel'ından, barrel da `npm:zod@4.5.4`'ten alıyor.
+
+**Ortaya çıkan bölüşüm kararı zaten destekliyor** ve asıl kayıt bu:
+
+| Nerede                  | Ne doğrular                                                      |
+| ----------------------- | ---------------------------------------------------------------- |
+| Edge Function (**Zod**) | **Dışarıdan gelen** istek gövdesinin biçimi (`AGENTS.md` kuralı) |
+| Şema (**CHECK**)        | İş kuralı — "başlık 1–200 karakter"                              |
+| Servis                  | Hiçbiri — sunucunun cevabını çevirir                             |
+
+Zod bu depoda **sınırda** duruyor ve kuralı tekrar etmiyor; kaldırılsaydı bozulacak olan şey doğrulama değil **sınır** olurdu.
+
+**Süreç açısından kayda değer olan:** yazan bir talimatı reddetti, gerekçesini ölçümle sundu ve **haklıydı**. Denetleyenin ölçümü de ölçümdür — ve yanlış olabilir. Bu turda iki kez oldu: bu, ve daha önce `role_table_grants`'a bakıp "politikalar ölü" diyecek olmam.
+
+---
+
+### Karar: `details` hata sınıfına göre farklı şey demek — ve asla ham basılmaz
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-09'da "alanın adı `detail` değil `details`" öğrenilmişti. v1.4-14'te bir adım daha çıktı: **`details`'in içeriği hata sınıfına göre değişiyor.** Yerel PostgREST'e ölçüldü:
+
+| Kod                     | `message`      | `details`                                                    |
+| ----------------------- | -------------- | ------------------------------------------------------------ |
+| `23505` (tekillik)      | kısıt adı      | `Key (class_id, day_of_week, starts_at)=(…) already exists.` |
+| `23514` (CHECK)         | **kısıt adı**  | `Failing row contains (…)` — **tüm satır**                   |
+| `ORB03` (bizim `raise`) | bizim cümlemiz | `detail =` ile yazdığımız                                    |
+
+**Sonuç 1:** CHECK ihlalinde kısıt adı **`message`**'ta aranır. `dayPlanService` `details`'te arıyordu; üç ayrım da hiç eşleşmiyor, her `23514` genel cümleye düşüyordu. Kusur görünmüyordu çünkü istemcideki kopya doğrulama sunucuya varmadan reddediyordu — kopya kaldırılınca görünür hâle gelecekti.
+
+**Sonuç 2 ve daha önemlisi:** `details` **asla ham basılmaz**. `23514`'te bu, kullanıcıya kendi satırının tamamını — kimlikler ve diğer sütunlar dahil — göstermek olurdu.
+
+**Kural olarak:** bir dış sistemin hata gövdesinden okunan her alan, **o hata sınıfı için** ölçülerek doğrulanır. "Alan adı doğru" yetmez; o alanın **ne taşıdığı** da sınıfa bağlıdır.
