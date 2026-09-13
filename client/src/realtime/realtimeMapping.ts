@@ -21,7 +21,9 @@ export type EducationTable =
   | "homework_assignments"
   | "guardians"
   | "student_guardians"
-  | "branches";
+  | "branches"
+  | "subjects"
+  | "class_teachers";
 
 /**
  * Toplu tetikleyici veya içe aktarma sırasındaki mesajları birleştirme süresi (ms).
@@ -175,6 +177,25 @@ export function getAffectedQueryKeys(
       return [
         settingsKeys.branches(organizationId),
         settingsKeys.members(organizationId),
+      ];
+
+    case "subjects":
+      // Ders adı değişince veya ders eklenip/arşivlenince ders listesi,
+      // program, ödev ve sınav sorguları etkilenir (#287)
+      return [
+        educationKeys.subjects(organizationId),
+        educationKeys.schedule(organizationId),
+        educationKeys.homework(organizationId),
+        educationKeys.exam(organizationId),
+        educationKeys.exams(organizationId),
+      ];
+
+    case "class_teachers":
+      // Sınıfın öğretmen ataması değişince atama listesi, sınıf kartı ve program etkilenir (#287)
+      return [
+        educationKeys.classTeachers(organizationId),
+        educationKeys.classes(organizationId),
+        educationKeys.schedule(organizationId),
       ];
 
     default:

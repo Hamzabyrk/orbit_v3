@@ -13,7 +13,6 @@ import {
   extractSubjectName,
   loadHomework,
   loadStaffNames,
-  loadSubjects,
   mapHomeworkRow,
   restoreHomework,
   translateHomeworkError,
@@ -484,25 +483,6 @@ describe("homeworkService (v1.4-05 · #273 Ödev Akışı)", () => {
 
       expect(spy.limitArg).toBe(DEFAULT_HOMEWORK_LIMIT);
       expect(DEFAULT_HOMEWORK_LIMIT).toBe(100);
-    });
-  });
-
-  describe("loadSubjects", () => {
-    it("aktif dersleri alfabetik sırayla çeker", async () => {
-      const chain = createQueryChain({
-        data: [
-          { id: "sub-1", name: "Biyoloji" },
-          { id: "sub-2", name: "Matematik" },
-        ],
-        error: null,
-      });
-      fromMock.mockReturnValueOnce(chain);
-
-      const subjects = await loadSubjects("org-1");
-      expect(subjects).toEqual([
-        { id: "sub-1", name: "Biyoloji" },
-        { id: "sub-2", name: "Matematik" },
-      ]);
     });
   });
 });

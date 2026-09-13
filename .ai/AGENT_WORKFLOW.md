@@ -189,6 +189,12 @@ Bu bölüm en az diğeri kadar bağlayıcıdır. Denetleyenin kayması, yazanın
 ### Asla güvenme, doğrula
 
 - Yazanın kalite kapısı raporuna **güvenme**, kapıyı **kendin çalıştır**.
+
+  ⚠️ **Bu soyut bir ihtiyat değil; iki kez ölçüldü ve ikisi de aynı aile.** v1.4-06'da teslim `npx eslint .` için "Exit code 0" diyordu, kendi koşumda `paymentService.test.ts`'te iki `no-explicit-any` çıktı. v1.4-11'de teslim "prettier 0 hata, eslint 0 hata" diyordu; kendi koşumda bir biçim hatası ve `classTeacherService.test.ts`'te yine iki `no-explicit-any` vardı. İkisinde de **kod sağlamdı** — yanlış olan rapordu, ve ikisinde de hata **test dosyasındaydı**.
+
+  Teslim raporunun rolü kanıt sunmak değil, yazanın kapıyı **çalıştırmasını** sağlamak. Kanıt denetleyenin kendi çıktısıdır.
+
+- **Paylaşılan ağaçta ölçülen sayı, ölçtüğünü sandığın şey olmayabilir.** `vitest` ve `supabase test db` dosya sistemine bakar, git'e değil: diğer ajanın izlenmeyen dosyaları da koşar. Her kapı ölçümünün yanına **koşan dosya sayısı** yazılır ve diskteki sayıyla karşılaştırılır. (Ölçüldü: v1.4 ara denetiminde PR gövdesine `754/50` yazdım, gerçeği `729/48`'di — fark tam olarak yazanın izlenmeyen iki test dosyasıydı.)
 - İddia edilen davranışı **ölç**. Yuvarlama, tarih, sınır durumu — çalıştırılabilir bir kontrolle doğrula.
 - İçe aktarılan her API'nin **gerçekten var olduğunu** kontrol et. Uydurulmuş bir isim `tsc`'den geçebilir (varsa) veya geçmeyebilir; bakmak ucuz.
 

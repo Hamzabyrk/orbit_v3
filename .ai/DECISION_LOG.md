@@ -2742,3 +2742,77 @@ Yani R1'in bütün kazancı ekran sınırında yok oluyordu; K-14 mesajları da 
 ⚠️ **Bu kararın nasıl ortaya çıktığı da kayda geçiyor, çünkü kısmen yanlış bir sebeple alındı.** Ara denetimde eklediğim re-export kapısı dizin importlarını (`from "@/realtime"`) çözemiyordu ve barrel'ın **kullanılan** re-export'unu da "sahipsiz" gösteriyordu — sekiz yanlış pozitif. Yazan testi gevşetmedi (brifing öyle diyordu) ve mimariyi kurala uydurdu; ama kararı hatalı bir kapı zorladı. Kapı düzeltildi (`index.ts` artık iki adla aranıyor: kendi yolu ve bulunduğu dizin) ve **düzeltilmiş haliyle de yedi ölü re-export duruyordu** — yani karar ayakta kalıyor, dayanağı değişiyor.
 
 **Ders:** bir kapı yanlış pozitif verdiğinde, onu izleyen kişinin aldığı karar da o kapının hatasını taşır. Kapıyı kuran, çıktısını **tamamını okuyarak** bildirmek zorundadır — bu turda ben grep'le süzdüm ve sekiz satırın yedisini görmeden "tek çıktısı şu" dedim.
+
+---
+
+### Karar: Bir kuralın değeri neyi saydığında değil, neyi saymadığındadır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-11 "okutulan ders arşivlenemez" kuralını getirdi. `subjects`'e bakan **beş** yabancı anahtar var ve hepsi `RESTRICT` — yani hepsi DELETE'i engelliyor, hiçbiri arşivlemeyi sınamıyordu.
+
+| Tablo                  | Ne taşıyor             | Sayılıyor mu |
+| ---------------------- | ---------------------- | ------------ |
+| `class_teachers`       | canlı öğretmen ataması | ✅           |
+| `schedule_entries`     | canlı program satırı   | ✅           |
+| `attendance_sessions`  | geçmiş yoklama         | ❌           |
+| `exams`                | geçmiş sınav           | ❌           |
+| `homework_assignments` | geçmiş ödev            | ❌           |
+
+**Karar: yalnız canlı olanlar sayılır.**
+
+**Gerekçe:** beşi de sayılsaydı kural **işe yaramazdı** — bir kez yoklaması alınmış ders bir daha asla arşivlenemez, "artık bu dersi vermiyoruz" demenin yolu kalmazdı. Geçmiş kayıt zaten engellememeli: **arşiv silme değildir.** Satır duruyor, adı çözülmeye devam ediyor; eski bir sınavın "Astronomi" yazması doğrudur ve doğru kalmalıdır.
+
+Engellenen şey bugün birine erişim veren atama ve bu hafta okutulan program satırı. Arşivlenmiş bir derse bağlı **canlı** bir atama, listelerden düşmeyen ama "yok" sayılan bir yapı olurdu — v1.4-09'un dolu şubesiyle aynı cümle.
+
+**K-23 bu kuralda testi değiştirtti.** Fonksiyondaki "yalnız arşive geçiş sınanır" satırını etkisizleştirdiğimde **hiçbir iddia kırmızıya dönmedi**. Sınırın gerekli olduğu ayrıca ölçüldü: `class_teachers`'ın yabancı anahtarı dersin arşivli olup olmadığını **sormuyor**, yani arşivli bir derse canlı atama yazılabiliyor — sınır olmasaydı o ders bir daha asla arşivden çıkarılamazdı. İki iddia eklendi ve aynı mutasyon artık kırmızı veriyor.
+
+---
+
+### Karar: Ders yönetimi ayrı bir dilim değil, atamanın önkoşulu
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `class_teachers.subject_id` **NOT NULL** ve üretimde **0 ders** vardı; `subjects`'e yazan 0 istemci kodu, 0 fonksiyon. Yani öğretmen ataması ekranı yazılsaydı **ilk günden boş bir seçim listesiyle** açılırdı.
+
+**Karar:** ders CRUD v1.4-11'in parçası. Ayrı dilim yapılsaydı öğretmen ataması bir tur geciker, ya da daha kötüsü, çalışmayan bir ekran olarak inerdi.
+
+**Bu üçüncü kez aynı biçimde karşımıza çıktı** ve artık bir desen: v1.4-00'da bağlanacak öğrenci kaydı yoktu, v1.4-10'da bağlanacak veli kaydı yoktu, v1.4-11'de atanacak ders yoktu. Üçünde de dilimin adı **ilişkiyi** söylüyordu ve ilişkinin uçlarından biri hiç yaratılamıyordu. K-10 turunun ilk sorusu artık şu olmalı: _"bu dilimin bağladığı şeylerin ikisi de üretilebiliyor mu?"_
+
+---
+
+### Karar: Derslik çakışması engellenmiyor — serbest metin katı kural taşımaz
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `schedule_entries.room` serbest metin. Öğretmen ve sınıf çakışması şemada zaten engelli (`schedule_entries_teacher_slot_idx`, `schedule_entries_class_slot_idx` — ikisi de kısmi tekil indeks); derslik değil.
+
+**Karar: engellenmiyor.** Üç gerekçe:
+
+1. **Yazım farkı kuralı deler.** "A-101" ile "A101" farklı değerlerdir; indeks ikisini ayrı sayar ve gerçek çakışma geçer. Sonuç, koruduğunu sanan ama korumayan bir kural olurdu.
+2. **Doğal olarak paylaşılan değerler var** — "Online", "Bahçe", "Salon". Katı bir kural bunlar için istisna isterdi.
+3. Güvenilir çözüm `rooms` tablosu + seçim listesi olurdu; bu yeni bir tablo, RLS ve CRUD ekranı demek ve dilimi belirgin biçimde büyütürdü.
+
+⚠️ **Ekran engelliyormuş gibi görünmemeli.** Çakışmayı gösterebilir; engelleyemez (**K-22** — bir koruma iddiası da bir iddiadır).
+
+---
+
+### Karar: Öğretmen ataması değişmez; kaldırılır ve yeniden açılır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `class_teachers`'ın `authenticated` için UPDATE yetkisi **yalnız `archived_at`** sütununu kapsıyor (ölçüldü).
+
+**Karar: bu bir kısıt değil bir tasarım ve korunuyor.** Bir atamanın sınıfı, öğretmeni veya dersi değiştiyse o **başka bir atamadır** — eskisi arşivlenir, yenisi açılır. Denetim defteri de bunu böyle okur: iki ayrı olay, biri kapanmış biri açılmış.
+
+Ekranda "Düzenle" düğmesi **yok**. Olsaydı, arkasında yapılacak tek şey yine kaldır+ekle olurdu ve kullanıcıya tek bir işlem yapıyormuş gibi görünürdü.
+
+⚠️ **Ölçüm notu:** bu kısıtın bir **sütun yetkisi** olduğunu görmek için `role_column_grants`'a bakmak gerekti. `role_table_grants` üç tabloda da yalnız `SELECT` gösteriyor ve ona bakıp "politikalar var ama GRANT yok, yani politikalar ölü" sonucuna varmak üzereydim. v1.4-09'daki `is_default` hatasıyla aynı aile: **doğru yere bakmadan yokluk iddia edilmez.**

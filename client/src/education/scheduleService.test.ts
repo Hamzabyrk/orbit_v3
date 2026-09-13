@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  archiveScheduleEntry,
   calculateDuration,
+  createScheduleEntry,
   DEFAULT_SCHEDULE_LIMIT,
   extractClassName,
   extractSubjectName,
@@ -9,6 +11,8 @@ import {
   loadStaffNames,
   mapScheduleRow,
   resolveLessonTitle,
+  translateScheduleError,
+  updateScheduleEntry,
   type RawScheduleRow,
 } from "./scheduleService";
 
@@ -472,6 +476,247 @@ describe("scheduleService", () => {
 
       await expect(loadSchedule()).rejects.toThrow(
         "Ders programı yüklenemedi."
+      );
+    });
+  });
+
+  describe("createScheduleEntry (v1.4-11 · #287)", () => {
+    it("yüke ASLA id koymaz ve subject_id doluyken title yazmaz (K-00 & K-06)", async () => {
+      let capturedPayload: unknown;
+
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: { id: "entry-new-1" },
+        error: null,
+      });
+      const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+      const mockInsert = vi.fn().mockImplementation(payload => {
+        capturedPayload = payload;
+        return { select: mockSelect };
+      });
+
+      fromMock.mockReturnValue({
+        insert: mockInsert,
+      });
+
+      const res = await createScheduleEntry({
+        organizationId: "org-1",
+        classId: "class-1",
+        dayOfWeek: 1,
+        startsAt: "09:00",
+        endsAt: "10:00",
+        subjectId: "sub-1",
+        title: "Ders Başlığı Uydurma",
+        membershipId: "mem-1",
+        room: "A-101",
+      });
+
+      expect(fromMock).toHaveBeenCalledWith("schedule_entries");
+      // ⛔ Yüke asla `id` konmaz
+      expect(capturedPayload).not.toHaveProperty("id");
+      // ⛔ subject_id doluyken ad dersten okunur — title'ı ona yazma kuralı
+      expect((capturedPayload as { title: unknown }).title).toBeNull();
+      expect((capturedPayload as { subject_id: unknown }).subject_id).toBe(
+        "sub-1"
+      );
+      expect(res.id).toBe("entry-new-1");
+    });
+
+    it("subject_id yokken özel title yazar", async () => {
+      let capturedPayload: unknown;
+
+      const mockSingle = vi.fn().mockResolvedValue({
+        data: { id: "entry-new-2" },
+        error: null,
+      });
+      const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
+      const mockInsert = vi.fn().mockImplementation(payload => {
+        capturedPayload = payload;
+        return { select: mockSelect };
+      });
+
+      fromMock.mockReturnValue({
+        insert: mockInsert,
+      });
+
+      await createScheduleEntry({
+        organizationId: "org-1",
+        classId: "class-1",
+        dayOfWeek: 2,
+        startsAt: "14:00",
+        title: "Rehberlik Saati",
+      });
+
+      expect(
+        (capturedPayload as { subject_id: unknown }).subject_id
+      ).toBeNull();
+      expect((capturedPayload as { title: unknown }).title).toBe(
+        "Rehberlik Saati"
+      );
+    });
+  });
+
+  describe("updateScheduleEntry", () => {
+    it("yüke id, organization_id veya class_id KOYMAZ (UPDATE yetkisi sınırları)", async () => {
+      let capturedPayload: unknown;
+
+      const mockSelect = vi.fn().mockResolvedValue({
+        data: [{ id: "entry-1" }],
+        error: null,
+      });
+      const mockIs = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockEqId = vi.fn().mockReturnValue({ is: mockIs });
+      const mockEqOrg = vi.fn().mockReturnValue({ eq: mockEqId });
+      const mockUpdate = vi.fn().mockImplementation(payload => {
+        capturedPayload = payload;
+        return { eq: mockEqOrg };
+      });
+
+      fromMock.mockReturnValue({
+        update: mockUpdate,
+      });
+
+      await updateScheduleEntry("org-1", "entry-1", {
+        dayOfWeek: 3,
+        startsAt: "10:00",
+        endsAt: "11:00",
+        room: "B-202",
+      });
+
+      expect(mockEqOrg).toHaveBeenCalledWith("organization_id", "org-1");
+      expect(mockEqId).toHaveBeenCalledWith("id", "entry-1");
+      expect(mockIs).toHaveBeenCalledWith("archived_at", null);
+      // ⛔ id, organization_id veya class_id asla update yüküne girmez
+      expect(capturedPayload).not.toHaveProperty("id");
+      expect(capturedPayload).not.toHaveProperty("organization_id");
+      expect(capturedPayload).not.toHaveProperty("class_id");
+    });
+
+    it("K-14: Sıfır satır etkilendiğinde hata fırlatır", async () => {
+      const mockSelect = vi.fn().mockResolvedValue({
+        data: [],
+        error: null,
+      });
+      const mockIs = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockEqId = vi.fn().mockReturnValue({ is: mockIs });
+      const mockEqOrg = vi.fn().mockReturnValue({ eq: mockEqId });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqOrg });
+
+      fromMock.mockReturnValue({
+        update: mockUpdate,
+      });
+
+      await expect(
+        updateScheduleEntry("org-1", "entry-1", { startsAt: "11:00" })
+      ).rejects.toThrow(
+        "Ders programı kaydı bulunamadı veya güncelleme yetkiniz yok."
+      );
+    });
+  });
+
+  describe("archiveScheduleEntry", () => {
+    it("satırı arşivler", async () => {
+      let capturedPayload: unknown;
+
+      const mockSelect = vi.fn().mockResolvedValue({
+        data: [{ id: "entry-1" }],
+        error: null,
+      });
+      const mockIs = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockEqId = vi.fn().mockReturnValue({ is: mockIs });
+      const mockEqOrg = vi.fn().mockReturnValue({ eq: mockEqId });
+      const mockUpdate = vi.fn().mockImplementation(payload => {
+        capturedPayload = payload;
+        return { eq: mockEqOrg };
+      });
+
+      fromMock.mockReturnValue({
+        update: mockUpdate,
+      });
+
+      await archiveScheduleEntry("org-1", "entry-1");
+
+      expect(mockEqOrg).toHaveBeenCalledWith("organization_id", "org-1");
+      expect(mockEqId).toHaveBeenCalledWith("id", "entry-1");
+      expect(mockIs).toHaveBeenCalledWith("archived_at", null);
+      expect(capturedPayload).toHaveProperty("archived_at");
+    });
+
+    it("K-14: Sıfır satır etkilendiğinde hata fırlatır", async () => {
+      const mockSelect = vi.fn().mockResolvedValue({
+        data: [],
+        error: null,
+      });
+      const mockIs = vi.fn().mockReturnValue({ select: mockSelect });
+      const mockEqId = vi.fn().mockReturnValue({ is: mockIs });
+      const mockEqOrg = vi.fn().mockReturnValue({ eq: mockEqId });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEqOrg });
+
+      fromMock.mockReturnValue({
+        update: mockUpdate,
+      });
+
+      await expect(archiveScheduleEntry("org-1", "entry-1")).rejects.toThrow(
+        "Ders programı kaydı bulunamadı veya işlem yetkiniz yok."
+      );
+    });
+  });
+
+  describe("translateScheduleError (23505 Çakışma ve Kural Çevirisi)", () => {
+    it("23505 sınıf çakışmasını ayırt eder (schedule_entries_class_slot_idx)", () => {
+      const err = {
+        code: "23505",
+        message:
+          'duplicate key value violates unique constraint "schedule_entries_class_slot_idx"',
+      };
+      expect(translateScheduleError(err)).toBe(
+        "Bu saatte sınıfın başka bir dersi bulunuyor."
+      );
+    });
+
+    it("23505 öğretmen çakışmasını ayırt eder (schedule_entries_teacher_slot_idx)", () => {
+      const err = {
+        code: "23505",
+        message:
+          'duplicate key value violates unique constraint "schedule_entries_teacher_slot_idx"',
+      };
+      expect(translateScheduleError(err)).toBe(
+        "Bu saatte öğretmenin başka bir dersi bulunuyor."
+      );
+    });
+
+    it("23505 genel çakışma durumunda dürüst mesaj verir", () => {
+      const err = {
+        code: "23505",
+        message: "duplicate key",
+      };
+      expect(translateScheduleError(err)).toBe(
+        "Bu saatte çakışan bir ders programı kaydı var."
+      );
+    });
+
+    it("23514 zaman kontrolü hatasını açıklar", () => {
+      const err = {
+        code: "23514",
+        message: 'violates check constraint "schedule_entries_time_check"',
+      };
+      expect(translateScheduleError(err)).toBe(
+        "Bitiş saati başlangıç saatinden sonra olmalıdır."
+      );
+    });
+
+    it("23514 ders etiketi kontrolü hatasını açıklar", () => {
+      const err = {
+        code: "23514",
+        message: 'violates check constraint "schedule_entries_label_check"',
+      };
+      expect(translateScheduleError(err)).toBe(
+        "Ders seçilmeli veya bir ders başlığı girilmelidir."
+      );
+    });
+
+    it("42501 yetki hatasını açıklar", () => {
+      expect(translateScheduleError({ code: "42501" })).toBe(
+        "Bu işlem için kurum yöneticisi yetkisi gerekiyor."
       );
     });
   });

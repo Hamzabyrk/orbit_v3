@@ -91,7 +91,10 @@ export function HomeworkCreateDialog({
         { id: "Geometri", name: "Geometri" },
       ];
     }
-    return (subjectsQuery.data ?? []).map(s => ({ id: s.id, name: s.name }));
+    return (subjectsQuery.data?.rows ?? []).map(s => ({
+      id: s.id,
+      name: s.name,
+    }));
   }, [subjectsQuery.data]);
 
   const resetForm = useCallback(() => {

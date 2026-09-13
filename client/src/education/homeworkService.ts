@@ -402,31 +402,3 @@ export async function restoreHomework(
     throw new Error("Ödev bulunamadı veya geri yüklenemedi.");
   }
 }
-
-/**
- * Kurumun aktif derslerini çeker.
- * Yeni ödev oluşturma diyaloğunda ders seçimi için kullanılır.
- */
-export async function loadSubjects(
-  organizationId: string
-): Promise<SubjectDetail[]> {
-  if (!organizationId) {
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from("subjects")
-    .select("id, name")
-    .eq("organization_id", organizationId)
-    .is("archived_at", null)
-    .order("name", { ascending: true });
-
-  if (error) {
-    return [];
-  }
-
-  return (data ?? []).map(row => ({
-    id: row.id,
-    name: row.name.trim(),
-  }));
-}

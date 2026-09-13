@@ -62,8 +62,14 @@ export type ScheduleItem = {
   group?: string | null;
   teacher?: string | null;
   room?: string | null;
-  tone?: string;
   duration?: string | null;
+  tone?: string;
+  classId?: string;
+  subjectId?: string | null;
+  membershipId?: string | null;
+  startsAt?: string;
+  endsAt?: string | null;
+  dayOfWeek?: number;
 };
 
 export type Automation = {
