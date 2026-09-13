@@ -34,10 +34,18 @@ function createScheduleQueryChain(
     isArgs?: [string, unknown];
     orderCalls?: [string, { ascending?: boolean }][];
     limitArg?: number;
+    eqCalls?: [string, unknown][];
   }
 ) {
   const chain: Record<string, unknown> = {};
   chain.select = vi.fn().mockReturnValue(chain);
+  chain.eq = vi.fn((col: string, val: unknown) => {
+    if (spy) {
+      spy.eqCalls = spy.eqCalls || [];
+      spy.eqCalls.push([col, val]);
+    }
+    return chain;
+  });
   chain.is = vi.fn((col: string, val: unknown) => {
     if (spy) spy.isArgs = [col, val];
     return chain;
@@ -344,6 +352,7 @@ describe("scheduleService", () => {
         isArgs?: [string, unknown];
         orderCalls?: [string, { ascending?: boolean }][];
         limitArg?: number;
+        eqCalls?: [string, unknown][];
       } = {};
 
       fromMock.mockReturnValue(
@@ -370,9 +379,10 @@ describe("scheduleService", () => {
         )
       );
 
-      const result = await loadSchedule(50);
+      const result = await loadSchedule("org-1", 50);
 
       expect(fromMock).toHaveBeenCalledWith("schedule_entries");
+      expect(spy.eqCalls).toContainEqual(["organization_id", "org-1"]);
       expect(spy.isArgs).toEqual(["archived_at", null]);
       // Açık sıralama kuralı: gün, sonra başlangıç saati
       expect(spy.orderCalls).toEqual([
@@ -418,7 +428,7 @@ describe("scheduleService", () => {
         createScheduleQueryChain({ data: mockRows, error: null })
       );
 
-      const result = await loadSchedule(2);
+      const result = await loadSchedule("org-1", 2);
 
       expect(result.rows).toHaveLength(1);
       expect(result.truncated).toBe(true);
@@ -442,7 +452,7 @@ describe("scheduleService", () => {
         })
       );
 
-      const result = await loadSchedule(3);
+      const result = await loadSchedule("org-1", 3);
 
       expect(result.rows).toHaveLength(3);
       expect(result.truncated).toBe(true);
@@ -460,10 +470,31 @@ describe("scheduleService", () => {
         )
       );
 
-      await loadSchedule();
+      await loadSchedule("org-1");
 
       expect(spy.limitArg).toBe(DEFAULT_SCHEDULE_LIMIT);
       expect(DEFAULT_SCHEDULE_LIMIT).toBe(200);
+    });
+
+    it("kurum kimliği boşsa sorgu atmadan boş sonuç döner (fail-closed / K-04)", async () => {
+      const result = await loadSchedule("");
+      expect(fromMock).not.toHaveBeenCalled();
+      expect(result).toEqual({ rows: [], truncated: false });
+    });
+
+    it("açık organization_id süzgeci taşır (R2 / K-24)", async () => {
+      // ⚠️ `eqCalls` BOŞ DİZİYLE başlıyor, `undefined` ile değil. Süzgeç
+      // kaldırıldığında zincir hiç `.eq()` çağırmaz; `undefined` bırakılsaydı
+      // iddia okunabilir bir kırmızı yerine `TypeError` verirdi. K-23'ün
+      // istediği şey testin kırmızıya dönmesi kadar **ne söylediğidir.**
+      const spy: { eqCalls: [string, unknown][] } = { eqCalls: [] };
+      fromMock.mockReturnValue(
+        createScheduleQueryChain({ data: [], error: null }, spy)
+      );
+
+      await loadSchedule("org-test-123");
+
+      expect(spy.eqCalls).toContainEqual(["organization_id", "org-test-123"]);
     });
 
     it("veritabanı hatasında anlamlı Türkçe hata fırlatır (K-04)", async () => {
@@ -474,7 +505,7 @@ describe("scheduleService", () => {
         })
       );
 
-      await expect(loadSchedule()).rejects.toThrow(
+      await expect(loadSchedule("org-1")).rejects.toThrow(
         "Ders programı yüklenemedi."
       );
     });

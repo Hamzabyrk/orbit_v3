@@ -1,11 +1,23 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import {
+  DEFAULT_DAY_PLAN_LIMIT,
+  type CalendarEventItem,
+  type TaskItem,
+} from "@/education/dayPlanService";
+import {
+  useCalendarEvents,
+  useSchedule,
+  useTasks,
+} from "@/education/educationQueries";
 import { dayPlanEventsByRole } from "../educationData";
-import { PageHeader } from "../shared";
-import type { DayPlanRole, DayPlanTask } from "../types";
+import { ErrorState, PageHeader } from "../shared";
+import type { DayPlanRole, DayPlanTask, Role, ScheduleItem } from "../types";
+import { CalendarEventFormDialog } from "./CalendarEventFormDialog";
 import { DayPlanCalendar } from "./DayPlanCalendar";
 import { DayPlanToDoBoard } from "./DayPlanToDoBoard";
+import { TaskFormDialog } from "./TaskFormDialog";
 
 const tabs = [
   { id: "todo", label: "To-Do List" },
@@ -14,35 +26,110 @@ const tabs = [
 
 type DayPlanTab = (typeof tabs)[number]["id"];
 
+export type DayPlanPageProps = {
+  role: DayPlanRole | Role;
+  tasks?: DayPlanTask[];
+  setTasks?: React.Dispatch<React.SetStateAction<DayPlanTask[]>>;
+  isDemo?: boolean;
+  organizationId?: string;
+  membershipId?: string;
+  schedule?: ScheduleItem[];
+};
+
 export function DayPlanPage({
   role,
-  tasks,
+  tasks = [],
   setTasks,
-}: {
-  role: DayPlanRole;
-  tasks: DayPlanTask[];
-  setTasks: React.Dispatch<React.SetStateAction<DayPlanTask[]>>;
-}) {
+  isDemo = false,
+  organizationId = "",
+  membershipId = "",
+  schedule,
+}: DayPlanPageProps) {
   const [tab, setTab] = useState<DayPlanTab>("todo");
-  const events = dayPlanEventsByRole[role];
+
+  // Görev modal durumu
+  const [taskFormOpen, setTaskFormOpen] = useState(false);
+  const [taskForEdit, setTaskForEdit] = useState<TaskItem | null>(null);
+  const [initialDueOn, setInitialDueOn] = useState<string | null>(null);
+
+  // Takvim modal durumu
+  const [calendarFormOpen, setCalendarFormOpen] = useState(false);
+  const [eventForEdit, setEventForEdit] = useState<CalendarEventItem | null>(
+    null
+  );
+  const [initialEventDate, setInitialEventDate] = useState<string | null>(null);
+
+  const isReal = !isDemo && Boolean(organizationId && membershipId);
+
+  // Gerçek veri sorguları
+  const tasksQuery = useTasks({
+    organizationId,
+    membershipId,
+    enabled: isReal,
+  });
+
+  const calendarEventsQuery = useCalendarEvents({
+    organizationId,
+    membershipId,
+    enabled: isReal,
+  });
+
+  const scheduleQuery = useSchedule({
+    organizationId,
+    enabled: isReal && !schedule,
+  });
+
+  const realTasks = tasksQuery.data?.rows ?? [];
+  const realCalendarEvents = calendarEventsQuery.data?.rows ?? [];
+  const activeSchedule = schedule ?? scheduleQuery.data?.rows ?? [];
+
+  const handleOpenAddTask = (dueOn?: string) => {
+    if (!isReal) {
+      toast.info("Yeni görev", {
+        description:
+          "Demo MVP'de görev oluşturma formu bir sonraki kalıcı veri fazında etkinleşecek.",
+      });
+      return;
+    }
+    setTaskForEdit(null);
+    setInitialDueOn(dueOn ?? null);
+    setTaskFormOpen(true);
+  };
+
+  const handleOpenAddCalendarEvent = (date?: string) => {
+    if (!isReal) {
+      toast.info("Yeni görüşme", {
+        description:
+          "Demo MVP'de görüşme planlama bir sonraki kalıcı veri fazında etkinleşecek.",
+      });
+      return;
+    }
+    setEventForEdit(null);
+    setInitialEventDate(date ?? null);
+    setCalendarFormOpen(true);
+  };
+
+  const handleEditTask = (task: TaskItem) => {
+    setTaskForEdit(task);
+    setInitialDueOn(null);
+    setTaskFormOpen(true);
+  };
+
+  const handleEditCalendarEvent = (event: CalendarEventItem) => {
+    setEventForEdit(event);
+    setInitialEventDate(null);
+    setCalendarFormOpen(true);
+  };
 
   const addAction =
     tab === "todo"
       ? {
           label: "Yeni görev",
-          onClick: () =>
-            toast.info("Yeni görev", {
-              description:
-                "Demo MVP'de görev oluşturma formu bir sonraki kalıcı veri fazında etkinleşecek.",
-            }),
+          onClick: () => handleOpenAddTask(),
         }
       : {
           label: "Yeni Görüşme Ekle",
-          onClick: () =>
-            toast.info("Yeni görüşme", {
-              description:
-                "Demo MVP'de görüşme planlama bir sonraki kalıcı veri fazında etkinleşecek.",
-            }),
+          onClick: () => handleOpenAddCalendarEvent(),
         };
 
   return (
@@ -76,16 +163,106 @@ export function DayPlanPage({
           {addAction.label}
         </button>
       </div>
+
       <div className="mt-5">
         {tab === "todo" ? (
-          <DayPlanToDoBoard tasks={tasks} setTasks={setTasks} />
+          isReal ? (
+            tasksQuery.isLoading ? (
+              <div className="py-12 text-center text-[13px] text-slate-400">
+                Görevler yükleniyor...
+              </div>
+            ) : tasksQuery.error ? (
+              <ErrorState
+                title="Görevler yüklenemedi"
+                message={tasksQuery.error.message}
+                onRetry={() => void tasksQuery.refetch()}
+              />
+            ) : (
+              <DayPlanToDoBoard
+                tasks={realTasks}
+                organizationId={organizationId}
+                membershipId={membershipId}
+                onAddTask={handleOpenAddTask}
+                onEditTask={handleEditTask}
+                truncated={Boolean(tasksQuery.data?.truncated)}
+              />
+            )
+          ) : (
+            <DayPlanToDoBoard
+              tasks={tasks}
+              setTasks={setTasks}
+              onAddTask={handleOpenAddTask}
+            />
+          )
+        ) : isReal ? (
+          calendarEventsQuery.isLoading ? (
+            <div className="py-12 text-center text-[13px] text-slate-400">
+              Takvim yükleniyor...
+            </div>
+          ) : calendarEventsQuery.error ? (
+            <ErrorState
+              title="Takvim yüklenemedi"
+              message={calendarEventsQuery.error.message}
+              onRetry={() => void calendarEventsQuery.refetch()}
+            />
+          ) : (
+            <div>
+              {calendarEventsQuery.data?.truncated ? (
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] font-medium text-amber-800">
+                  Toplam etkinlik sayısı sınırına ({DEFAULT_DAY_PLAN_LIMIT})
+                  ulaşıldı.
+                </div>
+              ) : null}
+              <DayPlanCalendar
+                personalEvents={realCalendarEvents}
+                schedule={activeSchedule}
+                role={role}
+                organizationId={organizationId}
+                membershipId={membershipId}
+                isDemo={false}
+                onEditEvent={handleEditCalendarEvent}
+              />
+            </div>
+          )
         ) : (
-          // Takvim, kayıt listesi değil; boş bir ay da geçerli bir takvimdir.
-          // Kayıt yokken tümünü gizlemek, kullanıcıya ekranın bozulduğunu
-          // düşündürüyordu; ayrıca ay geçişi ve gün seçimi de erişilemez oluyordu.
-          <DayPlanCalendar events={events} />
+          <DayPlanCalendar
+            events={dayPlanEventsByRole[role as DayPlanRole] ?? []}
+            isDemo={true}
+          />
         )}
       </div>
+
+      {/* Görev Oluşturma / Düzenleme Modalı */}
+      {isReal ? (
+        <TaskFormDialog
+          open={taskFormOpen}
+          onOpenChange={setTaskFormOpen}
+          organizationId={organizationId}
+          membershipId={membershipId}
+          task={taskForEdit}
+          initialDueOn={initialDueOn}
+          onDone={() => {
+            setTaskForEdit(null);
+            setInitialDueOn(null);
+          }}
+        />
+      ) : null}
+
+      {/* Takvim Etkinliği Oluşturma / Düzenleme Modalı */}
+      {isReal ? (
+        <CalendarEventFormDialog
+          open={calendarFormOpen}
+          onOpenChange={setCalendarFormOpen}
+          organizationId={organizationId}
+          membershipId={membershipId}
+          event={eventForEdit}
+          initialDate={initialEventDate ?? undefined}
+          onDone={() => {
+            setEventForEdit(null);
+            setInitialEventDate(null);
+          }}
+        />
+      ) : null}
     </>
   );
 }
