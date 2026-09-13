@@ -87,6 +87,61 @@ const KABUL_EDILMIS_OLU = new Map<string, string>([
   ],
 ]);
 
+/**
+ * Bir dosyanın hangi adları hangi modülden içe aktardığını çıkarır.
+ * Dönen her giriş: [çözümlenmiş modül yolu, içe aktarılan ad].
+ */
+function iceAktarmalar(yol: string, icerik: string): [string, string][] {
+  const cikan: [string, string][] = [];
+  const desen = /import\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']/g;
+  for (const eslesme of icerik.matchAll(desen)) {
+    const modul = cozumle(yol, eslesme[2]);
+    if (!modul) continue;
+    for (const ham of eslesme[1].split(",")) {
+      const ad = ham
+        .replace(/^\s*type\s+/, "")
+        .trim()
+        .split(/\s+as\s+/)[0];
+      if (ad) cikan.push([modul, ad]);
+    }
+  }
+  return cikan;
+}
+
+/** `@/x/y` ve `./y` biçimlerini uzantısız mutlak yola çevirir. */
+function cozumle(kaynakDosya: string, belirtec: string): string | null {
+  if (belirtec.startsWith("@/")) {
+    return path.join(istemciKoku, belirtec.slice(2));
+  }
+  if (belirtec.startsWith(".")) {
+    return path.resolve(path.dirname(kaynakDosya), belirtec);
+  }
+  return null;
+}
+
+/** Uzantıyı atarak karşılaştırılabilir bir anahtar üretir. */
+function anahtarla(yol: string): string {
+  return yol.replace(/[.](ts|tsx)$/, "");
+}
+
+/**
+ * Bir dosyanın hangi adlarla içe aktarılabileceğini döner.
+ *
+ * ⚠️ `index.ts` İKİ ADLA aranır: kendi yolu **ve bulunduğu dizin**. Çünkü
+ * `import { x } from "@/realtime"` bir dizin importudur ve derleyici onu
+ * `realtime/index.ts`'e çözer — bu testin ilk hali çözmüyordu ve
+ * `client/src/realtime/index.ts`'in **kullanılan** re-export'larını "sahipsiz"
+ * gösterdi (ölçüldü: sekiz yanlış pozitif, biri gerçekten çağrılan
+ * `useOrganizationChannel`).
+ */
+function olasiAnahtarlar(yol: string): string[] {
+  const kendi = anahtarla(yol);
+  if (/^index[.](ts|tsx)$/.test(path.basename(yol))) {
+    return [kendi, anahtarla(path.dirname(yol))];
+  }
+  return [kendi];
+}
+
 describe("servis katmanında ölü ihraç kalmaz (v1.4 ara denetimi)", () => {
   const dosyalar = kaynakDosyalar(istemciKoku);
   const icerikler = new Map(
@@ -143,5 +198,46 @@ describe("servis katmanında ölü ihraç kalmaz (v1.4 ara denetimi)", () => {
       );
       expect(iceAktaran.map(([y]) => y)).toEqual([]);
     }
+  });
+
+  it("bir re-export'u o modülden içe aktaran biri vardır", () => {
+    // ⚠️ Yukarıdaki iddianın kör noktası. `export { x } from "./y"` bir
+    // fonksiyon TANIMI değil, dolayısıyla `export async function` taraması onu
+    // hiç görmez — ve "x'in bir çağıranı var mı" sorusu da yanlış soru: çağıran
+    // olabilir ama onu ASIL modülden alıyor olabilir. Doğru soru şu: bu adı
+    // BU modülden içe aktaran biri var mı?
+    //
+    // Kaynak: v1.4-09. `memberService.ts` "geriye dönük uyumluluk için"
+    // `loadOrganizationBranches`'ı yeniden ihraç etti; tek tüketici onu zaten
+    // `branchService`'ten alıyordu. Aynı aileden ikinci vaka (v1.4-10'da
+    // `popover.tsx`'e çağıranı olmayan bir `portal` prop'u eklenmişti) — bir
+    // kural iki kez elle yakalandıysa kapıya taşınır (**K-24**).
+    const istenenler = new Set<string>();
+    for (const [yol, icerik] of icerikler) {
+      for (const [modul, ad] of iceAktarmalar(yol, icerik)) {
+        istenenler.add(`${anahtarla(modul)}::${ad}`);
+      }
+    }
+
+    const sahipsiz: string[] = [];
+    for (const [yol, icerik] of icerikler) {
+      const desen = /export\s*\{([^}]*)\}\s*from\s*["'][^"']+["']/g;
+      for (const eslesme of icerik.matchAll(desen)) {
+        for (const ham of eslesme[1].split(",")) {
+          const ad = ham
+            .replace(/^\s*type\s+/, "")
+            .trim()
+            .split(/\s+as\s+/)[0];
+          if (!ad) continue;
+          if (olasiAnahtarlar(yol).some(k => istenenler.has(`${k}::${ad}`)))
+            continue;
+          sahipsiz.push(
+            `${ad} :: ${path.relative(istemciKoku, yol).split(path.sep).join("/")}`
+          );
+        }
+      }
+    }
+
+    expect(sahipsiz).toEqual([]);
   });
 });

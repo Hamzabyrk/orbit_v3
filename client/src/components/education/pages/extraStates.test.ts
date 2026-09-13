@@ -399,9 +399,72 @@ describe("MemberCreateDialog states (v1.3-02b)", () => {
     expect(html).toContain('role="status"');
     expect(html).not.toMatch(/<p[^>]*>.*Şubeler yükleniyor.*<\/p>/i);
   });
+
+  it("şube seçimi varsayılan şubeden ön-dolar (v1.4-09 · #284)", () => {
+    vi.mocked(useSettingsBranches).mockReturnValue({
+      data: [
+        {
+          id: "br-1",
+          name: "Kadıköy Şube",
+          isDefault: false,
+        },
+        {
+          id: "br-2",
+          name: "Beşiktaş Şube",
+          isDefault: true,
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsBranches>);
+
+    const html = renderWithProviders(
+      createElement(MemberCreateDialog, {
+        open: true,
+        onOpenChange: vi.fn(),
+        onDone: vi.fn(),
+        organizationId: "org-1",
+      })
+    );
+
+    // Beşiktaş Şube varsayılan olduğu için seçili olmalı
+    expect(html).toMatch(/value="br-2"[^>]*selected/);
+  });
 });
 
 describe("StudentFormDialog states (v1.4-01)", () => {
+  it("yeni öğrenci ekleme modunda şube varsayılandan ön-dolar (v1.4-09 · #284)", () => {
+    vi.mocked(useSettingsBranches).mockReturnValue({
+      data: [
+        {
+          id: "br-1",
+          name: "Kadıköy Şube",
+          isDefault: false,
+        },
+        {
+          id: "br-2",
+          name: "Beşiktaş Şube",
+          isDefault: true,
+        },
+      ],
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useSettingsBranches>);
+
+    const html = renderWithProviders(
+      createElement(StudentFormDialog, {
+        open: true,
+        onOpenChange: vi.fn(),
+        onDone: vi.fn(),
+        organizationId: "org-1",
+      })
+    );
+
+    expect(html).toContain("Yeni öğrenci ekle");
+    // Beşiktaş Şube varsayılan olduğu için seçili olmalı
+    expect(html).toMatch(/value="br-2"[^>]*selected/);
+  });
+
   it("yeni öğrenci ekleme modunda başlık ve buton doğru çizilir", () => {
     vi.mocked(useSettingsBranches).mockReturnValue({
       data: [

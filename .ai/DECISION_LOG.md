@@ -2674,3 +2674,71 @@ if cardinality(degisen) = 0 then return null; end if;
 **Karar: üçüncüsü.** Ve seçilme sebebi kısalığı değil, **deseni depoda zaten karara bağlanmış olması**: v1.4-10'da veli bağı koparma tam olarak böyle geri alınıyor. Yani bu yeni bir ürün yüzeyi değil, mevcut desenin uygulanmadığı iki yere uygulanması — ara denetimin tanımı.
 
 ⚠️ **Arşiv ekranı yine de yok ve bu bir sınır.** Bildirim kapandıktan sonra geri almanın yolu kalmıyor. Kayda geçiyor: arşivlenmiş kayıtları listeleyen bir ekran gerektiğinde bu bir dilim olarak açılır; bugün gerekliliği **ölçülmedi**, varsayılmadı.
+
+---
+
+### Karar: PostgREST hata gövdesinde alanın adı `details` — ve bunu yalnız ölçüm söyler
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.4-09, `ORB03`'ün üç halini birbirinden ayırmak için hatanın `detail` alanını okuyordu. Böyle bir alan yok. **Yerel yığında ölçüldü** (gerçek `PATCH /rest/v1/branches` cevabı):
+
+```json
+{
+  "code": "ORB03",
+  "details": "öğrenci=1, sınıf=0, üyelik=0",
+  "hint": "Önce bu kayıtları başka bir şubeye taşıyın veya arşivleyin.",
+  "message": "Bu şube kapatılamaz: içinde aktif kayıtlar var."
+}
+```
+
+`@supabase/postgrest-js`'in tipi de aynısını söylüyor: `details`, `hint`, `code`.
+
+**Kayda değer olan, hatanın kendisi değil neden görünmez olduğu.** Üç halin ikisi **doğru** çalışıyordu — ama birincil `detail` dalından değil, ikincil olarak yazılmış `message.includes(...)` dalından. Yani ekran doğru cümleyi söylüyor, sebebi yanlış yerden alıyordu. Üçüncü hal — tek sayı taşıyan hal — sayıları kaybediyordu.
+
+**On sekiz testin hiçbiri yakalamadı** çünkü testler hata nesnesini kendileri kuruyor ve içine `detail` koyuyordu. Test, kodun **varsayımıyla** anlaşıyordu; gerçekle değil. **K-23'ün üçüncü boş biçimi budur** ve kurala eklendi: bir dış sistemin gövdesini taklit eden test, o gövdeyi **ölçmeden** yazılmışsa hiçbir şeyi korumaz.
+
+**Kural olarak:** bir dış sistemin cevabına dayanan her çeviri, o cevabın **ölçülmüş** bir örneğiyle sınanır. Depoda bunun bir yeri var — bu ölçüm `curl` ile yerel PostgREST'e yapıldı ve tekrarlanabilir.
+
+---
+
+### Karar: Hatayı servis çevirir, ekran yalnız taşır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Bu depoda servisler hatayı çevirip `throw new Error(çeviri)` yapıyor. Ekranlar da yakaladıkları hatayı **bir kez daha** çevirmenden geçiriyordu (v1.4-10'dan beri). Bu zararsızdı çünkü çevirmenlerin son satırı `return message` ile cümleyi olduğu gibi geçiriyordu.
+
+v1.4-09'un R5'i o satırı kaldırdı — ham Postgres mesajının arayüze sızmaması için, ve **bunu denetleyen istedi**. İkinci geçişin o satıra bağlı olduğu görülmedi. Ölçüldü:
+
+|                  |                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------- |
+| servis üretiyor  | "Bu şube kapatılamaz: içinde aktif **3 öğrenci, 2 sınıf, 1 üye** kaydı bulunuyor…" |
+| ekran gösteriyor | "Şube işlemi gerçekleştirilemedi. Lütfen tekrar deneyin."                          |
+
+Yani R1'in bütün kazancı ekran sınırında yok oluyordu; K-14 mesajları da aynı yerde kayboluyordu. 758 test yeşildi çünkü hepsi çevirmeni **doğrudan** sınıyor, çift çeviri yolunu hiç geçmiyordu.
+
+**Karar: çeviri tek yerde, serviste. Ekran `err.message` okur.** Depoda bu desen zaten vardı (öğrenci ve sınıf arşivleme yolları); v1.4-09 ve v1.4-10 onun dışına düşmüştü.
+
+⚠️ **`guardianService` hâlâ eski düzende** ve bugün çalışıyor — çünkü `translateGuardianError`'ın son satırı `message`'ı geçiriyor. Ama aynı tuzağın üstünde duruyor: o satır bir gün "sebep uydurma" gerekçesiyle sıkılaştırılırsa veli ekranları sessizce genel cümleye düşer. **Sahibi:** denetleyen. **Kontrol noktası:** veli ekranlarına dokunan ilk dilim (**K-12**).
+
+**Korumanın biçimi dürüstçe yazıldı:** kusur yalnız bir yazma **başarısız olduğunda** ortaya çıkıyor ve statik çizimde hiçbir yazma koşmuyor. Bu yüzden bileşen tarafındaki iddia **yapısaldır** — "bileşen `translateBranchError` çağırmaz". Çevirmenin çift geçişte yedeğe düştüğü ise ayrıca çivilendi.
+
+---
+
+### Karar: Depoda barrel dosyası yok
+
+**Durum:** Alındı
+**Tarih:** 2026-09-13
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `client/src/realtime/index.ts` sekiz şey yeniden ihraç ediyordu ve **yedisinin hiç tüketicisi yoktu**; sekizincisi (`useOrganizationChannel`) tek bir dosyadan çağrılıyordu. Ölçüldü: `client/src` altındaki **tek** `index.ts` oydu — diğer bütün modüller doğrudan import ediliyor.
+
+**Karar: kaldırıldı**, tek tüketici asıl modüle bağlandı. Gerekçe tutarlılık: bir depoda tek bir barrel varsa o barrel bir kural değil bir istisnadır, ve istisnalar hangi importun nereden geleceğini tahmin edilemez yapar.
+
+⚠️ **Bu kararın nasıl ortaya çıktığı da kayda geçiyor, çünkü kısmen yanlış bir sebeple alındı.** Ara denetimde eklediğim re-export kapısı dizin importlarını (`from "@/realtime"`) çözemiyordu ve barrel'ın **kullanılan** re-export'unu da "sahipsiz" gösteriyordu — sekiz yanlış pozitif. Yazan testi gevşetmedi (brifing öyle diyordu) ve mimariyi kurala uydurdu; ama kararı hatalı bir kapı zorladı. Kapı düzeltildi (`index.ts` artık iki adla aranıyor: kendi yolu ve bulunduğu dizin) ve **düzeltilmiş haliyle de yedi ölü re-export duruyordu** — yani karar ayakta kalıyor, dayanağı değişiyor.
+
+**Ders:** bir kapı yanlış pozitif verdiğinde, onu izleyen kişinin aldığı karar da o kapının hatasını taşır. Kapıyı kuran, çıktısını **tamamını okuyarak** bildirmek zorundadır — bu turda ben grep'le süzdüm ve sekiz satırın yedisini görmeden "tek çıktısı şu" dedim.

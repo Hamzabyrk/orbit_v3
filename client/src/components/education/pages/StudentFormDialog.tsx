@@ -84,8 +84,14 @@ export function StudentFormDialog({
         return;
       }
     }
-    if (!student && branchList.length === 1) {
-      setSelectedBranchId(branchList[0].id);
+    if (!student) {
+      const defaultBranch =
+        branchList.find(
+          b => b.isDefault ?? (b as { is_default?: boolean }).is_default
+        ) ?? (branchList.length === 1 ? branchList[0] : undefined);
+      if (defaultBranch) {
+        setSelectedBranchId(defaultBranch.id);
+      }
     }
   }, [open, selectedBranchId, branchList, student]);
 
@@ -106,9 +112,17 @@ export function StudentFormDialog({
     onOpenChange(next);
   };
 
+  const defaultBranch =
+    branchList.find(
+      b => b.isDefault ?? (b as { is_default?: boolean }).is_default
+    ) ?? (branchList.length === 1 ? branchList[0] : undefined);
+
+  const effectiveBranchId =
+    selectedBranchId || (!student ? (defaultBranch?.id ?? "") : "");
+
   const nameValidationError =
     fullName.trim().length < 2 ? "Ad-soyad en az iki karakter olmalı." : null;
-  const branchValidationError = !selectedBranchId
+  const branchValidationError = !effectiveBranchId
     ? "Lütfen bir şube seçin."
     : null;
   const formValidationError = nameValidationError ?? branchValidationError;
@@ -123,7 +137,7 @@ export function StudentFormDialog({
       submitting ||
       branchLoading ||
       Boolean(branchError) ||
-      !selectedBranchId
+      !effectiveBranchId
     ) {
       return;
     }
@@ -139,7 +153,7 @@ export function StudentFormDialog({
         // Düzenleme modu: numara boş bırakıldıysa null gönderilerek temizlenir
         await updateStudent(student.id, {
           fullName: trimmedFullName,
-          branchId: selectedBranchId,
+          branchId: effectiveBranchId,
           studentNumber: trimmedNumber.length > 0 ? trimmedNumber : null,
         });
 
@@ -150,7 +164,7 @@ export function StudentFormDialog({
         // Oluşturma modu: numara isteğe bağlıdır
         await createStudent({
           organizationId,
-          branchId: selectedBranchId,
+          branchId: effectiveBranchId,
           fullName: trimmedFullName,
           studentNumber: trimmedNumber.length > 0 ? trimmedNumber : undefined,
         });
@@ -214,7 +228,7 @@ export function StudentFormDialog({
             </Label>
             <select
               id="student-branch"
-              value={selectedBranchId}
+              value={effectiveBranchId}
               onChange={event => setSelectedBranchId(event.target.value)}
               disabled={submitting || branchLoading || Boolean(branchError)}
               className="h-10 rounded-md border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"

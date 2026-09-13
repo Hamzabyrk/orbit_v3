@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   settingsKeys,
+  useBranches,
   useProfileContact,
   useSettingsBranches,
   useSettingsMembers,
@@ -167,6 +168,59 @@ describe("settingsQueries enabled kapıları", () => {
       expect(mockUseQuery).toHaveBeenLastCalledWith(
         expect.objectContaining({
           queryKey: settingsKeys.branches("org-123"),
+          enabled: true,
+        })
+      );
+    });
+  });
+
+  describe("useBranches", () => {
+    it("kurum kimliği yokken sorgu çalışmaz (enabled: false)", () => {
+      mockUseAuth.mockReturnValue({
+        identity: { membership: null },
+        demoMode: false,
+      });
+
+      useBranches();
+      expect(mockUseQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          enabled: false,
+        })
+      );
+    });
+
+    it("demo modundayken sorgu çalışmaz (enabled: false)", () => {
+      mockUseAuth.mockReturnValue({
+        identity: { membership: { organizationId: "org-123" } },
+        demoMode: true,
+      });
+
+      useBranches("org-123");
+      expect(mockUseQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          enabled: false,
+        })
+      );
+    });
+
+    it("normal modda ve kurum kimliği varken sorgu çalışır (enabled: true)", () => {
+      mockUseAuth.mockReturnValue({
+        identity: { membership: { organizationId: "org-123" } },
+        demoMode: false,
+      });
+
+      useBranches("org-123", { includeArchived: true, limit: 10 });
+      expect(mockUseQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          queryKey: [
+            "settings",
+            "branches",
+            {
+              organizationId: "org-123",
+              includeArchived: true,
+              limit: 10,
+            },
+          ],
           enabled: true,
         })
       );

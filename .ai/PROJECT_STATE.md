@@ -461,7 +461,7 @@ Sonradan nullable kolon eklemek ucuz ve kırıcı değildir; bu nedenle şemanı
 ### Henüz tasarlanmamış, pilot öncesi gereken adımlar
 
 - ~~Öğrenci veya öğretmenin kurumdan ayrılması (`membership_status = suspended` mevcut, akış yok)~~ ✅ **v1.4-07'de kapandı** (`internal_remove_member` + `remove-member` Edge Function; ayrılan kişinin `students`/`guardians` bağı da koparılıyor). Son yöneticiyi koruyan sayım **v1.4-08**'de eklendi (`ORB06`).
-- ~~Kurumun ikinci ve sonraki şubelerinin eklenmesi~~ 🟡 **v1.4-09'da açılıyor** (#284) — sunucu yarısı indi (RLS yazma politikaları, varsayılan şube tetikleyicisi, dolu şube arşivlenemez). Merge edilmeden **kapandı sayılmaz**; ekran yarısı yazanda.
+- ~~Kurumun ikinci ve sonraki şubelerinin eklenmesi~~ ✅ **v1.4-09'da kapandı** (#284). RLS yazma politikaları, varsayılan şube tetikleyicisi (BEFORE olmak zorunda çıktı), dolu şube `ORB03` ile arşivlenemiyor; ekranda ekle/düzenle/kapat/yeniden aç ve "varsayılan yap". Üye ve öğrenci formlarında şube seçimi varsayılandan ön-doluyor.
 
 > ⚠️ **Bu iki satır v1.4-07 ve v1.4-09 geldiğinde güncellenmedi; v1.4 ara denetiminde (2026-09-13) yakalandı.** Kayda geçiyor çünkü listenin adı "henüz tasarlanmamış" ve içinde **tasarlanmış, yazılmış, üretime çıkmış** bir madde duruyordu. Bir eksiklik listesi eskidiğinde yanlış olmakla kalmaz, bakan kişiye **yapılmış işi yapılmamış** gösterir (**K-24**).
 

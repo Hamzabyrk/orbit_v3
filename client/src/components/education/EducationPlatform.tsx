@@ -75,7 +75,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useOrganizationChannel } from "@/realtime";
+import { useOrganizationChannel } from "@/realtime/useOrganizationChannel";
 import { DEFAULT_STUDENT_LIMIT } from "@/education/studentService";
 import {
   archiveClass,
