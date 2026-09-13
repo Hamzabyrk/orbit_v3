@@ -546,6 +546,14 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 >
 > ✅ **28 on birinci kez ölçüldü (2026-09-13, #286 merge sonrası).** v1.4-09'un iki yeni `security definer` fonksiyonu (`enforce_single_default_branch`, `enforce_branch_is_empty_before_archive`) listede **çıkmadı** — tahmin tuttu. Üretimde ayrıca doğrulandı: `has_function_privilege('authenticated', …, 'execute')` ikisi için de **false**.
 >
+> ✅ **28 on ikinci kez ölçüldü (2026-09-13, #287 merge sonrası).** `enforce_subject_is_unused_before_archive` listede **çıkmadı** — `revoke` tuttu. Bu turda advisor API'si yerine lint'lerin hesaplandığı **şema olguları** ölçüldü: `0029` için 25, `rls_enabled_no_policy` için 2 (`internal_function_calls`, `workspace_documents`), üçüncüsü dokunulmamış bir Auth ayarı.
+>
+> 🔴 **v1.4-12 için tahmin: 28 → 29. Sayı BİLEREK artıyor ve on iki turluk seri burada bitiyor.**
+>
+> Sebep `feed_post_authors(uuid[])`: `security definer` **ve** `authenticated`'a açık olmak **zorunda**, çünkü işi tam olarak "RLS'in vermediği bir veriyi kontrollü biçimde vermek". `profiles` bir öğrenciye, veliye veya öğretmene başka bir üyenin adını vermiyor (bilinçli sınır, #228); duyurunun yazarının adı ise görünmek zorunda. `class_staff_names`, `exam_ranking` ve `exam_participant_count` aynı ailedendir ve üçü de o 25'in içinde.
+>
+> ⚠️ **Artışın kendisi bir uyarı değil, artışın açıklanamaması uyarıdır.** Bu satır o açıklamadır: beklenen yeni dağılım **26** × `0029` + 1 sızmış şifre + 2 × `rls_enabled_no_policy`. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **#288 merge edildikten sonra** (**K-12**). Merge sonrası 29'dan **başka** bir sayı çıkarsa, fark bu fonksiyon değildir ve ayrıca incelenir.
+>
 > 📌 **v1.4-11 için tahmin: değişmez (28).** Dilim bir yeni `security definer` fonksiyon açıyor (`enforce_subject_is_unused_before_archive`) ama tetikleyici fonksiyonu ve `revoke all … from public, anon, authenticated` uygulandı. Kalanı `subjects` üzerindeki denetim/yayın tetikleyicileri; tetikleyici `0029` üretmez. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **#287 merge edildikten sonra** (**K-12**).
 >
 > 📌 **v1.4 ara denetimi migration'ı için tahmin: değişmez (28).** Tur yeni fonksiyon açmıyor: `class_teachers` ve `schedule_entries`'e denetim/yayın tetikleyicileri takıyor ve `platform_organization_stats`'ı `create or replace` ile genişletiyor. O fonksiyon **zaten 25'in içinde** — yeniden yazılması sayıyı değiştirmez, çünkü lint fonksiyonun varlığını ve yetkisini sayıyor, gövdesini değil. Tetikleyici fonksiyonları `authenticated`'a açık değil. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **ara denetim PR'ı merge edildikten sonra** (**K-12**).
