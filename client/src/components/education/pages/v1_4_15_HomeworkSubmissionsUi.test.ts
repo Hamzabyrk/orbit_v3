@@ -18,9 +18,38 @@ vi.mock("@/components/ui/dialog", () => ({
     createElement("div", { "data-slot": "dialog-title" }, children),
   DialogDescription: ({ children }: { children: React.ReactNode }) =>
     createElement("div", { "data-slot": "dialog-description" }, children),
+  DialogFooter: ({ children }: { children: React.ReactNode }) =>
+    createElement("div", { "data-slot": "dialog-footer" }, children),
+  useDialogComposition: () => ({
+    isComposingRef: { current: false },
+    handleCompositionStart: () => {},
+    handleCompositionEnd: () => {},
+  }),
+}));
+
+vi.mock("@/auth/useAuth", () => ({
+  useAuth: () => ({
+    identity: {
+      membership: {
+        role: "teacher",
+        organizationId: "org-1",
+        membershipId: "mem-1",
+      },
+      displayName: "Merve Hoca",
+    },
+  }),
+}));
+
+vi.mock("@/education/educationQueries", () => ({
+  educationKeys: {
+    homework: (orgId: string) => ["homework", orgId],
+    students: (orgId: string) => ["students", orgId],
+  },
+  useSubjects: () => ({ data: [], isLoading: false, error: null }),
 }));
 
 import { HomeworkCard } from "./HomeworkCard";
+import { HomeworkPage } from "./HomeworkPage";
 import { HomeworkSubmissionsDialog } from "./HomeworkSubmissionsDialog";
 import type { Homework } from "../types";
 
@@ -65,7 +94,7 @@ describe("HomeworkCard — v1.4-15 UI Testleri", () => {
     expect(html).toContain("text-emerald-700");
   });
 
-  it("⛔ K-22: submissionCount === 0 olduğunda '0/15' veya '0 teslim' uydurmaz", () => {
+  it("⛔ K-22: submissionCount === 0 olduğunda ve işaretleme bitmemişken '0/15' veya '0 teslim' uydurmaz", () => {
     const zeroSubmissionHomework: Homework = {
       ...sampleHomework,
       submissionCount: 0,
@@ -83,6 +112,24 @@ describe("HomeworkCard — v1.4-15 UI Testleri", () => {
     expect(html).not.toContain("0 / 15");
     expect(html).not.toContain("0/15");
     expect(html).not.toContain("0 teslim");
+  });
+
+  it("Ek madde 2: İşaretleme tamamlandığında 0 teslim dürüst bir bilgi olarak çizilir ('0 / 15 teslim')", () => {
+    const zeroRecordedHomework: Homework = {
+      ...sampleHomework,
+      submissionCount: 0,
+      totalStudents: 15,
+      submissionsRecordedAt: "2026-09-13T12:00:00Z",
+    };
+
+    const html = renderToStaticMarkup(
+      createElement(HomeworkCard, {
+        homework: zeroRecordedHomework,
+        onManageSubmissions: vi.fn(),
+      })
+    );
+
+    expect(html).toContain("0 / 15 teslim");
   });
 
   it("submissionsRecordedAt doluyken 'X / Y teslim' oranını çizer", () => {
@@ -134,6 +181,36 @@ describe("HomeworkCard — v1.4-15 UI Testleri", () => {
   });
 });
 
+describe("HomeworkPage — R2-A Yetki Kapıları", () => {
+  it("🔴 R2-A: Öğrenci rolünde 'Teslimler' butonu ÇİZİLMEZ", () => {
+    const html = renderToStaticMarkup(
+      createElement(HomeworkPage, {
+        homework: [sampleHomework],
+        classes: [],
+        role: "student",
+        organizationId: "org-1",
+        isDemo: false,
+      })
+    );
+
+    expect(html).not.toContain("Teslimler");
+  });
+
+  it("Öğretmen rolünde 'Teslimler' butonu çizilir", () => {
+    const html = renderToStaticMarkup(
+      createElement(HomeworkPage, {
+        homework: [sampleHomework],
+        classes: [],
+        role: "teacher",
+        organizationId: "org-1",
+        isDemo: false,
+      })
+    );
+
+    expect(html).toContain("Teslimler");
+  });
+});
+
 describe("HomeworkSubmissionsDialog — v1.4-15 Rol Güvenliği ve K-23", () => {
   const dummyStudents = [
     {
@@ -172,7 +249,7 @@ describe("HomeworkSubmissionsDialog — v1.4-15 Rol Güvenliği ve K-23", () => 
     ],
   ]);
 
-  it("⛔ Öğrenci rolünde işaretleme butonları ('Teslim alındı' / 'İşareti kaldır'), 'İşlem' sütunu ve 'İşaretlemeyi bitir' ÇİZİLMEZ", () => {
+  it("🔴 R2-A: Öğrenci rolünde 'Durum' sütunu ve 'Teslim Edilmedi' metni KESİNLİKLE GEÇMEZ", () => {
     const html = renderToStaticMarkup(
       withQueryClient(
         createElement(HomeworkSubmissionsDialog, {
@@ -188,20 +265,17 @@ describe("HomeworkSubmissionsDialog — v1.4-15 Rol Güvenliği ve K-23", () => 
       )
     );
 
-    // Öğrenci yalnız okur: 'İşlem' başlığı veya butonlar çizilmez
+    // R2-A: Durum başlığı ve Durum hücreleri (Teslim Edilmedi) kesinlikle çizilmez
+    expect(html).not.toContain(">Durum<");
+    expect(html).not.toContain("Teslim Edilmedi");
     expect(html).not.toContain(">İşlem<");
     expect(html).not.toContain("Teslim alındı");
     expect(html).not.toContain("İşareti kaldır");
     expect(html).not.toContain("İşaretlemeyi bitir");
     expect(html).not.toContain("İşaretlemeyi yeniden aç");
-
-    // Ancak durum rozetleri görünür
-    expect(html).toContain("Teslim Edildi");
-    expect(html).toContain("Teslim Edilmedi");
-    expect(html).toContain("İşaretleme henüz bitirilmedi");
   });
 
-  it("⛔ Veli rolünde işaretleme ve bitirme butonları ÇİZİLMEZ", () => {
+  it("⛔ Veli rolünde işaretleme butonları ve Durum sütunu ÇİZİLMEZ", () => {
     const html = renderToStaticMarkup(
       withQueryClient(
         createElement(HomeworkSubmissionsDialog, {
@@ -217,11 +291,42 @@ describe("HomeworkSubmissionsDialog — v1.4-15 Rol Güvenliği ve K-23", () => 
       )
     );
 
+    expect(html).not.toContain(">Durum<");
+    expect(html).not.toContain("Teslim Edilmedi");
     expect(html).not.toContain(">İşlem<");
     expect(html).not.toContain("Teslim alındı");
     expect(html).not.toContain("İşareti kaldır");
     expect(html).not.toContain("İşaretlemeyi bitir");
     expect(html).not.toContain("İşaretlemeyi yeniden aç");
+  });
+
+  it("R2-D: Ad okunamadığında etiket uydurulmaz ('Öğrenci' yazılmaz, 'adı okunamadı' gösterilir)", () => {
+    const unnamedStudents = [
+      {
+        studentId: "stu-unnamed",
+        studentName: null,
+        studentNumber: "999",
+        isArchived: false,
+      },
+    ];
+    const html = renderToStaticMarkup(
+      withQueryClient(
+        createElement(HomeworkSubmissionsDialog, {
+          open: true,
+          onOpenChange: vi.fn(),
+          organizationId: "org-1",
+          homework: sampleHomework,
+          role: "teacher",
+          initialStudents: unnamedStudents,
+          initialSubmissions: new Map(),
+        })
+      )
+    );
+
+    expect(html).not.toContain(
+      '<span class="font-bold text-slate-800">Öğrenci</span>'
+    );
+    expect(html).toContain("adı okunamadı");
   });
 
   it("Öğretmen rolünde 'İşaretlemeyi bitir' butonu ve 'İşaretleme henüz bitirilmedi' rozeti çizilir", () => {

@@ -154,8 +154,11 @@ export function getAffectedQueryKeys(
       ];
 
     case "homework_assignments":
-      // Ödev listesi sorgusunu tazeler (v1.4-05 · #273)
-      return [educationKeys.homework(organizationId)];
+      // Ödev listesi ve öğrenci listesi (submissions_recorded_at değiştiğinde Student.homework oranı değişir)
+      return [
+        educationKeys.homework(organizationId),
+        educationKeys.students(organizationId),
+      ];
 
     case "homework_submissions":
       // Ödev teslimi işaretlendiğinde veya kaldırıldığında ödev listesi (Tamamlandı / teslim sayıları)

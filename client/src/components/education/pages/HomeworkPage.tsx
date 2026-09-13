@@ -178,14 +178,16 @@ export function HomeworkPage({
               homework={item}
               onEdit={canManage ? () => handleEdit(item) : undefined}
               onArchive={canManage ? () => void handleArchive(item) : undefined}
-              onManageSubmissions={() => setSubmissionsHomework(item)}
+              onManageSubmissions={
+                canManage ? () => setSubmissionsHomework(item) : undefined
+              }
               isArchiving={archivingId === item.id}
             />
           ))}
         </div>
       )}
 
-      {submissionsHomework ? (
+      {canManage && submissionsHomework ? (
         <HomeworkSubmissionsDialog
           open={Boolean(submissionsHomework)}
           onOpenChange={open => {
@@ -195,6 +197,7 @@ export function HomeworkPage({
           homework={submissionsHomework}
           role={role}
           onSaved={onSaved}
+          isDemo={activeDemo}
         />
       ) : null}
 

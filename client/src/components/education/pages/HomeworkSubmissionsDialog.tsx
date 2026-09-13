@@ -34,11 +34,12 @@ export type HomeworkSubmissionsDialogProps = {
   initialTruncated?: boolean;
   initialError?: string | null;
   initialSubmissionsRecordedAt?: string | null;
+  isDemo?: boolean;
 };
 
 type ClassStudentRow = {
   studentId: string;
-  studentName: string;
+  studentName: string | null;
   studentNumber: string | null;
   isArchived: boolean;
 };
@@ -55,6 +56,7 @@ export function HomeworkSubmissionsDialog({
   initialTruncated,
   initialError,
   initialSubmissionsRecordedAt,
+  isDemo = false,
 }: HomeworkSubmissionsDialogProps) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
@@ -101,18 +103,19 @@ export function HomeworkSubmissionsDialog({
         if (!isMounted) return;
 
         // Öğrenci bazında tekilleştirme: en az bir aktif kaydı varsa aktif,
-        // tüm kayıtları arşivlenmişse "Sınıftan ayrıldı" rozetiyle korunur (Bölüm 4)
+        // tüm kayıtları arşivlenmişse "Sınıftan ayrıldı" rozetiyle korunur
         const studentMap = new Map<
           string,
-          { name: string; number: string | null; hasActive: boolean }
+          { name: string | null; number: string | null; hasActive: boolean }
         >();
 
         for (const enr of enrollments) {
           const existing = studentMap.get(enr.studentId);
           const isActive =
             enr.archivedAt === null || enr.archivedAt === undefined;
-          const name = enr.studentName || "Öğrenci";
-          const number = enr.studentNumber || null;
+          // R2-D: Ad okunamadığında etiket uydurulmaz (K-22)
+          const name = enr.studentName ?? null;
+          const number = enr.studentNumber ?? null;
 
           if (!existing) {
             studentMap.set(enr.studentId, {
@@ -122,27 +125,35 @@ export function HomeworkSubmissionsDialog({
             });
           } else {
             if (isActive) existing.hasActive = true;
+            if (!existing.name && name) existing.name = name;
             if (!existing.number && number) existing.number = number;
           }
         }
-
-        const studentList: ClassStudentRow[] = Array.from(
-          studentMap.entries()
-        ).map(([studentId, info]) => ({
-          studentId,
-          studentName: info.name,
-          studentNumber: info.number,
-          isArchived: !info.hasActive,
-        }));
-
-        studentList.sort((a, b) =>
-          a.studentName.localeCompare(b.studentName, "tr")
-        );
 
         const subMap = new Map<string, HomeworkSubmissionItem>();
         for (const sub of subResult.rows) {
           subMap.set(sub.studentId, sub);
         }
+
+        // Ek madde 1: Aktif öğrencileri her zaman al.
+        // Sınıftan ayrılmış olanları ise yalnızca bu ödeve ait teslimi varsa dahil et.
+        // Böylece ödev verilmeden önce sınıftan ayrılmış öğrenciler listeyi ve paydayı şişirmez.
+        const studentList: ClassStudentRow[] = [];
+        for (const [studentId, info] of studentMap.entries()) {
+          if (!info.hasActive && !subMap.has(studentId)) {
+            continue;
+          }
+          studentList.push({
+            studentId,
+            studentName: info.name,
+            studentNumber: info.number,
+            isArchived: !info.hasActive,
+          });
+        }
+
+        studentList.sort((a, b) =>
+          (a.studentName ?? "").localeCompare(b.studentName ?? "", "tr")
+        );
 
         setStudents(studentList);
         setSubmissions(subMap);
@@ -169,6 +180,40 @@ export function HomeworkSubmissionsDialog({
   const handleToggleSubmission = async (student: ClassStudentRow) => {
     if (!canMark || actionId) return;
 
+    if (isDemo) {
+      const existing = submissions.get(student.studentId);
+      if (existing) {
+        setSubmissions(prev => {
+          const next = new Map(prev);
+          next.delete(student.studentId);
+          return next;
+        });
+        toast.success("Ödev teslim işareti kaldırıldı (Demo)", {
+          description: `${student.studentName || "adı okunamadı"} için teslim işareti kaldırıldı.`,
+        });
+      } else {
+        const dummyItem: HomeworkSubmissionItem = {
+          id: `demo-sub-${student.studentId}`,
+          organizationId: organizationId || "demo-org",
+          homeworkId: homework.id,
+          studentId: student.studentId,
+          recordedByMembershipId: "demo-teacher",
+          archivedAt: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        setSubmissions(prev => {
+          const next = new Map(prev);
+          next.set(student.studentId, dummyItem);
+          return next;
+        });
+        toast.success("Ödev teslim alındı olarak işaretlendi (Demo)", {
+          description: `${student.studentName || "adı okunamadı"} için teslim kaydedildi.`,
+        });
+      }
+      return;
+    }
+
     setActionId(student.studentId);
     setErrorMessage(null);
 
@@ -184,7 +229,7 @@ export function HomeworkSubmissionsDialog({
           return next;
         });
         toast.success("Ödev teslim işareti kaldırıldı", {
-          description: `${student.studentName} için teslim işareti kaldırıldı.`,
+          description: `${student.studentName || "adı okunamadı"} için teslim işareti kaldırıldı.`,
         });
       } else {
         // İşaretle (satır ekle)
@@ -209,7 +254,7 @@ export function HomeworkSubmissionsDialog({
           return next;
         });
         toast.success("Ödev teslim alındı olarak işaretlendi", {
-          description: `${student.studentName} için teslim kaydedildi.`,
+          description: `${student.studentName || "adı okunamadı"} için teslim kaydedildi.`,
         });
       }
 
@@ -238,6 +283,23 @@ export function HomeworkSubmissionsDialog({
 
   const handleToggleRecordStatus = async () => {
     if (!canMark || recordingLoading) return;
+
+    if (isDemo) {
+      const willRecord = !recordedAt;
+      setRecordedAt(willRecord ? new Date().toISOString() : null);
+      toast.success(
+        willRecord
+          ? "Teslim işaretlemesi tamamlandı (Demo)"
+          : "Teslim işaretlemesi yeniden açıldı (Demo)",
+        {
+          description: willRecord
+            ? "Ödev teslim süreci tamamlandı olarak kaydedildi."
+            : "Ödev teslim işaretlemesi tekrar devam ediyor durumuna alındı.",
+        }
+      );
+      return;
+    }
+
     setRecordingLoading(true);
     setErrorMessage(null);
     const willRecord = !recordedAt;
@@ -283,9 +345,8 @@ export function HomeworkSubmissionsDialog({
     if (!search.trim()) return true;
     const term = search.trim().toLocaleLowerCase("tr");
     return (
-      s.studentName.toLocaleLowerCase("tr").includes(term) ||
-      (s.studentNumber &&
-        s.studentNumber.toLocaleLowerCase("tr").includes(term))
+      Boolean(s.studentName?.toLocaleLowerCase("tr").includes(term)) ||
+      Boolean(s.studentNumber?.toLocaleLowerCase("tr").includes(term))
     );
   });
 
@@ -301,7 +362,7 @@ export function HomeworkSubmissionsDialog({
               <DialogTitle>Ödev Teslimleri</DialogTitle>
               <DialogDescription>
                 {homework.title} · {homework.classGroup}
-                {recordedAt && totalCount > 0 ? (
+                {canMark && recordedAt && totalCount > 0 ? (
                   <span className="ml-2 font-semibold text-emerald-600">
                     ({submittedCount} / {totalCount} teslim)
                   </span>
@@ -371,7 +432,9 @@ export function HomeworkSubmissionsDialog({
               <thead className="sticky top-0 border-b border-slate-100 bg-slate-50/90 text-[10px] font-extrabold uppercase tracking-[.08em] text-slate-400">
                 <tr>
                   <th className="px-4 py-3">Öğrenci</th>
-                  <th className="px-4 py-3 text-center">Durum</th>
+                  {canMark ? (
+                    <th className="px-4 py-3 text-center">Durum</th>
+                  ) : null}
                   {canMark ? (
                     <th className="px-4 py-3 text-right">İşlem</th>
                   ) : null}
@@ -389,9 +452,15 @@ export function HomeworkSubmissionsDialog({
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-800">
-                            {student.studentName}
-                          </span>
+                          {student.studentName ? (
+                            <span className="font-bold text-slate-800">
+                              {student.studentName}
+                            </span>
+                          ) : (
+                            <span className="font-medium italic text-slate-400">
+                              adı okunamadı
+                            </span>
+                          )}
                           {student.isArchived ? (
                             <Badge tone="amber">Sınıftan ayrıldı</Badge>
                           ) : null}
@@ -402,13 +471,15 @@ export function HomeworkSubmissionsDialog({
                           </p>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        {hasSubmission ? (
-                          <Badge tone="green">Teslim Edildi</Badge>
-                        ) : (
-                          <Badge tone="slate">Teslim Edilmedi</Badge>
-                        )}
-                      </td>
+                      {canMark ? (
+                        <td className="px-4 py-3 text-center">
+                          {hasSubmission ? (
+                            <Badge tone="green">Teslim Edildi</Badge>
+                          ) : (
+                            <Badge tone="slate">Teslim Edilmedi</Badge>
+                          )}
+                        </td>
+                      ) : null}
                       {canMark ? (
                         <td className="px-4 py-3 text-right">
                           <button
