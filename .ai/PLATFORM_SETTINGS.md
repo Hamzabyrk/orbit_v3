@@ -554,6 +554,10 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 >
 > ✅ **30 ölçüldü (2026-09-14, #294/#295/#296/#297 merge sonrası) — bilerek bozulan tahmin yine tam beklenen yerde bozuldu.** Dağılım: **27** × `0029` + 1 sızmış şifre + 2 × `rls_enabled_no_policy`. `current_user_can_record_homework` listede; ikinci migration'ın sütunu ve tetikleyicisi hiçbir uyarı üretmedi.
 >
+> ✅ **34 ölçüldü (2026-09-14, #300 merge sonrası) — düzeltilmiş tahmin tuttu.** Şema olguları: `0029` için **30** (üç yeni definer fonksiyon listeye girdi), `rls_enabled_no_policy` için **3** (`workspace_documents`, `internal_function_calls`, `account_link_codes`), artı 1 sızmış şifre. Tahminin ilk hâli (32) yanlıştı ve yanlışlığı **merge''den önce** görüldü, çünkü sayı tahmin edilmeyip türetilmişti.
+>
+> 📌 **v1.4-17 (ikinci PR) için tahmin: değişmez (34).** Tek yeni fonksiyon `internal_begin_account_switch` ve `authenticated`''dan **revoke** edilip yalnız `service_role`''a veriliyor — `0029` yalnız `authenticated`''ın çağırabildiklerini sayıyor. Aynı gerekçe `internal_change_member_role` ve `internal_remove_member`''da ölçülerek doğrulanmıştı. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **ikinci PR merge edildikten sonra** (**K-12**).
+>
 > 📌 **v1.4-17 (ilk PR) için tahmin: 30 → 34.** Üç yeni `security definer` + `authenticated` fonksiyon (`current_user_shares_person`, `issue_account_link_code`, `link_accounts`) `0029`'u 27'den **30**'a çıkarır; `account_link_codes` RLS''i açık ve politikasız olduğu için `rls_enabled_no_policy` 2'den **3**'e çıkar (`internal_function_calls` ve `workspace_documents` ile aynı kalıp). Artı 1 sızmış şifre = **34**.
 >
 > 🔴 **Bu, tasarımda söylediğim sayının düzeltmesi.** Tasarımı sunarken "30 → 32" demiştim ve **iki uyarıyı saymamıştım**: üçüncü fonksiyonu (`issue_account_link_code`) ve politikasız tablonun kendi lint''ini. Sayı tahmin edilmedi, **türetildi** — ve türetme yazılmadığında yanlış olduğu ancak merge sonrası görülürdü. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **bu dilimin ilk PR''ı merge edildikten sonra** (**K-12**).
