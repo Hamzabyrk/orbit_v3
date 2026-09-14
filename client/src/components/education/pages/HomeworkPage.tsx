@@ -181,6 +181,7 @@ export function HomeworkPage({
               onManageSubmissions={
                 canManage ? () => setSubmissionsHomework(item) : undefined
               }
+              canSeeClassRatio={canManage}
               isArchiving={archivingId === item.id}
             />
           ))}

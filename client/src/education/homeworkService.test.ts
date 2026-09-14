@@ -237,7 +237,10 @@ describe("homeworkService (v1.4-05 · #273 Ödev Akışı)", () => {
 
       // Kart render edildiğinde uydurma isim veya sarkan ' · ' bulunmamalı
       const markup = renderToStaticMarkup(
-        createElement(HomeworkCard, { homework: mapped })
+        createElement(HomeworkCard, {
+          homework: mapped,
+          canSeeClassRatio: true,
+        })
       );
       expect(markup).not.toContain("Öğretmen");
       expect(markup).not.toContain("12-A ·");
@@ -621,6 +624,7 @@ describe("K-23 Regresyon Korumaları (Arayüz & Şema Sözleşmeleri)", () => {
     const markup = renderToStaticMarkup(
       createElement(HomeworkCard, {
         homework: hw,
+        canSeeClassRatio: true,
         onEdit: vi.fn(),
         onArchive: vi.fn(),
       })
@@ -647,6 +651,7 @@ describe("K-23 Regresyon Korumaları (Arayüz & Şema Sözleşmeleri)", () => {
     const markup = renderToStaticMarkup(
       createElement(HomeworkCard, {
         homework: hw,
+        canSeeClassRatio: true,
       })
     );
 
@@ -1300,7 +1305,10 @@ describe("v1.4-15 Ödev Teslim Takibi (homework_submissions & K-23)", () => {
       };
 
       const markup = renderToStaticMarkup(
-        createElement(HomeworkCard, { homework: hwCompleted })
+        createElement(HomeworkCard, {
+          homework: hwCompleted,
+          canSeeClassRatio: true,
+        })
       );
 
       expect(markup).toContain("Tamamlandı");

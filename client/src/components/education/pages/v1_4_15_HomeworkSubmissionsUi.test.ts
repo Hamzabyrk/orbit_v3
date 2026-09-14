@@ -85,6 +85,7 @@ describe("HomeworkCard — v1.4-15 UI Testleri", () => {
     const html = renderToStaticMarkup(
       createElement(HomeworkCard, {
         homework: completedHomework,
+        canSeeClassRatio: true,
         onManageSubmissions: vi.fn(),
       })
     );
@@ -104,6 +105,7 @@ describe("HomeworkCard — v1.4-15 UI Testleri", () => {
     const html = renderToStaticMarkup(
       createElement(HomeworkCard, {
         homework: zeroSubmissionHomework,
+        canSeeClassRatio: true,
         onManageSubmissions: vi.fn(),
       })
     );
@@ -125,6 +127,7 @@ describe("HomeworkCard — v1.4-15 UI Testleri", () => {
     const html = renderToStaticMarkup(
       createElement(HomeworkCard, {
         homework: zeroRecordedHomework,
+        canSeeClassRatio: true,
         onManageSubmissions: vi.fn(),
       })
     );
@@ -143,6 +146,7 @@ describe("HomeworkCard — v1.4-15 UI Testleri", () => {
     const html = renderToStaticMarkup(
       createElement(HomeworkCard, {
         homework: recordedHomework,
+        canSeeClassRatio: true,
         onManageSubmissions: vi.fn(),
       })
     );
@@ -161,6 +165,7 @@ describe("HomeworkCard — v1.4-15 UI Testleri", () => {
     const html = renderToStaticMarkup(
       createElement(HomeworkCard, {
         homework: unrecordedHomework,
+        canSeeClassRatio: true,
         onManageSubmissions: vi.fn(),
       })
     );
@@ -173,6 +178,7 @@ describe("HomeworkCard — v1.4-15 UI Testleri", () => {
     const html = renderToStaticMarkup(
       createElement(HomeworkCard, {
         homework: sampleHomework,
+        canSeeClassRatio: true,
         onManageSubmissions: vi.fn(),
       })
     );
@@ -208,6 +214,54 @@ describe("HomeworkPage — R2-A Yetki Kapıları", () => {
     );
 
     expect(html).toContain("Teslimler");
+  });
+});
+
+describe("HomeworkCard — sınıf oranı yalnız görene çizilir (#297)", () => {
+  // 🔴 Yerel uçtan uca provada ölçüldü (2026-09-14): RLS asimetrik. Öğrenci
+  // `class_enrollments`'ta TÜM sınıfı, `homework_submissions`'ta YALNIZ kendi
+  // satırını görüyor. Sayı istemcide bu iki kümeden türetildiği için öğrenciye
+  // "0 / 2 teslim" yazıyordu — yani "sınıfta kimse getirmedi". Öğrencinin
+  // bilemeyeceği ve büyük ihtimalle yanlış bir cümle (K-22).
+  //
+  // v1.3-01/D'deki `exam_participant_count` hatasının aynısı; #296 diyaloğu
+  // kapatmıştı, kart açık kalmıştı.
+  const bitirilmisOdev: Homework = {
+    id: "hw-oran",
+    classGroup: "11-A",
+    subject: "Matematik",
+    title: "Türev Test 4",
+    description: "",
+    assignedDate: "10 Eylül 2026",
+    dueDate: "20 Eylül 2026",
+    rawDueDate: "2026-09-20",
+    status: "Aktif",
+    submissionCount: 0,
+    totalStudents: 2,
+    submissionsRecordedAt: "2026-09-14T08:00:00Z",
+  };
+
+  it("🔴 sınıf oranını GÖREMEYEN role çizilmez", () => {
+    const html = renderToStaticMarkup(
+      createElement(HomeworkCard, {
+        homework: bitirilmisOdev,
+        canSeeClassRatio: false,
+      })
+    );
+    // ⚠️ Sadece ORAN aranıyor: "Son teslim: 20 Eylül 2026" satırı da "teslim"
+    // kelimesini içeriyor ve onu yasaklamak iddiayı yanlış yere bağlardı.
+    expect(html).not.toContain("0 / 2");
+    expect(html).not.toContain("teslim</p>");
+  });
+
+  it("bütün teslimleri gören role çizilir", () => {
+    const html = renderToStaticMarkup(
+      createElement(HomeworkCard, {
+        homework: bitirilmisOdev,
+        canSeeClassRatio: true,
+      })
+    );
+    expect(html).toContain("0 / 2");
   });
 });
 
