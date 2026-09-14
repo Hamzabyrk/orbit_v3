@@ -10,7 +10,8 @@
 --   Kodun kendisi:
 --     1. Kod üretiliyor ve tabloda HAM hâli yok, yalnız hash''i var.
 --     2. ⛔ Üyeliği olmayan hesap kod üretemiyor.
---     3. ⛔ Yeni kod üretmek eskisini SİLİYOR (bilinmeyen bir sır açık kalmaz).
+--     3. ⛔ Yeni kod üretmek eskisini KULLANILAMAZ yapıyor (bilinmeyen bir
+--        sır açık kalmaz).
 --
 --   Bağlamanın reddettikleri:
 --     4. ⛔ Kendi kodunu kendi tüketemiyor.
@@ -148,16 +149,19 @@ select set_config('request.jwt.claim.sub', '41000000-0000-0000-0000-000000000041
 
 insert into kodlar (ad, deger) values ('A2', public.issue_account_link_code());
 
-set local role postgres;
+-- Eski kodun durumunu tabloda saymak yerine **davranışını** sınıyoruz: A1
+-- artık kabul ediliyor mu? İlk yazımda iddia satır sayıyordu ve o hâliyle
+-- yalnız "silindi"yi doğrulayabilirdi; oysa önemli olan kodun çalışmaması.
+select set_config('request.jwt.claim.sub', '42000000-0000-0000-0000-000000000042', true);
 
-select is(
-  (select count(*) from public.account_link_codes as kod
-    where kod.issuer_user_id = '41000000-0000-0000-0000-000000000041'),
-  1::bigint,
-  'issuing a new code deletes the previous one — no secret stays alive unseen'
+select throws_ok(
+  format('select public.link_accounts(%L)', (select deger from kodlar where ad = 'A1')),
+  'ORB03',
+  null,
+  'issuing a new code kills the previous one — no secret stays alive unseen'
 );
 
-set local role authenticated;
+select set_config('request.jwt.claim.sub', '41000000-0000-0000-0000-000000000041', true);
 
 -- ===========================================================================
 -- Bağlamanın reddettikleri

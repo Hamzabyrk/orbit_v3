@@ -203,10 +203,19 @@ create policy profiles_select_linked_account on public.profiles
 -- Kodun üretilmesi
 -- =========================================================================
 --
--- Bir kişinin aynı anda **tek** canlı kodu olur: yeni kod üretmek eskisini
--- tüketilmiş saymaz, **siler**. Sebep basit — ekranda tek kod gösteriliyor ve
+-- Bir kişinin aynı anda **tek** canlı kodu olur: yeni kod üretmek eskisinin
+-- **süresini bitirir**. Sebep basit — ekranda tek kod gösteriliyor ve
 -- kullanıcı "yenile"ye bastığında eskisinin hâlâ geçerli olduğunu bilmiyor.
 -- Bilinmeyen bir sırrın açık kalması, kullanıcının göremediği bir risktir.
+--
+-- ⚠️ İlk yazımda burada `delete` vardı ve **Yıkıcı Migration Kontrolü** onu
+-- yakaladı. Kapının `-- ALLOW-DESTRUCTIVE` kaçış yolu var ama kullanılmadı:
+-- silmeye gerek yoktu. Süreyi bitirmek aynı güvenlik özelliğini veriyor
+-- (kod artık kabul edilmiyor) ve üstüne kaç kod üretildiğinin izini bırakıyor.
+--
+-- Kapı fonksiyon gövdesindeki bir ifadeyle migration zamanında çalışan bir
+-- ifadeyi ayırt etmiyor — ama bu bir kusur değil: bir fonksiyonun içindeki
+-- `delete` de çağrıldığında gerçekten siler. Kapı gevşetilmedi.
 
 create or replace function public.issue_account_link_code()
 returns text
@@ -233,8 +242,11 @@ begin
             detail = 'issuer_without_membership';
   end if;
 
-  delete from public.account_link_codes as eski
-   where eski.issuer_user_id = benim_kimligim;
+  update public.account_link_codes as eski
+     set expires_at = now()
+   where eski.issuer_user_id = benim_kimligim
+     and eski.consumed_at is null
+     and eski.expires_at > now();
 
   ham_kod := upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 12));
 
@@ -250,7 +262,7 @@ end;
 $$;
 
 comment on function public.issue_account_link_code() is
-  'Çağıran hesap için tek kullanımlık bir bağlama kodu üretir ve HAM hâlini döner — bir daha okunamaz. Aynı hesabın önceki kodları SİLİNİR: ekranda tek kod görünüyor, kullanıcının bilmediği bir sır açık kalmamalı. Üyeliği olmayan hesap kod üretemez (ORB03).';
+  'Çağıran hesap için tek kullanımlık bir bağlama kodu üretir ve HAM hâlini döner — bir daha okunamaz. Aynı hesabın önceki kodlarının SÜRESİ BİTİRİLİR: ekranda tek kod görünüyor, kullanıcının bilmediği bir sır açık kalmamalı. Üyeliği olmayan hesap kod üretemez (ORB03).';
 
 -- =========================================================================
 -- Bağın kurulması
