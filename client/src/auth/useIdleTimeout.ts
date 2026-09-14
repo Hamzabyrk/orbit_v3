@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import {
   clearLastActivity,
-  IDLE_TIMEOUT_MS,
   type IdleTracking,
   readLastActivity,
   remainingIdleMs,
@@ -135,5 +134,3 @@ export function useIdleTimeout({
     };
   }, [tracking]);
 }
-
-export { IDLE_TIMEOUT_MS };

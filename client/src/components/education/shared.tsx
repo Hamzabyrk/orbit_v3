@@ -231,11 +231,12 @@ export function ReportCard({
 }: {
   title: string;
   subtitle: string;
-  values: number[];
+  values: (number | undefined)[];
   labels: string[];
   color: string;
 }) {
-  const veriYok = values.length === 0 || values.every(value => value === 0);
+  const veriYok =
+    values.length === 0 || values.every(value => value === undefined);
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
@@ -254,14 +255,29 @@ export function ReportCard({
         <div className="mt-6 flex h-36 items-end justify-between gap-3">
           {values.map((value, index) => (
             <div
-              key={labels[index]}
-              className="flex h-full flex-1 flex-col justify-end"
+              key={labels[index] ?? index}
+              className="flex h-full flex-1 flex-col justify-end items-stretch"
             >
-              <span
-                style={{ height: `${value}%` }}
-                className={`rounded-t-md ${color}`}
-              />
-              <span className="mt-2 text-center text-[9px] font-bold text-slate-400">
+              {value === undefined ? (
+                <span
+                  data-testid="report-bar-unmeasured"
+                  aria-label="Ölçülemedi"
+                  className="w-full border-b border-dashed border-slate-300"
+                />
+              ) : value === 0 ? (
+                <span
+                  data-testid="report-bar-zero"
+                  aria-label="%0"
+                  className={`h-[2px] w-full rounded-sm ${color}`}
+                />
+              ) : (
+                <span
+                  data-testid="report-bar-measured"
+                  style={{ height: `${Math.min(Math.max(value, 0), 100)}%` }}
+                  className={`w-full rounded-t-md ${color}`}
+                />
+              )}
+              <span className="mt-2 text-center text-[9px] font-bold text-slate-400 truncate">
                 {labels[index]}
               </span>
             </div>

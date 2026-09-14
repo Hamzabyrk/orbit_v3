@@ -1,10 +1,7 @@
 import {
   isDemoEnvironment,
   resolveDeploymentEnvironment,
-  type DeploymentEnvironment,
 } from "./deploymentEnvironment";
-
-export type { DeploymentEnvironment };
 
 const buildEnvironment =
   typeof __ORBIT_DEPLOYMENT_ENV__ === "string"
