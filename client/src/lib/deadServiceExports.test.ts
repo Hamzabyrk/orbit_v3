@@ -240,4 +240,53 @@ describe("servis katmanında ölü ihraç kalmaz (v1.4 ara denetimi)", () => {
 
     expect(sahipsiz).toEqual([]);
   });
+
+  it("`from` içermeyen bir yeniden ihraç da sahipsiz kalmaz", () => {
+    // ⚠️ Yukarıdaki iddianın KENDİ kör noktası ve ölçülerek bulundu (v1.4-16).
+    // Deseni `export { x } from "./y"` arıyor. Ama aynı şey iki satırda da
+    // yazılabiliyor:
+    //
+    //   import { type AttendanceWeek } from "./reportService";
+    //   export type { AttendanceWeek };
+    //
+    // İkincisinde `from` yok, dolayısıyla desen onu hiç görmüyordu.
+    // `educationQueries.ts` tam bunu yaptı; tek tüketici tipleri zaten
+    // `reportService`'ten alıyordu. **Aynı kuralın üçüncü vakası** — ve bir
+    // kuralın yeni bir yazım biçimi, yeni bir kural değildir (**K-24**).
+    //
+    // Yerel olarak TANIMLANMIŞ bir adın `export { x }` ile ihraç edilmesi
+    // normaldir ve buraya girmez: ayrım, adın bu dosyaya **başka bir modülden
+    // içe aktarılmış** olmasıdır.
+    const istenenler = new Set<string>();
+    for (const [yol, icerik] of icerikler) {
+      for (const [modul, ad] of iceAktarmalar(yol, icerik)) {
+        istenenler.add(`${anahtarla(modul)}::${ad}`);
+      }
+    }
+
+    const sahipsiz: string[] = [];
+    for (const [yol, icerik] of icerikler) {
+      const iceAktarilanlar = new Set(
+        iceAktarmalar(yol, icerik).map(([, ad]) => ad)
+      );
+      const desen = /export\s+(?:type\s+)?\{([^}]*)\}\s*;/g;
+      for (const eslesme of icerik.matchAll(desen)) {
+        for (const ham of eslesme[1].split(",")) {
+          const ad = ham
+            .replace(/^\s*type\s+/, "")
+            .trim()
+            .split(/\s+as\s+/)[0];
+          if (!ad) continue;
+          if (!iceAktarilanlar.has(ad)) continue;
+          if (olasiAnahtarlar(yol).some(k => istenenler.has(`${k}::${ad}`)))
+            continue;
+          sahipsiz.push(
+            `${ad} :: ${path.relative(istemciKoku, yol).split(path.sep).join("/")}`
+          );
+        }
+      }
+    }
+
+    expect(sahipsiz).toEqual([]);
+  });
 });

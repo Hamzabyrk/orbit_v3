@@ -135,5 +135,3 @@ export function useIdleTimeout({
     };
   }, [tracking]);
 }
-
-export { IDLE_TIMEOUT_MS };
