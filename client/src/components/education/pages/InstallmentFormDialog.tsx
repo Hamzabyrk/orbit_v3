@@ -17,6 +17,7 @@ import {
   translatePaymentError,
   type Installment,
 } from "@/education/paymentService";
+import { getOrbitToday } from "@/education/trDate";
 import { educationKeys } from "@/education/educationQueries";
 
 export type InstallmentFormDialogProps = {
@@ -59,8 +60,7 @@ export function InstallmentFormDialog({
     } else {
       setSequenceNo(String(suggestedSequenceNo));
       // Varsayılan vade tarihi: bugün (YYYY-MM-DD)
-      const todayIso = new Date().toISOString().slice(0, 10);
-      setDueDate(todayIso);
+      setDueDate(getOrbitToday());
       setAmount("");
       setError(null);
     }

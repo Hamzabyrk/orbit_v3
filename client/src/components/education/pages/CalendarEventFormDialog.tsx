@@ -17,6 +17,7 @@ import {
   updateCalendarEvent,
   type CalendarEventItem,
 } from "@/education/dayPlanService";
+import { getOrbitToday } from "@/education/trDate";
 
 export type CalendarEventFormDialogProps = {
   open: boolean;
@@ -43,7 +44,7 @@ export function CalendarEventFormDialog({
   // Mevcut etkinlikten veya başlangıç tarihinden gün ve saatleri ayıkla
   const defaultDate = event?.startsAt
     ? event.startsAt.slice(0, 10)
-    : (initialDate ?? new Date().toISOString().slice(0, 10));
+    : (initialDate ?? getOrbitToday());
 
   const defaultStartTime = event?.startsAt
     ? new Date(event.startsAt).toLocaleTimeString("tr-TR", {

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -16,6 +16,7 @@ import {
   translateExamError,
   type LatestExamDetail,
 } from "@/education/examService";
+import { getOrbitToday } from "@/education/trDate";
 import type { ClassGroup } from "../types";
 
 export type ExamFormDialogProps = {
@@ -44,9 +45,7 @@ export function ExamFormDialog({
 }: ExamFormDialogProps) {
   const [name, setName] = useState("");
   const [classId, setClassId] = useState("");
-  const [examDate, setExamDate] = useState(
-    () => new Date().toISOString().split("T")[0]
-  );
+  const [examDate, setExamDate] = useState(() => getOrbitToday());
   const [maxScore, setMaxScore] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +54,7 @@ export function ExamFormDialog({
     if (open) {
       setName(exam?.name ?? "");
       setClassId(exam?.classId ?? classes[0]?.id ?? "");
-      setExamDate(exam?.examDate ?? new Date().toISOString().split("T")[0]);
+      setExamDate(exam?.examDate ?? getOrbitToday());
       setMaxScore(exam?.maxScore != null ? String(exam.maxScore) : "");
       setError(null);
       setSubmitting(false);
