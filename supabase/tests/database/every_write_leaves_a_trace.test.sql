@@ -28,10 +28,28 @@
 --     yöneticisine açık; iz düşmek RLS'in bilerek sakladığını deftere taşırdı
 --     (v1.4-13 kararı, `personal_records_stay_personal.test.sql`).
 --
---   `profiles` → `audit_events.organization_id` NOT NULL ve `profiles`'ta öyle
---     bir sütun yok; özel tetikleyici gerekiyor ve kişi birden fazla kuruma
---     üye olabilir. **v1.4-17'ye ertelendi** (K-12); bugün iz yok ve bu
---     bilinerek böyle.
+--   `profiles` → **v1.4 kapanış taramasında (2026-09-14) ölçülerek kapandı.**
+--     v1.4-14 bunu v1.4-17'ye ertelemişti (K-12) ve v1.4-17'de karar "evet, iz
+--     bıraksın" oldu. Ama tarama şunu gösterdi: **izlenecek olay yok.**
+--
+--     `display_name`'i yazan yalnız iki fonksiyon var ve ikisi de
+--     `authenticated`'a kapalı; `profiles_update_self` ise yalnız hesabın
+--     KENDİ sahibine UPDATE veriyor. Başkasının adını değiştirebilecek tek
+--     yol `internal_create_membership`'ti ve o, üyeliği olan kullanıcıyı
+--     reddediyor — `status` süzmediği için **askıya alınmış** üyelik de
+--     engelliyor, ve kurumdan çıkarma satırı silmiyor.
+--
+--     Yani yerleşmiş bir hesabın adını başkası değiştiremiyor; geriye kalan
+--     tek yazar kişinin kendisi ve "adımı kim değiştirdi" sorusunun cevabı
+--     her zaman "sen". Yazılacak iz, olmayan bir olayın izi olurdu (K-03).
+--
+--     ⚠️ Gerekçe üç halkaya dayanıyor ve üçü de değişebilir. Bu yüzden yorumda
+--     bırakılmadı: `profile_rename_has_no_path.test.sql` halkaları tek tek
+--     sınıyor. Biri kırılırsa bu muafiyet yeniden ölçülmeli (**K-24**).
+--
+--     `audit_events.organization_id` NOT NULL olduğu için blanket tetikleyici
+--     zaten yazılamıyordu — üyeliği olmayan profilde kurum çözülemez ve NOT
+--     NULL ihlali şifre değiştirmeyi kırardı.
 --
 -- Listeye bir satır eklemek bir **karardır**: nerede kayıtlı olduğunu
 -- yazmadan ekleme.
