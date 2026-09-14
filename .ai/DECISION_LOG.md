@@ -2987,3 +2987,101 @@ Zod bu depoda **sınırda** duruyor ve kuralı tekrar etmiyor; kaldırılsaydı 
 **Kural olarak:** bir oranın iki sayısı **aynı kümeden** gelmek zorundadır. Gelmiyorsa çözüm, küçük olanı büyütmek ya da büyüğünü kırpmak **değildir** — ya küme düzeltilir ya oran yayımlanmaz. Bu, v1.3-01/D'nin (`exam_participant_count`) ve v1.3-01/C'nin (devam yüzdesi) aynı ailesi: **bir sayı, neyi saydığı bilinmeden gösterilemez.**
 
 ⚠️ Üçüncü bir ayrım da kayda geçti: sayaçlar artık `null` ("ölçülemedi" — tavan ya da hata) ile boş küme ("ölçüldü, kimse yok") arasında ayrım yapıyor. İlki sayı üretmez, ikincisi `0` üretir. İkisini birbirine karıştırmak, `submissions_recorded_at` kararının kaldırdığı belirsizliği geri getirirdi.
+
+---
+
+### Karar: Sıfır bir ölçümdür, yokluk değildir — ve ikisini kaynak ayırır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-14
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** `ReportCard`'ın boş durum koşulu `values.every(value => value === 0)`
+idi. Bugün ateşlenemiyordu çünkü üretim değerleri sabit `[0, 0, 0, 0]`; kartlar
+canlı veriye bağlandığı gün **canlı bir kusur** olacaktı — dört hafta boyunca
+gerçekten %0 devam eden bir sınıf (kapanmış şube, tatil dönemi) _"Rapor verisi
+henüz yok"_ görecekti (**K-22**).
+
+**Karar:** Ayrım **ekranda değil kaynakta** kurulur.
+
+| Kaynağın söylediği | Anlamı         | Ekran        |
+| ------------------ | -------------- | ------------ |
+| sayılar `NULL`     | ölçülmedi      | bar yok      |
+| sayılar `0`        | ölçüldü, sıfır | sıfır çubuğu |
+
+`report_attendance_weeks()` ve `report_homework_weeks()` **her zaman tam dört
+satır** döndürür; ölçülmemiş hafta boş sayılarla gelir. `ReportCard`'ın değer
+tipi `(number | undefined)[]` olur ve boş durum **yalnız dördü de `undefined`**
+iken çizilir.
+
+**Gerekçe — eksen neden sunucuda.** İlk yazımda yalnız verisi olan haftalar
+dönüyordu. O tasarım ekseni istemciye kurduruyordu: üç haftası boş bir sınıfta
+tek satır döner, kalan üç haftanın tarihini istemci **kendi saatiyle**
+hesaplamak zorunda kalırdı. `orbit_today()` ile kapatılan saat dilimi tuzağı
+(#239) arka kapıdan geri girerdi.
+
+**Bu, `null` / boş küme ayrımının aynısıdır** (v1.4-15, ödev oranları): orada
+`null` "ölçülemedi", boş `Map` "ölçüldü, kimse yok" demişti. Aynı ayrım, bu kez
+SQL'de.
+
+---
+
+### Karar: Rapor kartlarının kapsamı okuyanın kendisidir; kurum ortalaması öğretmene açılmaz
+
+**Durum:** Alındı
+**Tarih:** 2026-09-14
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Rapor ekranının alt başlıkları öğretmene _"Sınıf ve genel
+ortalama"_, yöneticiye _"TYT kurum ortalaması"_ diyordu. "Kimin kapsamı"
+sorusu #239'dan beri açıktı.
+
+**Karar:** Üç fonksiyon da **`security invoker`**. Kapsamı RLS çizer: öğretmen
+okuttuğu öğrencileri, yönetici kurumun tamamını görür. Öğretmene kurum
+ortalaması **gösterilmez**; alt başlıklar bunu söyler ("Sınıflarınızın
+ortalaması" / "Kurum ortalaması").
+
+**Gerekçe.** Cevap zaten şemadaydı (2026-09-14'te ölçüldü):
+`attendance_records` ve `exam_results` politikaları yöneticiye kurum genelini,
+öğretmene `current_user_teaches_student` kadarını veriyor. Ve "Raporlar"
+bölümü `educationAccess.ts`'te yalnız yönetici ve öğretmende — öğrenci/veli bu
+ekranı hiç görmüyor. Kurum ortalamasını öğretmene açmak **`security definer`**
+bir toplam gerektirirdi: yeni bir yetki genişlemesi, +1 advisor ve kendi
+olumsuz senaryosu.
+
+⚠️ **`exam_participant_count`'un dersiyle karıştırılmamalı.** O kararda
+(2026-09-08) "okuyanın gördüğü satır sayısı" yanlıştı, çünkü iddia **sınavın
+katılımcı sayısıydı** — okuyandan bağımsız bir olgu. Burada iddia zaten
+okuyanın kapsamı. Aynı görünen iki durum, farklı iki soru; ayrım migration
+yorumunda da yazılı.
+
+---
+
+### Karar: Sınav eğilimi yüzdedir ve sınav türü iddia edilmez
+
+**Durum:** Alındı
+**Tarih:** 2026-09-14
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** "Deneme gelişimi — TYT kurum ortalaması" kartı #239'dan beri
+çizilemiyordu: farklı `max_score`'lu sınavlarda ortalama kuralı yazılı değildi.
+
+**Karar:** Her sonuç **kendi sınavının tam puanına** oranlanıp yüzdeye çevrilir;
+son dört sınav eskiden yeniye çizilir. **"TYT" etiketi kaldırılır.**
+
+**Gerekçe.** Şemada **sınav türü sütunu yok** (2026-09-14'te ölçüldü). Bir
+sınavın TYT olduğunu söyleyen hiçbir veri yokken kartın öyle demesi, #239'un
+baştan beri şikâyet ettiği şeydi. Tür eklemek ayrı bir dilimdir (yeni sütun,
+yeni form alanı, yeni testler) ve bu kartı beklemeye almaya değmez.
+
+⚠️ **Ölçülen tuzak:** `exams.max_score` için **hiç CHECK yok** — tablodaki tek
+CHECK `name` uzunluğu. Yani `0` da negatif de girilebilir ve sıfıra bölmeyi
+şema engellemiyor. Süzgeç fonksiyonda: `max_score > 0` (**K-04**). Tavanı
+yazılmamış sınav bir yüzde üretemez; bu v1.4-04'ün aynı sebeple aldığı kararın
+kurum geneli hâli.
+
+⚠️ Ve o süzgecin **tek** koşul olması bir ölçümün sonucu: yanında bir
+`max_score is not null` daha vardı, mutasyon turunda kaldırıldığında **hiçbir
+test kırmızıya dönmedi** (**K-23**). Sebep SQL'in kendisi — `null > 0` sonucu
+`NULL`'dır. Ölü koşul kaldırıldı: okuyana iki ayrı kural varmış gibi
+görünüyordu (**K-06**).

@@ -552,6 +552,10 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 >
 > ✅ **29 iki kez daha ölçüldü (2026-09-13, #291 ve #293 merge sonrası).** İkisinde de migration yoktu; sayı beklendiği gibi sabit kaldı.
 >
+> ✅ **30 ölçüldü (2026-09-14, #294/#295/#296/#297 merge sonrası) — bilerek bozulan tahmin yine tam beklenen yerde bozuldu.** Dağılım: **27** × `0029` + 1 sızmış şifre + 2 × `rls_enabled_no_policy`. `current_user_can_record_homework` listede; ikinci migration'ın sütunu ve tetikleyicisi hiçbir uyarı üretmedi.
+>
+> 📌 **v1.4-16 için tahmin: değişmez (30).** Dilim üç yeni fonksiyon ekliyor ama üçü de **`security invoker`** — `0029` lint'i yalnız `security definer` olanları sayıyor. Ölçülmüş emsal: `payment_overview_counts`, `student_attendance_counts` ve `student_latest_exam_scores` da invoker ve **hiçbiri listede değil**. Sayı 31 olursa bu kalıbı yanlış okudum demektir. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **#278'in PR'ı merge edildikten sonra** (**K-12**).
+>
 > 📌 **v1.4-15 için tahmin: 29 → 30.** `current_user_can_record_homework(uuid)` `security definer` **ve** `authenticated`'a açık olmak zorunda: RLS politikası içinden `homework_assignments` satırına bakıyor ve politika kendisi o tablonun RLS'ine tabi olurdu. `current_user_can_record_attendance` tam olarak bu yüzden listede ve bu fonksiyon onun aynası. Dilimin ikinci migration'ı yalnız bir sütun ve tetikleyici ekliyor; ikisi de `0029` üretmez. Beklenen dağılım: **27** × `0029` + 1 + 2. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **#294 merge edildikten sonra** (**K-12**).
 >
 > 📌 **v1.4-13 için tahmin: değişmez (29).** Dilimin **migration'ı yok** — şema eksiksizdi. Çıktı yalnız bir pgTAP testi; test advisor üretmez.
