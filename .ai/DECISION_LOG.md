@@ -3085,3 +3085,79 @@ kurum geneli hâli.
 test kırmızıya dönmedi** (**K-23**). Sebep SQL'in kendisi — `null > 0` sonucu
 `NULL`'dır. Ölü koşul kaldırıldı: okuyana iki ayrı kural varmış gibi
 görünüyordu (**K-06**).
+
+---
+
+### Karar: Hesapları kişinin kendisi bağlar — iki taraflı kanıtla
+
+**Durum:** Alındı
+**Tarih:** 2026-09-14
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Yol haritası v1.4-17'yi açarken "mevcut kullanıcıya ikinci üyelik
+açmanın guard'ı nasıl gevşetilir" diye soruyordu. Ölçüm sorunun yanlış
+olduğunu gösterdi.
+
+**Ölçülenler (2026-09-14):**
+
+1. `organization_memberships_org_user_idx` **tam** bir UNIQUE
+   (`organization_id, user_id`). Bir auth kullanıcısının bir kurumda ikinci
+   üyeliği **zaten** olamaz. "Rolü kadar hesap" modeli buradan çıkıyor.
+2. `internal_create_membership`'in guard'ı gevşetilseydi açılan şey başka bir
+   kurumdaki kullanıcıya üyelik yazmaktı — ve fonksiyon aynı işlemde
+   `profiles`'a `display_name` **ve** `must_change_password = true` yazıyor.
+   Yani guard bir "ad karışır" koruması değil, bir **hesap ele geçirme**
+   korumasıdır.
+
+**Karar:** Guard **yerinde kalıyor**. Bağlamayı **kişinin kendisi** yapar:
+hesap A bir kod üretir, hesap B'ye girilip o kod tüketilir. Kurum yöneticisi
+bağlayamaz.
+
+**Gerekçe.** Yanlış bağlanan bir hesaba **geçiş düğmesiyle girilir** — yani
+bağlama, oturum açmakla eşdeğer bir yetkidir. Yönetici kendi kurumundaki
+herhangi iki hesabı birleştirebilseydi, kendi hesabını bir öğretmeninkine
+bağlayıp onun paneline geçebilirdi. İki taraflı kanıt bunu kapatıyor: iki
+hesaba da girebilmek gerekir.
+
+**Ek koşul — `must_change_password` kapalı olmalı.** Yönetici üyeyi kâğıt
+fişteki geçici şifreyle yaratıyor ve o şifre `must_change_password` ile
+kilitli. Kilit kalkmadan hesabın "sahibi" belirsizdir; geçici şifreyi bilen
+yönetici de olabilir. Bağlama ancak kişi kendi şifresini belirledikten sonra
+bir sahiplik kanıtıdır.
+
+**Kod uzunluğu bir güvenlik kararıdır, okunabilirlik tercihi değil.** Kodu
+bilen iki hesabı bağlayabiliyor; yani kod bir oturum açma sırrıyla aynı
+ağırlıkta. 6 hane 10 dakikalık pencerede kaba kuvvetle denenebilirdi; 12
+onaltılık karakter (≈2,8 × 10¹⁴) denenemez. Kod **hash'lenmiş** saklanıyor ve
+yeni kod üretmek eskisini **siler** — kullanıcının bilmediği bir sır açık
+kalmamalı.
+
+**Reddedilen: kişi kayıtlarının birleştirilmesi.** Zaten başka bir kişiye
+bağlı bir hesap için kayıtlar birleştirilmiyor (`ORB04`). İki insanın
+hesaplarını tek gruba toplama riski taşır ve geri alınması zordur; ihtiyaç
+doğduğunda ayrı bir karar olarak açılır (**K-04**).
+
+---
+
+### Karar: Kişi kaydı kurum-üstüdür
+
+**Durum:** Alındı
+**Tarih:** 2026-09-14
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Karar:** `people` tablosu **`organization_id` taşımaz** ve bu, `public`
+şemasındaki **tek kurum-üstü iş tablosu** olur. RLS'i kurumdan değil
+**sahiplikten** gelir.
+
+**Gerekçe.** Bir kişi A kurumunda öğretmen, B kurumunda veli olabilir. Kurum
+kimliği taşısaydı bu kişi iki kişi olurdu ve KVKK "verilerimi sil" talebinde
+biri gözden kaçardı — 2026-08-25 kararının kişi kaydını gerektiren sebebi tam
+buydu.
+
+⚠️ Bunun bir bedeli var ve yazılıyor: §4.12'nin "her CRUD dilimi açık
+`organization_id` süzgeci koyar" kuralını burada arayan biri bulamayacak.
+Eksiklik değil, tasarım.
+
+**Tablonun alanı yoktur ve olmamalıdır.** Ad `profiles`'ta, rol
+`organization_memberships`'ta durur (**K-06**). `people` yalnız bir gruplama
+anahtarıdır.
