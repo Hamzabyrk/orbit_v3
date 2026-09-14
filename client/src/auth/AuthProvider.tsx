@@ -15,6 +15,7 @@ import { useIdleTimeout } from "./useIdleTimeout";
 import { loadAuthenticatedIdentity } from "./authService";
 import { resolveSessionEvent } from "./sessionEvents";
 import { isDemoMode } from "./runtime";
+import { revokeParkedSession } from "./accountLinkService";
 import type { AuthIdentity, AuthProviderProps, LoginInput } from "./types";
 
 function createDemoIdentity(role: EducationRole): AuthIdentity {
@@ -93,6 +94,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // oturum veya çıkış girdiğinde bayat sonucun yazılmasını engeller (#213).
   const identityRequestIdRef = useRef(0);
 
+  const queryClient = useQueryClient();
+  const currentUserIdRef = useRef<string | null>(null);
+
   const applyIdentity = useCallback(
     async (session: Session, forcedRequestId?: number) => {
       const requestId = forcedRequestId ?? ++identityRequestIdRef.current;
@@ -108,6 +112,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return;
         }
 
+        // Çözülen kimliğin kullanıcı kimliği değiştiğinde (ör. hesap değiştirildiğinde
+        // veya aynı kurumdaki öğretmen -> veli geçişinde) önceki hesaba ait önbelleğin
+        // sonraki hesaba sızmaması için React Query önbelleği YENİ KİMLİK
+        // YERLEŞMEDEN ÖNCE tamamen temizlenir (#302, v1.4-17 Rev 1).
+        if (
+          currentUserIdRef.current &&
+          currentUserIdRef.current !== nextIdentity.userId
+        ) {
+          queryClient.clear();
+        }
+        currentUserIdRef.current = nextIdentity.userId;
+
         setIdentity(nextIdentity);
         resolvedTokenRef.current = session.access_token;
       } finally {
@@ -121,10 +137,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       }
     },
-    []
+    [queryClient]
   );
-
-  const queryClient = useQueryClient();
 
   const clearIdentity = useCallback(() => {
     // Çıkış yapıldığında sayacı ilerletiyoruz; aksi halde uçuştaki sorgu
@@ -133,6 +147,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     identityRequestIdRef.current++;
     resolvedTokenRef.current = null;
     pendingTokenRef.current = null;
+    currentUserIdRef.current = null;
     setIdentity(null);
 
     // Oturum kapandığında veya kimlik sıfırlandığında paylaşılan dershane
@@ -273,6 +288,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 
   const signOut = useCallback(async () => {
+    let revokeError: Error | null = null;
+    try {
+      await revokeParkedSession();
+    } catch (err) {
+      revokeError =
+        err instanceof Error
+          ? err
+          : new Error("Park edilmiş oturum kapatılamadı.");
+    }
+
     if (!isDemoMode && supabaseConfigured) {
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -282,6 +307,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     clearLastActivity();
     clearIdentity();
+
+    if (revokeError) {
+      throw revokeError;
+    }
   }, [clearIdentity]);
 
   const idleTracking = resolveIdleTracking({
@@ -298,6 +327,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     tracking: idleTracking,
     onExpire: () => {
       void (async () => {
+        // Hareketsizlik sayacı ikisini birden kapatır (2026-08-25 kararı / v1.4-17):
+        // şifresiz geçiş, iki oturumun aynı anda saklanması demek; sayaç yalnız
+        // aktif olanı kapatırsa diğeri açık kalır. Park edilmiş oturum sunucu
+        // tarafında da iptal edilir.
+        try {
+          await revokeParkedSession();
+        } catch (err) {
+          console.error(
+            "[auth] Hareketsizlik zaman aşımında park edilmiş oturum sunucuda kapatılamadı:",
+            err
+          );
+        }
+
         // `signOut()` hata FIRLATMAZ, hatayı döndürür. Eski kod `.catch` ile
         // yakalamaya çalışıyordu; o zincir hiç çalışmıyordu ve sunucu isteği
         // başarısız olduğunda jeton depoda kalıyordu. Ekran giriş sayfasına

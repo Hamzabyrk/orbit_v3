@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, Redirect } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { OrbitMark } from "@/components/OrbitMark";
 import { useAuth } from "@/auth/useAuth";
 import {
@@ -25,6 +26,24 @@ import {
 
 export default function Platform() {
   const { identity, loading, signOut } = useAuth();
+
+  // ⚠️ `signOut` HATA FIRLATIR ve bu düğme onu yakalamıyordu: `void signOut()`
+  // reddi yutulmuş bir söze çeviriyor, kullanıcıya hiçbir şey söylenmiyordu.
+  // `Home.tsx` aynı kuralı baştan beri doğru uyguluyor (toast ile). Kural bir
+  // yerde uygulanıp diğerinde uygulanmamıştı; v1.4-17 park edilmiş oturumun
+  // iptalini de bu yola bağlayınca ikinci bir tetikleyici kazandı.
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      toast.error("Oturum kapatılamadı", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "Lütfen bağlantınızı kontrol edip tekrar deneyin.",
+      });
+    }
+  };
   const [tab, setTab] = useState<PlatformTab>("organizations");
   const queryClient = useQueryClient();
 
@@ -114,7 +133,7 @@ export default function Platform() {
           ) : null}
           <button
             type="button"
-            onClick={() => void signOut()}
+            onClick={() => void handleSignOut()}
             className="rounded-xl bg-white/10 px-3 py-2 text-[11px] font-bold transition hover:bg-white/20"
           >
             Çıkış
