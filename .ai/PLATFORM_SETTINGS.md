@@ -556,6 +556,10 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 >
 > ✅ **34 ölçüldü (2026-09-14, #300 merge sonrası) — düzeltilmiş tahmin tuttu.** Şema olguları: `0029` için **30** (üç yeni definer fonksiyon listeye girdi), `rls_enabled_no_policy` için **3** (`workspace_documents`, `internal_function_calls`, `account_link_codes`), artı 1 sızmış şifre. Tahminin ilk hâli (32) yanlıştı ve yanlışlığı **merge''den önce** görüldü, çünkü sayı tahmin edilmeyip türetilmişti.
 >
+> ✅ **34 ölçüldü (2026-09-14, #301 merge sonrası) — tahmin tuttu.** `internal_begin_account_switch` listede **çıkmadı**; üretimde ayrıca doğrulandı: `has_function_privilege('authenticated', …)` **false**. `internal_*` kalıbı (revoke + yalnız `service_role`) dördüncü kez ölçülmüş oldu.
+>
+> 📌 **v1.4-17 (üçüncü PR) için tahmin: 34 → 35.** `my_linked_accounts()` `security definer` **ve** `authenticated`''a açık olmak zorunda: menünün okuduğu satırlar (`organization_memberships`, `organizations`) çağıranın RLS''inde yok. Alternatifi `organization_memberships`''e politika eklemekti ve reddedildi — o politika üyeliğin tüm satırını açardı. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **üçüncü PR merge edildikten sonra** (**K-12**).
+>
 > 📌 **v1.4-17 (ikinci PR) için tahmin: değişmez (34).** Tek yeni fonksiyon `internal_begin_account_switch` ve `authenticated`''dan **revoke** edilip yalnız `service_role`''a veriliyor — `0029` yalnız `authenticated`''ın çağırabildiklerini sayıyor. Aynı gerekçe `internal_change_member_role` ve `internal_remove_member`''da ölçülerek doğrulanmıştı. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **ikinci PR merge edildikten sonra** (**K-12**).
 >
 > 📌 **v1.4-17 (ilk PR) için tahmin: 30 → 34.** Üç yeni `security definer` + `authenticated` fonksiyon (`current_user_shares_person`, `issue_account_link_code`, `link_accounts`) `0029`'u 27'den **30**'a çıkarır; `account_link_codes` RLS''i açık ve politikasız olduğu için `rls_enabled_no_policy` 2'den **3**'e çıkar (`internal_function_calls` ve `workspace_documents` ile aynı kalıp). Artı 1 sızmış şifre = **34**.
