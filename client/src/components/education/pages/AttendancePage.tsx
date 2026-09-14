@@ -39,6 +39,7 @@ import {
   getAttendanceTone,
   attendanceStateToDbStatus,
 } from "@/education/attendanceStatus";
+import { getOrbitToday } from "@/education/trDate";
 import type {
   AttendanceSessionDetail,
   AttendanceSheet,
@@ -97,8 +98,8 @@ export function AttendancePage({
 
   // Canlı mod durumları (v1.4-03)
   const [selectedClassId, setSelectedClassId] = useState<string>("");
-  const [selectedDate, setSelectedDate] = useState<string>(
-    () => new Date().toISOString().split("T")[0]
+  const [selectedDate, setSelectedDate] = useState<string>(() =>
+    getOrbitToday()
   );
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isOpeningSession, setIsOpeningSession] = useState<boolean>(false);

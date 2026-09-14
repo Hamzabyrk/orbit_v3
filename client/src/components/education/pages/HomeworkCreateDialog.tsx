@@ -167,9 +167,7 @@ export function HomeworkCreateDialog({
         title: trimmedTitle,
         description: description.trim(),
         assignedBy: homework?.assignedBy ?? (teacherName || "Öğretmen"),
-        assignedDate:
-          homework?.assignedDate ??
-          formatTrDate(new Date().toISOString().split("T")[0]),
+        assignedDate: homework?.assignedDate ?? formatTrDate(getOrbitToday()),
         dueDate: formatTrDate(dueDate),
         rawDueDate: dueDate,
         status: dueDate < getOrbitToday() ? "Süresi Doldu" : "Aktif",
