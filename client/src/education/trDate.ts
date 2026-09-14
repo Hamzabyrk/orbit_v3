@@ -20,6 +20,21 @@ export const TR_MONTHS = [
   "Aralık",
 ] as const;
 
+export const TR_MONTHS_SHORT = [
+  "Oca",
+  "Şub",
+  "Mar",
+  "Nis",
+  "May",
+  "Haz",
+  "Tem",
+  "Ağu",
+  "Eyl",
+  "Eki",
+  "Kas",
+  "Ara",
+] as const;
+
 /**
  * ISO tarih dizgesini (YYYY-MM-DD) Türkçe arayüz formatına çevirir (ör. "14 Ağustos 2026", "5 Eylül 2026").
  *
@@ -41,6 +56,27 @@ export function formatTrDate(dateStr?: string | null): string {
 
   const monthName = TR_MONTHS[monthIdx] || parts[1];
   return `${day} ${monthName} ${year}`;
+}
+
+/**
+ * ISO tarih dizgesini (YYYY-MM-DD) kısa gün ve ay formatına çevirir (ör. "24 Ağu", "7 Eyl").
+ *
+ * Rapor ekranı haftalık grafik eksenlerinde kullanılır (v1.4-16 / K-06).
+ */
+export function formatTrWeekLabel(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return dateStr;
+
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+
+  if (Number.isNaN(day) || Number.isNaN(monthIdx)) {
+    return dateStr;
+  }
+
+  const monthShort = TR_MONTHS_SHORT[monthIdx] || parts[1];
+  return `${day} ${monthShort}`;
 }
 
 /**

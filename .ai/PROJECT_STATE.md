@@ -98,7 +98,7 @@ client/src/
 ├── education/              # Eğitim alanının veri katmanı (v1.3-01) — bileşen değil
 │   ├── studentService.ts   # Öğrenci listesi; Student nesnesinin kurulduğu TEK yer (K-06)
 │   ├── classService.ts / scheduleService.ts / attendanceService.ts
-│   ├── examService.ts / paymentService.ts
+│   ├── examService.ts / paymentService.ts / reportService.ts
 │   ├── educationQueries.ts # React Query anahtarları ve hook'ları — [alan, kaynak, kapsam]
 │   ├── weekDays.ts         # Hafta yedi gün; ISO 1–7 ↔ etiket dönüşümünün tek kaynağı
 │   ├── trDate.ts           # Türkçe tarih biçimlendirici (sınav ve ödeme ortak kullanır)

@@ -59,6 +59,14 @@ import {
   type TaskListResult,
   type CalendarEventListResult,
 } from "./dayPlanService";
+import {
+  loadAttendanceWeeks,
+  loadExamAverages,
+  loadHomeworkWeeks,
+  type AttendanceWeek,
+  type ExamAverage,
+  type HomeworkWeek,
+} from "./reportService";
 
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
@@ -201,6 +209,12 @@ export const educationKeys = {
       },
     ] as const;
   },
+  reportAttendanceWeeks: (organizationId: string) =>
+    ["education", "reportAttendanceWeeks", { organizationId }] as const,
+  reportExamAverages: (organizationId: string) =>
+    ["education", "reportExamAverages", { organizationId }] as const,
+  reportHomeworkWeeks: (organizationId: string) =>
+    ["education", "reportHomeworkWeeks", { organizationId }] as const,
 };
 
 export type UseStudentsOptions = {
@@ -758,6 +772,83 @@ export function useCalendarEvents(options?: UseCalendarEventsOptions) {
         includeArchived: options?.includeArchived,
         limit,
       }),
+    enabled: isEnabled,
+  });
+}
+
+export type UseReportAttendanceWeeksOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Devam görünümü için son 4 takvim haftasının verilerini getiren React Query hook'u (v1.4-16 · #278).
+ */
+export function useReportAttendanceWeeks(
+  options?: UseReportAttendanceWeeksOptions
+) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<AttendanceWeek[] | null, Error>({
+    queryKey: organizationId
+      ? educationKeys.reportAttendanceWeeks(organizationId)
+      : ([
+          "education",
+          "reportAttendanceWeeks",
+          { organizationId: "" },
+        ] as const),
+    queryFn: () => loadAttendanceWeeks(),
+    enabled: isEnabled,
+  });
+}
+
+export type UseReportExamAveragesOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Deneme gelişimi için son 0-4 sınavın ortalamasını getiren React Query hook'u (v1.4-16 · #278).
+ */
+export function useReportExamAverages(options?: UseReportExamAveragesOptions) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<ExamAverage[] | null, Error>({
+    queryKey: organizationId
+      ? educationKeys.reportExamAverages(organizationId)
+      : (["education", "reportExamAverages", { organizationId: "" }] as const),
+    queryFn: () => loadExamAverages(),
+    enabled: isEnabled,
+  });
+}
+
+export type UseReportHomeworkWeeksOptions = {
+  organizationId?: string;
+  enabled?: boolean;
+};
+
+/**
+ * Ödev tamamlama için son 4 takvim haftasının teslim oranını getiren React Query hook'u (v1.4-16 · #278).
+ */
+export function useReportHomeworkWeeks(
+  options?: UseReportHomeworkWeeksOptions
+) {
+  const { identity } = useAuth();
+  const organizationId =
+    options?.organizationId ?? identity?.membership?.organizationId;
+  const isEnabled = (options?.enabled ?? true) && Boolean(organizationId);
+
+  return useQuery<HomeworkWeek[] | null, Error>({
+    queryKey: organizationId
+      ? educationKeys.reportHomeworkWeeks(organizationId)
+      : (["education", "reportHomeworkWeeks", { organizationId: "" }] as const),
+    queryFn: () => loadHomeworkWeeks(),
     enabled: isEnabled,
   });
 }

@@ -32,6 +32,9 @@ import {
   useLatestExam,
   usePaymentOverview,
   usePayments,
+  useReportAttendanceWeeks,
+  useReportExamAverages,
+  useReportHomeworkWeeks,
   useSchedule,
   useStudentGuardians,
   useStudents,
@@ -526,6 +529,15 @@ export function EducationPlatform({
   const paymentsQuery = usePayments({ enabled: !isDemoMode });
   const paymentOverviewQuery = usePaymentOverview({ enabled: !isDemoMode });
   const homeworkQuery = useHomework({ enabled: !isDemoMode });
+  const reportAttendanceQuery = useReportAttendanceWeeks({
+    enabled: !isDemoMode,
+  });
+  const reportExamQuery = useReportExamAverages({
+    enabled: !isDemoMode,
+  });
+  const reportHomeworkQuery = useReportHomeworkWeeks({
+    enabled: !isDemoMode,
+  });
 
   // Aktif kurumun Realtime kanalına tekil abonelik (v1.3-05).
   // Demo modunda devre dışıdır; canlı modda arka plandaki veri değişikliklerini dinler.
@@ -998,7 +1010,37 @@ export function EducationPlatform({
           setAutomations={setAutomations}
         />
       );
-    if (active === "Raporlar") return <ReportsPage role={role} />;
+    if (active === "Raporlar")
+      return (
+        <ReportsPage
+          role={role}
+          attendanceWeeks={reportAttendanceQuery.data}
+          examAverages={reportExamQuery.data}
+          homeworkWeeks={reportHomeworkQuery.data}
+          isLoading={
+            !isDemoMode &&
+            (reportAttendanceQuery.isLoading ||
+              reportExamQuery.isLoading ||
+              reportHomeworkQuery.isLoading)
+          }
+          error={
+            !isDemoMode
+              ? reportAttendanceQuery.error ||
+                reportExamQuery.error ||
+                reportHomeworkQuery.error
+              : null
+          }
+          onRetry={
+            !isDemoMode
+              ? () => {
+                  void reportAttendanceQuery.refetch();
+                  void reportExamQuery.refetch();
+                  void reportHomeworkQuery.refetch();
+                }
+              : undefined
+          }
+        />
+      );
     if (active === "Denetim Kaydı") return <AuditLogPage />;
     return <SettingsPage role={role} onResetDemoData={resetDemoData} />;
   };

@@ -1,7 +1,6 @@
 import {
   isDemoEnvironment,
   resolveDeploymentEnvironment,
-  type DeploymentEnvironment,
 } from "./deploymentEnvironment";
 
 const buildEnvironment =

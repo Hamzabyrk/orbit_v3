@@ -107,12 +107,6 @@ describe("educationData ortam dallanması", () => {
 
       expect(data.communicationsList).toEqual([]);
       expect(data.activeConversation).toBeNull();
-
-      expect(data.reportActions).toEqual([]);
-      expect(data.reportAttendanceValues).toEqual([0, 0, 0, 0]);
-      expect(data.reportExamValues).toEqual([0, 0, 0, 0]);
-      expect(data.reportHomeworkValues).toEqual([0, 0, 0, 0]);
-      expect(data.reportExamLabels).not.toContain("D-03");
     });
 
     it("kart alt satırları sayısız geçmiş zaman kullanmaz", async () => {
@@ -210,11 +204,6 @@ describe("educationData ortam dallanması", () => {
       expect(data.communicationsList.length).toBeGreaterThan(0);
       expect(data.activeConversation).not.toBeNull();
       expect(data.schedule.every(item => Boolean(item.day))).toBe(true);
-
-      expect(data.reportActions.length).toBeGreaterThan(0);
-      expect(data.reportAttendanceValues.some(v => v > 0)).toBe(true);
-      expect(data.reportExamValues.some(v => v > 0)).toBe(true);
-      expect(data.reportHomeworkValues.some(v => v > 0)).toBe(true);
     });
   });
 });

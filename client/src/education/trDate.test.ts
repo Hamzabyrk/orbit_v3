@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatTrDate, getOrbitToday, TR_MONTHS } from "./trDate";
+import {
+  formatTrDate,
+  formatTrWeekLabel,
+  getOrbitToday,
+  TR_MONTHS,
+} from "./trDate";
 
 describe("trDate (v1.3-01e & K-06)", () => {
   it("12 ayı eksiksiz ve doğru sırada içerir", () => {
@@ -48,5 +53,15 @@ describe("trDate (v1.3-01e & K-06)", () => {
     // Normal gündüz vakti: 2026-09-11 saat 10:00:00 UTC -> Istanbul saat 13:00:00 (2026-09-11)
     const middayDate = new Date("2026-09-11T10:00:00Z");
     expect(getOrbitToday(middayDate)).toBe("2026-09-11");
+  });
+
+  it("formatTrWeekLabel: hafta başlangıcını kısa Türkçe gün ve ay formatına dönüştürür (v1.4-16 / K-06)", () => {
+    expect(formatTrWeekLabel("2026-08-24")).toBe("24 Ağu");
+    expect(formatTrWeekLabel("2026-08-31")).toBe("31 Ağu");
+    expect(formatTrWeekLabel("2026-09-07")).toBe("7 Eyl");
+    expect(formatTrWeekLabel("2026-09-14")).toBe("14 Eyl");
+    expect(formatTrWeekLabel("")).toBe("");
+    expect(formatTrWeekLabel(null)).toBe("");
+    expect(formatTrWeekLabel("invalid")).toBe("invalid");
   });
 });
