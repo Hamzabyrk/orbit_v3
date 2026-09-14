@@ -901,4 +901,147 @@ describe("v1.3-07: Kimlik çözümü sürerken yapılan çıkış (#213)", () =>
     expect(seen.context?.identity).not.toBeNull();
     expect(seen.context?.identity?.membership?.role).toBe("teacher");
   });
+
+  it("K-23 R1-A: Aynı kurumdaki iki hesap arasında geçişte React Query önbelleği temizlenir (#302)", async () => {
+    const seen: { context: AuthContextValue | null } = { context: null };
+
+    function TestConsumer() {
+      seen.context = useContext(AuthContext);
+      return null;
+    }
+
+    // İlk kullanıcı: Öğretmen (user-race-1, org-1)
+    fromMock.mockImplementation((table: string) => {
+      if (table === "organization_memberships") {
+        return chainReturning(
+          ok({
+            id: "m-teacher",
+            organization_id: "org-1",
+            branch_id: null,
+            role: "teacher",
+          })
+        );
+      }
+      if (table === "organizations") {
+        return chainReturning(ok({ name: "Pilot Dershane", code: 1042 }));
+      }
+      if (table === "profiles") {
+        return chainReturning(
+          ok({
+            display_name: "Öğretmen Kullanıcı",
+            must_change_password: false,
+            password_expires_at: null,
+            recovery_email: null,
+          })
+        );
+      }
+      return chainReturning(empty);
+    });
+
+    const queryClient = new QueryClient();
+    const clearSpy = vi.spyOn(queryClient, "clear");
+
+    const rootDiv = mockDoc.createElement("div");
+    mockDoc.body.appendChild(rootDiv);
+    const root = ReactDOM.createRoot(rootDiv as unknown as HTMLElement);
+
+    await React.act(async () => {
+      root.render(
+        React.createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          React.createElement(
+            AuthProvider,
+            null,
+            React.createElement(TestConsumer)
+          )
+        )
+      );
+    });
+
+    // İlk kullanıcı oturum açtı
+    await React.act(async () => {
+      authChangeListener!("SIGNED_IN", testSession);
+      await new Promise(r => setTimeout(r, 20));
+    });
+
+    expect(seen.context?.identity?.userId).toBe("user-race-1");
+
+    // Önbelleğe aynı kuruma ait öğrenci verisi yerleştir (educationKeys.students("org-1"))
+    queryClient.setQueryData(
+      ["education", "students", { organizationId: "org-1" }],
+      [{ id: "student-1", name: "Ali Veli" }]
+    );
+    expect(
+      queryClient.getQueryData([
+        "education",
+        "students",
+        { organizationId: "org-1" },
+      ])
+    ).toBeDefined();
+
+    clearSpy.mockClear();
+
+    // İkinci kullanıcı: Veli (aynı kurum org-1, farklı user_id: user-parent-2)
+    const sessionUserParent: Session = {
+      access_token: "jwt-token-parent-2",
+      refresh_token: "refresh-parent-2",
+      expires_in: 3600,
+      token_type: "bearer",
+      user: {
+        id: "user-parent-2",
+        email: "veli@dershane.com",
+        user_metadata: { full_name: "Veli Kullanıcı" },
+      } as unknown as User,
+    };
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === "organization_memberships") {
+        return chainReturning(
+          ok({
+            id: "m-parent",
+            organization_id: "org-1",
+            branch_id: null,
+            role: "parent",
+          })
+        );
+      }
+      if (table === "organizations") {
+        return chainReturning(ok({ name: "Pilot Dershane", code: 1042 }));
+      }
+      if (table === "profiles") {
+        return chainReturning(
+          ok({
+            display_name: "Veli Kullanıcı",
+            must_change_password: false,
+            password_expires_at: null,
+            recovery_email: null,
+          })
+        );
+      }
+      return chainReturning(empty);
+    });
+
+    // Hesap geçişi gerçekleşiyor: yeni oturum olayı geliyor
+    await React.act(async () => {
+      authChangeListener!("SIGNED_IN", sessionUserParent);
+      await new Promise(r => setTimeout(r, 20));
+    });
+
+    // Kullanıcı değişti
+    expect(seen.context?.identity?.userId).toBe("user-parent-2");
+    expect(seen.context?.identity?.membership?.role).toBe("parent");
+
+    // 🔴 R1-A: Farklı kullanıcıya geçildiğinde queryClient.clear() ÇAĞRILMIŞ OLMALI
+    expect(clearSpy).toHaveBeenCalled();
+
+    // Ve önceki hesabın önbelleğe aldığı veri temizlenmiş olmalı
+    expect(
+      queryClient.getQueryData([
+        "education",
+        "students",
+        { organizationId: "org-1" },
+      ])
+    ).toBeUndefined();
+  });
 });

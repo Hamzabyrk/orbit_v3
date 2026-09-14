@@ -3,6 +3,7 @@ import { OrbitMark } from "@/components/OrbitMark";
 import { Bell, LogOut, Menu, PanelLeft, ShieldCheck, X } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
+import { AccountSwitchMenu } from "@/components/auth/AccountSwitchMenu";
 import { clearDemoData, readDemoData, writeDemoData } from "@/lib/demoStorage";
 import { isDemoMode } from "@/auth/runtime";
 import { availableEducationSections } from "@/components/educationAccess";
@@ -1234,6 +1235,7 @@ export function EducationPlatform({
                 <Bell className="h-4 w-4" />
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500" />
               </button>
+              <AccountSwitchMenu />
               {canSwitchRole ? (
                 <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 sm:flex">
                   {(Object.keys(roleMeta) as Role[]).map(itemRole => (

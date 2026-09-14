@@ -558,6 +558,10 @@ Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09
 >
 > ✅ **34 ölçüldü (2026-09-14, #301 merge sonrası) — tahmin tuttu.** `internal_begin_account_switch` listede **çıkmadı**; üretimde ayrıca doğrulandı: `has_function_privilege('authenticated', …)` **false**. `internal_*` kalıbı (revoke + yalnız `service_role`) dördüncü kez ölçülmüş oldu.
 >
+> ✅ **35 ölçüldü (2026-09-14, #302 merge sonrası) — tahmin tuttu.** `0029` için **31**, `rls_enabled_no_policy` için 3, artı 1 sızmış şifre. `my_linked_accounts` listede ve olması gerekiyor: menünün okuduğu satırlar çağıranın RLS''inde yok. Üretimde ayrıca doğrulandı — `authenticated` çalıştırabiliyor, **`anon` çalıştıramıyor**.
+>
+> 📌 **v1.4-17'nin istemci PR''ı için tahmin: değişmez (35).** Dilimin bu yarısında **migration yok**; çıktı yalnız istemci kodu ve vitest. Test advisor üretmez.
+>
 > 📌 **v1.4-17 (üçüncü PR) için tahmin: 34 → 35.** `my_linked_accounts()` `security definer` **ve** `authenticated`''a açık olmak zorunda: menünün okuduğu satırlar (`organization_memberships`, `organizations`) çağıranın RLS''inde yok. Alternatifi `organization_memberships`''e politika eklemekti ve reddedildi — o politika üyeliğin tüm satırını açardı. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **üçüncü PR merge edildikten sonra** (**K-12**).
 >
 > 📌 **v1.4-17 (ikinci PR) için tahmin: değişmez (34).** Tek yeni fonksiyon `internal_begin_account_switch` ve `authenticated`''dan **revoke** edilip yalnız `service_role`''a veriliyor — `0029` yalnız `authenticated`''ın çağırabildiklerini sayıyor. Aynı gerekçe `internal_change_member_role` ve `internal_remove_member`''da ölçülerek doğrulanmıştı. **Tahmindir, ölçüm değil** (**K-03**). Sahibi: denetleyen. Kontrol noktası: **ikinci PR merge edildikten sonra** (**K-12**).

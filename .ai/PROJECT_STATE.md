@@ -81,7 +81,7 @@ client/src/
 │   ├── credentials/        # Giriş fişi: bir kez göster, yazdır. Operatör ve kurum
 │   │                       #   yöneticisi aynı bileşeni kullanır; ikinci kopya yok
 │   ├── auth/               # AuthShell + SetPasswordScreen, ForgotPasswordScreen,
-│   │                       #   ForcePasswordChangeScreen (ilk giriş kilidi)
+│   │                       #   ForcePasswordChangeScreen (ilk giriş kilidi), AccountSwitchMenu
 │   ├── educationAccess.ts  # Rol bazlı yetki matrisi (RBAC)
 │   ├── educationAccess.test.ts # Vitest yetki testleri
 │   ├── OrbitMark.tsx       # Logo / Marka bileşeni
@@ -90,6 +90,7 @@ client/src/
 │   ├── AuthProvider.tsx    # Oturum, şifre kurtarma ayrıştırması, demo kimliği
 │   ├── AuthContext.ts / useAuth.ts  # Context tanımı ve tüketici hook'u
 │   ├── authService.ts      # loadMembershipIdentity / loadPlatformOperatorIdentity
+│   ├── accountLinkService.ts # Kişi kaydı, bağlama kodu üretme/bağlama, kardeş hesaplar, geçiş
 │   ├── types.ts            # AuthIdentity — üyelik ve platform operatörlüğü iki bağımsız eksen
 │   ├── loginIdentifier.ts  # Giriş numarası ↔ sentetik adres; giriş ekranına bağlı (E3)
 │   ├── passwordPolicy.ts   # Şifre kuralları, Türkçe harflerle uyumlu
