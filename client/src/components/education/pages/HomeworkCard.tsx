@@ -14,6 +14,21 @@ export type HomeworkCardProps = {
   onArchive?: (item: Homework) => void | Promise<void>;
   onManageSubmissions?: (item: Homework) => void;
   isArchiving?: boolean;
+  /**
+   * Sınıf geneli teslim oranı **yalnız** bütün teslimleri görebilen role
+   * çizilir (yönetici ve sınıfın öğretmeni).
+   *
+   * ⚠️ Gerekçesi ölçüldü (yerel uçtan uca prova, 2026-09-14). RLS asimetrik:
+   * öğrenci `class_enrollments`'ta **tüm sınıfı**, `homework_submissions`'ta
+   * **yalnız kendi satırını** görüyor. Sayı istemcide bu iki kümeden
+   * türetildiği için öğrenciye **"0 / 2 teslim"** yazıyordu — yani "sınıfta
+   * kimse getirmedi". Öğrencinin bilemeyeceği ve büyük ihtimalle yanlış bir
+   * cümle (**K-22**).
+   *
+   * v1.3-01/D'deki `exam_participant_count` hatasının aynısı: **okuyanın kaç
+   * satır gördüğünü, gerçekte kaç tane olduğu diye göstermek.**
+   */
+  canSeeClassRatio?: boolean;
 };
 
 export function HomeworkCard({
@@ -22,6 +37,7 @@ export function HomeworkCard({
   onArchive,
   onManageSubmissions,
   isArchiving = false,
+  canSeeClassRatio = false,
 }: HomeworkCardProps) {
   return (
     <article className="flex min-h-[220px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,.025)]">
@@ -59,7 +75,8 @@ export function HomeworkCard({
             <p className="mt-1 text-[10px] font-bold text-slate-700">
               Son teslim: {homework.dueDate}
             </p>
-            {homework.submissionsRecordedAt &&
+            {canSeeClassRatio &&
+            homework.submissionsRecordedAt &&
             homework.submissionCount !== undefined ? (
               <p className="mt-0.5 text-[10px] font-semibold text-emerald-600">
                 {homework.submissionCount}
