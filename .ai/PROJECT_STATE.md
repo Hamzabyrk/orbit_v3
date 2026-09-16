@@ -31,7 +31,7 @@
 - **Ekip:** 2 Kişi (Arda & Hamza) — Uçtan uca Full-Stack / Vibe Coding.
 - **Kullanılan YZ Araçları:** Claude Code, Codex, Antigravity.
 - **Hedef Takvim:** Birkaç gün içinde Vercel üzerinde yayına çıkacak MVP.
-- **Bütçe:** 0₺ (Tamamen ücretsiz katmanlar).
+- **Bütçe:** 0₺ (Tamamen ücretsiz katmanlar). ⚠️ **Bu kısıt v1.5'te karara açıldı (2026-09-16):** `ROADMAP` §4.12'nin tetikleyici tablosu _"Supabase Pro → ilk gerçek kurum verisi girmeden önce"_ diyor ve ölçüldü — organizasyon planı bugün `free`, yani **otomatik yedek de PITR de yok.** İkisi birlikte doğru olamaz; karar `v1.5-08`'e bağlandı. Pilot, gerçek çocuk verisini geri dönüşü olmayan bir veritabanına koymak demektir.
 - **Çalışma Prensibi:** Tek doğruluk kaynağı (`.ai/`), atomik commit'ler, branch bazlı PR ve karşılıklı onay süreci. Kurallar: `CONTRIBUTING.md` ve `AGENTS.md`.
 - **Karar Alma İlkesi (Graph-First):** Herhangi bir kod yazılmadan önce problem 6 Boyutlu Graf Haritası (Teknik Tipler/State/DB, Ticari Bütçe, Hata/Fallback, KVKK/Gizlilik, Pik Yük/Darboğaz, Güvenlik) olarak analiz edilir; risk varsa proaktif itiraz (pushback) yapılır.
 
@@ -48,14 +48,16 @@
 
 ## 4. Teknoloji Yığını (Stack)
 
-- **Frontend:** Vite 7.1 + React 19.2 + TypeScript 5.9
+> **Sonradan düzeltme (2026-09-16):** Bu listenin sürüm numaraları dört yerde eskimişti (Vite 7.1, TypeScript 5.9, Vitest 2.1, ESLint 9) ve aşağıdakiler **yüklü paketlerden okunarak** düzeltildi. Sebep yapısaldı ve kayda geçiyor: `AGENTS.md`'nin "Belgeyi güncel tutmak" listesinde **bağımlılık/yığın değişikliği için bir satır yok** — yani bu bölümü güncelleyecek bir tetikleyici hiç tanımlanmamıştı. Dependabot sürümleri yükseltiyor, burayı kimse güncellemiyor (**K-06** + **K-21**).
+
+- **Frontend:** Vite 7.3 + React 19.2 + TypeScript 6.0
 - **Yönlendirme:** `wouter` (pnpm patch: `patches/wouter@3.7.1.patch`)
 - **UI & Stil:** Radix UI + Tailwind CSS v4 + shadcn/ui (`components.json`) + Lucide Icons + Sonner Toast
 - **Form / Doğrulama:** `react-hook-form` + `zod`
 - **Sunucu State:** `@tanstack/react-query` v5
 - **Veri Saklama:** React State + Yerel Kalıcılık (Local Persistence) & bağlı Supabase projesi (Faz 1'de deny-by-default RLS; gerçek veri kullanımı Faz 3'te)
-- **Test:** Vitest 2.1 (RBAC yetki testleri)
-- **Kod Kalitesi:** ESLint 9 (flat config) + typescript-eslint + eslint-plugin-react-hooks + eslint-plugin-react-refresh
+- **Test:** Vitest 5.0 — 63 dosya, **966 test** (2026-09-16'da koşuldu) + pgTAP 51 dosya, 879 iddia
+- **Kod Kalitesi:** ESLint 10 (flat config) + typescript-eslint + eslint-plugin-react-hooks **v7** (üç yeni kural `error` seviyesinde etkin, 2026-09-09'da açıldı) + eslint-plugin-react-refresh
 - **CI/CD & Dağıtım:** GitHub Actions + Vercel (`https://orbit-v3-topaz.vercel.app`)
 - **Paket Yöneticisi:** pnpm (v10.4.1)
 
@@ -95,14 +97,25 @@ client/src/
 │   ├── loginIdentifier.ts  # Giriş numarası ↔ sentetik adres; giriş ekranına bağlı (E3)
 │   ├── passwordPolicy.ts   # Şifre kuralları, Türkçe harflerle uyumlu
 │   ├── idleTimeout.ts / useIdleTimeout.ts  # 30 dk hareketsizlik sayacı
+│   ├── sessionEvents.ts    # Supabase auth olaylarının ayrıştırılması
+│   ├── profileContactService.ts  # İletişim bilgisi ve kurtarma kanalı (E4)
+│   ├── deploymentEnvironment.ts  # ⚠️ Üretim/demo ayrımının TEK kaynağı — `vite.config.ts` de
+│   │                             #   bunu import eder; karar iki yerde yazılmasın diye (K-06)
 │   └── runtime.ts          # isDemoMode — preview derlemeleri demo modundadır
+
+> **Sonradan düzeltme (2026-09-16):** Bu ağaçta **dokuz modül eksikti** — `education/` altında altı (`homeworkService`, `guardianService`, `subjectService`, `classTeacherService`, `feedService`, `dayPlanService`) ve `auth/` altında üç (`sessionEvents`, `profileContactService`, `deploymentEnvironment`). Altısı v1.4'ün kendi dilimleriyle geldi ve `AGENTS.md` bu bölümü **her PR'ın yükümlülüğü** yapmasına rağmen hiçbiri işlenmedi (**K-08**). En kritik eksik `deploymentEnvironment.ts`'ti: sahte verinin kullanıcıya gitmemesini sağlayan kararın tek kaynağı, ve sıfırdan bir oturuma başlayan ajanın "dosyalar nerede" diye baktığı haritada adı geçmiyordu.
 ├── education/              # Eğitim alanının veri katmanı (v1.3-01) — bileşen değil
 │   ├── studentService.ts   # Öğrenci listesi; Student nesnesinin kurulduğu TEK yer (K-06)
 │   ├── classService.ts / scheduleService.ts / attendanceService.ts
 │   ├── examService.ts / paymentService.ts / reportService.ts
+│   ├── homeworkService.ts / homeworkSubmission (v1.4-05, v1.4-15)
+│   ├── guardianService.ts  # Veli kaydı ve öğrenci–veli bağı (v1.4-10)
+│   ├── subjectService.ts / classTeacherService.ts  # Ders ve öğretmen ataması (v1.4-11)
+│   ├── feedService.ts      # Günlük akış (v1.4-12)
+│   ├── dayPlanService.ts   # Gün planı: görev ve takvim (v1.4-13)
 │   ├── educationQueries.ts # React Query anahtarları ve hook'ları — [alan, kaynak, kapsam]
 │   ├── weekDays.ts         # Hafta yedi gün; ISO 1–7 ↔ etiket dönüşümünün tek kaynağı
-│   ├── trDate.ts           # Türkçe tarih biçimlendirici (sınav ve ödeme ortak kullanır)
+│   ├── trDate.ts           # Türkçe tarih biçimlendirici + getOrbitToday (takvim gününün tek kaynağı)
 │   └── attendanceStatus.ts # Yoklama durumu eşlemesi
 ├── audit/                  # Kurum denetim kaydı
 │   ├── auditService.ts     # İmleçli sayfalama; sıra sütunu `id`, `created_at` DEĞİL

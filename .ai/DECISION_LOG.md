@@ -8,38 +8,40 @@
 
 ## İçindekiler
 
-Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kronolojik sırada.
+> **İndeks 2026-09-16'da gövdeden yeniden üretildi.** Ölçüldü: gövdede **117** karar vardı, indekste **68** satır — yani **49 karar bu listede hiç görünmüyordu** ve indeks 2026-09-11 civarında donmuştu. `AGENTS.md` bunu adıyla uyarıyor (_"indekse satır eklemeyi unutma"_) ve bu dosyanın kendi başlığı da giriş noktası olarak indeksi gösteriyor — yani eksik indeks, kaydın **%42'sini görünmez** kılmıştı (**K-08**). Bundan sonra eklenen her karar buraya da yazılır.
 
-**Kimlik, giriş ve hesap modeli**
-
+- Repo görünürlüğü — Private
+- MoneyFlow kalıntılarının temizlenmesi ve ORBIT Eğitim Çekirdeğinin kurulması
+- MVP Faz 1 Kapsamı — Saha Doğrulaması & Müşteri Görüşmesi Odaklı Mimari
+- EducationPlatform Bileşen Bölünmesi, Mock Veri İzolasyonu ve ESLint Kalite Kapısı
+- Sistemik Graph-First Düşünme, Blast Radius ve 6 Boyutlu Risk Protokolü
+- ORBİT Vercel Ekibi + Mevcut Supabase Projesiyle Güvenli Platform Bağlantısı
+- v1.1 Membership Tabanlı Auth, Tenant RLS ve Ortam Ayrımı
+- Hafıza kayıtları ileriye doğru düzeltilir, geri alınmaz
+- İlk production tenant'ı bir defalık istisnadır; panel hazır olunca silinip mekanizma üzerinden yeniden kurulacaktır
+- Platform operatörü ayrı bir eksendir; panel `/platform` altında yaşar ve kurum içeriğine erişmez
+- Stabilizasyon sırası — hafıza, güvenlik, şifre akışı, panel
+- Supabase auto-deploy açık kalır; branch protection açığı tetikleyiciyle kayda geçer
+- Repo görünürlüğü Public'e alındı (2026-08-17 kararını değiştirir)
+- Stabilizasyon fazında tek kişilik merge'e sınırlı izin
 - Kimlik ve Giriş Bilgisi Mimarisi
 - Hesaplar davet e-postasıyla değil, doğrudan geçici şifreyle açılır
+- Platform operatörü girişte panele düşer, dershane paneline değil
+- Öğrenci ve veli ekranları mobil-öncelikli tasarlanır
+- Taşınabilirlik sınırı — yetkilendirme veritabanında, veri erişimi servis katmanında
 - Bir giriş hesabı tek kuruma aittir
 - Sentetik adresten gerçek adrese geçiş
 - Auth e-postası hiç değişmez; kurtarma linkini biz üretir, biz göndeririz
 - Şifre değiştirme ile sıfırlama ayrı akışlardır; kurtarma kanalı isteğe bağlıdır ama görünürdür
-- Rol, atama ve bağlantı üç ayrı kavramdır
-- `service_role` taşıyan sınır SQL'de durur, TypeScript'te değil
-- Kilit bayrağı üç durumludur — "okunamadı" ile "değiştirmelisin" aynı ekran değildir
-
-**Platform operatörlüğü ve destek**
-
-- Platform operatörü ayrı bir eksendir; panel `/platform` altında yaşar ve kurum içeriğine erişmez
-- Platform operatörü girişte panele düşer, dershane paneline değil
 - Operatör desteği üç katmanlıdır — teşhis, izinli oturum, acil erişim
-- İlk production tenant'ı bir defalık istisnadır; panel hazır olunca silinip mekanizma üzerinden yeniden kurulacaktır
-
-**Mimari ve kod düzeni**
-
-- MoneyFlow kalıntılarının temizlenmesi ve ORBIT Eğitim Çekirdeğinin kurulması
-- EducationPlatform Bileşen Bölünmesi, Mock Veri İzolasyonu ve ESLint Kalite Kapısı
-- Taşınabilirlik sınırı — yetkilendirme veritabanında, veri erişimi servis katmanında
+- Rol, atama ve bağlantı üç ayrı kavramdır
+- Belge sayısı değil bakım borcu — tek giriş noktası kuruldu, iki dosya emekliye ayrıldı
+- Kilit bayrağı üç durumludur — "okunamadı" ile "değiştirmelisin" aynı ekran değildir
+- `service_role` taşıyan sınır SQL'de durur, TypeScript'te değil
 - Silme koruması korunacakları değil, korunmayacakları sayar
 - Kimlik jeton değişince tazelenir, kullanıcı değişince değil
 - Demo modu derleme zamanı sabitidir
-- Öğrenci ve veli ekranları mobil-öncelikli tasarlanır
 - ORBIT tüm rollere "siz" diye hitap eder
-- Sistemik Graph-First Düşünme, Blast Radius ve 6 Boyutlu Risk Protokolü
 - İş verisi RLS ile yazılır, kimlik işlemleri Edge Function'da kalır
 - Zorunlu şifre değişimi kilidi iş tablolarında baştan sunucuda durur
 - İş tabloları asgari kişisel veriyle açılır
@@ -59,26 +61,14 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Yetki RLS'te, bütünlük şemada durur
 - Kendi verisine erişim arşivlenmez; devredilen erişim arşivlenir
 - Ders, sınıfa bağlanmaz — çünkü sınıfın ders listesi diye bir model yok
+- Cache anahtarı kurumu taşır; sayfalama imleçlidir; sessiz kesme yoktur
+- Servis ve sorgu hook'ları alan klasöründe, bileşenler `components/` altında
+- Veli adı ve ders veren öğretmenin adı kurum içinde görülebilir bilgidir
+- Devam yüzdesinde izinli ders hiç sayılmaz; geç kalma devamdır
 - Katılımcı sayısı sınavın sayısıdır, okuyanın gördüğü satırların değil
 - Ödeme durumu iki değerlidir; planı olmayan "Güncel" değildir
 - Denetim kaydının imleci saat değil sıra numarasıdır
 - Realtime tetikleyiciyle yayınlanır; kanalın adı kapsamdır
-
-**Kapsam ve sürüm**
-
-- MVP Faz 1 Kapsamı — Saha Doğrulaması & Müşteri Görüşmesi Odaklı Mimari
-- v1.1 Membership Tabanlı Auth, Tenant RLS ve Ortam Ayrımı
-- Stabilizasyon sırası — hafıza, güvenlik, şifre akışı, panel
-
-**Altyapı, repo ve süreç**
-
-- Repo görünürlüğü — Private
-- Repo görünürlüğü Public'e alındı (2026-08-17 kararını değiştirir)
-- ORBİT Vercel Ekibi + Mevcut Supabase Projesiyle Güvenli Platform Bağlantısı
-- Supabase auto-deploy açık kalır; branch protection açığı tetikleyiciyle kayda geçer
-- Stabilizasyon fazında tek kişilik merge'e sınırlı izin
-- Hafıza kayıtları ileriye doğru düzeltilir, geri alınmaz
-- Belge sayısı değil bakım borcu — tek giriş noktası kuruldu, iki dosya emekliye ayrıldı
 - Akademik kayıt ile giriş hesabı ayrı bir adımda bağlanır
 - Kaynağı olmayan alan tek turda değil, sahibi olan dilimde karara bağlanır
 - Preview'da doğrulanamayan yüzeyler açık kalır; tetikleyici v1.4 kapanışıdır
@@ -92,6 +82,54 @@ Aradığın kararı buradan bul, başlığı kopyala, dosyada ara. Kayıtlar kro
 - Denetim defterini tek bir fonksiyon yazar
 - Yoklama tek nefeste kaydedilir
 - Denetim kapsamı hacme göre kesilir — yoklamada ilk giriş iz bırakmaz
+- Puanın tavanı vardır, tabanı yoktur
+- Sınav denetimi tam tutulur — yoklamanın kesmesi buraya taşınmaz
+- Kuralı olmayan kart, kural yazılarak değil kaldırılarak kapandı
+- Ödev teslim takibi kendi dilimidir; ama takip edilmeyen şey bugün iddia edilmez
+- Ödevin metni de denetlenir — izlenmeyen alan iz bırakmaz
+- Velinin telefonu kaydın kendisinde durur, giriş hesabında değil
+- Öğrenci kendi velilerini görür
+- Bağ koparmak erişimi bitirir; bağ satırının görünmesi ayrı bir şeydir
+- Yanlış girilmiş taksit arşivlenir — kalıptan bilinçli ayrılış
+- Rapor ekranı kendi dilimidir; #239 ödeme takibini engellemiyor
+- Kurumdan çıkarma role göre iki farklı iş yapar
+- Üyelik yazma yolu RLS değil Edge Function'dır — ve bu ölçülerek doğrulandı
+- Erişilemez bir koruma, koruma değildir — K-23 kendi kodumuzda ateşlendi
+- Kurum birden fazla yönetici taşıyabilir; "devir" ayrı bir işlem değildir
+- Son yönetici koruması bir SAYIMDIR, bir yasak değil (`ORB06`)
+- Gereksiz ama görünür bir koşul, görünmez bir sıra bağımlılığından iyidir
+- Ara denetim bir dilim değil, kapanmış dilimlerin yeniden ölçülmesidir
+- Elle üç kez yapılan kontrol kapıya taşınır — çağıranı olmayan servis kalamaz
+- Arşivlemenin geri alınması, arşiv ekranı değil işlemin kendisidir
+- PostgREST hata gövdesinde alanın adı `details` — ve bunu yalnız ölçüm söyler
+- Hatayı servis çevirir, ekran yalnız taşır
+- Depoda barrel dosyası yok
+- Bir kuralın değeri neyi saydığında değil, neyi saymadığındadır
+- Ders yönetimi ayrı bir dilim değil, atamanın önkoşulu
+- Derslik çakışması engellenmiyor — serbest metin katı kural taşımaz
+- Öğretmen ataması değişmez; kaldırılır ve yeniden açılır
+- Yazarın adı bir RPC'den gelir — çünkü RLS onu kimseye vermiyor
+- Kişisel kayıt iz bırakmaz ve yayılmaz — deseni uygulamamak da bir karardır
+- K-23'ün istediği şey testin kırmızıya dönmesi kadar ne söylediğidir
+- İş kuralı şemada, biçim doğrulaması sınırda, servis yalnız çevirir
+- `details` hata sınıfına göre farklı şey demek — ve asla ham basılmaz
+- Bir satırın yokluğu tek anlama gelmeli — "bitirdim" bir sinyaldir
+- Payda ile pay aynı kümeden gelir; gelmiyorsa oran yayımlanmaz
+- Sıfır bir ölçümdür, yokluk değildir — ve ikisini kaynak ayırır
+- Rapor kartlarının kapsamı okuyanın kendisidir; kurum ortalaması öğretmene açılmaz
+- Sınav eğilimi yüzdedir ve sınav türü iddia edilmez
+- Hesapları kişinin kendisi bağlar — iki taraflı kanıtla
+- Kişi kaydı kurum-üstüdür
+- Pilot onayı beklenirken altyapı yürür; pilotun kapsamı onay gününe kadar yazılmaz
+- Pilot bir PWA olarak koşulur; native app'in bedeli pilotun kazancından büyük
+- Supabase'de kalınır; Hetzner'e geçişin tetikleyicisi bildirim işidir
+- Hesap bağını kişinin kendisi koparır
+- Online tahsilat doğrudan pazaryeri olarak kurulur; kurum-başına-hesap aşaması atlanır
+- Otomasyon sekmesi gizlenmez, kaldırılır
+- Şirketleşme pilot sonrasına bırakılır — ve üç işi birden erteler
+- Derslik bir varlıktır; çakışma serbest metinle değil kimlikle engellenir
+- Deneme sınavı ders bazında kırılım taşır — tek net puan dershanenin sorusunu cevaplamıyor
+- Optik okumaya girilmez — kurum okur, biz sonucu alırız
 
 ---
 
@@ -2787,7 +2825,9 @@ Engellenen şey bugün birine erişim veren atama ve bu hafta okutulan program s
 
 ### Karar: Derslik çakışması engellenmiyor — serbest metin katı kural taşımaz
 
-**Durum:** Alındı
+> **Sonradan düzeltme (2026-09-16): bu karar tersine çevrildi.** Derslik çakışmasının engellenmesi, _"bir kurumun yönetimi için temel gereklilikler"_ listesine girdi ve `v1.5-15` olarak açıldı. Aşağıdaki gerekçeler **yanlış çıkmadı** — üçüncüsü (`rooms` tablosu + seçim listesi) yeni dilimin **tarifi** oldu, ikincisi ("Online", "Bahçe" gibi paylaşılan değerler) ise onun bir gereksinimine dönüştü. Değişen tek şey, o dilimin artık yapılmaya değer bulunması. Yeni karar: "Derslik bir varlıktır; çakışma serbest metinle değil kimlikle engellenir".
+
+**Durum:** Alındı → **2026-09-16'da değiştirildi (`v1.5-15`)**
 **Tarih:** 2026-09-13
 **Kararı Onaylayan(lar):** Arda Bülent
 
@@ -3161,3 +3201,268 @@ Eksiklik değil, tasarım.
 **Tablonun alanı yoktur ve olmamalıdır.** Ad `profiles`'ta, rol
 `organization_memberships`'ta durur (**K-06**). `people` yalnız bir gruplama
 anahtarıdır.
+
+---
+
+### Karar: Pilot onayı beklenirken altyapı yürür; pilotun kapsamı onay gününe kadar yazılmaz
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** v1.5 planlanırken pilot bir tarih gibi ele alınıyordu ve bütün iş ona göre sıralanıyordu. Ama pilot onayı bizim elimizde değil.
+
+**Karar:** v1.5 **iki kola** ayrılır.
+
+- **Altyapı kolu** (`v1.5-06 … v1.5-14`) pilot onayından **bağımsız** yürür. Amacı genel altyapının tamamlanması.
+- **Pilot kolu** (`v1.5-01 … v1.5-05`) onaya bağlıdır. Onay geldiğinde kurum ihtiyaçlarına odaklı 1-2 haftalık bir tur koşulur, sonra denemeye geçilir.
+
+**Pilot kolunun kapsamı bugün YAZILMAZ.** Hangi roller açılacak, kaç sınıf ve öğrenci girilecek, hangi ekranlar gerekiyor — hepsi kurumla konuşulunca belli olacak. Bugün yazılacak bir kapsam **tahmin** olurdu ve bu depo tahminlerin kod olarak biriktiğini bir kez ölçtü: v1.3'te 22 PR'lık ekran yazıldı ve hiçbiri gerçek kullanımda görülmedi (`ROADMAP` §4.12).
+
+**Gerekçe.** Beklemek boşa gün, ama tahmin etmek boşa kod. İkisinden de kaçınmanın yolu, onaya bağlı olanı **bilinçli olarak boş bırakmak** (**K-10**).
+
+**Bugünkü ekip durumu bu kararın parçasıdır:** Hamza rakip analizi topluyor ve arayüz sekme/bağlantı listesi o analiz bitince çıkacak. Liste gelmeden arayüz dilimi yazılamaz; bu yüzden iki kol gerçekten paralel.
+
+⚠️ **Liste geldiğinde kodlamadan ÖNCE veri modeline karşı okunur** — hangi sekme hangi tabloya bakıyor, olmayan bir tablo var mı. Aksi halde arayüz işi bizim tarafta yapılmış işi revize ettirir.
+
+---
+
+### Karar: Pilot bir PWA olarak koşulur; native app'in bedeli pilotun kazancından büyük
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** "Web çok profesyonel değil, app yapsak daha iyi olur" değerlendirmesi yapıldı. Hissin kendisi gerçek; sebebi araştırıldı.
+
+**Ölçülenler — hissi yaratan üç şey ve maliyetleri:**
+
+| Sebep                             | Çözümü                                     | Maliyeti             |
+| --------------------------------- | ------------------------------------------ | -------------------- |
+| `orbit-v3-topaz.vercel.app`       | Alan adı (zaten alınıyor)                  | `v1.5-13`            |
+| Adres çubuğunun görünmesi         | PWA "Ana Ekrana Ekle" — kendi ikonu ve adı | Bir manifest dosyası |
+| İlk açılışın yavaşlığı (1.166 kB) | Kod bölme                                  | `v1.5-11`            |
+
+**Karar:** Pilot **PWA** olarak koşulur. Native app pilot kapsamı dışındadır.
+
+**Gerekçe — native'in ölçülmüş bedeli** (analiz `ROADMAP` §4.7'de, 2026-09-05):
+
+- **App Store 4.2.6:** şablondan üretilen uygulamalar, içeriğin sahibi göndermedikçe reddediliyor. ORBIT elli dershane için elli uygulamayı kendi hesabından yükleyemez.
+- **App Store 4.2 "asgari işlevsellik":** yalnız siteyi saran uygulama **push bildirimi olmadan reddediliyor.** Yani app kararı, aynı turda uygulama içine indirilen bildirim altyapısını **geri zorunlu kılıyor** — ve arka plan işçisi bugün yok.
+- **Apple Developer hesabı** tüzel kişilik doğrulaması istiyor; şirketleşme pilot sonrasına bırakıldı.
+- **Her güncelleme mağaza incelemesi** — `v1.5-14`'ün (kademeli açılış) tam tersi yönde çalışır ve eski sürümde kalan kullanıcı üretir.
+
+**Ve bir şey native'de YAPILAMIYOR:** ana ekrandaki isim ve ikon manifest'ten, **kurulum anında** okunuyor. Kurum başına alt alan adı kendi manifest'ini sunarsa veli telefonuna "Orbit"i değil **kendi dershanesini** kurar. Native'de uygulama adı derleme anında sabitlenir.
+
+**Tetikleyici:** pilot kurum "mağazada olsun" derse o gerçek kanıttır ve app, şirketleşme sonrası push ile birlikte yapılır.
+
+---
+
+### Karar: Supabase'de kalınır; Hetzner'e geçişin tetikleyicisi bildirim işidir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Karar:** Bugün taşınma **yapılmaz**. Hetzner, **n8n/bildirim aşamasında** gündeme gelir. Ekstra maliyet üretilmez.
+
+**Gerekçe.** `PLATFORM_SETTINGS` §3.7'deki A/B/C/D ayrımı ölçülmüştü: **B** (Hetzner frontend + Supabase Cloud) ve **C** (her şey Docker'da self-hosted) **sıfır kod değişikliği** istiyor, **D** (Supabase'siz) bir backend yazma projesi. Yani beklemek bizi bir yere mahkûm etmiyor — **C her zaman açık kalıyor** ve maliyeti zamanla artmıyor.
+
+**Tetikleyici bildirimdir, barındırma değil.** Aynı bölümün cümlesi: _"Backend'i doğuracak olan barındırma değil, kimse ekranın başında değilken çalışması gereken iş."_ Bugün arka plan işçisi **yok**; bildirim onu doğuruyor. Dolayısıyla `v1.6-00` ile Hetzner aynı turun parçası olur.
+
+⚠️ **n8n bir kısayol değil, aynı tetikleyicinin parçası.** n8n bir kanal değil orkestratör: WhatsApp düğümü de aynı Cloud API'ye bağlanır. Ve n8n'in **bir yerde çalışması** gerekir — yani "n8n ile çözelim" demek "bir sunucu ayağa kaldıralım" demektir.
+
+🔴 **Taşınma veri yerleşimini ÇÖZMÜYOR.** Hetzner'in veri merkezleri Almanya, Finlandiya, ABD ve Singapur'dadır; **Türkiye yoktur.** Frankfurt'tan Falkenstein'a geçmek KVKK açısından yatay bir harekettir. Değişen tek şey veri işleyen zincirinden **Supabase Inc. (ABD şirketi)** çıkması; konum aynı kalır.
+
+---
+
+### Karar: Hesap bağını kişinin kendisi koparır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+**Ölçüm:** 2026-09-16 açılış taraması, `ROADMAP` §4.15 (B1 · B2)
+
+**Bağlam:** 2026-09-14 kararı bağlamayı iki taraflı kanıta bağladı ve _"yanlış bağlanan bir hesap"_ ifadesini kendisi kullandı — yani yanlış bağlamanın olabileceği kabul edilmişti. Ama karşılığı yalnız **önleme**ydi.
+
+**Ölçüldü:** bağı koparan **hiçbir yol yok** — ne canlı şemada, ne migration'larda, ne `accountLinkService`'te, ne arayüzde. `person_id` yalnız değer alıyor, hiçbir yerde `null`'a çekilmiyor; `authenticated` onu yazamıyor ve bunu sabitleyen bir test var. Kalan tek yol `service_role` ile elle müdahale — kuralın yasakladığı şey.
+
+**Karar:** `unlink_accounts()` eklenir ve yetkisi **kişinin kendisindedir.**
+
+**Gerekçe.** Bağlama iki taraflı kanıt ister çünkü iki hesaba da girebilmek bir **sahiplik** kanıtıdır. Koparma tek taraflı olabilir: bir hesabın "ben bu gruptan çıkıyorum" demesi kimseye zarar vermez ve yanlış ya da zorla kurulmuş bir bağı **kurbanın kendisi** kesebilir. Asıl ihtiyacı karşılayan şey budur.
+
+**Reddedilen: kurum yöneticisine koparma yetkisi.** Yönetici bağı **kuramıyor** (2026-09-14 kararı bunu bilerek kapattı); koparabilmesi asimetri yaratırdı.
+
+**Aynı dilimde kapanan ikinci şey — şart kodun bir yarısında duruyordu.** 2026-09-14 kararı _"Ek koşul — `must_change_password` kapalı olmalı"_ diyor ve gerekçesini de yazıyor: _"geçici şifreyi bilen yönetici de olabilir."_ Ölçüldü: şart `link_accounts`'ta (tüketen) **var**, `issue_account_link_code`'da (üreten) **yok.** pgTAP da aynı asimetriyi taşıyor — tüketen taraf için iddia var, üreten taraf için yok.
+
+Açtığı yol, kararın kapattığını söylediği yolun **tam kendisi**: yönetici kâğıt fişteki geçici şifreyle üyenin hesabına girer, kod üretir, kendi hesabında tüketir → `switch-account` ona o üyenin oturumunu **üye kendi şifresini belirledikten sonra da** verir. Şifre sıfırlamadan farkı önemli: sıfırlama **gürültülüdür**, üyenin şifresi çalışmaz ve fark eder. Bu yol sessizdir.
+
+✅ **Ölçüldü: `people` canlıda 0 satır** — geriye dönük veri düzeltmesi gerekmiyor, temiz sayfa.
+
+---
+
+### Karar: Online tahsilat doğrudan pazaryeri olarak kurulur; kurum-başına-hesap aşaması atlanır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** Kurumların veliden aldığı taksitleri uygulama içinden tahsil etmesi isteniyor. İlk düşünce "önce kurum başına iyzico hesabı, sonra pazaryeri"ydi.
+
+**Karar:** **Doğrudan pazaryeri** (alt üye işyeri). Ara aşama yapılmaz. Şirketleşmeye bağlı olduğu için **pilot sonrası** (`v1.9-01`).
+
+**Gerekçe.** (a)'dan (b)'ye sonradan geçmek entegrasyonu **ikinci kez yazmak** demek: üye işyerinin kim olduğu değişir, veri modeli değişir, mutabakat değişir ve o ana kadar gelen **her kurumla yeniden masaya oturulur.**
+
+Üstüne (a)'nın kalıcı bir güvenlik yükü var: kurum başına iyzico API anahtarı saklamak, veritabanı sızarsa **o kurumun üyeliğinden kart çekilebilmesi** demektir. Bugün şemada kart/IBAN/jeton kalıbına uyan **0 sütun** var; bu duruşu bozmaya değmez.
+
+**Kart verisi bizim alan adımıza hiç girmez:** barındırılan ödeme sayfası + 3DS yönlendirmesi. Saklı kart kullanılırsa token iyzico'da durur, bizde yalnız referansı.
+
+🔴 **İsim çakışması karara bağlanmadan kod yazılmaz.** iyzico'da "taksit" **bankanın karta yaydığı** taksittir; ORBIT'te "taksit" **kurumun ödeme planındaki aydır.** İkisi aynı ekranda görünecek. Üçünün de mümkün olduğu ölçüldü: aylık taksitin tek çekimle ödenmesi, yıllığın karta bölünmesi, ve saklı kartla otomatik aylık tahsilat.
+
+**Komisyonu kurum yutar; banka taksitinde vade farkı veliye yansır** ve seçim kurum başına ayardır. Gerekçe: **ücret sıfırla değil bugünkü tahsilat maliyetiyle kıyaslanır** — veli arama, geciken ve hiç ödenmeyen taksitler, nakit taşıma, elle mutabakat. Her online kart işleminin bir maliyeti var (tek çekimde bile) ve taksitte artıyor; ama tahsilat oranını birkaç puan iyileştirmesi bunu kat kat karşılar. Her şeyi veliye yansıtmak **kullanımı öldürür** ve amaca ters.
+
+**Veri modeli sonucu:** `charged_amount`, `net_amount`, `fee_amount` ve `bank_installment_count` ayrı durur. `paid_at` **"kurumun alacağı kalmadı"** demektir, komisyondan bağımsız.
+
+⏳ **Kaydı düşülen alternatif:** havale/EFT (FAST) + ödeme referansıyla otomatik eşleştirme. Veli için bedava, kurum için çok düşük; bedeli banka entegrasyonu. Tetikleyici: komisyon tutarı, eşleştirme işinin maliyetini geçtiğinde.
+
+---
+
+### Karar: Otomasyon sekmesi gizlenmez, kaldırılır
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Karar:** Otomasyon sekmesi, ekranı, tipleri ve demo verisi **silinir** (`v1.5-10`). Menüden gizlenip kod bırakılmaz.
+
+**Gerekçe.** Arkasında **tablo yok, servis yok**; yalnız ekran var ve demo verisinden besleniyor (`PROJECT_STATE` bağlantı matrisi: Otomasyon satırı "Tablo ❌ Servis ❌ Ekran ✅"). Gizlemek ölü kod bırakır, "çağıranı olmayan servis kalamaz" kapısıyla çatışır ve ileride okuyan biri **çalıştığını sanır.**
+
+**Emsal kendi geçmişimizde:** v1.4-05 türetilemeyen üç öğeyi (`"Tamamlandı"`, `Student.homework` "7/9", "Ödev tamamlama" kartı) beklemeye bırakmadı, **kaldırdı** — ve bu depo aynı kararı bir kez daha verdi: _"Kuralı olmayan kart, kural yazılarak değil kaldırılarak kapandı."_
+
+**Geri getirme yolu kayıtlı:** ekran görüntüsü elde ve git geçmişinde duruyor. İleride eklenirse stil bozulmadan eklenir.
+
+⚠️ Bir ayrım: **silinen şey arayüzdeki sekme.** n8n'in ileride **altyapı** olarak gelmesi ayrı bir iştir (`v1.6-00`) ve bu kararla çelişmez.
+
+---
+
+### Karar: Şirketleşme pilot sonrasına bırakılır — ve üç işi birden erteler
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Karar:** Şirketleşme **pilot sonrası.** Pilot, tüzel kişilik gerektirmeyen kapsamla koşulur.
+
+**Bu kararın kapsamı, adından geniştir.** Üç ayrı iş tüzel kişiliğe bağlıydı ve üçü birlikte pilot dışına çıkıyor:
+
+| İş                     | Neden şirkete bağlı                           | Yeni yeri                    |
+| ---------------------- | --------------------------------------------- | ---------------------------- |
+| iyzico pazaryeri       | Ana üye işyeri sözleşmesi tüzel kişilik ister | `v1.9-01`                    |
+| Apple Developer hesabı | D-U-N-S + tüzel kişilik doğrulaması           | Native app erteleniyor → PWA |
+| WhatsApp Cloud API     | Meta Business doğrulanmış işletme ister       | `v1.6-00`                    |
+
+**Gerekçe.** Üçü de pilotun **amacı** değil: pilot, kurumun operasyonunu yönetebildiğimizi görmek için koşuluyor. Tahsilat, mağaza dağıtımı ve WhatsApp bildirimi bunun kanıtı değil, sonrasının ürünü.
+
+✅ **Pilotun bunlara ihtiyacı olmadığı doğrulandı:** tahsilat bugünkü gibi elle işaretlenir · dağıtım PWA ile yapılır · bildirim uygulama içinde kalır · kurtarma maili spam'a düşse bile tek yol değildir, çünkü **yönetici üyenin, operatör de yöneticinin** şifresini sıfırlayabiliyor.
+
+---
+
+### Karar: Derslik bir varlıktır; çakışma serbest metinle değil kimlikle engellenir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+**Değiştirdiği karar:** "Derslik çakışması engellenmiyor — serbest metin katı kural taşımaz" (2026-09-13)
+
+**Bağlam:** Derslik çakışmasının engellenmesi _"bir kurumun yönetimi için temel gereklilikler"_ listesine girdi. 2026-09-13'te bu bilinçli olarak açık bırakılmıştı ve gerekçesi üç maddeydi.
+
+**O gerekçeler yanlış çıkmadı — biri planın tarifi oldu, biri gereksinime dönüştü:**
+
+1. _"Yazım farkı kuralı deler"_ ("A-101" ≠ "A101") — **hâlâ doğru**, ve tam olarak bu yüzden çözüm serbest metne indeks koymak değil. Serbest metin **kaldırılıyor**.
+2. _"Doğal olarak paylaşılan değerler var"_ ("Online", "Bahçe", "Salon") — **hâlâ doğru**, ve `rooms` tablosunda bir **"paylaşılabilir"** bayrağına dönüşüyor. Paylaşılabilir bir derslik çakışma kuralının dışında kalır.
+3. _"Güvenilir çözüm `rooms` tablosu + seçim listesi olurdu; bu dilimi belirgin biçimde büyütürdü"_ — **bu cümle yeni dilimin tarifidir.** Değişen tek şey, o büyüklüğün artık yapılmaya değer bulunması.
+
+**Karar:** `rooms` tablosu eklenir; `schedule_entries.room` serbest metni `room_id`'ye döner ve çakışma kısmi tekil indeksle engellenir.
+
+**Ölçülenler (2026-09-16):**
+
+- ✅ **Öğretmen ve sınıf çakışması şemada ZATEN engelli** — `schedule_entries_teacher_slot_idx` ve `schedule_entries_class_slot_idx`, ikisi de kısmi tekil indeks. Açık olan **yalnız derslikti**; yani bu dilim eksik üçüncü bacağı tamamlıyor.
+- ✅ **`schedule_entries` üretimde 0 satır** — serbest metinden kimliğe geçişte **veri göçü yok.** Bu dilimin bugün yapılmasının en ucuz olduğu an; ilk gerçek program girildikten sonra aynı iş bir göç işi olur.
+
+⚠️ **K-22 uyarısı yönü değişiyor.** Eski karar _"ekran engelliyormuş gibi görünmemeli"_ diyordu. Artık gerçekten engelliyor — dolayısıyla yeni yükümlülük tersi: **engellendiğinde sebebi söylenmeli** ("A-101 bu saatte 11-A dersinde"), yoksa kullanıcı neyin çakıştığını bilmez.
+
+---
+
+### Karar: Deneme sınavı ders bazında kırılım taşır — tek net puan dershanenin sorusunu cevaplamıyor
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** "Deneme girişi" temel gereklilik listesine girdi. İlk bakışta bir ekran işi gibi görünüyordu; ölçüm başka söyledi.
+
+**Ölçülenler (2026-09-16, canlı şema):**
+
+| Ne                       | Sonuç                                                           |
+| ------------------------ | --------------------------------------------------------------- |
+| `exams.class_id`         | **nullable** — kurum geneli bir deneme kaydedilebilir           |
+| `exams.subject_id`       | **nullable** — tek derse bağlı olmayan bir sınav kaydedilebilir |
+| `exam_results` sütunları | `exam_id`, `student_id`, **`score numeric(6,2)`** — tek sayı    |
+
+Yani şema bir denemeyi **bir satır olarak** tutabiliyor, ama **ders bazında doğru/yanlış/net tutacak hiçbir yeri yok.**
+
+**Karar:** Ders bazında kırılım eklenir. Bir denemede Türkçe/Matematik/Sosyal/Fen ayrı ayrı girilir; net = doğru − yanlış/4.
+
+**Gerekçe.** Bir dershanenin denemeden beklediği şey öğrencinin toplam neti değil, **hangi derste zayıf olduğu** — öğretmene neyi düzelteceğini söyleyen tek bilgi o. Tek `score` ile "Matematik neti düşük" sorusu **hiçbir şekilde** cevaplanamaz; türetilecek bir veri yok, saklanmamış bir veri var.
+
+**Reddedilen: pilotta tek net, kırılım sonra.** Bu depo aynı durumu bir kez yaşadı ve dersi yazılı: v1.4-05'te türetilemeyen üç öğe (`"Tamamlandı"`, `Student.homework` "7/9", "Ödev tamamlama" kartı) beklemeye bırakılmadı, **kaldırıldı** — çünkü söz verilip gelmeyen bir alan, bir veriyi değil bir **beklentiyi** gösterir (`DECISION_LOG` — "Ödev teslim takibi kendi dilimidir; ama takip edilmeyen şey bugün iddia edilmez"). Kırılımı erteleyip ekranda ders adları göstermek aynı kalıba düşerdi.
+
+**Kapsam — bir ekran değil bir şema dilimi:**
+
+- Ders bazında sonuç tablosu (`exam_id` + `student_id` + `subject_id` → doğru, yanlış, net) ve RLS'i
+- Toplu giriş ekranı: sınıf listesi üzerinden, ders ders
+- **`exam_ranking()` toplamı anlamak zorunda** — sıralama bugün tek `score`'a bakıyor; kırılım gelince toplam net türetilmiş bir değer olur ve sıralamanın kaynağı netleşmeli
+- Eksi net **kabul edilir** — mevcut karar aynen geçerli: "Puanın tavanı vardır, tabanı yoktur"
+
+⚠️ **Açık bırakılan soru:** net katsayısı (yanlış/4) sınav türüne göre değişir ve bugün şemada **sınav türü kavramı yok** — mevcut karar bunu bilerek reddetmişti ("Sınav eğilimi yüzdedir ve sınav türü iddia edilmez"). Katsayının nerede yaşayacağı dilim açılışında karara bağlanır: sabit mi, deneme başına mı, yoksa ders başına mı.
+
+---
+
+### Karar: Optik okumaya girilmez — kurum okur, biz sonucu alırız
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+**İlgili karar:** "Deneme sınavı ders bazında kırılım taşır" (2026-09-16) — bu karar o verinin **nasıl geldiğini** belirler
+
+**Bağlam:** Deneme sonuçlarının sisteme girişi araştırıldı. İlk tasarım telefon kamerasıyla **optik form okumaydı** (OMR): öğrenci/öğretmen cevap kâğıdını çeker, sistem baloncukları okur, cevap anahtarıyla karşılaştırır, net hesaplar. Araştırma ciddiydi ve teknik olarak yapılabilir olduğunu gösterdi (OpenCV, perspektif düzeltme, template eşleme, güven skoru).
+
+**Karar: OMR yapılmıyor.** Kurum denemeyi **kendi mevcut okuyucusuyla** okur; platform **yalnız sonucu** alır.
+
+**Gerekçe — üç ayrı sebep ve üçü de bağımsız olarak yeterli:**
+
+1. **Asıl zorluk bizim optiğimiz değil, yayınevlerinin optiği.** Her yayınevinin formu farklı: soru numaralandırması, bölüm başlıkları, baloncuk yerleşimi. Kendi formumuza QR/marker koyabilirdik ama **yayınevinin basılı formuna koyamayız.** Yani her yayınevi için bir "template" tanımlamak ve bakımını yapmak gerekirdi — ürünün asıl işi olmayan, sürekli büyüyen bir bakım borcu.
+2. **Hatalar sessiz değil, ama pahalı.** Silgi izi, hafif işaretleme, iki şık, gölge, parlama, kırışık kâğıt, düşük kamera — hepsi doğruluğu düşürüyor. Karşılığı "güven skoru + kullanıcıya sor" olurdu; yani kullanıcı yine tek tek kontrol edecekti. **Kurumun zaten çalışan bir optik okuyucusu varken** bu iş net bir kayıp.
+3. **Kurumun çalışma düzenini değiştirmiyoruz.** Dershane denemeyi bugün de okuyor. Ondan "okuma yönteminizi bırakın" istemek, satışta sürtünme; "sonucu bize de verin" istemek ise kolay.
+
+**Ürünün değer önerisi de bu kararla netleşiyor** — ve OMR'dan daha güçlü bir yerde duruyor:
+
+> Hangi yayınevinin, hangi optik okuyucusunun veya hangi sınav sisteminin kullanıldığı önemli değil; **sonuçlar tek yerde birleşir.**
+
+Öğrenci X Yayınları'nda 85, Y'de 79, kurum denemesinde 82 net yaptıysa üçü **aynı grafikte** görünür. Yayınevinin kendi uygulaması bunu yapamaz, çünkü yalnız kendi denemesini bilir.
+
+**Kapsam — `v1.5-16`:**
+
+- Kurum yöneticisi Excel/CSV yükler; **sütun eşleme** ekranı gelir (her yayınevinin/kurumun başlıkları farklı: `TR_D` · `Türkçe Doğru` · `turkce_dogru`)
+- **Öğrenci eşleştirmesi isimle DEĞİL `students.student_number` ile.** Anahtar zaten yerinde ve kararı da yazılı: "Öğrenci numarası kurumun defterinden gelir; sunucu üretmez". İsimle eşleştirme aynı adlı iki öğrencide sessizce yanlış sonuç yazardı.
+- Ders bazında **doğru / yanlış / boş** saklanır; net **türetilir**, saklanmaz (tek doğruluk kaynağı — **K-06**)
+- Sabit sütunlar (`TurkishCorrect`, `MathCorrect` …) **kullanılmaz**; ders bazında satır tutulur. Sebep: TYT/AYT/LGS ve kurum içi sınavların ders kümeleri farklı ve sabit sütun her yeni sınav türünde şema değişikliği isterdi.
+- Deneme metadata'sı: yayınevi, deneme adı, kitapçık, yıl
+
+🔗 **Bu dilim `v1.7-02`'ye bağlı ve onu öne çekiyor.** `v1.7-01/02` (CSV/Excel toplu aktarım, sütun eşleme, idempotent import) Phase 2'de duruyordu; deneme sonucu içe aktarma **tam olarak o makineyi** istiyor. İkisini iki kez yazmamak için altyapı bir kez kurulur ve iki tüketici de onu kullanır.
+
+⚠️ **Sınav türü kavramına dokunuyor.** Yayınevi ve kitapçık metadata'sı gerekiyor; mevcut karar ise "Sınav eğilimi yüzdedir ve **sınav türü iddia edilmez**" diyor. O karar sınav türünü _iddia etmemeyi_ seçmişti; burada tür bir **veri alanı** olarak geri geliyor. Dilim açılışında ikisi karşılaştırılmalı — çelişki mi, kapsam genişlemesi mi.
+
+**Reddedilen ama kaydı düşülen:** OMR bir gün ürüne değer katabilir — ama **kendi** oluşturduğumuz optiklerde, QR/marker ile ve kurum içi sınavlar için. Yayınevi formlarını okumak hedef değil. Tetikleyici: kurumların "kendi kurum içi sınavımızı da okutalım" talebi.
+
+**Kapsam dışı — bilinçli olarak sonraya:** yayınevi bağımsız gelişim grafikleri, sınıf/kurum karşılaştırmaları ve konu bazlı analiz. Veri modeli bunları **mümkün kılacak** biçimde kurulur ama ekranları `v1.8` (gelişmiş filtreleme ve raporlama) işidir. YZ destekli yorum (_"son beş denemede matematikte düşüş var"_) v2.0'ın LLM kapısına tabidir.
