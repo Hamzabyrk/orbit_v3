@@ -129,6 +129,7 @@
 - Şirketleşme pilot sonrasına bırakılır — ve üç işi birden erteler
 - Derslik bir varlıktır; çakışma serbest metinle değil kimlikle engellenir
 - Deneme sınavı ders bazında kırılım taşır — tek net puan dershanenin sorusunu cevaplamıyor
+- Optik okumaya girilmez — kurum okur, biz sonucu alırız
 
 ---
 
@@ -3424,3 +3425,44 @@ Yani şema bir denemeyi **bir satır olarak** tutabiliyor, ama **ders bazında d
 - Eksi net **kabul edilir** — mevcut karar aynen geçerli: "Puanın tavanı vardır, tabanı yoktur"
 
 ⚠️ **Açık bırakılan soru:** net katsayısı (yanlış/4) sınav türüne göre değişir ve bugün şemada **sınav türü kavramı yok** — mevcut karar bunu bilerek reddetmişti ("Sınav eğilimi yüzdedir ve sınav türü iddia edilmez"). Katsayının nerede yaşayacağı dilim açılışında karara bağlanır: sabit mi, deneme başına mı, yoksa ders başına mı.
+
+---
+
+### Karar: Optik okumaya girilmez — kurum okur, biz sonucu alırız
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+**İlgili karar:** "Deneme sınavı ders bazında kırılım taşır" (2026-09-16) — bu karar o verinin **nasıl geldiğini** belirler
+
+**Bağlam:** Deneme sonuçlarının sisteme girişi araştırıldı. İlk tasarım telefon kamerasıyla **optik form okumaydı** (OMR): öğrenci/öğretmen cevap kâğıdını çeker, sistem baloncukları okur, cevap anahtarıyla karşılaştırır, net hesaplar. Araştırma ciddiydi ve teknik olarak yapılabilir olduğunu gösterdi (OpenCV, perspektif düzeltme, template eşleme, güven skoru).
+
+**Karar: OMR yapılmıyor.** Kurum denemeyi **kendi mevcut okuyucusuyla** okur; platform **yalnız sonucu** alır.
+
+**Gerekçe — üç ayrı sebep ve üçü de bağımsız olarak yeterli:**
+
+1. **Asıl zorluk bizim optiğimiz değil, yayınevlerinin optiği.** Her yayınevinin formu farklı: soru numaralandırması, bölüm başlıkları, baloncuk yerleşimi. Kendi formumuza QR/marker koyabilirdik ama **yayınevinin basılı formuna koyamayız.** Yani her yayınevi için bir "template" tanımlamak ve bakımını yapmak gerekirdi — ürünün asıl işi olmayan, sürekli büyüyen bir bakım borcu.
+2. **Hatalar sessiz değil, ama pahalı.** Silgi izi, hafif işaretleme, iki şık, gölge, parlama, kırışık kâğıt, düşük kamera — hepsi doğruluğu düşürüyor. Karşılığı "güven skoru + kullanıcıya sor" olurdu; yani kullanıcı yine tek tek kontrol edecekti. **Kurumun zaten çalışan bir optik okuyucusu varken** bu iş net bir kayıp.
+3. **Kurumun çalışma düzenini değiştirmiyoruz.** Dershane denemeyi bugün de okuyor. Ondan "okuma yönteminizi bırakın" istemek, satışta sürtünme; "sonucu bize de verin" istemek ise kolay.
+
+**Ürünün değer önerisi de bu kararla netleşiyor** — ve OMR'dan daha güçlü bir yerde duruyor:
+
+> Hangi yayınevinin, hangi optik okuyucusunun veya hangi sınav sisteminin kullanıldığı önemli değil; **sonuçlar tek yerde birleşir.**
+
+Öğrenci X Yayınları'nda 85, Y'de 79, kurum denemesinde 82 net yaptıysa üçü **aynı grafikte** görünür. Yayınevinin kendi uygulaması bunu yapamaz, çünkü yalnız kendi denemesini bilir.
+
+**Kapsam — `v1.5-16`:**
+
+- Kurum yöneticisi Excel/CSV yükler; **sütun eşleme** ekranı gelir (her yayınevinin/kurumun başlıkları farklı: `TR_D` · `Türkçe Doğru` · `turkce_dogru`)
+- **Öğrenci eşleştirmesi isimle DEĞİL `students.student_number` ile.** Anahtar zaten yerinde ve kararı da yazılı: "Öğrenci numarası kurumun defterinden gelir; sunucu üretmez". İsimle eşleştirme aynı adlı iki öğrencide sessizce yanlış sonuç yazardı.
+- Ders bazında **doğru / yanlış / boş** saklanır; net **türetilir**, saklanmaz (tek doğruluk kaynağı — **K-06**)
+- Sabit sütunlar (`TurkishCorrect`, `MathCorrect` …) **kullanılmaz**; ders bazında satır tutulur. Sebep: TYT/AYT/LGS ve kurum içi sınavların ders kümeleri farklı ve sabit sütun her yeni sınav türünde şema değişikliği isterdi.
+- Deneme metadata'sı: yayınevi, deneme adı, kitapçık, yıl
+
+🔗 **Bu dilim `v1.7-02`'ye bağlı ve onu öne çekiyor.** `v1.7-01/02` (CSV/Excel toplu aktarım, sütun eşleme, idempotent import) Phase 2'de duruyordu; deneme sonucu içe aktarma **tam olarak o makineyi** istiyor. İkisini iki kez yazmamak için altyapı bir kez kurulur ve iki tüketici de onu kullanır.
+
+⚠️ **Sınav türü kavramına dokunuyor.** Yayınevi ve kitapçık metadata'sı gerekiyor; mevcut karar ise "Sınav eğilimi yüzdedir ve **sınav türü iddia edilmez**" diyor. O karar sınav türünü _iddia etmemeyi_ seçmişti; burada tür bir **veri alanı** olarak geri geliyor. Dilim açılışında ikisi karşılaştırılmalı — çelişki mi, kapsam genişlemesi mi.
+
+**Reddedilen ama kaydı düşülen:** OMR bir gün ürüne değer katabilir — ama **kendi** oluşturduğumuz optiklerde, QR/marker ile ve kurum içi sınavlar için. Yayınevi formlarını okumak hedef değil. Tetikleyici: kurumların "kendi kurum içi sınavımızı da okutalım" talebi.
+
+**Kapsam dışı — bilinçli olarak sonraya:** yayınevi bağımsız gelişim grafikleri, sınıf/kurum karşılaştırmaları ve konu bazlı analiz. Veri modeli bunları **mümkün kılacak** biçimde kurulur ama ekranları `v1.8` (gelişmiş filtreleme ve raporlama) işidir. YZ destekli yorum (_"son beş denemede matematikte düşüş var"_) v2.0'ın LLM kapısına tabidir.
