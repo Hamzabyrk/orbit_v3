@@ -6,7 +6,9 @@ Bu dosya sürüm kapsamını, kabul kriterlerini ve kullanıcı tarafından onay
 
 ## 0. Durum Özeti
 
-> Son güncelleme: **2026-09-11**. İşaretler: ✅ tamam · 🟡 kısmen · ⬜ başlanmadı · ⚠️ tamam sanılıyordu, değil.
+> Son güncelleme: **2026-09-16**. İşaretler: ✅ tamam · 🟡 kısmen · ⬜ başlanmadı · ⚠️ tamam sanılıyordu, değil.
+>
+> 🟡 **Yürüyen sürüm v1.5 ve iki kola ayrıldı (2026-09-16).** **Altyapı kolu** (`v1.5-06 … v1.5-14`) pilot onayından bağımsız yürür; **pilot kolu** (`v1.5-01 … v1.5-05`) onaya bağlıdır ve kapsamı onay gününe kadar **bilinçli olarak kesinleşmez** (**K-10**). Açılış taraması, on bir bulgu ve plan turunun kararları: **§4.15**. Sıradaki iş **§4.6 → v1.5**.
 >
 > Ayrıntı için ilgili bölüme bakın; bu tablo yalnızca tek bakışta durum içindir.
 >
@@ -398,7 +400,20 @@ Kalan işler aşağıdaki iki ara sürüme alınmıştır. **v1.2'ye bu iki sür
 - [ ] Prettier, ESLint, TypeScript, Vitest, SQL/RLS testleri ve production build.
 - [ ] Pilot kurumdan ölçülebilir geri bildirim ve hata listesi.
 
+**2026-09-16'da eklenen maddeler** (açılış taraması ve plan turu — §4.15):
+
+- [ ] 🔴 **Hesap bağlamanın açığı kapanır ve bağ koparılabilir olur** (B1 · B2 · B3). Karar metni bir şart yazmış, kod onu yalnız bir tarafta uyguluyor; ve yanlış kurulmuş bir bağın **ürün üzerinden geri alınma yolu yok.**
+- [ ] **Yedekleme ve geri yükleme provası** — ölçüldü, organizasyon planı `free`: otomatik yedek de PITR de **yok.** Supabase Pro kararı burada verilir. ⚠️ §2'deki "Bütçe: 0₺" ile çelişiyor.
+- [ ] **Kapı sertleştirme** (B4 · B5 · B7 · B8 · B10) — `calendarDayHasOneSource` kodu geri alındığında kırmızıya dönmüyor (**K-23**, mutasyonla ölçüldü); CSP'yi `VITE_SUPABASE_URL`'e bağlayan kapı yok; iki derleyici-görmez ikiz kapısız; `max_rows`'un üretim değeri doğrulanmamış.
+- [ ] **Otomasyon sekmesinin kaldırılması** — arkasında tablo ve servis yok; demo paralel sisteminin bir parçasını da götürür.
+- [ ] **Mobil paket yükü ve PWA** — tek parça 1.166 kB, kod bölme yok; "mobil-öncelikli" yazılı taahhüt var, ölçü yoktu. **Pilot PWA olarak koşulacak** (karar 2026-09-16), native app değil.
+- [ ] **Alan adı, PWA kimliği ve erişim yüzeyi** — SPF/DKIM/DMARC dahil. 🔴 `orbit.invalid` **değişmez**; `loginIdentifier.ts`'teki aksini söyleyen not düzeltilir (B11).
+- [ ] **Dağıtım ve kademeli açılış** — bugün `main`'e merge bütün kurumlara anında gidiyor ve migration'ları üretime uyguluyor: tek patlama yarıçapı. Staging, özellik bayrağı, geri dönüş yolu.
+- [ ] **Belge hizalaması** — `PROJECT_STATE` §4 (yığın sürümleri) ve §5 (dokuz eksik modül), `PLATFORM_SETTINGS` §5 (üç eskimiş kayıt + kayıtsız advisor kategorisi). Ayrı bir iş olarak **açılmaz**; her biri ilgili dosyaya dokunan dilimin içinde gider (`AGENTS.md`).
+
 **Release gate:** Pilot onayı, kritik/yüksek güvenlik açığı olmaması ve tüm CI kontrollerinin yeşil olması.
+
+> ⚠️ **Gate'in "pilot onayı" maddesi artık sürümü bloke etmiyor.** 2026-09-16 kararıyla v1.5 iki kola ayrıldı: altyapı kolu onaydan bağımsız tamamlanabilir. Gate'in kapanması hâlâ onaya bağlıdır — ama **iş** ona bağlı değildir.
 
 ---
 
@@ -789,30 +804,54 @@ Bu yüzden v1.2 "tabloları ekle" işi değildir. Her varlık için **dört katm
 
 **Kapsam ve release gate için §4 → "v1.5 - Functional MVP ve Kapalı Beta"**.
 
-| Dilim       | Kapsam                                                                  | Dayandığı varsayımlar                                                                                                                                                                                                                                                                                                        |
-| ----------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v1.5-06** | 🔴 **Gözlemlenebilirlik** — hata izleme, çalışma süresi ve bütçe alarmı | **v1.5-01'den önce koşar** · Ölçüldü: `package.json`'da Sentry/Datadog/PostHog/OpenTelemetry **hiçbiri yok** · Ücretsiz katmanlar bu ölçek için yeterli · ⚠️ Kayıtlar **sanitize** edilmeli — §4 v1.5'teki "log sanitization" maddesi bu dilimin önkoşulu değil, **ikizi**: izleme kurulurken kişisel veri kaydına gitmemeli |
-| **v1.5-01** | Dört rol kabul testi                                                    | v1.4 tamamı · E7 zinciri (2026-08-29'da doğrulandı)                                                                                                                                                                                                                                                                          |
-| **v1.5-02** | **KVKK envanteri ve Frankfurt kararı**                                  | ⏳ **K-12 borcu**: karar _"ilk gerçek kurum verisinden önce"_ diyor, şartı kontrol edecek adım yazılmamış                                                                                                                                                                                                                    |
-| **v1.5-03** | E-posta sağlayıcısı + E4'ün ikinci yarısı (**#118**)                    | ⏳ **K-12 borcu**: _"ilk gerçek kurum davetinden önce"_ · `recovery_email` sütunu ve GRANT kilidi hazır                                                                                                                                                                                                                      |
-| **v1.5-04** | Rate limit ve CORS denetimi                                             | `ALLOWED_ORIGINS` bir güvenlik sınırı değil, CORS hijyeni · ✅ **Hız sınırı ve idempotency v1.2-17'de yazıldı**; burada kalan iş değerlerin pilot verisiyle gözden geçirilmesi ve CORS hijyeni                                                                                                                               |
-| **v1.5-05** | Pilot geri bildirimi                                                    | v1.5-01…04                                                                                                                                                                                                                                                                                                                   |
+> **Sıra kararı (2026-09-16).** v1.5 **iki kola** ayrılmıştır ve kollar birbirini beklemez:
+>
+> - **Altyapı kolu (`v1.5-06 … v1.5-14`)** — pilot onayından **bağımsız** yürür. Amacı genel altyapının tamamlanması; arayüz katmanına neredeyse dokunmaz.
+> - **Pilot kolu (`v1.5-01 … v1.5-05`)** — **pilot onayına bağlıdır.** Onay geldikten sonra kurum ihtiyaçlarına odaklı 1-2 haftalık bir tur koşulur, sonra denemeye geçilir.
+>
+> Sebep: pilot onayı bizim elimizde değil ve beklemek boşa gün. Altyapı işinin tamamı onaydan önce bitebilir.
+>
+> ⚠️ **Pilot kolunun kapsamı onay gününe kadar KESİNLEŞMEZ** ve bu bilinçli: hangi roller açılacağı, kaç sınıf/öğrenci girileceği ve hangi ekranların gerektiği **kurumla konuşulunca** belli olacak. Bugün yazılacak bir kapsam tahmin olurdu (**K-10**).
+
+| Dilim       | Kapsam                                                                                                                                                    | Dayandığı varsayımlar                                                                                                                                                                                                                                                                                                                                |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v1.5-06** | 🔴 **Gözlemlenebilirlik** — hata izleme, çalışma süresi ve bütçe alarmı                                                                                   | **v1.5-01'den önce koşar** · Ölçüldü: `package.json`'da Sentry/Datadog/PostHog/OpenTelemetry **hiçbiri yok** · Ücretsiz katmanlar bu ölçek için yeterli · ⚠️ Kayıtlar **sanitize** edilmeli — §4 v1.5'teki "log sanitization" maddesi bu dilimin önkoşulu değil, **ikizi**: izleme kurulurken kişisel veri kaydına gitmemeli                         |
+| **v1.5-01** | Dört rol kabul testi                                                                                                                                      | v1.4 tamamı · E7 zinciri (2026-08-29'da doğrulandı)                                                                                                                                                                                                                                                                                                  |
+| **v1.5-02** | **KVKK envanteri ve Frankfurt kararı**                                                                                                                    | ⏳ **K-12 borcu**: karar _"ilk gerçek kurum verisinden önce"_ diyor, şartı kontrol edecek adım yazılmamış                                                                                                                                                                                                                                            |
+| **v1.5-03** | E-posta sağlayıcısı + E4'ün ikinci yarısı (**#118**)                                                                                                      | ⏳ **K-12 borcu**: _"ilk gerçek kurum davetinden önce"_ · `recovery_email` sütunu ve GRANT kilidi hazır                                                                                                                                                                                                                                              |
+| **v1.5-04** | Rate limit ve CORS denetimi                                                                                                                               | `ALLOWED_ORIGINS` bir güvenlik sınırı değil, CORS hijyeni · ✅ **Hız sınırı ve idempotency v1.2-17'de yazıldı**; burada kalan iş değerlerin pilot verisiyle gözden geçirilmesi ve CORS hijyeni                                                                                                                                                       |
+| **v1.5-05** | Pilot geri bildirimi                                                                                                                                      | v1.5-01…04                                                                                                                                                                                                                                                                                                                                           |
+| **v1.5-07** | 🔴 **Hesap bağının açığı kapanır ve bağ koparılabilir hâle gelir** — `issue_account_link_code`'a kilit şartı, `unlink_accounts()`, geçişte hedefin kilidi | v1.4-17 · 🔴 **Karar metniyle kod çelişiyor:** 2026-09-14 kararı _"`must_change_password` kapalı olmalı"_ diyor; şart **tüketen** tarafta var, **üreten** tarafta yok · ✅ **Ölçüldü: `people` canlıda 0 satır** — geriye dönük veri düzeltmesi yok · Koparma yetkisi **kişinin kendisinde** (karar 2026-09-16)                                      |
+| **v1.5-08** | **Yedekleme ve geri yükleme provası** + Supabase Pro kararı                                                                                               | 🔴 **Ölçüldü (2026-09-16): organizasyon planı `free` — otomatik yedek YOK, PITR YOK** · §4 v1.5'teki madde bunu zaten istiyordu ama **dilimi yoktu** (**K-16**) · `v2.0-02`'nin yerini alır, bkz. aşağıdaki düzeltme · ⚠️ 0₺ kısıtıyla çelişiyor (`PROJECT_STATE` §2) — karar gerekiyor                                                              |
+| **v1.5-09** | **Kapı sertleştirme**: `calendarDayHasOneSource` mutasyonla, CSP↔`VITE_SUPABASE_URL` kapısı, iki derleyici-görmez ikize kapı                              | 🔴 **Ölçüldü: `calendarDayHasOneSource` üç gerçek ihlalde yeşil kaldı** (**K-23** ihlali, mutasyonla sınandı 2026-09-16) · CSP'yi `VITE_SUPABASE_URL`'e bağlayan hiçbir kapı yok ve CI placeholder ile derlediği için **asla göremez** · İkizler: `App.tsx`↔`vercel.json`, `syntheticEmail.ts`↔`loginIdentifier.ts` (**K-24**)                       |
+| **v1.5-10** | **Otomasyon sekmesinin kaldırılması**                                                                                                                     | Karar 2026-09-16 · Arkasında tablo yok, servis yok; yalnız ekran ve demo verisi · Emsal: v1.4-05 "Ödev tamamlama" kartını gizlemedi, **kaldırdı** · Ekran görüntüsü + git geçmişi geri getirme yolu · Demo paralel sisteminin (141 dallanma) bir parçasını da götürür                                                                                |
+| **v1.5-11** | **Mobil paket yükü** — ölç, hedef koy, rota bazlı böl + **PWA manifest**                                                                                  | 🔴 **Ölçüldü: tek parça 1.166 kB (gzip 316 kB) + 151 kB CSS; kod bölme yok** · §4.10'da 990 kB kaydedilmişti → v1.4 boyunca ~%18 büyüdü, **kaydı düşülmedi** · `.ai/` taramasında `chunk`/`code split`/`lazy` → **0 isabet** · Taahhüt var: `DECISION_LOG` "Öğrenci ve veli ekranları mobil-öncelikli" · **PWA kararı** (2026-09-16) bu dilime bağlı |
+| **v1.5-12** | **Realtime kopması, ağ hatası ve boş veri fallback senaryoları**                                                                                          | §4 v1.5'te madde olarak vardı, **dilimi yoktu** (**K-16**) · v1.3-05 realtime kanalı · Bugün tek kanal, tek abonelik                                                                                                                                                                                                                                 |
+| **v1.5-13** | **Alan adı, PWA kimliği ve erişim yüzeyi**                                                                                                                | Karar 2026-09-16: kendi alan adı + **numarayla giriş korunur** · ⚠️ `.com.tr` şirket/marka belgesi ister — ad seçimi karar · Vercel domain, `ALLOWED_ORIGINS`, Supabase Redirect URL: **üçü de Hamza'da** · SPF/DKIM/DMARC (ısındırma değil, gerekli) · 🔴 **`orbit.invalid` DOKUNULMAZ** — aşağıdaki nota bakın                                     |
+| **v1.5-14** | **Dağıtım ve kademeli açılış** (konuşmadaki "A/B test")                                                                                                   | 🔴 Bugün `main`'e merge → Vercel **bütün kurumlara anında** + Supabase migration'ları üretime otomatik: **tek patlama yarıçapı** · İhtiyaç: staging (`DECISION_LOG` bunu v1.5'e ertelemiş), özellik bayrağı ile kurum bazlı açılış, geri dönüş yolu · Yıkıcı migration kapısı zaten var                                                              |
+
+> 🔴 **`orbit.invalid` değiştirilemez ve `loginIdentifier.ts`'teki yorum bunun tersini söylüyor.** Dosyanın başlığı _"Alan adı satın alındığında burası gerçek bir alt alan adıyla değiştirilebilir"_ diyor. O cümle yazıldığı gün doğruydu; **Faz E0 zemini değiştirdi** ve karar bugün şudur: _"Auth e-postası hiçbir zaman değişmez"_ — çünkü ölçüldü, e-posta değişince sentetik adresle giriş **HTTP 400** dönüyor, yani **kâğıda yazılıp dağıtılmış giriş numarası ölüyor.**
+>
+> Tetikleyicisi tam şimdi çekiliyor (alan adı alınıyor) ve o notu okuyan biri **bütün kullanıcıların girişini kırar.** Yorum `v1.5-13`'te düzeltilir. Bu bir **K-11** vakasıdır: kararı geçersiz kılan iş, kaydını da yapmalıydı.
 
 ### v1.6 – v2.0 · Phase 2
 
 **Kapsam için §5 → "Phase 2 - Operational Depth ve Core Product"**.
 
-| Dilim       | Kapsam                                    | Dayandığı varsayımlar                                                                                                                                                                                                                                                                            |
-| ----------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **v1.6-01** | Storage: private bucket + signed URL      | ⚠️ `workspace_documents` bugün ölü ve **public URL** saklıyor (**#148**); bu tasarıma uymuyor — dilim açılışında kaldırma/uyarlama kararı verilir · 🔁 **S3-uyumlu arayüz zorunlu**, Supabase Storage istemcisine doğrudan bağlanılmaz (`DECISION_LOG` 2026-09-04, "Sistem taşınabilir kurulur") |
-| **v1.6-02** | Sınav evrakı ve öğrenci fotoğrafı         | v1.6-01 · v1.2-01 · v1.2-05                                                                                                                                                                                                                                                                      |
-| **v1.7-01** | CSV/Excel toplu aktarım                   | v1.2 tamamı · Bugün ekranı var, arkasında hiçbir şey yok ve bunu söylüyor (#134)                                                                                                                                                                                                                 |
-| **v1.7-02** | Kolon eşleme ve idempotent import         | v1.7-01                                                                                                                                                                                                                                                                                          |
-| **v1.8-01** | Güvenli aggregate view / RPC              | v1.2 tamamı · `platform_organization_stats` deseni (fail-closed + `search_path` sertleştirmesi)                                                                                                                                                                                                  |
-| **v1.8-02** | Filtreleme, grafikler, rapor dışa aktarma | v1.8-01 · Öğretmen kurum ortalamasını **isimsiz** görür (2026-08-29 kararı)                                                                                                                                                                                                                      |
-| **v2.0-01** | Hesap silme ve anonimleştirme             | ⚠️ Çoklu hesap ihtimali: aynı kişinin birden fazla kaydı olabilir, eksik silme riski (`DECISION_LOG` 2026-08-25)                                                                                                                                                                                 |
-| **v2.0-02** | Backup ve kurtarma                        | —                                                                                                                                                                                                                                                                                                |
-| **v2.0-03** | Ticarileşme kapısı: tüm gate'ler          | Yukarıdakilerin tamamı                                                                                                                                                                                                                                                                           |
+| Dilim       | Kapsam                                                                          | Dayandığı varsayımlar                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ----------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v1.6-00** | 🔔 **Bildirim zinciri** — uygulama içi, sonra e-posta                           | **v1.6'nın önünde koşar** (v1.4-00'ın emsali) · §4.7 bunu "açık kapsam sorusu" olarak kaydetmişti ama **dilimi yoktu** (**K-16**) · Pilotta **yalnız uygulama içi** (karar 2026-09-16) · 🔴 **Arka plan işçisi doğuruyor:** "kimse ekranın başında değilken çalışan iş" bugün **yok** — `PLATFORM_SETTINGS` §3.7 · Hetzner'in tetikleyicisi budur · ⚠️ WhatsApp bir kısayol **değil**: n8n de aynı Cloud API'ye bağlanır — şirket doğrulaması, şablon onayı, mesaj ücreti yerinde kalır; resmî olmayan kütüphaneler numarayı **banlatır** |
+| **v1.6-01** | Storage: private bucket + signed URL                                            | ⚠️ `workspace_documents` bugün ölü ve **public URL** saklıyor (**#148**); bu tasarıma uymuyor — dilim açılışında kaldırma/uyarlama kararı verilir · 🔁 **S3-uyumlu arayüz zorunlu**, Supabase Storage istemcisine doğrudan bağlanılmaz (`DECISION_LOG` 2026-09-04, "Sistem taşınabilir kurulur")                                                                                                                                                                                                                                          |
+| **v1.6-02** | Sınav evrakı ve öğrenci fotoğrafı                                               | v1.6-01 · v1.2-01 · v1.2-05                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **v1.7-01** | CSV/Excel toplu aktarım                                                         | v1.2 tamamı · Bugün ekranı var, arkasında hiçbir şey yok ve bunu söylüyor (#134)                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **v1.7-02** | Kolon eşleme ve idempotent import                                               | v1.7-01                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **v1.8-01** | Güvenli aggregate view / RPC                                                    | v1.2 tamamı · `platform_organization_stats` deseni (fail-closed + `search_path` sertleştirmesi)                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **v1.8-02** | Filtreleme, grafikler, rapor dışa aktarma                                       | v1.8-01 · Öğretmen kurum ortalamasını **isimsiz** görür (2026-08-29 kararı)                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **v2.0-01** | Hesap silme ve anonimleştirme                                                   | ⚠️ Çoklu hesap ihtimali: aynı kişinin birden fazla kaydı olabilir, eksik silme riski (`DECISION_LOG` 2026-08-25)                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **v1.9-01** | 💳 **Online tahsilat — iyzico pazaryeri**                                       | ⛔ **Şirketleşmeye bağlı** (pilot sonrası, karar 2026-09-16) · Karar: **doğrudan pazaryeri**, kurum-başına-hesap aşaması atlanır — (a)'dan (b)'ye geçmek entegrasyonu ikinci kez yazmak ve her kurumla yeniden masaya oturmak demek · ⛔ **Kurum başına API anahtarı saklamıyoruz**: sızarsa o kurumun üyeliğinden kart çekilir · ✅ Şemada kart/IBAN kalıbına uyan **0 sütun** var, bu duruş korunur · Idempotency altyapısı hazır (`internal_function_calls`, v1.2-17)                                                                  |
+| **v1.9-02** | Tahsilat mutabakatı ve iade akışı                                               | v1.9-01 · 🔴 **İsim çakışması karara bağlanmadan kod yazılmaz:** iyzico'da "taksit" **bankanın karta yaydığı** taksit; ORBIT'te "taksit" **kurumun ödeme planındaki ay**. İkisi aynı ekranda görünecek · Veri modeli: `charged_amount` / `net_amount` / `fee_amount` / `bank_installment_count` ayrı durur; `paid_at` **"kurumun alacağı kalmadı"** demek (komisyondan bağımsız) · Komisyonu **kurum yutar** (karar 2026-09-16); banka taksitinde vade farkı veliye — ayar kurum başına                                                   |
+| **v2.0-02** | **Test edilmiş kurtarma runbook'u** _(yedekleme provası **v1.5-08**'e taşındı)_ | **Sonradan düzeltme (2026-09-16):** Bu satır uzun süre "Backup ve kurtarma" diyordu ve **yanlış sürümü işaret ediyordu.** §4 v1.5 kontrol listesi, §4.11 ve §4.12'nin tetikleyici tablosu **üçü de** yedeklemeyi _"ilk gerçek kurum verisinden önce"_ istiyordu; yalnız bu tablo v2.0 diyordu — ve **§4.6 "sıradaki işi buradan seç" denen yer olduğu için** yetkili cevap yanlıştı (**K-06** + **K-16**). Prova artık `v1.5-08`; burada kalan iş yalnız **runbook'un yazılması ve tatbikatı**                                            |
+| **v2.0-03** | Ticarileşme kapısı: tüm gate'ler                                                | Yukarıdakilerin tamamı                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 > 🔁 **v1.6-01 taşınabilirliğin ilk gerçek sınavıdır.** Bugüne kadar hiç kullanılmamış tek Supabase bileşeni Storage'dır; dolayısıyla yeni sağlayıcı bağımlılığı yaratabilecek tek yer orasıdır. Şema, RLS ve testler düz Postgres olduğu için zaten taşınabilir — Storage sağlayıcının kendi istemcisine bağlanırsa bu tabloyu bozan ilk parça o olur. Ayrıntı ve ölçümler: `DECISION_LOG.md` — "Sistem taşınabilir kurulur; sağlayıcı bir tercih, bağımlılık değildir".
 
@@ -1252,14 +1291,61 @@ Kaba büyüme tahmini — **ölçüm değil, tahmin**; 1M kullanıcı ≈ 450k �
 
 `audit_events` bu tabloda yok ve **v1.4-14 her CRUD işlemine bir kayıt yazdırıyor**; tek başına en büyük tablo olabilir.
 
-| Borç                                                      | Tetikleyici                                     |
-| --------------------------------------------------------- | ----------------------------------------------- |
-| `attendance_records` ve `audit_events` için **bölümleme** | `attendance_records` **1M satırı** geçtiğinde   |
-| **Arşivleme** (geçmiş öğretim yılı)                       | İkinci öğretim yılı verisi girdiğinde           |
-| **Bağlantı havuzu** (Supavisor)                           | Supabase Pro'ya geçişte — planla birlikte gelir |
-| **Supabase Pro** (PITR + sızmış şifre koruması)           | **İlk gerçek kurum verisi** girmeden önce       |
+| Borç                                                         | Tetikleyici                                                                         |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| `attendance_records` ve `audit_events` için **bölümleme**    | `attendance_records` **1M satırı** geçtiğinde                                       |
+| **Arşivleme** (geçmiş öğretim yılı)                          | İkinci öğretim yılı verisi girdiğinde                                               |
+| **Bağlantı havuzu** (Supavisor)                              | Supabase Pro'ya geçişte — planla birlikte gelir                                     |
+| **Supabase Pro** (PITR + sızmış şifre koruması)              | **İlk gerçek kurum verisi** girmeden önce                                           |
+| 🔴 **Satır başına yetki hesabının maliyeti** — aşağıya bakın | Tek bir ekran görünür biçimde yavaşladığında; ölçümü **`v1.5-08` öncesi** yapılmalı |
 
-Son satır önemli: bugün **ücretsiz katmandayız** (güvenlik danışmanı `auth_leaked_password_protection` için Pro gerektiğini söylüyor) ve ücretsiz katmanda **PITR yok**. Pro'ya geçmek, aynı korumayı kendi sunucumuzda kurmaktan kat kat ucuzdur.
+Son satır önemli: bugün **ücretsiz katmandayız** (güvenlik danışmanı `auth_leaked_password_protection` için Pro gerektiğini söylüyor) ve ücretsiz katmanda **PITR yok**. Pro'ya geçmek, aynı korumayı kendi sunucumuzda kurmaktan kat kat ucuzdur. **Ölçüldü (2026-09-16): organizasyon planı gerçekten `free`** — yani bugün otomatik yedek de yok. Karşılığı **`v1.5-08`**.
+
+#### 🔴 Ölçekleme duvarı kullanıcı sayısı değil, satır başına yetki hesabıdır
+
+**Bu, bu depoya özgü bir ölçekleme kısıtıdır ve tetikleyicisi yazılana kadar görünmez.** Kaydı 2026-09-16'da düşüldü; o güne kadar `PLATFORM_SETTINGS` §5'te yalnız **taban ölçüsü** vardı (16 → bugün **17** × `multiple_permissive_policies`, 15 yardımcı), **sonucu** hiçbir yerde yazılı değildi.
+
+Mekanizma: politikalar **rol başına** ayrı yazılıyor (`_select_admin`, `_select_teacher`, `_select_student`, `_select_guardian`) ve Postgres aynı tablo/rol/işlem üçlüsündeki izin veren politikaların **hepsini her satır için** değerlendiriyor. Her politika da bir `security definer` yardımcı çağırıyor.
+
+Bunun sonucu sezgiye aykırıdır ve karar verirken önemlidir:
+
+> **Maliyet kullanıcı sayısıyla değil, tek bir isteğin okuduğu satır sayısıyla büyür.** 300 veli çocuğunun sayfasını açsa her biri ~20 satır okur. **Bir** öğretmen bir sınıfın yıllık yoklama geçmişini açsa o tek istek binlerce satır okur ve her satır için dört bekçi sorgusu çalışır. Yani bir öğretmen üç yüz veliden pahalıdır.
+
+Bugün maliyeti **sınırlı tutan üç şey** var ve üçü de bilinçli konmuştu:
+
+1. Her sorgu **açık `organization_id` süzgeci** taşıyor (§4.12 kuralı) — indeks önce tek kuruma iniyor.
+2. `(select auth.uid())` sarmalaması — satır başına değil **bir kez** hesaplanıyor.
+3. Yardımcılar `STABLE` — argüman almayanlar tek sefer koşuyor.
+
+⚠️ **Argüman alan** yardımcılar (`current_user_teaches_student(satırın_öğrencisi)`) bu korumanın dışında: argüman satırdan geldiği için fiilen satır başına çalışıyorlar. Masraf orada.
+
+**Kaçış kapısı zaten depoda var ve kendi emsalimiz:** yetkiyi **bir kez** çözüp satırları döndüren `security definer` RPC — `exam_ranking`, `class_staff_names`, `exam_participant_count`, `feed_post_authors`. Duvara vurulduğunda değiştirilecek ilk şey **sağlayıcı değil**, ağır okuma yolunun bu desene taşınmasıdır.
+
+**Kaba tahmin — ölçüm değil** (Pro planda, bugünkü mimariyle): bir dershanenin tepe yükü (50-100 eşzamanlı) rahat · 10-20 dershane (500-1.000 eşzamanlı) muhtemelen sorunsuz · ötesi ölçüm ister.
+
+⚠️ **Tarayıcıdaki her kullanıcı bir veritabanı bağlantısı tutmuyor.** `max_connections = 60` "60 kullanıcı" demek değil: uygulama Postgres'e doğrudan bağlanmıyor, arada PostgREST var ve tek bağlantıyı yüzlerce isteğe paylaştırıyor. Gerçek sınır **istek başına CPU**.
+
+**Tahmini ölçüme çevirmenin yolu bir dilime sığar:** yerel veritabanına bir dershane-yılı sentetik veri tohumlanır ve en ağır üç ekranda `EXPLAIN ANALYZE` koşulur. Üretim boş olduğu (2 kurum, iş tablolarında 0 satır) için bugün bu **yapılamıyor** ve buradaki her sayı aritmetiktir.
+
+#### Okuma tavanları — ölçüldü, iddia edilmedi (2026-09-16)
+
+Bu bölüm bir **düzeltmedir**: aynı gün önce _"106 okuma çağrısının yalnız 27'sinde tavan var, geri kalanı sınırsız okuyor"_ diye ölçüldü ve **bu yanlıştı.** Ölçüt kabaydı — yazmaları okuma saydı ve zincirin birkaç satır sonra gelen `.limit()`'ini kaçırdı (`auditService` deseni).
+
+Doğrusu, çağrı yeri tek tek okunarak:
+
+| Ölçüm                                    | Sonuç                                                                                                                                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.from(` çağrı yeri                      | **121** (69 yazma, 52 okuma)                                                                                                                                              |
+| Büyüyen tabloda **tavanı olmayan** okuma | **0**                                                                                                                                                                     |
+| Tavansız kalan okuma                     | **3** — hepsi küçük/sabit tabloda: `organization_memberships` (`memberService.ts:130`), `organizations` (`platformService.ts:308`), `workspace_documents` (ölü kod, #148) |
+| Varsayılan tavanlar                      | 50–200 arası, **hepsi `max_rows`'un altında**                                                                                                                             |
+
+**Yani depo okuma tavanları konusunda disiplinli** ve `DECISION_LOG`'un _"sessiz kesme yoktur"_ kararı **uçtan uca uygulanmış**: her liste servisi `truncated` bayrağı döndürüyor, ~20 ekran bunu banner olarak çiziyor ve sınanıyor.
+
+İki gerçek kalıntı:
+
+- ⚠️ **Banner var, "daha fazla yükle" yok.** Eğitim listelerinde kesilme **dürüstçe söyleniyor** ama sayfa ilerletilemiyor; imleçli sayfalama yalnız `audit` ve `platform` listelerinde var. `DEFAULT_STUDENT_LIMIT = 100` ve pilot ölçeği **50-100 öğrenci** olarak seçildi — yani bu tavan tam sınırda. Karşılığı pilot kolunda değerlendirilir.
+- ⚠️ **`max_rows` hiçbir belgede geçmiyor.** `supabase/config.toml`'da `1000` yazıyor ama o dosya **yerel geliştirme** yapılandırmasıdır; **üretimdeki değer doğrulanmadı.** Bugün zararsız (tavanların hepsi altında) ama devreye girdiği gün **sessizce** keser. Doğrulaması `v1.5-09`'a bağlandı.
 
 ### Bulgu — gözlemlenebilirlik sıfır
 
@@ -1370,7 +1456,83 @@ Yani yerleşmiş bir hesabın adını **başkası değiştiremiyor**. Yazılacak
 - **#148** — `workspace_documents` ölü zinciri. Tablo hâlâ duruyor ve advisor'daki üç `rls_enabled_no_policy` uyarısının biri o. v1.6-01'e bağlı.
 - **#118** — kurtarma akışının dört açığından üçü. Biri 2026-08-29'da kapandı (`recoveryChannel` kimliğe taşındı); kalan üç madde duruyor.
 
+## 4.15 v1.5 açılış taraması ve plan turu (2026-09-16)
+
+**Yöntem:** deponun ilk commit'inden bugüne tam tarama — 583 commit, `.ai/` altındaki 8.695 satır belge koda ve **canlı şemaya** karşı okundu, kalite kapısı yerelde koşuldu, canlı Supabase'e ölçüm sorguları atıldı, advisor'lar okundu. Ardından bir plan turu: v1.5 → v2.0 sırası ve pilot yaklaşımı karara bağlandı.
+
+### Temiz çıkanlar — hepsi canlı sistemden
+
+| Ölçüm                                                   | Sonuç                                                         |
+| ------------------------------------------------------- | ------------------------------------------------------------- |
+| Migration: depo ↔ üretim                                | **65/65**, sıfır ayrışma                                      |
+| Edge Function                                           | **8/8** deploy, hepsi `verify_jwt: true`, hepsi toplu dağıtım |
+| Tablo / RLS'i kapalı olan / politika                    | 30 / **0** / **111**                                          |
+| `search_path` sertleştirmesi olmayan `security definer` | **0**                                                         |
+| `anon`'un çalıştırabildiği fonksiyon                    | **0**                                                         |
+| `anon`+`authenticated` için **tablo geneli** yazma      | **0** — hepsi sütun bazlı                                     |
+| Politikası olmayan 3 tablo                              | **yetkisi de yok** — çift kilitli                             |
+| Tüm git geçmişinde tam imzalı JWT                       | **0**; `.env` izlenmiyor                                      |
+| Üretim paketinde `isMock` / `orbit123` / `service_role` | **0** — `jsxLocPlugin` düzeltmesi tutuyor                     |
+| Kalite kapısı                                           | `tsc` 0 · `eslint` 0 · **966/966** test · build tamam         |
+| pgTAP                                                   | **51** dosya, **879** iddia, **220** olumsuz                  |
+| Açık issue                                              | tam olarak **#148** ve **#118** — §4.14 ile birebir           |
+
+**Mimari hata bulunmadı.** Dizi/kimlik alan dört `security definer` RPC gövde gövde okundu — dördü de çağıranın kapsamını içeride çözüyor ve fail-closed. `link_accounts`'ın "iki taraflı kanıt"ı gerçekten iki oturum istiyor; bağlama kodu **hash'li** saklanıyor ve yeni kod eskisini öldürüyor.
+
+### Bulgular ve nereye kaydedildikleri
+
+Bulunan on bir maddenin **tamamı aynı aileden**: verilmiş bir kararın kodda yalnız yarısının durması, ya da bir ölçümün kaydının eskimesi.
+
+| #       | Bulgu                                                                                                                                                                                                                                                                                                                                                                                                                | Sahibi                        |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| **B1**  | 🔴 Karar _"`must_change_password` kapalı olmalı"_ diyor; şart `link_accounts`'ta var, `issue_account_link_code`'da **yok**. Açtığı yol, kararın kapattığını söylediği yolun kendisi: yönetici kâğıt fişteki geçici şifreyle üyenin hesabına girer, kod üretir, kendi hesabında tüketir → `switch-account` ona **kalıcı ve sessiz** bir oturum verir. Şifre sıfırlamadan farkı: sıfırlama gürültülüdür, üye fark eder | `v1.5-07`                     |
+| **B2**  | 🔴 **Bağı koparan hiçbir yol yok** — canlı şemada, migration'larda, serviste, arayüzde. `person_id` yalnız değer alıyor, `null`'a hiç çekilmiyor; `authenticated` onu yazamıyor (ve bunu sabitleyen test var). Kalan tek yol `service_role` ile elle müdahale — projenin kendi kuralının yasakladığı şey                                                                                                             | `v1.5-07`                     |
+| **B3**  | Geçişte **hedefin** kilidi sorulmuyor; `my_linked_accounts` kendi kilidine bakıp listelediklerinin kilidini süzmüyor. Veri sızmıyor (RLS ayakta) ama menü tutamayacağı söz veriyor (**K-22**)                                                                                                                                                                                                                        | `v1.5-07`                     |
+| **B4**  | 🔴 `calendarDayHasOneSource` kapısı **kodu geri alındığında kırmızıya dönmüyor** — mutasyonla ölçüldü, üç gerçek UTC-gün kesmesinde 2/2 yeşil kaldı (**K-23** ihlali). Kaçırdıkları: çok satıra bölünmüş zincir, iki ifadeye ayrılmış hâl, `.substring(0,10)`                                                                                                                                                        | `v1.5-09`                     |
+| **B5**  | CSP `connect-src`'de Supabase adresi sabit yazılı — `VITE_SUPABASE_URL`'in ikizi, **kapısı yok**, ve CI placeholder ile derlediği için **asla göremez**. `AGENTS.md` kısıt 6 ile çelişiyor                                                                                                                                                                                                                           | `v1.5-09`                     |
+| **B6**  | `PROJECT_STATE` §5 ağacında **dokuz modül eksik** — `education/` 11 yazılı / **17** gerçek, `auth/` 11 / **14**. En kritiği `deploymentEnvironment.ts`: üretim/demo güvenlik kararının tek kaynağı ve haritada adı yok                                                                                                                                                                                               | `v1.5-10` (dosya silen dilim) |
+| **B7**  | `PLATFORM_SETTINGS` §5 üç yerden eskimiş: react-hooks v7 **9 Eylül'de açıldı ve kapı yeşil** (§4.6 ve §4.9'daki satırlar da eskimiş), advisor tabanları 35→**33** ve 16→**17**. Ve **31 bulguluk bir advisor kategorisi hiç kayıtlı değil**                                                                                                                                                                          | `v1.5-09`                     |
+| **B8**  | Son sekiz migration'ın dosya adı **bugünden ileri tarihli** (`20260915`–`20260920`, 13-14 Eylül commit'leri). Bugün 65/65 senkron; risk ileriye dönük — gerçek tarihle yazılacak bir migration **uygulanmışların öncesine** sıralanır                                                                                                                                                                                | `v1.5-09`                     |
+| **B9**  | Paket **tek parça 1.166 kB**, kod bölme yok, `.ai/` altında konu hakkında **0 satır** — oysa "mobil-öncelikli" yazılı taahhüt ve §4.12'nin adı "mobil turu"                                                                                                                                                                                                                                                          | `v1.5-11`                     |
+| **B10** | İki derleyici-görmez ikiz kapısız: `App.tsx`↔`vercel.json` (4/4 uyumlu), `syntheticEmail`↔`loginIdentifier` (ikisi de `orbit.invalid`). Depo bu kalıbı **üç kez** çözmüş (**K-24**)                                                                                                                                                                                                                                  | `v1.5-09`                     |
+| **B11** | 🔴 `loginIdentifier.ts`'teki _"alan adı alınınca değiştirilebilir"_ notu **E0 kararıyla çelişiyor** ve tetikleyicisi tam şimdi çekiliyor (**K-11**)                                                                                                                                                                                                                                                                  | `v1.5-13`                     |
+
+### Sahipsiz maddelere dilim açıldı (K-16)
+
+§4'ün v1.5 kontrol listesinde **kapsamı olan ama dilimi olmayan** üç madde bulundu: **yedekleme** (`v1.5-08`), **realtime/ağ/boş veri fallback** (`v1.5-12`) ve **dağıtım stratejisi** (`v1.5-14`, konuşmadaki "A/B test"). Yedekleme ayrıca §4.6'da **yanlış sürümü** işaret ediyordu — ayrıntı `v2.0-02` satırındaki düzeltmede.
+
+### Plan turunda verilen kararlar
+
+Gerekçeleri `DECISION_LOG`'da; burada yalnız sonuç ve etkilediği dilim:
+
+- **Pilot onayına kadar normal geliştirme.** v1.5 iki kola ayrıldı; altyapı kolu onaydan bağımsız yürür. Pilot kolunun kapsamı **onay gününe kadar kesinleşmez** (**K-10**).
+- **Pilot = PWA, native app değil.** Alan adı + ana ekrana ekleme, "profesyonel değil" hissini platform değiştirmeden çözüyor. → `v1.5-11`, `v1.5-13`
+- **Supabase'de kalıyoruz.** Hetzner'e **n8n/bildirim aşamasında** geçilir; ekstra maliyet üretilmez. → `v1.6-00`
+- **Şirketleşme pilot sonrası.** Pazaryeri, Apple hesabı ve WhatsApp Cloud API üçü de buna bağlıydı; üçü de pilot dışına çıktı. → `v1.9-01`
+- **Otomasyon sekmesi kaldırılıyor.** → `v1.5-10`
+- **Hesap bağını kişinin kendisi koparır.** → `v1.5-07`
+- **Pilotta yalnız uygulama içi bildirim**; kurtarma maili spam'a düşse tolere edilir — çünkü tek yol değil: yönetici üyenin, operatör yöneticinin şifresini sıfırlayabiliyor. → `v1.6-00`, `v1.5-13`
+- **Pilot ölçeği ~50-100 öğrenci, 4-6 sınıf; veriyi biz gireceğiz.** Bu, KVKK setini pilotun **önkoşulu** yapar (veri işleyen sıfatıyla biz varız) ve toplu aktarımı (v1.7) Phase 2'de bırakır. → `v1.5-02`
+- **Frankfurt'ta kalınıyor**, hukuki set yazılacak (danışman alınacak). → `v1.5-02`
+
+### Ölçülen, kapatılMAyan
+
+- **Üretim hâlâ boş:** 2 kurum, 5 üyelik, 7 profil — **30 tablonun 22'si 0 satır**. v1.4'ün on sekiz dilimi hiç gerçek veriyle çalışmadı. Buradaki her ölçüm şemanın ve kodun doğruluğunu söylüyor, **ilk gerçek kurumun ne göstereceğini söylemiyor.**
+- **`PROJECT_STATE` §2'deki "Bütçe: 0₺" ile §4.12'nin "Pro'ya geç" tetikleyicisi çelişiyor.** İkisi birlikte doğru olamaz; karar `v1.5-08`'e bağlandı.
+
 ## 5. Phase 2 - Operational Depth ve Core Product
+
+### v1.6 - Bildirim Zinciri (v1.6-00, sürümün önünde koşar)
+
+> **Neden burada ve neden en önde.** §4.7 bunu 2026-09-05'te "açık kapsam sorusu" olarak kaydetti: _"Bir dershanede velinin ilk beklediği şey 'çocuğum bugün derse gelmedi' mesajıdır. Ne v1.x'te ne Phase 2'de karşılığı var."_ Soru bir yıl açık kaldı ve **dilimi hiç açılmadı** (**K-16**). Pilot bunu ilk haftada yüzeye çıkarır.
+
+- [ ] **Uygulama içi bildirim** — pilotun kapsamı bu (karar 2026-09-16). Sağlayıcı gerektirmez, sunucu tarafı iş azdır.
+- [ ] 🔴 **Arka plan işçisi.** Bildirim, "kimse ekranın başında değilken çalışması gereken" ilk iş — ve bugün böyle bir şey **yok** (`PLATFORM_SETTINGS` §3.7: `Arka plan işçisi: Yok`). **Hetzner'in tetikleyicisi budur**; barındırma bir backend doğurmuyor, bu iş doğuruyor.
+- [ ] E-posta bildirimi — `v1.5-03`'ün (sağlayıcı) üzerine biner. Kurtarma mailinden **ayrı iştir**.
+- [ ] WhatsApp kanalı — velinin gerçekten okuduğu yer, değeri orada. ⚠️ **Kısayol yok:** n8n de aynı WhatsApp Cloud API'sine bağlanır; şirket doğrulaması, şablon onayı ve mesaj ücreti yerinde kalır. Resmî olmayan kütüphaneler (Baileys vb.) hizmet şartlarını ihlal eder ve **numarayı banlatır** — bir dershanenin veli kanalının pilot ortasında ölmesi demek. Ayrıca telefonun Meta'ya gitmesi **yeni bir yurt dışı aktarımıdır** ve KVKK envanterine (`v1.5-02`) girer.
+- [ ] Bildirim tercihi ve açık rıza kaydı (KVKK).
+
+> **Mobil kararıyla bağı:** PWA seçildi (2026-09-16), yani App Store'un "asgari işlevsellik için push şart" kuralı **bugün bağlayıcı değil.** Native app ileride gündeme gelirse bu dilim onun önkoşulu olur.
 
 ### v1.6 - Supabase Storage ile Dosya Yönetimi
 
@@ -1392,6 +1554,21 @@ Yani yerleşmiş bir hesabın adını **başkası değiştiremiyor**. Yazılacak
 - [ ] Kurum/şube/tarih/sınıf filtreleri.
 - [ ] Güvenli aggregate view/RPC; N+1 sorgu ve gereksiz Realtime yükünün önlenmesi.
 - [ ] Rol kapsamlı rapor dışa aktarma.
+
+### v1.9 - Online Tahsilat (iyzico pazaryeri)
+
+> ⛔ **Şirketleşmeye bağlı ve pilot sonrası** (karar 2026-09-16). `PROJECT_STATE` §1'in Faz 1 kapsam dışı listesinde _"Online ödeme ağ geçitleri (Iyzico, Stripe vb.)"_ yazıyor; bu sürüm o maddeyi **kaldırmıyor, tarihlendiriyor.**
+
+- [ ] **Doğrudan pazaryeri (alt üye işyeri) modeli.** Kurum-başına-hesap aşaması **atlanıyor**: (a)'dan (b)'ye sonradan geçmek entegrasyonu ikinci kez yazmak, üye işyerini değiştirmek ve o ana kadar gelen her kurumla yeniden masaya oturmak demek.
+- [ ] ⛔ **Kurum başına iyzico API anahtarı saklanmaz.** Sakladığımız gün veritabanı sızıntısı "o kurumun üyeliğinden kart çekilebilir" anlamına gelir. ✅ Bugün şemada kart/IBAN/jeton kalıbına uyan **0 sütun** var (2026-08-29 ve 2026-09-16'da ölçüldü) — bu duruş korunur. Saklı kart kullanılırsa **token iyzico'da**, bizde yalnız referansı durur.
+- [ ] Kart verisi bizim alan adımıza hiç girmez: barındırılan ödeme sayfası + 3DS yönlendirmesi.
+- [ ] Webhook: imza doğrulama, **idempotency** (altyapı hazır — `internal_function_calls`, v1.2-17) ve `installments` ile mutabakat.
+- [ ] 🔴 **İsim çakışması karara bağlanır, sonra kod yazılır.** iyzico'da "taksit" = **bankanın karta yaydığı** taksit; ORBIT'te "taksit" = **kurumun ödeme planındaki ay**. İkisi aynı ekranda görünecek ve karıştırılması mutabakatı bozar (**K-06**).
+- [ ] Ücret modeli: **komisyonu kurum yutar** (karar 2026-09-16), banka taksitinde vade farkı veliye yansır; seçim **kurum başına ayar**. Gerekçe: ücret sıfırla değil **bugünkü tahsilat maliyetiyle** kıyaslanır — veli arama, geciken/ödenmeyen taksit, nakit taşıma, elle mutabakat.
+- [ ] Veri modeli: `charged_amount` · `net_amount` · `fee_amount` · `bank_installment_count` ayrı durur. `paid_at` **"kurumun alacağı kalmadı"** demektir, komisyondan bağımsız.
+- [ ] İade ve kısmi ödeme akışı.
+- [ ] 🔁 **Taşınabilirlik:** iyzico Türkiye'ye özgü ve standart bir arayüzü yok — sağlayıcı bağımlılığını büyütüyor. İnce bir arayüzün arkasında durur ve PR açıklamasında beyan edilir (`AGENTS.md` kısıt 6).
+- [ ] ⏳ **Kaydı düşülen düşük komisyonlu alternatif:** havale/EFT (FAST) + ödeme referansıyla otomatik eşleştirme. Veli için bedava, kurum için kart komisyonundan çok düşük; bedeli banka entegrasyonu veya hesap hareketi okuma. Tetikleyici: kart komisyonu tutarı, eşleştirme işinin maliyetini geçtiğinde.
 
 ### v2.0 - Core Product / Ticarileşme Kapısı
 
