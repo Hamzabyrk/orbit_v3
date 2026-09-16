@@ -127,6 +127,8 @@
 - Online tahsilat doğrudan pazaryeri olarak kurulur; kurum-başına-hesap aşaması atlanır
 - Otomasyon sekmesi gizlenmez, kaldırılır
 - Şirketleşme pilot sonrasına bırakılır — ve üç işi birden erteler
+- Derslik bir varlıktır; çakışma serbest metinle değil kimlikle engellenir
+- Deneme sınavı ders bazında kırılım taşır — tek net puan dershanenin sorusunu cevaplamıyor
 
 ---
 
@@ -2822,7 +2824,9 @@ Engellenen şey bugün birine erişim veren atama ve bu hafta okutulan program s
 
 ### Karar: Derslik çakışması engellenmiyor — serbest metin katı kural taşımaz
 
-**Durum:** Alındı
+> **Sonradan düzeltme (2026-09-16): bu karar tersine çevrildi.** Derslik çakışmasının engellenmesi, _"bir kurumun yönetimi için temel gereklilikler"_ listesine girdi ve `v1.5-15` olarak açıldı. Aşağıdaki gerekçeler **yanlış çıkmadı** — üçüncüsü (`rooms` tablosu + seçim listesi) yeni dilimin **tarifi** oldu, ikincisi ("Online", "Bahçe" gibi paylaşılan değerler) ise onun bir gereksinimine dönüştü. Değişen tek şey, o dilimin artık yapılmaya değer bulunması. Yeni karar: "Derslik bir varlıktır; çakışma serbest metinle değil kimlikle engellenir".
+
+**Durum:** Alındı → **2026-09-16'da değiştirildi (`v1.5-15`)**
 **Tarih:** 2026-09-13
 **Kararı Onaylayan(lar):** Arda Bülent
 
@@ -3359,3 +3363,64 @@ Açtığı yol, kararın kapattığını söylediği yolun **tam kendisi**: yön
 **Gerekçe.** Üçü de pilotun **amacı** değil: pilot, kurumun operasyonunu yönetebildiğimizi görmek için koşuluyor. Tahsilat, mağaza dağıtımı ve WhatsApp bildirimi bunun kanıtı değil, sonrasının ürünü.
 
 ✅ **Pilotun bunlara ihtiyacı olmadığı doğrulandı:** tahsilat bugünkü gibi elle işaretlenir · dağıtım PWA ile yapılır · bildirim uygulama içinde kalır · kurtarma maili spam'a düşse bile tek yol değildir, çünkü **yönetici üyenin, operatör de yöneticinin** şifresini sıfırlayabiliyor.
+
+---
+
+### Karar: Derslik bir varlıktır; çakışma serbest metinle değil kimlikle engellenir
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+**Değiştirdiği karar:** "Derslik çakışması engellenmiyor — serbest metin katı kural taşımaz" (2026-09-13)
+
+**Bağlam:** Derslik çakışmasının engellenmesi _"bir kurumun yönetimi için temel gereklilikler"_ listesine girdi. 2026-09-13'te bu bilinçli olarak açık bırakılmıştı ve gerekçesi üç maddeydi.
+
+**O gerekçeler yanlış çıkmadı — biri planın tarifi oldu, biri gereksinime dönüştü:**
+
+1. _"Yazım farkı kuralı deler"_ ("A-101" ≠ "A101") — **hâlâ doğru**, ve tam olarak bu yüzden çözüm serbest metne indeks koymak değil. Serbest metin **kaldırılıyor**.
+2. _"Doğal olarak paylaşılan değerler var"_ ("Online", "Bahçe", "Salon") — **hâlâ doğru**, ve `rooms` tablosunda bir **"paylaşılabilir"** bayrağına dönüşüyor. Paylaşılabilir bir derslik çakışma kuralının dışında kalır.
+3. _"Güvenilir çözüm `rooms` tablosu + seçim listesi olurdu; bu dilimi belirgin biçimde büyütürdü"_ — **bu cümle yeni dilimin tarifidir.** Değişen tek şey, o büyüklüğün artık yapılmaya değer bulunması.
+
+**Karar:** `rooms` tablosu eklenir; `schedule_entries.room` serbest metni `room_id`'ye döner ve çakışma kısmi tekil indeksle engellenir.
+
+**Ölçülenler (2026-09-16):**
+
+- ✅ **Öğretmen ve sınıf çakışması şemada ZATEN engelli** — `schedule_entries_teacher_slot_idx` ve `schedule_entries_class_slot_idx`, ikisi de kısmi tekil indeks. Açık olan **yalnız derslikti**; yani bu dilim eksik üçüncü bacağı tamamlıyor.
+- ✅ **`schedule_entries` üretimde 0 satır** — serbest metinden kimliğe geçişte **veri göçü yok.** Bu dilimin bugün yapılmasının en ucuz olduğu an; ilk gerçek program girildikten sonra aynı iş bir göç işi olur.
+
+⚠️ **K-22 uyarısı yönü değişiyor.** Eski karar _"ekran engelliyormuş gibi görünmemeli"_ diyordu. Artık gerçekten engelliyor — dolayısıyla yeni yükümlülük tersi: **engellendiğinde sebebi söylenmeli** ("A-101 bu saatte 11-A dersinde"), yoksa kullanıcı neyin çakıştığını bilmez.
+
+---
+
+### Karar: Deneme sınavı ders bazında kırılım taşır — tek net puan dershanenin sorusunu cevaplamıyor
+
+**Durum:** Alındı
+**Tarih:** 2026-09-16
+**Kararı Onaylayan(lar):** Arda Bülent
+
+**Bağlam:** "Deneme girişi" temel gereklilik listesine girdi. İlk bakışta bir ekran işi gibi görünüyordu; ölçüm başka söyledi.
+
+**Ölçülenler (2026-09-16, canlı şema):**
+
+| Ne                       | Sonuç                                                           |
+| ------------------------ | --------------------------------------------------------------- |
+| `exams.class_id`         | **nullable** — kurum geneli bir deneme kaydedilebilir           |
+| `exams.subject_id`       | **nullable** — tek derse bağlı olmayan bir sınav kaydedilebilir |
+| `exam_results` sütunları | `exam_id`, `student_id`, **`score numeric(6,2)`** — tek sayı    |
+
+Yani şema bir denemeyi **bir satır olarak** tutabiliyor, ama **ders bazında doğru/yanlış/net tutacak hiçbir yeri yok.**
+
+**Karar:** Ders bazında kırılım eklenir. Bir denemede Türkçe/Matematik/Sosyal/Fen ayrı ayrı girilir; net = doğru − yanlış/4.
+
+**Gerekçe.** Bir dershanenin denemeden beklediği şey öğrencinin toplam neti değil, **hangi derste zayıf olduğu** — öğretmene neyi düzelteceğini söyleyen tek bilgi o. Tek `score` ile "Matematik neti düşük" sorusu **hiçbir şekilde** cevaplanamaz; türetilecek bir veri yok, saklanmamış bir veri var.
+
+**Reddedilen: pilotta tek net, kırılım sonra.** Bu depo aynı durumu bir kez yaşadı ve dersi yazılı: v1.4-05'te türetilemeyen üç öğe (`"Tamamlandı"`, `Student.homework` "7/9", "Ödev tamamlama" kartı) beklemeye bırakılmadı, **kaldırıldı** — çünkü söz verilip gelmeyen bir alan, bir veriyi değil bir **beklentiyi** gösterir (`DECISION_LOG` — "Ödev teslim takibi kendi dilimidir; ama takip edilmeyen şey bugün iddia edilmez"). Kırılımı erteleyip ekranda ders adları göstermek aynı kalıba düşerdi.
+
+**Kapsam — bir ekran değil bir şema dilimi:**
+
+- Ders bazında sonuç tablosu (`exam_id` + `student_id` + `subject_id` → doğru, yanlış, net) ve RLS'i
+- Toplu giriş ekranı: sınıf listesi üzerinden, ders ders
+- **`exam_ranking()` toplamı anlamak zorunda** — sıralama bugün tek `score`'a bakıyor; kırılım gelince toplam net türetilmiş bir değer olur ve sıralamanın kaynağı netleşmeli
+- Eksi net **kabul edilir** — mevcut karar aynen geçerli: "Puanın tavanı vardır, tabanı yoktur"
+
+⚠️ **Açık bırakılan soru:** net katsayısı (yanlış/4) sınav türüne göre değişir ve bugün şemada **sınav türü kavramı yok** — mevcut karar bunu bilerek reddetmişti ("Sınav eğilimi yüzdedir ve sınav türü iddia edilmez"). Katsayının nerede yaşayacağı dilim açılışında karara bağlanır: sabit mi, deneme başına mı, yoksa ders başına mı.
