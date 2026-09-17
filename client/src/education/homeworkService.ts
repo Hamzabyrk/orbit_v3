@@ -799,7 +799,8 @@ export async function setSubmissionsRecorded(
 }
 
 /**
- * Verilen öğrencilerin ödev teslim oranlarını toplu (batch) olarak hesaplar (v1.4-15 · #294 / R1).
+ * Verilen öğrencilerin ödev teslim oranlarını toplu (batch) olarak getirir
+ * (v1.4-15 · #294 / R1 · sunucuya taşındı v1.5-17 · #308).
  * `studentService` içinden tek seferde çağrılır. N+1 sorgusu yapılmaz (K-06).
  *
  * 🔴 R1 Kararı: Bir ödevin oran hesaplamasına dahil edilmesi (takip ediliyor sayılması),
@@ -808,199 +809,64 @@ export async function setSubmissionsRecorded(
  *
  * Yarım işaretlenmiş (öğretmenin henüz tamamlamadığı) ödevler orana HİÇ GİRMEZ (ne payda ne pay).
  * İşaretlemesi bitirilmiş hiçbir ödev yoksa öğrenci için oran üretilmez (`undefined`).
+ *
+ * 🔴 **Sayım artık istemcide yapılmıyor ve sebebi ölçüldü** (ROADMAP §4.17).
+ * Eski hali üç ardışık PostgREST çağrısıydı (sınıf kayıtları → bitirilmiş ödevler
+ * → teslimler) ve üçünün tavanı `POSTGREST_MAX_ROWS`'du. Bir dershane-yılı
+ * tohumlanınca kolon **hiç çalışmadı**: 217 ödev kimliğinde URL 8.184 karaktere
+ * çıkıp HTTP 414 döndü, ~55 ödevde teslim sorgusu 1.000 satır tavanına dayandı,
+ * 20 sınıfta ödev adımı 960/1000'e geldi. Üç yol da `new Map()`'e çıkıyordu ve
+ * arayüz tanımsız değeri satırı hiç çizmeyerek gösterdiği için eksiklik
+ * **görünmüyordu**.
+ *
+ * `student_homework_ratios` toplamayı sunucuda yapıyor: dönen satır sayısı
+ * istenen öğrenci sayısına eşit (ekranda en fazla 100), yani tavan da URL sınırı
+ * da devre dışı. Üç tur bire indi.
+ *
+ * ⚠️ Yetki yüzeyi genişletilmedi: fonksiyon `security definer` ama yetkiyi
+ * `class_enrollments` / `homework_assignments` / `homework_submissions`
+ * politikalarının **kesişimi** olarak veriyor. Bir öğrenci sınıf arkadaşının
+ * oranını görmüyor — bugün görüyordu ve gördüğü sayı (pay hep 0) yanlıştı.
+ * Ayrıntı migration başlığında (20260921000000).
  */
 export async function loadStudentHomeworkRatios(
-  organizationId: string,
-  studentIds: string[],
-  options?: { limit?: number }
+  studentIds: string[]
 ): Promise<Map<string, string>> {
   const uniqueStudentIds = Array.from(
     new Set(studentIds.filter(id => Boolean(id) && typeof id === "string"))
   );
-  if (uniqueStudentIds.length === 0 || !organizationId) {
+  if (uniqueStudentIds.length === 0) {
     return new Map();
   }
 
-  const limit = options?.limit ?? POSTGREST_MAX_ROWS;
+  const { data, error } = await supabase.rpc("student_homework_ratios", {
+    target_student_ids: uniqueStudentIds,
+  });
 
-  // 1. Öğrencilerin aktif sınıf kayıtlarını çek
-  const { data: enrollData, error: enrollError } = await supabase
-    .from("class_enrollments")
-    .select("student_id, class_id, created_at")
-    .eq("organization_id", organizationId)
-    .in("student_id", uniqueStudentIds)
-    .is("archived_at", null)
-    .limit(limit);
-
-  if (enrollError || !enrollData) {
+  if (error || !data) {
+    // Fail-closed (K-04): Veritabanı hatasında uydurma oran üretilmez
     return new Map();
-  }
-
-  // R2-B: Tavana dayanıldığında veri kesilmiş olabilir; yarım sayı üretmektense undefined bırakılır.
-  if (enrollData.length >= limit) {
-    return new Map();
-  }
-
-  const studentClassesMap = new Map<string, Set<string>>();
-  const studentEnrollmentDates = new Map<string, Map<string, string>>();
-  const classIdsSet = new Set<string>();
-
-  for (const row of enrollData as {
-    student_id: string;
-    class_id: string;
-    created_at?: string | null;
-  }[]) {
-    if (!row.student_id || !row.class_id) continue;
-    let classes = studentClassesMap.get(row.student_id);
-    if (!classes) {
-      classes = new Set();
-      studentClassesMap.set(row.student_id, classes);
-    }
-    classes.add(row.class_id);
-    classIdsSet.add(row.class_id);
-
-    if (row.created_at) {
-      let dates = studentEnrollmentDates.get(row.student_id);
-      if (!dates) {
-        dates = new Map();
-        studentEnrollmentDates.set(row.student_id, dates);
-      }
-      dates.set(row.class_id, row.created_at.slice(0, 10));
-    }
-  }
-
-  if (classIdsSet.size === 0) {
-    return new Map();
-  }
-
-  // 2. Bu sınıflara ait aktif ve teslim işaretlemesi bitirilmiş ödevleri çek (R1)
-  const { data: hwData, error: hwError } = await supabase
-    .from("homework_assignments")
-    .select("id, class_id, assigned_on, submissions_recorded_at")
-    .eq("organization_id", organizationId)
-    .in("class_id", Array.from(classIdsSet))
-    .is("archived_at", null)
-    .not("submissions_recorded_at", "is", null)
-    .limit(limit);
-
-  if (hwError || !hwData) {
-    return new Map();
-  }
-
-  // R2-B: Tavana dayanıldığında veri kesilmiş olabilir; yarım sayı üretmektense undefined bırakılır.
-  if (hwData.length >= limit) {
-    return new Map();
-  }
-
-  // Hem sunucu filtrelemesi hem JS tarafı kesinliği: submissions_recorded_at dolu olanlar
-  const recordedHomeworkRows = (
-    hwData as {
-      id: string;
-      class_id: string;
-      assigned_on?: string;
-      submissions_recorded_at?: string | null;
-    }[]
-  ).filter(
-    h =>
-      h.submissions_recorded_at !== null &&
-      h.submissions_recorded_at !== undefined
-  );
-
-  if (recordedHomeworkRows.length === 0) {
-    return new Map();
-  }
-
-  const homeworkIds = recordedHomeworkRows.map(h => h.id);
-
-  // 3. Bu bitirilmiş ödevlere ait aktif teslimleri çek
-  const { data: subData, error: subError } = await supabase
-    .from("homework_submissions")
-    .select("homework_id, student_id")
-    .eq("organization_id", organizationId)
-    .in("homework_id", homeworkIds)
-    .is("archived_at", null)
-    .limit(limit);
-
-  if (subError || !subData) {
-    return new Map();
-  }
-
-  // R2-B: Tavana dayanıldığında veri kesilmiş olabilir; yarım sayı üretmektense undefined bırakılır.
-  if (subData.length >= limit) {
-    return new Map();
-  }
-
-  // Öğrenci -> teslim ettiği bitirilmiş ödev kimlikleri kümesi
-  const studentSubmittedHomeworks = new Map<string, Set<string>>();
-  for (const row of subData as { homework_id: string; student_id: string }[]) {
-    if (!row.homework_id || !row.student_id) continue;
-    let submitted = studentSubmittedHomeworks.get(row.student_id);
-    if (!submitted) {
-      submitted = new Set();
-      studentSubmittedHomeworks.set(row.student_id, submitted);
-    }
-    submitted.add(row.homework_id);
-  }
-
-  // Sınıf -> o sınıfa ait ve işaretlemesi bitirilmiş ödevler
-  const classRecordedHomeworksMap = new Map<
-    string,
-    { id: string; assignedOn?: string }[]
-  >();
-  for (const hw of recordedHomeworkRows) {
-    const list = classRecordedHomeworksMap.get(hw.class_id) ?? [];
-    list.push({ id: hw.id, assignedOn: hw.assigned_on });
-    classRecordedHomeworksMap.set(hw.class_id, list);
   }
 
   const resultMap = new Map<string, string>();
 
-  for (const studentId of uniqueStudentIds) {
-    const studentClasses = studentClassesMap.get(studentId);
-    if (!studentClasses || studentClasses.size === 0) {
-      continue;
-    }
+  for (const row of data as {
+    student_id: string;
+    recorded_count: number | string | bigint;
+    submitted_count: number | string | bigint;
+  }[]) {
+    const studentId = row.student_id;
+    if (!studentId) continue;
 
-    const submittedSet = studentSubmittedHomeworks.get(studentId);
-    const enrollmentDateMap = studentEnrollmentDates.get(studentId);
-    const studentApplicableHwIds = new Set<string>();
+    const recorded = Number(row.recorded_count);
+    const submitted = Number(row.submitted_count);
 
-    for (const cId of studentClasses) {
-      const hwList = classRecordedHomeworksMap.get(cId);
-      if (!hwList) continue;
+    // R1 & K-22: Sayı okunamıyorsa oran uydurulmaz. Sunucu sorumluluğu olmayan
+    // öğrenciyi hiç döndürmüyor, ama bozuk bir satır gelirse de sessizce atlanır.
+    if (!Number.isFinite(recorded) || !Number.isFinite(submitted)) continue;
+    if (recorded <= 0) continue;
 
-      const enrolledOn = enrollmentDateMap?.get(cId);
-
-      for (const hw of hwList) {
-        if (submittedSet?.has(hw.id)) {
-          studentApplicableHwIds.add(hw.id);
-        } else {
-          // Ek madde 3: Ödev öğrencinin sınıfa kayıt tarihinden önce verilmişse
-          // öğrenci sorumlu tutulmaz (K-03/K-22).
-          if (enrolledOn && hw.assignedOn && hw.assignedOn < enrolledOn) {
-            continue;
-          }
-          studentApplicableHwIds.add(hw.id);
-        }
-      }
-    }
-
-    const totalRecorded = studentApplicableHwIds.size;
-    // R1 & K-22: Öğrencinin sorumlu olduğu bitirilmiş ödev yoksa "0/0" veya "0/9" uydurulmaz, undefined kalır
-    if (totalRecorded === 0) {
-      continue;
-    }
-
-    let submittedCount = 0;
-    if (submittedSet) {
-      for (const hid of studentApplicableHwIds) {
-        if (submittedSet.has(hid)) {
-          submittedCount++;
-        }
-      }
-    }
-
-    resultMap.set(studentId, `${submittedCount}/${totalRecorded}`);
+    resultMap.set(studentId, `${submitted}/${recorded}`);
   }
 
   return resultMap;

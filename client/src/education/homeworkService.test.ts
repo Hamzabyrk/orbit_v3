@@ -911,178 +911,142 @@ describe("v1.4-15 Ödev Teslim Takibi (homework_submissions & K-23)", () => {
     });
   });
 
-  describe("loadStudentHomeworkRatios (v1.4-15 R1: submissions_recorded_at & K-22)", () => {
-    it("🔴 R1: yarım işaretlenmiş ödev orana GİRMİYOR (submissions_recorded_at boş, 3 teslim var)", async () => {
-      fromMock.mockImplementation((table: string) => {
-        if (table === "class_enrollments") {
-          return createQueryChain({
-            data: [{ student_id: "stu-1", class_id: "cls-1" }],
-            error: null,
-          });
-        }
-        if (table === "homework_assignments") {
-          // Ödev var ve 3 teslimi var, ama öğretmen henüz bitirmedim demiş (submissions_recorded_at: null)
-          return createQueryChain({
-            data: [
-              {
-                id: "hw-partial",
-                class_id: "cls-1",
-                submissions_recorded_at: null,
-              },
-            ],
-            error: null,
-          });
-        }
-        if (table === "homework_submissions") {
-          return createQueryChain({
-            data: [
-              { homework_id: "hw-partial", student_id: "stu-other-1" },
-              { homework_id: "hw-partial", student_id: "stu-other-2" },
-              { homework_id: "hw-partial", student_id: "stu-other-3" },
-            ],
-            error: null,
-          });
-        }
-        return createQueryChain({ data: [], error: null });
+  describe("loadStudentHomeworkRatios (v1.5-17 · #308: sayım sunucuda)", () => {
+    // 🔴 Bu blok v1.5-17'de baştan yazıldı ve eski hali burada anılmaya değer.
+    //
+    // Önce üç ardışık PostgREST çağrısı vardı (sınıf kayıtları → bitirilmiş
+    // ödevler → teslimler) ve testleri o üç `from()` zincirini taklit ediyordu.
+    // Sayımın kendisi artık `student_homework_ratios` içinde, SQL'de; sayım
+    // kurallarının testi de oraya taşındı: `supabase/tests/database/
+    // homework_ratios.test.sql` (14 iddia — yarım işaretlenmiş ödev, kayıt
+    // tarihi sınırı, kurum saati, ve dört rolün yetki kesişimi).
+    //
+    // ⛔ Burada eksilen bir test var ve bilinçli: "herhangi bir sorgu 1.000
+    // satır tavanına dayandığında oran üretilmez". O test bir **azaltıcı
+    // önlemi** sabitliyordu; önlemin koruduğu kırılma artık yok. Toplama
+    // sunucuda yapıldığı için dönen satır sayısı istenen öğrenci sayısına eşit
+    // (ekranda en fazla 100) ve tavan devreye giremiyor. Yerine aşağıdaki
+    // "tek çağrı" testi kondu: kırılmanın yapısal karşılığı odur.
+    // (`loadHomework`'un kendi tavan testi yerinde duruyor — o hâlâ satır
+    // çekiyor.)
+
+    it("öğrenci listesi boşsa RPC hiç çağrılmaz", async () => {
+      const map = await loadStudentHomeworkRatios([]);
+      expect(map.size).toBe(0);
+      expect(rpcMock).not.toHaveBeenCalled();
+    });
+
+    it("🔴 üç tur bire indi: RPC bir kez, bütün kimliklerle çağrılır", async () => {
+      rpcMock.mockResolvedValue({
+        data: [
+          { student_id: "stu-1", recorded_count: 4, submitted_count: 3 },
+          { student_id: "stu-2", recorded_count: 2, submitted_count: 0 },
+        ],
+        error: null,
       });
 
-      const map = await loadStudentHomeworkRatios("org-1", ["stu-1"]);
-      // Yarım işaretlenmiş ödev orana HİÇ girmez; başka bitirilmiş ödev yoksa undefined kalır
+      await loadStudentHomeworkRatios(["stu-1", "stu-2"]);
+
+      expect(rpcMock).toHaveBeenCalledTimes(1);
+      expect(rpcMock).toHaveBeenCalledWith("student_homework_ratios", {
+        target_student_ids: ["stu-1", "stu-2"],
+      });
+      // Eski hal: üç ardışık `from()` çağrısı. Yenisinde tablo sorgusu yok.
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("sunucunun saydığı değerleri 'pay/payda' biçiminde döndürür", async () => {
+      rpcMock.mockResolvedValue({
+        data: [
+          { student_id: "stu-1", recorded_count: 4, submitted_count: 3 },
+          { student_id: "stu-2", recorded_count: 2, submitted_count: 0 },
+        ],
+        error: null,
+      });
+
+      const map = await loadStudentHomeworkRatios(["stu-1", "stu-2"]);
+      expect(map.get("stu-1")).toBe("3/4");
+      expect(map.get("stu-2")).toBe("0/2");
+    });
+
+    it("aynı kimlik iki kez verilse de bir kez sorulur", async () => {
+      rpcMock.mockResolvedValue({
+        data: [{ student_id: "stu-1", recorded_count: 1, submitted_count: 1 }],
+        error: null,
+      });
+
+      await loadStudentHomeworkRatios(["stu-1", "stu-1", "", "stu-1"]);
+
+      expect(rpcMock).toHaveBeenCalledWith("student_homework_ratios", {
+        target_student_ids: ["stu-1"],
+      });
+    });
+
+    it("⛔ K-22: sunucunun döndürmediği öğrenci için oran uydurulmaz", async () => {
+      rpcMock.mockResolvedValue({
+        data: [{ student_id: "stu-1", recorded_count: 3, submitted_count: 1 }],
+        error: null,
+      });
+
+      const map = await loadStudentHomeworkRatios([
+        "stu-1",
+        "stu-sorumlulugu-yok",
+      ]);
+      expect(map.get("stu-1")).toBe("1/3");
+      // Sorumluluğu olmayan öğrenci çıktıda hiç yok; "0/0" ÜRETİLMEZ.
+      expect(map.get("stu-sorumlulugu-yok")).toBeUndefined();
+    });
+
+    it("⛔ payda sıfır gelirse oran üretilmez (0/0 çizilmez)", async () => {
+      rpcMock.mockResolvedValue({
+        data: [{ student_id: "stu-1", recorded_count: 0, submitted_count: 0 }],
+        error: null,
+      });
+
+      const map = await loadStudentHomeworkRatios(["stu-1"]);
       expect(map.get("stu-1")).toBeUndefined();
     });
 
-    it("bitirilmiş ödev oranda: işaretlenmiş öğrenci 1/1, işaretlenmemiş öğrenci 0/1 olur", async () => {
-      fromMock.mockImplementation((table: string) => {
-        if (table === "class_enrollments") {
-          return createQueryChain({
-            data: [
-              { student_id: "stu-submitted", class_id: "cls-1" },
-              { student_id: "stu-unsubmitted", class_id: "cls-1" },
-            ],
-            error: null,
-          });
-        }
-        if (table === "homework_assignments") {
-          // Öğretmen işaretlemeyi bitirmiş (submissions_recorded_at dolu)
-          return createQueryChain({
-            data: [
-              {
-                id: "hw-finished",
-                class_id: "cls-1",
-                submissions_recorded_at: "2026-09-13T12:00:00Z",
-              },
-            ],
-            error: null,
-          });
-        }
-        if (table === "homework_submissions") {
-          return createQueryChain({
-            data: [{ homework_id: "hw-finished", student_id: "stu-submitted" }],
-            error: null,
-          });
-        }
-        return createQueryChain({ data: [], error: null });
+    it("⛔ K-04: RPC hata verirse uydurma oran üretilmez", async () => {
+      rpcMock.mockResolvedValue({
+        data: null,
+        error: { message: "permission denied" },
       });
 
-      const map = await loadStudentHomeworkRatios("org-1", [
-        "stu-submitted",
-        "stu-unsubmitted",
-      ]);
-      // Teslim eden öğrenci: 1/1
-      expect(map.get("stu-submitted")).toBe("1/1");
-      // Bitirilmiş ödevde teslim etmeyen öğrenci artık gerçekten getirmedi sayılır: 0/1
-      expect(map.get("stu-unsubmitted")).toBe("0/1");
+      const map = await loadStudentHomeworkRatios(["stu-1"]);
+      expect(map.size).toBe(0);
     });
 
-    it("birden fazla bitirilmiş ödev varsa 'M/N' oranını doğru hesaplar", async () => {
-      fromMock.mockImplementation((table: string) => {
-        if (table === "class_enrollments") {
-          return createQueryChain({
-            data: [{ student_id: "stu-1", class_id: "cls-1" }],
-            error: null,
-          });
-        }
-        if (table === "homework_assignments") {
-          return createQueryChain({
-            data: [
-              {
-                id: "hw-1",
-                class_id: "cls-1",
-                submissions_recorded_at: "2026-09-13T10:00:00Z",
-              },
-              {
-                id: "hw-2",
-                class_id: "cls-1",
-                submissions_recorded_at: "2026-09-13T11:00:00Z",
-              },
-            ],
-            error: null,
-          });
-        }
-        if (table === "homework_submissions") {
-          return createQueryChain({
-            data: [
-              { homework_id: "hw-1", student_id: "stu-1" },
-              { homework_id: "hw-2", student_id: "stu-other" },
-            ],
-            error: null,
-          });
-        }
-        return createQueryChain({ data: [], error: null });
+    it("bigint sayılar dizge olarak gelse de doğru okunur", async () => {
+      // PostgREST `bigint`'i JSON'da dizge olarak döndürebilir; sayıya
+      // çevrilmezse `"3" / "4"` değil `"3/4"` beklenen biçim bozulur.
+      rpcMock.mockResolvedValue({
+        data: [
+          { student_id: "stu-1", recorded_count: "12", submitted_count: "9" },
+        ],
+        error: null,
       });
 
-      const map = await loadStudentHomeworkRatios("org-1", ["stu-1"]);
-      expect(map.get("stu-1")).toBe("1/2");
+      const map = await loadStudentHomeworkRatios(["stu-1"]);
+      expect(map.get("stu-1")).toBe("9/12");
     });
 
-    it("Ek madde 3: Öğrencinin sınıfa kayıt tarihinden önce verilen ödev orana girmez (Mart'ta gelen Eylül'den sorumlu olmaz)", async () => {
-      fromMock.mockImplementation((table: string) => {
-        if (table === "class_enrollments") {
-          return createQueryChain({
-            data: [
-              {
-                student_id: "stu-late",
-                class_id: "cls-1",
-                created_at: "2026-03-01T09:00:00Z", // Mart'ta kayıt olmuş
-              },
-            ],
-            error: null,
-          });
-        }
-        if (table === "homework_assignments") {
-          return createQueryChain({
-            data: [
-              {
-                id: "hw-old",
-                class_id: "cls-1",
-                assigned_on: "2025-09-15", // Mart'tan önce verilmiş
-                submissions_recorded_at: "2025-09-20T12:00:00Z",
-              },
-              {
-                id: "hw-new",
-                class_id: "cls-1",
-                assigned_on: "2026-03-10", // Mart'tan sonra verilmiş
-                submissions_recorded_at: "2026-03-15T12:00:00Z",
-              },
-            ],
-            error: null,
-          });
-        }
-        if (table === "homework_submissions") {
-          return createQueryChain({
-            data: [
-              // Yalnızca yeni ödevi teslim etmiş
-              { homework_id: "hw-new", student_id: "stu-late" },
-            ],
-            error: null,
-          });
-        }
-        return createQueryChain({ data: [], error: null });
+    it("⛔ okunamayan sayı gelirse o satır atlanır", async () => {
+      rpcMock.mockResolvedValue({
+        data: [
+          {
+            student_id: "stu-bozuk",
+            recorded_count: "abc",
+            submitted_count: 1,
+          },
+          { student_id: "stu-1", recorded_count: 2, submitted_count: 2 },
+        ],
+        error: null,
       });
 
-      const map = await loadStudentHomeworkRatios("org-1", ["stu-late"]);
-      // Eski ödev hesaba katılmadığı için 1/2 değil, 1/1 olmalıdır
-      expect(map.get("stu-late")).toBe("1/1");
+      const map = await loadStudentHomeworkRatios(["stu-bozuk", "stu-1"]);
+      expect(map.get("stu-bozuk")).toBeUndefined();
+      expect(map.get("stu-1")).toBe("2/2");
     });
   });
 
@@ -1160,22 +1124,6 @@ describe("v1.4-15 Ödev Teslim Takibi (homework_submissions & K-23)", () => {
 
       const res = await loadHomework("org-1");
       expect(res.rows[0].submissionCount).toBeUndefined();
-    });
-
-    it("loadStudentHomeworkRatios: herhangi bir sorgu tavana (1000 satır) dayandığında oran üretilmez (undefined)", async () => {
-      fromMock.mockImplementation((table: string) => {
-        if (table === "class_enrollments") {
-          const fullRows = Array.from({ length: 1000 }, (_, i) => ({
-            student_id: `stu-${i}`,
-            class_id: "cls-1",
-          }));
-          return createQueryChain({ data: fullRows, error: null });
-        }
-        return createQueryChain({ data: [], error: null });
-      });
-
-      const map = await loadStudentHomeworkRatios("org-1", ["stu-1"]);
-      expect(map.get("stu-1")).toBeUndefined();
     });
   });
 
