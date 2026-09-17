@@ -561,6 +561,18 @@ _Kaynak: v1.4 ara denetimi (2026-09-13). Denetim dokuz kapanmış dilimi taradı
 
 Brifingi yazarken yukarıdaki **birikimli kurallara** bak; ilgili olanları göreve özgü biçimde tekrarla. Yazan ajanın bu belgeyi okuduğunu varsayma — brifing kendi başına yeterli olmalı.
 
+### K-25 · `definer` bir politikayı taklit ediyorsa, politikanın HER şartını taşır
+
+`security definer` bir fonksiyon RLS'i atlar. Yetki artık politikadan gelmediği için elle yazılır — ve elle yazılan şey politikanın **tamamı** olmak zorundadır, ilginç olan kısmı değil.
+
+2026-09-18'de bu kuralın olmaması beş fonksiyonda aynı açığı açtı ve ölçüldü: şifre kilidi (`must_change_password`) açık bir kurum yöneticisi tabloları doğrudan okuyamıyordu ama beş `definer` RPC'nin beşi de ona veri döndürüyordu. Kilit E3'te bilinçli konmuştu: hesap kâğıda yazılmış **geçici** bir şifreyle açılıyor ve ilk iş onu değiştirmek olmak zorunda. Ekran onu zorluyordu; **API zorlamıyordu.**
+
+Sinsi yanı, atlanan şartın **en çok tekrar eden** şart olması. `and not (select current_user_must_change_password())` dört rolün politikasında da, her tabloda da aynı biçimde duruyor. Yetki ifadesi rol rol kopyalanırken değişen kısım kopyalandı, her satırın sonundaki değişmeyen kuyruk kopyalanmadı. **"Hep orada" olan şey okunmaz hâle geliyor.**
+
+**Kural:** bir okuma yolu `definer` bir fonksiyona taşınırken, taklit edilen politikaların metni satır satır okunur ve **her konjonksiyon** taşınır. Taşındığının kanıtı, o şartı tek tek sınayan bir testtir — kapsamı ölçen testler bunu yakalamaz, çünkü kapsam doğru olduğu hâlde şart eksik olabilir.
+
+⚠️ Ve kuralın kendisi **K-24 gereği geriye uygulanır:** bir `definer` fonksiyon eklendiğinde, daha önce eklenmiş olanlar aynı gözle yeniden okunur. 2026-09-18'de bu yapıldı ve beşinin beşinde de eksik bulundu.
+
 ### Değişmeyen bölümler — brifingde tekrar yazılmaz
 
 Aşağıdaki üç blok her görevde aynıdır. Brifingde **tek satırla anılır**, kopyalanmaz:
