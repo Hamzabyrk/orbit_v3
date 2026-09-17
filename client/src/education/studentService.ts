@@ -294,7 +294,7 @@ export async function loadStudents(
       loadStudentAttendancePercentages(studentIds),
       loadStudentLatestExamScores(studentIds),
       loadStudentPaymentStatuses(studentIds),
-      loadStudentHomeworkRatios(organizationId, studentIds),
+      loadStudentHomeworkRatios(studentIds),
     ]);
 
   const rows = rawRows.map(r =>
