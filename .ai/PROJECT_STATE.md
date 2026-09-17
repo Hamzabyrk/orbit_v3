@@ -152,6 +152,12 @@ client/src/
 
 **Edge Function'ların ortak katmanı:** `supabase/functions/_shared/` — `http.ts` (origin listesi, CORS, JSON yanıtı), `temporaryPassword.ts` (ömür sabiti ve üretici), `syntheticEmail.ts` (giriş adresi alan adı). Alt çizgiyle başladığı için ayrı bir fonksiyon olarak deploy edilmez. `syntheticEmail.ts`'in istemci tarafında derleyicinin göremediği bir ikizi var: `client/src/auth/loginIdentifier.ts` giriş numarasını bu adresten çözer, dolayısıyla ikisi birlikte değişir.
 
+**Ölçüm tohumu — `supabase/perf/seed_olcum.sql` (eklendi 2026-09-17):** bir dershane-yılı sentetik veri (20 kurum, ~520 bin satır, 205 MB) üreten tek dosya. Kimlikleri `md5(anahtar)::uuid` ile ürettiği için **tekrarlanabilir**: iki koşu aynı kimlikleri verir ve iki `EXPLAIN ANALYZE` çıktısı karşılaştırılabilir kalır. Ölçümleri `ROADMAP` §4.17'de.
+
+🔴 **Bu dosya `config.toml`'daki `[db.seed].sql_paths`'e EKLENMEMELİDİR.** Orada yalnız `./seed.sql` yazıyor ve tohum o globa bilinçli olarak girmiyor: `supabase start` / `db reset` onu yüklerse **CI'daki pgTAP testleri boş veritabanı sayımlarına dayandığı için kırılır**. Tohum elle çalıştırılır (`docker exec -i … psql < …`). 🔴 **Ve `supabase/tests/` altında duramaz:** o klasör pg_prove'un glob'udur, altındaki **her `.sql` dosyası pgTAP testi olarak koşulur** (`.sh` ve `.ts` kardeşleri toplanmadığı için bu görünmüyor). Tohum ilk turda oraya konmuş, `supabase test db` onu test sanıp `No plan found in TAP output` ile düşmüş, ve pg_prove tohumu gerçekten koşturduğu için ardından gelen bütün pgTAP dosyaları kirli veritabanına bakıp kırılmıştı — yani zorunlu kontrol `Tenant RLS` kırmızıya dönerdi. Ölçüm dosyaları bu yüzden `supabase/perf/` altında.
+
+Aynı sebeple dosya `analyze;` ile bitiyor — o satır atlanırsa planlayıcı boş tablo varsayımıyla çalışır ve ölçüm yanlış plan ölçer.
+
 **`lib/documents.ts` ölü koddur** — hiçbir yerden çağrılmıyor ve dayandığı `workspace_documents` tablosunda hiç policy yok. "Belgeler" özelliği v1.6'da yeniden ele alınana kadar bu şekilde kalır; bkz. `PLATFORM_SETTINGS.md` kabul edilmiş açıklar. **Bu satır artık bir kapının dayanağı (2026-09-13):** `client/src/lib/deadServiceExports.test.ts` "çağıranı olmayan servis kalamaz" kuralını zorluyor ve `lib/documents.ts` oradaki **tek muafiyet**, gerekçesi olarak buraya işaret ediyor. Muafiyetin kendisi de sınanıyor — dosya kullanılmaya başlandığı gün test kırmızıya döner ve satırın silinmesini ister.
 
 ---
