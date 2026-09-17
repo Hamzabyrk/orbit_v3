@@ -106,11 +106,22 @@ select is(
   'and stops counting in the plan summary too (payment_plan_summaries)'
 );
 
+-- ⚠️ `payment_overview_counts` v1.5-18 3/3'te (#314) `security definer` oldu ve
+-- kapsamı artık kendi içinde yazıyor. Yani `postgres` olarak çağrıldığında
+-- `auth.uid()` NULL kalıyor ve fonksiyon — doğru biçimde — hiç satır
+-- döndürmüyor. Bu dosya onu ÜRETİMDEKİ gibi, kurum yöneticisinin kimliğiyle
+-- çağırıyor; yoksa ölçtüğü şey RLS'in atlanması olurdu.
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claim.sub', 'f1000000-0000-0000-0000-0000000000f1', true);
+
 select is(
   (select overdue_count from public.payment_overview_counts()),
   1::bigint,
   'and in the admin cards (payment_overview_counts)'
 );
+
+reset role;
 
 -- Arşivli taksit "sonraki taksit" olarak da seçilmemeli. Burada 2. taksit
 -- daha erken olduğu için ayrı bir kurgu gerekiyor: 2'yi de arşivleyip
@@ -135,11 +146,17 @@ select is(
 
 -- Ödenmiş taksit arşivlenmediği için tahsilat hâlâ görünüyor: arşiv borcu
 -- siliyor, geçmişi silmiyor.
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claim.sub', 'f1000000-0000-0000-0000-0000000000f1', true);
+
 select is(
   (select collected_this_month from public.payment_overview_counts()),
   0::numeric,
   'the paid installment is 35 days old, so it is not in THIS month collection'
 );
+
+reset role;
 
 update public.installments
 set archived_at = null
