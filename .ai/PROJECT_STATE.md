@@ -14,8 +14,8 @@
 
 1. **Sınıf & Grup Yönetimi:** Sınıf adı, program türü, mentor öğretmen ve öğrenci kontenjanı. ⚠️ **Derslik bu maddeden çıkarıldı (v1.4-02, 2026-09-11):** derslik sınıfın değil **ders programının** özelliğidir — aynı sınıf farklı saatlerde farklı derslikte olabilir. Karşılığı **v1.4-11**'de (`DECISION_LOG` — "Kontenjan sınıfın, derslik programın özelliğidir").
 2. **Öğrenci Yönetimi:** Ad-Soyad, Öğrenci No, Sınıf, Telefon, Veli Adı, Veli Telefonu.
-3. **Müşteri Doğrulama Odaklı Rol Arayüzü:** Auth bariyeri olmadan 4 farklı rol (Admin, Öğretmen, Öğrenci, Veli) arasında tek tıkla geçiş yapılabilen, saha testine ve demo sunumlarına uygun arayüz.
-4. **İzole Mock Veri Katmanı:** Müşteriye sunum yaparken kurumun dolu gözükmesini sağlayan, `isMock: true` olarak bayraklanmış ve istendiğinde tek tıkla sıfırlanabilen gerçekçi örnek veriler.
+3. **Müşteri Doğrulama Odaklı Rol Arayüzü:** Auth bariyeri olmadan 4 farklı rol (Admin, Öğretmen, Öğrenci, Veli) arasında tek tıkla geçiş yapılabilen, saha testine ve demo sunumlarına uygun arayüz. ⚠️ **Sonradan düzeltme (2026-09-19):** bu madde **v1.0'ı** anlatıyor ve v1.1'den beri geçerli değil. Rol geçişi kaldırıldı; rol artık `organization_memberships` satırından ve gerçek Supabase oturumundan geliyor. Rolleri tek tıkla gezen arayüz yalnız **demo modunda** var (`__ORBIT_DEMO_MODE__`, üretim paketinde sabit `false`) ve orada da giriş ekranındaki rol kartlarıyla sınırlı. Aynı kişinin iki gerçek hesabı arasındaki geçiş ayrı bir özelliktir ve şifre ister (`v1.4-17`).
+4. **İzole Mock Veri Katmanı:** Müşteriye sunum yaparken kurumun dolu gözükmesini sağlayan, `isMock: true` olarak bayraklanmış ve istendiğinde tek tıkla sıfırlanabilen gerçekçi örnek veriler. ⚠️ **Sonradan düzeltme (2026-09-19):** `isMock` bayrağı hiç var olmadı; ayrım **derleme zamanında** yapılıyor (`educationData.ts` her ihracı `isDemoMode ? demo : []` kalıbında sarıyor, #144). Gerçek modda bu katman **boş dizi**; demo veri kümesi üretim paketinden eleniyor. 🔴 **Ve bunun bir bedeli ölçüldü (`ROADMAP` §4.23 B3):** Genel Bakış ekranları hâlâ bu katmandan besleniyor, yani gerçek kurumda kalıcı olarak `0` gösteriyorlar — kurumlar boşken doğru olan bu davranış, veri girilince yalana döndü (**K-28**). Düzeltmesi `v1.5-22`.
 
 ### 🚫 Faz 1 Kapsam Dışı (Non-Goals):
 
@@ -104,6 +104,8 @@ client/src/
 │   └── runtime.ts          # isDemoMode — preview derlemeleri demo modundadır
 
 > **Sonradan düzeltme (2026-09-16):** Bu ağaçta **dokuz modül eksikti** — `education/` altında altı (`homeworkService`, `guardianService`, `subjectService`, `classTeacherService`, `feedService`, `dayPlanService`) ve `auth/` altında üç (`sessionEvents`, `profileContactService`, `deploymentEnvironment`). Altısı v1.4'ün kendi dilimleriyle geldi ve `AGENTS.md` bu bölümü **her PR'ın yükümlülüğü** yapmasına rağmen hiçbiri işlenmedi (**K-08**). En kritik eksik `deploymentEnvironment.ts`'ti: sahte verinin kullanıcıya gitmemesini sağlayan kararın tek kaynağı, ve sıfırdan bir oturuma başlayan ajanın "dosyalar nerede" diye baktığı haritada adı geçmiyordu.
+>
+> 🔴 **Sonradan düzeltme (2026-09-19) — aynı kusur ÜÇÜNCÜ kez:** `lib/` satırında `postgrestLimits.ts` ve `cspConnectSrc.ts` eksikti. İkisi de `v1.5-09`'da (#321) eklendi — yani yukarıdaki düzeltmeden **iki gün sonra**, ve o düzeltmenin kendisi "bir daha olmasın" diye yazılmıştı. İkisi de sıradan yardımcı değil: biri platformun tamamına ait tavanın tek kaynağı, diğeri bir kapının denetleyicisi. Kayıt `ROADMAP` §4.23 B13. **Bu üçüncü tekrar, kuralın kapıya bağlanmadıkça işlemediğini gösteriyor** — `AGENTS.md` bu bölümü her PR'ın yükümlülüğü yapıyor (**K-08**) ve üç kez atlandı; kapı adayı: `client/src/**` altındaki modül sayısı ile bu ağaçtaki satır sayısını karşılaştıran bir dağıtım testi.
 ├── education/              # Eğitim alanının veri katmanı (v1.3-01) — bileşen değil
 │   ├── studentService.ts   # Öğrenci listesi; Student nesnesinin kurulduğu TEK yer (K-06)
 │   ├── classService.ts / scheduleService.ts / attendanceService.ts
@@ -140,6 +142,8 @@ client/src/
 ├── contexts/               # ThemeProvider
 ├── hooks/                  # useMobile, useComposition
 ├── lib/                    # supabaseClient, utils, demoStorage (+ test), useDebouncedValue, documents (ÖLÜ KOD)
+│   ├── postgrestLimits.ts  # POSTGREST_MAX_ROWS — platform geneli tavan, tek kaynak (v1.5-09)
+│   └── cspConnectSrc.ts    # CSP connect-src ↔ VITE_SUPABASE_URL denetleyicisi; `vite.config.ts` çağırır (v1.5-09)
 └── pages/
     ├── Home.tsx            # Giriş yönlendirici; önce kilit, sonra operatör → /platform
     ├── Platform.tsx        # Platform paneli rotası

@@ -118,11 +118,18 @@ Son doğrulama: **2026-08-23**, Issue #20.
 | `remove-member`          | `verify_jwt = true`                 | v1.4-07'de eklendi (#280); bildirim kapısı mutasyonla doğrulandı |
 | `reset-admin-password`   | ACTIVE, `verify_jwt = true`         | Issue #61 — `config.toml`'a kaydedildikten sonra deploy oldu     |
 | `delete-organization`    | ACTIVE, `verify_jwt = true`         | Issue #63                                                        |
+| `create-member`          | ACTIVE, `verify_jwt = true`         | Depoya 2026-08-26'da girdi (`da04ea1`); API (2026-09-19)         |
+| `reset-member-password`  | ACTIVE, `verify_jwt = true`         | Depoya 2026-08-25'te girdi (`3287dde`); API (2026-09-19)         |
+| `switch-account`         | ACTIVE, `verify_jwt = true`         | Depoya 2026-09-14'te girdi (`9db69af`); API (2026-09-19)         |
 | `ALLOWED_ORIGINS` secret | `https://orbit-v3-topaz.vercel.app` | Origin sondası: yalnızca bu origin geçiyor                       |
 
 > **Sonradan düzeltme (2026-08-25):** Bu tablo uzun süre yalnızca `bootstrap-organization`'ı listeledi; diğer iki fonksiyon 2026-08-24'te canlıya çıktı ve tabloya işlenmedi. Yani bu dosya, tam olarak önlemek için var olduğu hatayı kendisi yaptı — bkz. bölüm 1. Issue #77 belge denetiminde yakalandı.
 >
 > **Bekleyen:** Bölüm 3'ün tamamı en son 2026-08-23'te canlı sistemden doğrulandı. O tarihten sonra Faz E1–E3 girdi, kurum oluşturuldu ve silindi, üç fonksiyon güncellendi. **Yeni bir uçtan uca doğrulama turu gerekiyor**; bölüm 6'daki komutlar bunun içindir.
+>
+> 🔴 **Sonradan düzeltme (2026-09-19) — tablo yine eksikti, aynı kusur ikinci kez.** Üretim salt okunur sorgulandı ve **sekiz** fonksiyon döndü; tablo **beşini** listeliyordu. Eksik üçü yukarı eklendi: `create-member`, `reset-member-password`, `switch-account`. Yani bu tablo, 2026-08-25'te _"tam olarak önlemek için var olduğu hatayı kendisi yaptı"_ diye kayda geçen hatayı **tekrar** yaptı (**K-08**). Kayıt: `ROADMAP` §4.23 B13.
+>
+> ✅ **Bölüm 3'ün doğrulanan kısmı (2026-09-19, salt okunur):** sekiz fonksiyonun sekizi de `ACTIVE` ve `verify_jwt = true`; **72/72 migration** depodaki dosyalarla birebir aynı (son damga `20260927000000`). **Doğrulanmayan kısım:** panel ayarlarının kendisi (Auth sağlayıcıları, oturum ayarları, `Require current password`) — bunlar API'den okunamıyor ve panel erişimi ekipte. Yani "uçtan uca tur" borcu **kapanmadı**, yalnız API'den okunabilen yarısı tazelendi.
 
 > `ALLOWED_ORIGINS` bir güvenlik sınırı **değildir**, yalnızca CORS hijyenidir. Fonksiyon kodundaki kontrol `if (origin && ...)` biçiminde olduğu için `Origin` başlığı göndermeyen istemcilerde (curl, sunucu tarafı script) tamamen atlanır. Gerçek kapı operatör kontrolü ve `verify_jwt`'dir.
 >
@@ -523,6 +530,20 @@ Yukarıdaki tablodaki "açık rıza, taahhütname veya yeterlilik kararı" ifade
 > 📌 **`v1.5-18`'in on `as restrictive` politikası `multiple_permissive_policies`'i BÜYÜTMEDİ** ve bu beklenen sonuçtu: kısıtlayıcı politikalar izin veren politikalarla aynı listede sayılmıyor. Yani kiracı ön süzgeci eklenirken advisor tabanı bozulmadı — ölçüm bunu doğruladı.
 >
 > 📌 **`rls_enabled_no_policy` üçünün üçü de tasarım gereği:** üçü de yalnız `service_role` veya `definer` fonksiyon üzerinden okunuyor, `authenticated` hiç politika almıyor. Politika eklemek, bugün kapalı olan bir yolu açmak olurdu.
+>
+> ✅ **Bağımsız olarak yeniden ölçüldü (2026-09-19, gerçek kullanım turu · `ROADMAP` §4.23): altı kategorinin altısı da birebir aynı** — 40 / 3 / 1 / 33 / 21 / 17. Yani bu kutu güncel ve taban tutuyor.
+>
+> ⚠️ **Ve o turun kendi hatası buraya kayda geçiyor, çünkü tekrarlanabilir:** denetleyen ilk okumada _"belgede 27, üretimde 44 — taban bayat"_ diye yazmıştı. Yanlıştı; **2026-09-11 tarihli geçmiş satır** güncel sanılmıştı. Bu bölüm geçmiş ölçümleri bilinçli olarak saklıyor (**K-11**) ve bu, okuyanın _"hangi satır bugünü anlatıyor"_ sorusunu sormasını zorunlu kılıyor. Kural: bu bölümde bir sayı okuyan **önce tarihe bakar**; en taze kutu en üsttedir.
+
+**Pasif güvenlik taraması — ilk kez ölçüldü (2026-09-19).** OWASP ZAP baseline (yalnız pasif; aktif tarama paylaşımlı örnekte yasak):
+
+| Hedef                         | Sonuç                                                                                                                                                                                                                                |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Üretim (8 URL)                | **0 FAIL · 60 PASS · 7 WARN**                                                                                                                                                                                                        |
+| Yerel geliştirme sunucusu     | **0 FAIL · 66 PASS · 1 WARN**                                                                                                                                                                                                        |
+| Üretimdeki 7 WARN'ın dağılımı | CSP `style-src 'unsafe-inline'` (Tailwind/Radix satır içi stil üretiyor) · statik varlıklarda `Access-Control-Allow-Origin: *` ×4 (Vercel CDN varsayılanı) · `Cross-Origin-Embedder-Policy` yok ×2 · önbellek yönergeleri ×3 (bilgi) |
+
+Yedisi de **bilgi düzeyinde** ve hiçbiri kimlik/yetki yüzeyine dokunmuyor; kayda geçmelerinin sebebi bir sonraki taramanın **yeni** bir satır çıkarıp çıkarmadığının anlaşılabilmesi. Aynı turda güvenlik başlıklarının altısı da canlıda tek tek doğrulandı (HSTS 2 yıl + `includeSubDomains` + `preload` dahil) — `PROJECT_STATE` §6.1'in kaydı **tutuyor**.
 
 Ayrıca Supabase security advisor düzenli olarak kontrol edilmelidir. **2026-09-04'te ölçülen taban: 8 uyarı**, hepsi beklenen:
 

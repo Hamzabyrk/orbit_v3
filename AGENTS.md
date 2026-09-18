@@ -5,7 +5,9 @@
 
 ORBIT, dershane ve eğitim kurumları için çok kiracılı (multi-tenant) bir yönetim SaaS'ıdır. İki kişilik bir ekip (Arda Bülent, Hamza Bayrak) ve onların kullandığı YZ ajanları tarafından geliştirilir.
 
-**Faz E kapandı (2026-08-29):** kimlik zinciri uçtan uca çalışıyor ve production'da dört rolle doğrulandı. Sıradaki iş **v1.2** — iş tabloları ve RLS matrisi. Kalan bütün sürümler, her biri **dayandığı varsayımları beyan eden** dilimlere bölünmüştür: `.ai/ROADMAP.md` **§4.6**.
+**Faz E kapandı (2026-08-29):** kimlik zinciri uçtan uca çalışıyor ve production'da dört rolle doğrulandı. Kalan bütün sürümler, her biri **dayandığı varsayımları beyan eden** dilimlere bölünmüştür: `.ai/ROADMAP.md` **§4.6**.
+
+> **Sonradan düzeltme (2026-09-19):** bu satır _"Sıradaki iş **v1.2**"_ diyordu ve üç sürüm boyunca güncellenmedi (**K-08**). v1.2, v1.3 ve v1.4 kapandı; **yürüyen sürüm v1.5**. Sürüm durumunu buradan okuma — tek kaynak `ROADMAP.md` **§0**, sıradaki iş **§4.6**. Buraya sürüm numarası yazılmamasının sebebi tam olarak budur: iki yerde tutulan durumun biri her zaman eskir (**K-06**).
 
 ---
 

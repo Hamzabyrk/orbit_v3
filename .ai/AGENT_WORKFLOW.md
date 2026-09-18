@@ -592,6 +592,38 @@ Yapısal bir test bir metin araması yapıyorsa, aradığı metnin **yalnızca k
 
 ⚠️ Ve **K-23 ile karıştırılmamalı.** K-23 "kodu geri al, kırmızıya dönüyor mu" diyor. K-26 bir adım öncesi: mutasyonun **doğru mutasyon** olması. Yukarıdaki CSP vakasında ilk denenen mutasyon (`checkCspAllowsSupabase` → `checkCspAllowsSupabaseKaldirildi`) kapıyı kırmızıya döndürdü ve kapının sağlam olduğu izlenimi verdi; gerçek mutasyon — çağrıyı bırakıp **fırlatmayı** düşürmek — zayıflığı ortaya çıkardı. **Kolay mutasyon, kapıyı doğrulamaz.**
 
+### K-27 · Bir değişmez, her erişim yolunda ayrı ayrı sınanır
+
+Bu sistemde veriye üç ayrı yoldan ulaşılıyor: **PostgREST + RLS**, **`security definer` RPC**, ve **`service_role` ile çalışan Edge Function**. Bir güvenlik değişmezi bunlardan birinde tutuyor olabilir ve diğerinde tutmuyor olabilir — ve tuttuğu yerden bakan biri onu "yürürlükte" sanır.
+
+K-25 bunun yarısını söylüyordu: `definer` bir fonksiyon politikayı taklit ediyorsa politikanın her şartını taşır. 2026-09-19'da ölçülen şey, aynı açığın **üçüncü yolda** hâlâ açık durması: şifre kilidi (`must_change_password`) dört kimlik Edge Function'ında ve çağırdıkları `internal_*` RPC'lerinde hiç sorulmuyordu. Kilitli bir yöneticinin jetonu `students`'tan **0 satır** alıyor ama `create-member`'dan **HTTP 201** alıyordu.
+
+Sinsi yanı, düzeltmenin **kısmen** yapılmış olması. `v1.5-18` beş `definer` fonksiyonu düzeltti, kuralı yazdı, pgTAP kapısını kurdu — ve kimlik yolunu hiç açmadı, çünkü o yol "RLS'i atlayan fonksiyon" diye görünmüyor: `service_role` zaten her şeyi görüyor, yetki kontrolü fonksiyonun kendi `if` bloğunda. Yani K-25'in aradığı desen orada **yok**, ama K-25'in koruduğu değişmez orada da geçerli.
+
+**Kural:** bir güvenlik değişmezi yazıldığında veya düzeltildiğinde, üç erişim yolunun **üçü de** tek tek sorulur ve cevabı yazılır. "Bu yolda geçerli değil" meşru bir cevaptır; **sorulmamış olmak** değildir. Kanıtı, değişmezi her yolda ayrı sınayan bir testtir — PostgREST için pgTAP politikası, `definer` için fonksiyonu doğrudan çağıran iddia, Edge için zinciri koşturan kabuk testi (`supabase/tests/functions/`).
+
+⚠️ Ve **K-24 gereği geriye uygulanır:** yeni bir erişim yolu açıldığında (yeni bir Edge Function, yeni bir `definer` RPC), o yolun mevcut bütün değişmezleri taşıyıp taşımadığı sorulur.
+
+### K-28 · Boş sistemde doğru olan ekran, dolu sistemde yalan söyleyebilir
+
+Bir ekranın doğruluğu **verinin durumuna bağlıysa** o doğruluk tarihlidir ve sessizce sona erer. Kod değişmeden doğru olmaktan çıkan bir ekran, hiçbir testin ve hiçbir denetimin yakalamadığı kusur sınıfıdır — çünkü değişen şey kod değil, dünyadır.
+
+2026-09-19'da ölçüldü: dört rolün Genel Bakış ekranı sabit `0` ve _"yok"_ değerleri gösteriyor. Bu karar 2026-08-29'da **bilinçli ve doğru** alınmıştı — ROADMAP'in onaylı cevabı _"gerçek kurumda `0` ve 'Henüz veri yok' gösterilecek"_ diyor ve o gün kurumlar gerçekten boştu. v1.4 veri girişini açtı; aynı ekran, tek satır kod değişmeden, _"Aktif öğrenci 0"_ derken ekranda 3 öğrenci duran bir **yalana** döndü. Velinin gördüğü _"Gelişim sinyali yok"_ cümlesi, çocuğunun 85 puanlık sınavı sistemde dururken yazılıyordu.
+
+**Kural:** "şimdilik boş" diye verilen her karar bir **tetikleyiciyle** yazılır: _bu ekran ne olduğunda yeniden doğrulanacak?_ Tetikleyici bir tarih değil bir **olaydır** ("ilk gerçek öğrenci girildiğinde", "ilk yoklama alındığında"). Tetikleyicisi olmayan "şimdilik" kaydı, **K-11**'in tersi yönde bir tuzaktır: K-11 gerçekleşmiş tahmini silmemeyi söyler, K-28 geçerliliği bitmiş doğruyu fark etmeyi.
+
+📌 Pratik sonucu: bir denetim turu **boş sistemde** koşulduysa hiçbir şey kanıtlamamıştır. Bu depoda `v1.5-17` ve `v1.5-18` tam olarak bu yüzden tohumlu veri istedi; aynı şart **arayüz** denetimleri için de geçerlidir.
+
+### K-29 · Kütüphane varsayılanı, mimari kararı sessizce geri alabilir
+
+Bir mimari karar kütüphanenin **bir** ayarıyla uygulanmışsa, aynı kütüphanenin **başka** bir varsayılanı o kararı geri alabilir — ve karar yerinde durduğu için kimse bakmaz.
+
+2026-09-19'da ölçüldü: #132 paylaşılan dershane bilgisayarı için _"her sekme kendi oturumunu yürütür"_ kararını verdi ve `supabaseClient.ts`'te `storage: sessionStorage` ile uyguladı. Karar doğru, uygulama doğru. Ama `@supabase/auth-js` 2.112.3 `persistSession` açıkken **ayrıca** bir `BroadcastChannel` kuruyor ve her auth olayını sekmeler arasında yayıyor — depo türünden bağımsız. Ölçüm: A sekmesinde öğretmen girişliyken B sekmesinde yönetici giriş yaptı, **6 saniye içinde A sekmesi giriş ekranına düştü**; A'nın `sessionStorage`'ında kendi jetonu hâlâ duruyordu. Veri sızmadı — kaybolan şey öğretmenin kaydedilmemiş yoklamasıydı, yani kararın korumak istediği senaryonun ta kendisi.
+
+**Kural:** bir karar kütüphane ayarıyla uygulandığında, o kütüphanenin **aynı konuyu etkileyen diğer varsayılanları** okunur ve kararın kapsamı buna göre yazılır. Kanıt, kararın koruduğu senaryonun **gerçekten** koşulmasıdır — ayarın kodda durduğunu görmek değil. `sessionStorage` satırına bakan biri kararın yürürlükte olduğunu görür; iki sekme açan biri olmadığını görür.
+
+⚠️ Bu **K-26**'nın bir akrabası: orada kapı adını arıyordu, burada karar ayarın varlığını kanıt sayıyor. İkisinde de eksik olan, korunan **davranışın** koşulması.
+
 ### Değişmeyen bölümler — brifingde tekrar yazılmaz
 
 Aşağıdaki üç blok her görevde aynıdır. Brifingde **tek satırla anılır**, kopyalanmaz:
