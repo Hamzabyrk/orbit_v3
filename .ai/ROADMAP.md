@@ -2588,6 +2588,81 @@ Beşinin de ortak yanı: hiçbiri bir kapıya bağlı değil ve hepsi "her PR'da
 
 ⚠️ **Ölçüm tohumu `organization_code_seq`'i ilerletmiyor.** Tohum kurum kodlarını (1000–1019) doğrudan `insert` ediyor, dizi 1'de kalıyor; tohumdan sonra operatör kurum açmaya çalışınca `bootstrap-organization` `409 organization_bootstrap_failed` dönüyor. Yerelde `setval` ile aşıldı. Tohumun kusuru, ürünün değil — ama tohumu kullanan bir sonraki tur aynı duvara çarpar.
 
+### Ölçülmüş tabanın üzerine çıkılanlar (brifing §4)
+
+Tura yedi ölçülmüş kontrol devredilmişti ve her birinin _"sana düşen"_ kısmı vardı. Sonuçlar:
+
+| Devredilen kontrol               | Bu turda ne yapıldı                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **PostgREST filtre enjeksiyonu** | 🔴 **Kırılmaya çalışıldı, kırılmadı.** `studentService.ts:276`'nın kaçırma kalıbı (`\` ve `"` kaçırılır, değer çift tırnak içinde) on bir yükle sınandı: `"` · `,` · `)` · `\` · `\"` · `a",full_name.ilike."*` · `%",student_number.not.is.null,…` · `%"),or=(…`. **Hepsi `HTTP 200` ve 0 satır** — ne hata, ne fazladan satır, ne filtre kaçışı. Kaçırma **doğru yapılmış**                                                                                                                                                         |
+| **XSS yüzeyi**                   | 🔴 **İzlendi ve yüzey kapalı çıktı — üstelik beklenenden de kapalı.** `dangerouslySetInnerHTML` yalnız `components/ui/chart.tsx`'te ve oraya giden iki değer (`chartId`, tema renkleri) geliştirici sabiti; kullanıcı verisi ulaşmıyor. **Ve bileşenin hiçbir çağıranı yok** — `ChartContainer`/`ChartStyle`/`ChartTooltip` depoda tek bir yerden bile import edilmiyor, yani ölü kod. `client/src` genelinde başka `dangerouslySetInnerHTML`, `.innerHTML` veya `outerHTML` **yok**; kullanıcı verisi `href`/`src`/`style`'a akmıyor |
+| **Türkçe İ/ı tuzağı**            | ✅ Çözülmemiş yer bulundu ve ölçüldü: **arama** (B18). Sıralama `en_US` harmanlamasıyla bu örnekte doğru çalıştı; `student_number` eşleştirmesi ASCII olduğu için etkilenmiyor                                                                                                                                                                                                                                                                                                                                                        |
+| **Çift gönderim koruması**       | ✅ Eksik olan bulundu: `PaymentPlanDetailDialog`'un üç düğmesi (B21). Form diyaloglarının tamamında koruma **var** ve çift tık denemesi tek kayıt üretti                                                                                                                                                                                                                                                                                                                                                                              |
+| **HSTS başlığı**                 | ❌ **Uyarı yanlış alarmdı.** Canlıda ölçüldü: `max-age=63072000; includeSubDomains; preload` — Vercel ekliyor. `vercel.json`'a satır eklemeye gerek yok                                                                                                                                                                                                                                                                                                                                                                               |
+| **Supabase advisor**             | ✅ Bağımsız yeniden ölçüldü, altı kategorinin altısı da birebir aynı (40/3/1/33/21/17). Yeni kategori **yok**, gerekçeler hâlâ geçerli. Kayıt `PLATFORM_SETTINGS` §5                                                                                                                                                                                                                                                                                                                                                                  |
+| **`max_rows`**                   | ✅ Bağlı okuma yolları ölçüldü: `loadHomework` zinciri hâlâ tavana bağlı (B14 / `v1.5-24`). `§4.22`'nin "düşürülürse sessizce yanlış sayı üretir" asimetrisi geçerliliğini koruyor                                                                                                                                                                                                                                                                                                                                                    |
+
+📌 **Ölü kod olarak `components/ui/chart.tsx`** ayrıca bir kayıt: `lib/deadServiceExports.test.ts` _"çağıranı olmayan servis kalamaz"_ kuralını zorluyor ama kapsamı `components/ui/` altını **içermiyor** (üçüncü taraf/vendored dosyalar kuralın dışında, `AGENTS.md`). Yani bu dosyanın ölü olması kural ihlali değil; kaydedilmesinin sebebi, tek `dangerouslySetInnerHTML` kullanımının **canlı olmayan** bir dosyada durması — XSS yüzeyi değerlendirilirken bunun bilinmesi gerekiyor.
+
+### Ekran × rol kapsamı — neyin gerçekten denendiği
+
+Brifing 02 §5.2'nin matrisi. ✅ arayüzde açıldı ve beklenen davrandı · 🔴 bulgu · ⚪ rol görmemeli ve görmedi · ⏭️ denenmedi.
+
+| Ekran             | admin                                  | teacher                       | student         | parent          |
+| ----------------- | -------------------------------------- | ----------------------------- | --------------- | --------------- |
+| Genel Bakış       | 🔴 B3                                  | 🔴 B3                         | 🔴 B3           | 🔴 B3           |
+| Gün Planı         | ✅ görev + takvim + düzenleme          | ✅                            | ⚪              | ⚪              |
+| Öğrenciler        | ✅ profil/düzenle/arşivle · 🔴 B19 B20 | ✅                            | ⚪              | ⚪              |
+| Sınıflar          | ✅ düzenle + kayıt + öğretmen          | ✅                            | ⚪              | ⚪              |
+| Ders Programı     | ✅                                     | ✅ "bugün" doğru              | ✅              | ✅              |
+| Yoklama           | 🔴 B4 · 🟡 B7                          | ✅ aç/işaretle/kaydet · 🔴 B4 | ⚪              | ⚪              |
+| Sınavlar          | ✅ düzenle + arşivle                   | ✅ ortalama doğru             | ✅ yalnız kendi | ✅ yalnız çocuk |
+| Ödevler           | ⏭️ liste görüldü                       | ✅ tam CRUD + teslim          | ✅ (boş)        | ⏭️              |
+| İletişim          | ✅ · 🟡 B11                            | 🔴 B16                        | ✅              | ⏭️              |
+| Kayıt ve Ödemeler | ✅ plan/taksit/ödendi · 🔴 B6 B21      | ⚪                            | ⚪              | ✅              |
+| Raporlar          | ✅                                     | ✅                            | ⚪              | ⚪              |
+| Denetim Kaydı     | ✅ · 🟡 B8                             | ⚪                            | ⚪              | ⚪              |
+| Ayarlar           | ✅ üye/kurum/şube/ders/güvenlik        | ✅ kişisel                    | ✅ kişisel      | ⏭️              |
+| ~~Otomasyonlar~~  | ⏭️ atlandı (`v1.5-10`)                 | ⚪                            | ⚪              | ⚪              |
+
+**Menü kapsamı doğru:** her rol yalnız matristeki bölümleri gördü (öğrenci 6, veli 7, öğretmen 11, yönetici 14). Yetki sızması yok. ⏭️ işaretli beş hücre denenmedi ve sebebi aynı: o ekranın **aynı bileşeni** başka bir rolde açıldı, ayrı bir kod yolu değil.
+
+### On eksen — turun notu
+
+| #      | Eksen                    | Not                                                                                                                                             |
+| ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1**  | Doğruluk                 | ⚠️ Genel Bakış yanlış (B3); sınav ortalaması, doluluk ve teslim oranı doğru; gece yarısı üç yolda doğru, ödevde yanlış (B15)                    |
+| **2**  | Yetki ve kiracı sınırı   | ✅ **Turun en sağlam ekseni** — dört rol ve iki kurumda tek satır sızmadı; tek boşluk Edge kimlik yolu (B1)                                     |
+| **3**  | Kimlik ve oturum         | ⚠️ Kilit, geçici şifre, bağlama ve geçiş çalışıyor; iptal modeli iki hızlı (Edge anında, PostgREST jeton ömrü kadar); B17                       |
+| **4**  | Girdi doğrulama          | ✅ Enjeksiyon ve XSS kapalı (yukarıda); uzun/boş ad sunucuda reddediliyor; tutar üst sınırı yok (B6)                                            |
+| **5**  | Hata davranışı           | ⚠️ Ağ kesik ve yavaş ağ dürüst; eşlenmemiş kodlar ham İngilizce sızdırıyor (B6)                                                                 |
+| **6**  | Performans ve ölçeklenme | ⚠️ Tekil gecikme iyi; kalan satır-başına-yetki yolu bulundu ve ölçüldü (B14)                                                                    |
+| **7**  | Veri bütünlüğü           | 🔴 Yoklama/sınav sessiz sapması (B4); arşiv tutarsızlığı (B19); idempotency çalışıyor, bir diyalogda kilit yok (B21)                            |
+| **8**  | KVKK ve kişisel veri     | 🔴 Telefon denetim kaydında (B2); yöneticinin kurtarma e-postası okuması belgeli ve bilinçli                                                    |
+| **9**  | Erişilebilirlik ve mobil | 🔴 Dört critical axe ihlali, dokunma hedefleri 44 px altında; yatay taşma **yok**, menü ve tablolar mobilde doğru (B10)                         |
+| **10** | İşletilebilirlik         | ⚠️ Dağıtım ve geri alma yolu var; **izleme yok** (`v1.5-06` açık), yedek kararı açık (`v1.5-08`). Bir şey bozulduğunda kullanıcıdan öğreniliyor |
+
+### Projenin kendi standardına göre notu (brifing 03 §5.7)
+
+Depo kurallarını kendisi yazıyor; tur bunları ölçtü. İhlal görülenler:
+
+| Kural                              | İhlal                                                                                       | Bulgu            |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- | ---------------- |
+| **K-03** (uydurma değer yok)       | Sabit kart rakamları, zil sayıları, "Sistemler çalışıyor", ödeme kartı alt metni            | B3               |
+| **K-06** (tek kaynak)              | README sürüm tablosu, "30 dakikadır" sabit metni, `link_accounts` tutarsızlığı, tz ikizleri | B13, küçükler    |
+| **K-08** (belge güncel)            | `PROJECT_STATE` §5 (üçüncü kez), `PLATFORM_SETTINGS` §3.3 (ikinci kez), `AGENTS.md`         | B13              |
+| **K-12** (güvenlik borcu kapanır)  | `Require current password` hâlâ kapalı                                                      | küçükler         |
+| **K-14** (sıfır satır → söyle)     | Yoklama/sınav "kaldır → kaydet"; duyuru listesi tazelenmiyor                                | B4, B16          |
+| **K-19** (ikizlere kapı)           | Eylem adı ↔ etiket tablosu; sorgu anahtarı üreticisi ↔ hook anahtarı                        | B8, B16          |
+| **K-22** (yokluk iddia etme)       | Dört dashboard, son oturum görünümü, "İsimsiz\*", servis içi "adı okunamadı"                | B3, B7, küçükler |
+| **K-24** (gerileme)                | `feedService` servis içinde yokluk etiketi — v1.3-01'de temizlenen kalıp geri gelmiş        | küçükler         |
+| **K-25** (definer her şartı taşır) | Dört kimlik RPC'si kilidi taşımıyor                                                         | B1               |
+| Türkçe arayüz kuralı               | `ErrorBoundary`, `NotFound`, ham İngilizce hata metinleri                                   | B6, küçükler     |
+| "Kişisel veri loga yazılmaz"       | `audit_row_change` değer kopyalıyor                                                         | B2               |
+| "Mobil-öncelikli" taahhüdü         | 44 px altı dokunma hedefleri, `maximum-scale=1`                                             | B10              |
+
+**Tutan kurallar (ölçüldü, ihlal bulunmadı):** K-04 (kapı yoksa yazma yok — operatör ve işaretleme yolları), K-09 (denetim ekranında aktör ayrımı), K-14'ün yazma tarafı (bütün servisler sıfır satırda hata fırlatıyor), K-23 (dağıtım kapıları mutasyonla kırmızıya dönüyor), ORB01–ORB06 kodları ve Türkçe ipuçları, idempotency defteri, son yönetici koruması.
+
 ### Ölçmediğim
 
 1. **Faz 2 — üretim turu.** Yukarıda; onaya bağlı.

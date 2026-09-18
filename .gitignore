@@ -112,3 +112,6 @@ temp/
 # CI lisans envanteri çıktısı
 licenses.json
 
+
+# Eşzamanlılık ölçümünde basılan yerel jetonlar (üç saatte geçersiz olur, git'e girmez)
+supabase/perf/k6/jetonlar.json

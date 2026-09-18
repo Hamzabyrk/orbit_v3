@@ -162,6 +162,8 @@ client/src/
 
 Aynı sebeple dosya `analyze;` ile bitiyor — o satır atlanırsa planlayıcı boş tablo varsayımıyla çalışır ve ölçüm yanlış plan ölçer.
 
+**Eşzamanlılık takımı — `supabase/perf/k6/` (eklendi 2026-09-19):** tohumun ürettiği **veri**nin üzerine bir dershane-saati **yük** bindiren k6 senaryosu ve hesap fabrikası. Tohum giriş yapabilen hesap üretmediği (şifre alanı geçerli bir hash değil) ve 683 jetonu şifreyle almak GoTrue'nun 30/5 dk/IP sınırına takıldığı için jetonlar **testin dışında**, yerel `JWT_SECRET` ile basılıyor. 🔴 **Yalnız yerel; üretime yük basılmaz** ve üretimde bu yol zaten yoktur (`JWT_SECRET` bilinmez). Basılan `jetonlar.json` git'e girmez. Ölçümleri ve yorumlanabilirlik sınırı: klasörün kendi `README.md`'si ve `ROADMAP` §4.23.
+
 **`lib/documents.ts` ölü koddur** — hiçbir yerden çağrılmıyor ve dayandığı `workspace_documents` tablosunda hiç policy yok. "Belgeler" özelliği v1.6'da yeniden ele alınana kadar bu şekilde kalır; bkz. `PLATFORM_SETTINGS.md` kabul edilmiş açıklar. **Bu satır artık bir kapının dayanağı (2026-09-13):** `client/src/lib/deadServiceExports.test.ts` "çağıranı olmayan servis kalamaz" kuralını zorluyor ve `lib/documents.ts` oradaki **tek muafiyet**, gerekçesi olarak buraya işaret ediyor. Muafiyetin kendisi de sınanıyor — dosya kullanılmaya başlandığı gün test kırmızıya döner ve satırın silinmesini ister.
 
 ---
