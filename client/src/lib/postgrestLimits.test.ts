@@ -15,11 +15,11 @@ import { POSTGREST_MAX_ROWS } from "./postgrestLimits";
  *    bir gerçek, tek bir özelliğin servis dosyasında (**K-06**). v1.5-09'da
  *    `lib/postgrestLimits.ts`'e taşındı.
  *
- * 2. ⚠️ **Üretimdeki değer hâlâ doğrulanmadı ve buradan doğrulanamaz.**
- *    Proje düzeyi bir PostgREST ayarı: rol yapılandırmalarında
- *    `pgrst.db_max_rows` yok (2026-09-18'de üretimde ölçüldü) ve Management
- *    API dışında okunamıyor. Tek doğrulama yolu bir panel okuması:
- *    **Supabase → Settings → API → Max rows**.
+ * 2. ✅ **Üretimdeki değer 2026-09-18'de ÖLÇÜLDÜ: 1000.** Veritabanından
+ *    okunamadığı ölçüldü (rol yapılandırmalarında `pgrst.db_max_rows` yok),
+ *    kalan tek yol panel okumasıydı ve yapıldı —
+ *    **Supabase → Settings → API → Max rows**. Yerel `config.toml` ile aynı,
+ *    yani buradaki sabit doğru bir tabanın üzerinde duruyor.
  *
  * ## Bu yüzden kapı sayının doğruluğunu değil, ona BAĞIMLILIĞI ölçüyor
  *
@@ -105,16 +105,23 @@ describe("PostgREST satır tavanı (v1.5-09 · §4.12)", () => {
     expect(tanimlar).toEqual(["lib/postgrestLimits.ts"]);
   });
 
-  it("varsayım olduğu ve nasıl doğrulanacağı yazılı", () => {
-    // ⚠️ Bu iddia bir davranışı değil bir **kaydı** koruyor. Sayı bir varsayım
-    // ve doğrulanma yolu yalnız bir panel okuması; o cümle dosyadan silinirse
-    // sayı zamanla ölçülmüş bir gerçek gibi okunmaya başlar (**K-10**).
+  it("ölçümün tarihi, değeri ve yeniden doğrulama yolu yazılı", () => {
+    // ⚠️ Bir davranışı değil bir **kaydı** koruyor (**K-10**). İki yönü var:
+    //
+    //   - Sayının ÖLÇÜLDÜĞÜ ve ne zaman ölçüldüğü — tarihsiz bir sayı bir yıl
+    //     sonra hâlâ doğru sanılır.
+    //   - Yeniden doğrulama yolunun yazılı olması — değer panelden değişebilir
+    //     ve o gün soruyu soran kişi nereye bakacağını bilmek zorunda.
+    //
+    // Ayrıca düşürmenin tehlikeli olduğu uyarısı: `homeworkService` tavanını
+    // açıkça bu sayı olarak istiyor, düşürülürse eksik veri tam sanılır.
     const icerik = readFileSync(
       path.join(istemciKoku, "lib", "postgrestLimits.ts"),
       "utf8"
     );
 
-    expect(icerik).toContain("VARSAYIM");
+    expect(icerik).toContain("ÜRETİMDE ÖLÇÜLDÜ (2026-09-18): 1000");
     expect(icerik).toContain("Settings → API → Max rows");
+    expect(icerik).toContain("DÜŞÜRÜLMEMELİ");
   });
 });
