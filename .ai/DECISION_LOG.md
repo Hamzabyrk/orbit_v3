@@ -3470,7 +3470,7 @@ Yani şema bir denemeyi **bir satır olarak** tutabiliyor, ama **ders bazında d
 
 ### Karar: Bağ koparma grubu dağıtmaz, ama son hesapta bağ tamamen çözülür
 
-**Karar (2026-09-18, `v1.5-07` · #319):** `unlink_accounts()` **çağıranın kendi bağını** koparır; gruptaki diğer hesaplara dokunmaz. **İstisna:** koparmadan sonra grupta tek hesap kalacaksa, o hesabın da bağı çözülür ve `people` satırı silinir.
+**Karar (2026-09-18, `v1.5-07` · #319):** `unlink_accounts()` **çağıranın kendi bağını** koparır; gruptaki diğer hesaplara dokunmaz. **İstisna:** koparmadan sonra grupta tek hesap kalacaksa, o hesabın da bağı çözülür.
 
 **Gerekçe — iki farklı soruya iki farklı cevap:**
 
@@ -3484,5 +3484,7 @@ Yani şema bir denemeyi **bir satır olarak** tutabiliyor, ama **ders bazında d
 **Yetki kişinin kendisinde, yöneticide değil** (karar 2026-09-16 teyit edildi). Sebep bu dilimde daha da netleşti: yönetici koparabilse, **B1'i kullanan kişi izini de temizleyebilirdi** — bağı kurar, kullanır, koparır ve geriye yalnız iki denetim satırı kalırdı.
 
 **Denetim izi:** etkilenen **her** hesabın **her** aktif üyeliğinin kurumuna bir `account_link.severed` satırı yazılır. Bir kurum yalnız kendi üyesine ait olayı görür; başka kurumun hesabı o kuruma yazılmaz. `severed_by_self` bayrağı koparanı işaretler — bir yönetici kendi kurumunun denetim kaydında "bu üyenin hesap bağı koparıldı, koparan kendisi değil" ayrımını görebilir.
+
+⚠️ **Sahipsiz kalan `people` satırı SİLİNMİYOR.** İlk yazımda siliniyordu; **Yıkıcı Migration Kontrolü** o `delete`'i yakaladı ve `-- ALLOW-DESTRUCTIVE` kaçış yolu **kullanılmadı** çünkü silmeye gerek yoktu: güvenlik özelliği _"o kişi kaydına bağlı hesap kalmaması"_ ve onu `update` sağlıyor. Sahipsiz satır opak bir kimlikten başka bir şey taşımıyor, kimse ona bakmıyor — `my_linked_accounts` da geçiş kapısı da `person_id` üzerinden çalışıyor. Emsal aynı ailenin bir önceki migration'ı: eski bağlama kodu silinmek yerine süresi bitiriliyor, gerekçesi de aynı. **Kapı, gereksiz bir yıkıcı ifadeyi kaldırttı.**
 
 **Reddedilen alternatif:** koparmayı "grubu tamamen dağıt" olarak tanımlamak. Üç hesaplı bir kişinin bir hesabını ayırmak isterken hepsini kaybetmesi, kullanıcının istemediği bir yan etki olurdu — ve geri alması için iki kod üretip iki bağ kurması gerekirdi.

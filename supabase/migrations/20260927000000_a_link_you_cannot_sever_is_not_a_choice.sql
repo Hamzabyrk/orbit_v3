@@ -40,8 +40,7 @@
 -- Koparma yetkisi **kişinin kendisinde** (karar 2026-09-16). Yöneticide değil:
 -- yönetici koparabilse, B1'i kullanan kişi izini de temizleyebilirdi.
 --
--- ⚠️ **Grup tek hesaba düştüğünde o hesabın da bağı çözülür ve `people`
--- satırı silinir.** Sebep: amaç "bir hesabı gruptan çıkarmak" değil, **yanlış
+-- ⚠️ **Grup tek hesaba düştüğünde o hesabın da bağı çözülür.** Sebep: amaç "bir hesabı gruptan çıkarmak" değil, **yanlış
 -- kurulmuş bir bağı geri almak**. Geriye `person_id`'si dolu ama yalnız bir
 -- hesap kalsaydı, o hesap yeni bir kodla aynı gruba tekrar bağlanabilirdi ve
 -- koparma yarım kalmış olurdu. Kalan hesap tanım gereği **aynı kişinin**
@@ -191,9 +190,20 @@ begin
 
   -- Grup tek hesaba düştüyse bağ tamamen çözülür: yarım kalmış bir grup,
   -- aynı kişi kaydına yeniden bağlanmanın yolu olurdu.
+  --
+  -- ⚠️ `people` satırı SİLİNMİYOR ve bunu **Yıkıcı Migration Kontrolü**
+  -- düşündürdü. İlk yazımda burada `delete from public.people` vardı, kapı
+  -- onu yakaladı ve `-- ALLOW-DESTRUCTIVE` kaçış yolu kullanılmadı: silmeye
+  -- **gerek yoktu.** Güvenlik özelliği "o kişi kaydına bağlı hesap kalmaması"
+  -- ve onu yukarıdaki `update` sağlıyor. Sahipsiz kalan `people` satırı
+  -- opak bir kimlikten başka bir şey taşımıyor; kimse ona bakmıyor,
+  -- `my_linked_accounts` ve geçiş kapısı `person_id` üzerinden çalışıyor.
+  --
+  -- Emsal aynı ailenin bir önceki migration'ı: `issue_account_link_code`'da
+  -- eski kodu silmek yerine süresi bitiriliyor, gerekçesi de "silmeye gerek
+  -- yoktu". Aynı kapı, aynı cevap.
   if kalan <= 1 then
     update public.profiles set person_id = null where person_id = kisi_id;
-    delete from public.people where id = kisi_id;
     kalan := 0;
   end if;
 
@@ -223,7 +233,7 @@ end;
 $$;
 
 comment on function public.unlink_accounts() is
-  'Çağıranın hesap bağını koparır ve geriye kalan bağlı hesap sayısını döndürür. Yetki KİŞİNİN KENDİSİNDE (karar 2026-09-16): yönetici koparabilse, bağı hatalı kuran kişi izini de temizleyebilirdi. Grup tek hesaba düştüğünde bağ tamamen çözülür ve `people` satırı silinir — amaç gruptan çıkarmak değil, yanlış kurulmuş bağı geri almaktır. Etkilenen her hesabın kurumuna `account_link.severed` denetim satırı yazılır.';
+  'Çağıranın hesap bağını koparır ve geriye kalan bağlı hesap sayısını döndürür. Yetki KİŞİNİN KENDİSİNDE (karar 2026-09-16): yönetici koparabilse, bağı hatalı kuran kişi izini de temizleyebilirdi. Grup tek hesaba düştüğünde bağ tamamen çözülür — amaç gruptan çıkarmak değil, yanlış kurulmuş bağı geri almaktır. Sahipsiz kalan `people` satırı silinmez: güvenlik özelliği bağın kopması, satırın yok olması değil. Etkilenen her hesabın kurumuna `account_link.severed` denetim satırı yazılır.';
 
 revoke all on function public.unlink_accounts() from public, anon;
 grant execute on function public.unlink_accounts() to authenticated;

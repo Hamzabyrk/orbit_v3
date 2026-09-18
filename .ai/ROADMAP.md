@@ -2254,6 +2254,8 @@ B1 ile birlikte okunduğunda ortaya çıkan şey şu: **yanlış kurulmuş bir b
 
 `unlink_accounts()` yazıldı. Yetki **kişinin kendisinde** (karar 2026-09-16, bu dilimde gerekçesi netleşti: yönetici koparabilse B1'i kullanan kişi izini de temizleyebilirdi). Grup tek hesaba düşerse bağ tamamen çözülür — ayrıntı ve reddedilen alternatif `DECISION_LOG`'da.
 
+⚠️ **Ve bu turda bir kapı gereksiz bir yıkıcı ifadeyi kaldırttı.** İlk yazımda sahipsiz kalan `people` satırı siliniyordu; **Yıkıcı Migration Kontrolü** o `delete`'i yakaladı. `-- ALLOW-DESTRUCTIVE` kaçış yolu **kullanılmadı**, çünkü silmeye gerek yoktu: güvenlik özelliği bağın kopması ve onu `update` sağlıyor. Emsal aynı ailenin bir önceki migration'ında hazırdı — eski bağlama kodu silinmek yerine süresi bitiriliyor, gerekçesi de aynı cümle. Kapının işi "izin isteyeceğin yeri göstermek" değil, **gerçekten gerekip gerekmediğini sordurmak**.
+
 ⚠️ **Ve arayüz yolu da bu dilimde.** Yol yalnız API'de kalsaydı B2 **kullanıcı için kapanmış olmazdı**; §4.15'in bulgusu zaten "arayüzde de yok" diyordu. Koparma `AccountSwitchMenu`'ye **iki adımlı** bir madde olarak eklendi: ilk tıklama menüyü açık tutup onay ister. Tarayıcı diyaloğu kullanılmadı — geri alınamaz bir işlemin onayı, işlemin kendisiyle aynı yerde durmalı.
 
 ### B3 — menü tutamayacağı söz veriyordu

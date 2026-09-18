@@ -246,12 +246,21 @@ select is(
   'no account points at the person record any more'
 );
 
--- 17 · `people` satırı da silindi: geriye sahipsiz bir kişi kaydı kalmıyor.
+-- 17 · ⚠️ `people` satırı DURUYOR ve bu bilinçli. İlk yazımda siliniyordu;
+--      **Yıkıcı Migration Kontrolü** o `delete`'i yakaladı ve kaçış yolu
+--      kullanılmadı çünkü silmeye gerek yoktu: güvenlik özelliği "o kişi
+--      kaydına bağlı hesap kalmaması" ve onu 16. iddia ölçüyor. Sahipsiz
+--      satır opak bir kimlikten başka bir şey taşımıyor ve kimse ona
+--      bakmıyor — `my_linked_accounts` da geçiş kapısı da `person_id`
+--      üzerinden çalışıyor.
+--
+--      Bu iddia o kararın kaydı: satır silinmeye başlarsa burası düşer ve
+--      soran kişi gerekçeyi bulur.
 select is(
   (select count(*) from public.people
    where id = 'f4000000-0000-0000-0000-00000000f400'),
-  0::bigint,
-  'and the person row itself is gone — unlink restores the pre-link state'
+  1::bigint,
+  'the orphaned person row is deliberately left behind — severing the link is the security property, deleting the row is not'
 );
 
 select * from finish();
