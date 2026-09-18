@@ -130,6 +130,7 @@
 - Derslik bir varlıktır; çakışma serbest metinle değil kimlikle engellenir
 - Deneme sınavı ders bazında kırılım taşır — tek net puan dershanenin sorusunu cevaplamıyor
 - Optik okumaya girilmez — kurum okur, biz sonucu alırız
+- Bağ koparma grubu dağıtmaz, ama son hesapta bağ tamamen çözülür
 
 ---
 
@@ -3466,3 +3467,22 @@ Yani şema bir denemeyi **bir satır olarak** tutabiliyor, ama **ders bazında d
 **Reddedilen ama kaydı düşülen:** OMR bir gün ürüne değer katabilir — ama **kendi** oluşturduğumuz optiklerde, QR/marker ile ve kurum içi sınavlar için. Yayınevi formlarını okumak hedef değil. Tetikleyici: kurumların "kendi kurum içi sınavımızı da okutalım" talebi.
 
 **Kapsam dışı — bilinçli olarak sonraya:** yayınevi bağımsız gelişim grafikleri, sınıf/kurum karşılaştırmaları ve konu bazlı analiz. Veri modeli bunları **mümkün kılacak** biçimde kurulur ama ekranları `v1.8` (gelişmiş filtreleme ve raporlama) işidir. YZ destekli yorum (_"son beş denemede matematikte düşüş var"_) v2.0'ın LLM kapısına tabidir.
+
+### Karar: Bağ koparma grubu dağıtmaz, ama son hesapta bağ tamamen çözülür
+
+**Karar (2026-09-18, `v1.5-07` · #319):** `unlink_accounts()` **çağıranın kendi bağını** koparır; gruptaki diğer hesaplara dokunmaz. **İstisna:** koparmadan sonra grupta tek hesap kalacaksa, o hesabın da bağı çözülür ve `people` satırı silinir.
+
+**Gerekçe — iki farklı soruya iki farklı cevap:**
+
+1. **"Bir hesabı gruptan çıkarmak" ile "yanlış kurulmuş bir bağı geri almak" aynı şey değil.** İlki bir tercih; ikincisi bir **düzeltme**. §4.15'in B1+B2'si birlikte okunduğunda ortaya çıkan senaryo ikincisidir: kâğıt fişteki geçici şifreyle açılan bir bağ, kurbanın hiç istemediği bir bağdır ve geri alınması **tam** olmak zorundadır.
+2. **Yarım kalmış bir grup, geri dönüş yoludur.** A ve B bağlıysa ve A koparsa, B'nin `person_id`'si dolu kalır. B o kişi kaydına bağlı tek hesaptır; menüsü çizilmez, geçiş yapamaz — yani **işlevsel olarak** bağsızdır. Ama `person_id` durduğu için B yeni bir bağlama kodu üretip A'yı (ya da başkasını) **aynı kişi kaydına** tekrar bağlayabilir. Koparmanın amacı buysa, yarım bırakmak amacı boşa çıkarır.
+
+**Neden gruba dokunulmuyor (istisna dışında):** üç hesabı olan biri bir tanesini ayırmak isterse, diğer ikisinin bağı onun kararı değil — o iki hesap arasındaki bağ **durmaya devam eder**. Koparma kişinin **kendi** kimliği üzerindeki bir işlem.
+
+⚠️ **İstisna "başka birinin kaydına dokunmak" değil.** Kalan hesap tanım gereği **aynı kişi kaydına** bağlı, yani aynı kişinin hesabı. Başka bir kişinin kaydı hiç okunmuyor: `update` yalnız `person_id = kisi_id` olan satırları görüyor.
+
+**Yetki kişinin kendisinde, yöneticide değil** (karar 2026-09-16 teyit edildi). Sebep bu dilimde daha da netleşti: yönetici koparabilse, **B1'i kullanan kişi izini de temizleyebilirdi** — bağı kurar, kullanır, koparır ve geriye yalnız iki denetim satırı kalırdı.
+
+**Denetim izi:** etkilenen **her** hesabın **her** aktif üyeliğinin kurumuna bir `account_link.severed` satırı yazılır. Bir kurum yalnız kendi üyesine ait olayı görür; başka kurumun hesabı o kuruma yazılmaz. `severed_by_self` bayrağı koparanı işaretler — bir yönetici kendi kurumunun denetim kaydında "bu üyenin hesap bağı koparıldı, koparan kendisi değil" ayrımını görebilir.
+
+**Reddedilen alternatif:** koparmayı "grubu tamamen dağıt" olarak tanımlamak. Üç hesaplı bir kişinin bir hesabını ayırmak isterken hepsini kaybetmesi, kullanıcının istemediği bir yan etki olurdu — ve geri alması için iki kod üretip iki bağ kurması gerekirdi.

@@ -17,14 +17,20 @@ vi.mock("@/auth/accountLinkService", async () => {
   >("@/auth/accountLinkService");
   return {
     ...actual,
-    useLinkedAccounts: vi.fn().mockReturnValue({ data: [], isLoading: false }),
+    useLinkedAccounts: vi.fn().mockReturnValue({
+      data: [],
+      isLoading: false,
+      refetch: vi.fn(),
+    }),
     switchAccount: vi.fn(),
+    unlinkAccounts: vi.fn(),
   };
 });
 
 vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children?: React.ReactNode }) =>
     createElement("div", { "data-slot": "account-switch-menu" }, children),
+  DropdownMenuSeparator: () => createElement("hr"),
   DropdownMenuTrigger: ({
     children,
   }: {
@@ -136,5 +142,46 @@ describe("AccountSwitchMenu (v1.4-17 K-23 Menü Testleri)", () => {
 
     // Diğer hesap (user-2) ise tıklanabilir (disabled DEĞİL)
     expect(html).toMatch(/<button(?![^>]*disabled)[^>]*data-current="false"/);
+  });
+
+  it("v1.5-07/B2: koparma yolu menüde var, onay istiyor ve tek hesapta hiç çizilmiyor", () => {
+    // §4.15'te ölçülen eksik buydu: bağı koparan hiçbir yol yoktu — ne şemada,
+    // ne serviste, ne ARAYÜZDE. Yol arayüzde yoksa B2 kullanıcı için kapanmış
+    // olmaz; bu yüzden kapı burada da var.
+    const twoAccounts: LinkedAccount[] = [
+      {
+        userId: "user-1",
+        displayName: "Ahmet Yılmaz",
+        role: "admin",
+        organizationId: "org-1",
+        organizationName: "Güneş Dershanesi",
+        isCurrent: true,
+      },
+      {
+        userId: "user-2",
+        displayName: "Ahmet Yılmaz",
+        role: "teacher",
+        organizationId: "org-1",
+        organizationName: "Güneş Dershanesi",
+        isCurrent: false,
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      createElement(AccountSwitchMenu, { accounts: twoAccounts })
+    );
+
+    expect(html).toContain('data-slot="account-unlink"');
+    expect(html).toContain("Hesap bağını kopar");
+    // İlk hâl onay beklemiyor: tek tıkla geri alınamaz işlem yapılmıyor.
+    expect(html).toContain('data-confirming="false"');
+    expect(html).not.toContain("Emin misiniz?");
+
+    // Menü hiç çizilmiyorsa koparma yolu da yok — yolun görünürlüğü menünün
+    // görünürlüğüne bağlı, ayrı bir kural değil.
+    const singleHtml = renderToStaticMarkup(
+      createElement(AccountSwitchMenu, { accounts: [twoAccounts[0]] })
+    );
+    expect(singleHtml).toBe("");
   });
 });
