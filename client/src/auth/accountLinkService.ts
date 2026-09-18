@@ -38,7 +38,15 @@ export const LINK_ERROR_MESSAGES: Record<string, string> = {
   password_not_taken_over:
     "Hesabı bağlamadan önce geçici şifrenizi değiştirin.",
   consumer_without_membership: "Bu hesabın aktif bir üyeliği yok.",
+  // ⚠️ Üreten taraf için ayrı etiket: eskiden `issueAccountLinkCode` bunu
+  // kendi içinde özel bir `if` ile çeviriyordu. Çeviri tek yerde durur (K-06),
+  // yoksa yeni bir etiket eklendiğinde biri güncellenip diğeri unutuluyor —
+  // v1.5-07'de tam bu oldu ve servis testi yakaladı.
+  issuer_without_membership: "Bu hesabın aktif bir üyeliği yok.",
   already_linked_elsewhere: "Bu hesap başka bir kişi kaydına bağlı.",
+  issuer_password_not_taken_over:
+    "Bağlama kodu almadan önce geçici şifrenizi değiştirin.",
+  not_linked: "Bu hesap başka bir hesaba bağlı değil.",
 };
 
 export function translateLinkError(error: {
@@ -112,8 +120,8 @@ export async function issueAccountLinkCode(): Promise<string> {
 
   if (error) {
     const details = (error as { details?: string | null })?.details?.trim();
-    if (details === "issuer_without_membership") {
-      throw new Error("Bu hesabın aktif bir üyeliği yok.");
+    if (details && details in LINK_ERROR_MESSAGES) {
+      throw new Error(LINK_ERROR_MESSAGES[details]);
     }
     throw new Error(error.message || "Bağlama kodu üretilemedi.");
   }
@@ -123,6 +131,32 @@ export async function issueAccountLinkCode(): Promise<string> {
   }
 
   return data;
+}
+
+/**
+ * Çağıran hesabın kişi bağını koparır ve geriye kalan bağlı hesap sayısını
+ * döndürür (v1.5-07/B2).
+ *
+ * 🔴 **Bu yolun var olması bir güvenlik gereğidir, kolaylık değil.** §4.15'te
+ * ölçüldü: bağı koparan hiçbir yol yoktu — ne şemada, ne serviste, ne
+ * arayüzde. Yanlış kurulmuş bir bağ ancak `service_role` ile elle
+ * müdahaleyle çözülebiliyordu, yani projenin kendi kuralının yasakladığı
+ * şeyle. Koparma yetkisi **kişinin kendisinde** (karar 2026-09-16): yönetici
+ * koparabilse, bağı hatalı kuran kişi izini de temizleyebilirdi.
+ *
+ * Grup tek hesaba düşerse sunucu bağı tamamen çözer ve `0` döner.
+ */
+export async function unlinkAccounts(): Promise<number> {
+  const { data, error } = await supabase.rpc("unlink_accounts");
+
+  if (error) {
+    throw new Error(
+      translateLinkError(error as { details?: string | null; message?: string })
+    );
+  }
+
+  const remaining = Number(data);
+  return Number.isFinite(remaining) ? remaining : 0;
 }
 
 /**

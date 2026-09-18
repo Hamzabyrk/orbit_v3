@@ -2,11 +2,13 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { Session } from "@supabase/supabase-js";
 import {
   accountLinkKeys,
+  issueAccountLinkCode,
   translateLinkError,
   switchAccount,
   revokeParkedSession,
   getParkedSession,
   setParkedSession,
+  unlinkAccounts,
 } from "./accountLinkService";
 const mockSupabaseConfigured = false;
 vi.mock("@/lib/supabaseClient", async () => {
@@ -174,5 +176,89 @@ describe("accountLinkService (v1.4-17 K-23 Testleri)", () => {
     await expect(revokeParkedSession()).rejects.toThrow(
       /yapılandırma|yapılandırması/i
     );
+  });
+
+  // =========================================================================
+  // v1.5-07 · Bağın koparılması ve üretme tarafındaki kilit (#319)
+  // =========================================================================
+
+  describe("unlinkAccounts (v1.5-07/B2)", () => {
+    it("kalan bağlı hesap sayısını sayı olarak döndürür", async () => {
+      vi.spyOn(supabase, "rpc").mockResolvedValue({
+        data: 2,
+        error: null,
+      } as never);
+
+      await expect(unlinkAccounts()).resolves.toBe(2);
+      expect(supabase.rpc).toHaveBeenCalledWith("unlink_accounts");
+    });
+
+    it("bağ tamamen çözüldüğünde 0 döndürür", async () => {
+      vi.spyOn(supabase, "rpc").mockResolvedValue({
+        data: 0,
+        error: null,
+      } as never);
+
+      await expect(unlinkAccounts()).resolves.toBe(0);
+    });
+
+    it("bigint dizge olarak gelse de sayıya çevirir", async () => {
+      // PostgREST `bigint`'i JSON'da dizge döndürebilir; çevrilmezse ekrandaki
+      // "2 hesap bağlı kaldı" cümlesi NaN olur.
+      vi.spyOn(supabase, "rpc").mockResolvedValue({
+        data: "3",
+        error: null,
+      } as never);
+
+      await expect(unlinkAccounts()).resolves.toBe(3);
+    });
+
+    it("⛔ bağı olmayan hesabın hatası kullanıcı cümlesine çevrilir", async () => {
+      vi.spyOn(supabase, "rpc").mockResolvedValue({
+        data: null,
+        error: { message: "boom", details: "not_linked" },
+      } as never);
+
+      await expect(unlinkAccounts()).rejects.toThrow(
+        "Bu hesap başka bir hesaba bağlı değil."
+      );
+    });
+
+    it("⛔ kilitli hesabın hatası da çevrilir — ham mesaj ekrana çıkmaz", async () => {
+      vi.spyOn(supabase, "rpc").mockResolvedValue({
+        data: null,
+        error: { message: "boom", details: "password_not_taken_over" },
+      } as never);
+
+      await expect(unlinkAccounts()).rejects.toThrow(
+        "Hesabı bağlamadan önce geçici şifrenizi değiştirin."
+      );
+    });
+  });
+
+  describe("issueAccountLinkCode (v1.5-07/B1)", () => {
+    it("🔴 kilitli hesabın reddi kullanıcı cümlesine çevrilir", async () => {
+      // B1'in kendisi: kilitli bir hesap kod üretemez. Bu dal olmadan ekranda
+      // ham Postgres mesajı görünürdü.
+      vi.spyOn(supabase, "rpc").mockResolvedValue({
+        data: null,
+        error: { message: "boom", details: "issuer_password_not_taken_over" },
+      } as never);
+
+      await expect(issueAccountLinkCode()).rejects.toThrow(
+        "Bağlama kodu almadan önce geçici şifrenizi değiştirin."
+      );
+    });
+
+    it("üyeliksiz hesabın reddi hâlâ kendi cümlesini veriyor", async () => {
+      vi.spyOn(supabase, "rpc").mockResolvedValue({
+        data: null,
+        error: { message: "boom", details: "issuer_without_membership" },
+      } as never);
+
+      await expect(issueAccountLinkCode()).rejects.toThrow(
+        "Bu hesabın aktif bir üyeliği yok."
+      );
+    });
   });
 });

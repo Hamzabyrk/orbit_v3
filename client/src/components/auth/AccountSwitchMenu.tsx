@@ -1,11 +1,12 @@
 import * as React from "react";
 import { useState } from "react";
-import { ArrowLeftRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeftRight, Check, Loader2, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import { isDemoMode } from "@/auth/runtime";
 import {
   type LinkedAccount,
   switchAccount,
+  unlinkAccounts,
   useLinkedAccounts,
 } from "@/auth/accountLinkService";
 import { roleMeta } from "@/components/education/roleMeta";
@@ -13,6 +14,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -32,6 +34,15 @@ interface AccountSwitchMenuProps {
  * - Geçiş sırasında düğme kilitlidir ve bekleme göstergesi vardır;
  *   oturum değişimi tek tıkla iki kez tetiklenemez.
  * - Demo modunda menü yoktur (canlı sorgu çalıştırılmaz).
+ *
+ * 🔴 **Bağı koparma yolu burada (v1.5-07/B2).** §4.15'te ölçüldü: bağı koparan
+ *   hiçbir yol yoktu ve yanlış kurulmuş bir bağ ancak `service_role` ile elle
+ *   müdahaleyle çözülebiliyordu. Yetki **kişinin kendisinde** (karar
+ *   2026-09-16); yönetici koparabilse, bağı hatalı kuran kişi izini de
+ *   temizleyebilirdi.
+ * - Koparma **iki adımlı**: ilk tıklama menüyü açık tutup onay ister. Tarayıcı
+ *   diyaloğu kullanılmıyor — geri alınamaz bir işlemin onayı, işlemin kendisiyle
+ *   aynı yerde durmalı.
  */
 export function AccountSwitchMenu({
   accounts: propAccounts,
@@ -42,6 +53,8 @@ export function AccountSwitchMenu({
 
   const accounts = propAccounts ?? query.data ?? [];
   const [isSwitching, setIsSwitching] = useState(false);
+  const [isUnlinking, setIsUnlinking] = useState(false);
+  const [confirmUnlink, setConfirmUnlink] = useState(false);
 
   // Demo modunda veya iki hesap yoksa menü HİÇ çizilmez
   if (isDemoMode || accounts.length < 2) {
@@ -65,8 +78,40 @@ export function AccountSwitchMenu({
     }
   };
 
+  const handleUnlink = async () => {
+    if (isUnlinking || isSwitching) {
+      return;
+    }
+
+    setIsUnlinking(true);
+    try {
+      const remaining = await unlinkAccounts();
+      toast.success(
+        remaining > 0
+          ? `Bağ koparıldı. ${remaining} hesap bağlı kaldı.`
+          : "Bağ koparıldı. Bu hesap artık hiçbir hesaba bağlı değil."
+      );
+      // Listeyi kendi sorgusundan tazeliyoruz. `useQueryClient` kullanmak
+      // bileşeni bir sağlayıcıya bağlardı ve statik render testleri
+      // sağlayıcısız koşuyor — bağ gereksizdi.
+      await query.refetch();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Bağ koparılamadı.";
+      toast.error(message);
+    } finally {
+      setIsUnlinking(false);
+      setConfirmUnlink(false);
+    }
+  };
+
   return (
-    <DropdownMenu>
+    <DropdownMenu
+      onOpenChange={open => {
+        if (!open) {
+          setConfirmUnlink(false);
+        }
+      }}
+    >
       <DropdownMenuTrigger asChild>
         <button
           type="button"
@@ -125,6 +170,31 @@ export function AccountSwitchMenu({
             </DropdownMenuItem>
           );
         })}
+        <DropdownMenuSeparator className="my-1.5" />
+        <DropdownMenuItem
+          disabled={isUnlinking || isSwitching}
+          onSelect={event => {
+            // Menü açık kalsın: onay, işlemin kendisiyle aynı yerde durmalı.
+            event.preventDefault();
+            if (!confirmUnlink) {
+              setConfirmUnlink(true);
+              return;
+            }
+            void handleUnlink();
+          }}
+          className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12px] font-bold text-rose-600 hover:bg-rose-50 focus:bg-rose-50 focus:text-rose-700"
+          data-slot="account-unlink"
+          data-confirming={confirmUnlink ? "true" : "false"}
+        >
+          {isUnlinking ? (
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+          ) : (
+            <Unlink className="h-3.5 w-3.5 shrink-0" />
+          )}
+          <span>
+            {confirmUnlink ? "Emin misiniz? Bağı kopar" : "Hesap bağını kopar"}
+          </span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
