@@ -56,7 +56,7 @@
 - **Form / Doğrulama:** `react-hook-form` + `zod`
 - **Sunucu State:** `@tanstack/react-query` v5
 - **Veri Saklama:** React State + Yerel Kalıcılık (Local Persistence) & bağlı Supabase projesi (Faz 1'de deny-by-default RLS; gerçek veri kullanımı Faz 3'te)
-- **Test:** Vitest 5.0 — 63 dosya, **978 test** (2026-09-18'de koşuldu) + pgTAP **58 dosya, 970 iddia** (259 olumsuz)
+- **Test:** Vitest 5.0 — 67 dosya, **1007 test** (2026-09-18'de koşuldu) + pgTAP **58 dosya, 970 iddia** (259 olumsuz)
 - **Kod Kalitesi:** ESLint 10 (flat config) + typescript-eslint + eslint-plugin-react-hooks **v7** (üç yeni kural `error` seviyesinde etkin, 2026-09-09'da açıldı) + eslint-plugin-react-refresh
 - **CI/CD & Dağıtım:** GitHub Actions + Vercel (`https://orbit-v3-topaz.vercel.app`)
 - **Paket Yöneticisi:** pnpm (v10.4.1)

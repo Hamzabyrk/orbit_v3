@@ -131,6 +131,8 @@
 - Deneme sınavı ders bazında kırılım taşır — tek net puan dershanenin sorusunu cevaplamıyor
 - Optik okumaya girilmez — kurum okur, biz sonucu alırız
 - Bağ koparma grubu dağıtmaz, ama son hesapta bağ tamamen çözülür
+- CSP kapısı `VERCEL_ENV`'e bağlanır, CI'ın körlüğü kabul edilir
+- Migration anahtarları saat yakalayana kadar önde kalır
 
 ---
 
@@ -3488,3 +3490,35 @@ Yani şema bir denemeyi **bir satır olarak** tutabiliyor, ama **ders bazında d
 ⚠️ **Sahipsiz kalan `people` satırı SİLİNMİYOR.** İlk yazımda siliniyordu; **Yıkıcı Migration Kontrolü** o `delete`'i yakaladı ve `-- ALLOW-DESTRUCTIVE` kaçış yolu **kullanılmadı** çünkü silmeye gerek yoktu: güvenlik özelliği _"o kişi kaydına bağlı hesap kalmaması"_ ve onu `update` sağlıyor. Sahipsiz satır opak bir kimlikten başka bir şey taşımıyor, kimse ona bakmıyor — `my_linked_accounts` da geçiş kapısı da `person_id` üzerinden çalışıyor. Emsal aynı ailenin bir önceki migration'ı: eski bağlama kodu silinmek yerine süresi bitiriliyor, gerekçesi de aynı. **Kapı, gereksiz bir yıkıcı ifadeyi kaldırttı.**
 
 **Reddedilen alternatif:** koparmayı "grubu tamamen dağıt" olarak tanımlamak. Üç hesaplı bir kişinin bir hesabını ayırmak isterken hepsini kaybetmesi, kullanıcının istemediği bir yan etki olurdu — ve geri alması için iki kod üretip iki bağ kurması gerekirdi.
+
+### Karar: CSP kapısı `VERCEL_ENV`'e bağlanır, CI'ın körlüğü kabul edilir
+
+**Karar:** CSP ↔ `VITE_SUPABASE_URL` karşılaştırması yalnız `process.env.VERCEL_ENV` tanımlıyken koşar. CI'a gerçek Supabase adresi **verilmez**; CI yer tutucu ile derlemeye devam eder ve gerçek karşılaştırmayı **hiç görmez**.
+
+**Sebep:** Karşılaştırmanın anlamı, uygulamanın _gerçekten bağlanacağı_ adresi _gerçekten servis edilecek_ CSP ile eşleştirmek. Gerçek adresin tek otoritesi Vercel ortam değişkeni. CI'a o adresi yazmak kapıyı CI'da çalıştırırdı ama karşılaştırılan iki değerin ikisi de depoda olurdu — yani kapı kendi kendini onaylardı ve gerçek ayrışmayı (Vercel değişkeni değişti, `vercel.json` unutuldu) **yine göremezdi**. Üstelik `ci.yml`'ye üçüncü bir kopya eklenmiş olurdu: kaldırmaya çalıştığımız ikizi çoğaltmak.
+
+`deploymentEnvironment`'a bağlanmadı ve sebebi ölçüldü: CI `pnpm build` koşuyor, `VERCEL_ENV` tanımsız olduğu için o değer CI'da da `"production"` çözülüyor. Kapı ona bağlansa CI yer tutucu URL yüzünden kırmızıya dönerdi.
+
+**Reddedilen alternatifler:**
+
+- **CI'ya gerçek adresi vermek** — yukarıdaki sebep. Adres gizli değil (`vercel.json`'da ve her pakette düz metin), yani reddin gerekçesi güvenlik değil **anlamsızlık**.
+- **Yer tutucu ana adlarını kara listeye almak** (`placeholder.supabase.co` atlanır) — kara listeler çürür; bir gün başka bir yer tutucu kullanılır ve kapı sessizce atlar.
+
+**Bedeli açıkça:** gerçek karşılaştırma yalnız dağıtım derlemesinde koşar. Karşılığı üç CI kapısı — denetleyicinin birim testleri, `vercel.json`'ın tek başına tutarlılığı (`https` ↔ `wss` aynı proje), ve gerçek `vite.config.ts` fonksiyonunu kasten yanlış bir değerle çağıran bir iddia.
+
+---
+
+### Karar: Migration anahtarları saat yakalayana kadar önde kalır
+
+**Karar:** Sıradaki migration `20260928…` olarak adlandırılır. Migration damgası bir tarih değil, bir **sıralama anahtarı** olarak kabul edilir; eklenen her migration mevcut en büyük anahtardan büyük olmak zorundadır.
+
+**Sebep:** İki yol migration'ları ayrı sırayla uyguluyor — yerel ve CI (`supabase test db`) her koşuda sıfırdan **ad sırasıyla**, üretim (Supabase GitHub entegrasyonu) yalnız uygulanmamış olanları **zaman sırasıyla**. Bugün gerçek tarihle (`20260918…`) yazılacak bir migration yerelde dokuz uygulanmış migration'dan önce, üretimde sonra koşar: aynı dosya kümesinden iki ayrı şema evrimi, testler yeşil, üretim başka bir yerde.
+
+Saatle uyum kozmetik; üretimi koruyan özellik tek yönlü artış. Ve "önde olma" kendiliğinden kapanıyor — 2026-09-28'den sonra gerçek tarih zaten en büyük anahtar olur.
+
+**Reddedilen alternatifler:**
+
+- **Dokuz dosyayı yeniden adlandırmak** — uygulanmış migration'ın adı `schema_migrations`'ta kayıtlı; adı değişirse Supabase onu **yeni sanıp tekrar uygular**. Bu, düzeltmeye çalıştığımız şeyden daha ağır bir üretim olayı.
+- **Gerçek tarihi kullanıp sıra ayrışmasını kabul etmek** — ayrışmanın sonucu sessiz ve testlerle görünmez.
+
+**Kapısı:** `supabase/tests/deployment/migrationOrderIsMonotonic.test.ts`. İki sayı tutuyor (adet + en büyük anahtar) ve her yeni migration'da ikisinin güncellenmesini istiyor; güncelleme sırasında sorulan soru tam olarak sormamız gereken soru — _"benim dosyam en üstte mi?"_

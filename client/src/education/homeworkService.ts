@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import type { Homework, HomeworkStatus } from "@/components/education/types";
+import { POSTGREST_MAX_ROWS } from "@/lib/postgrestLimits";
 import { formatTrDate, getOrbitToday } from "./trDate";
 
 /**
@@ -27,7 +28,9 @@ import { formatTrDate, getOrbitToday } from "./trDate";
  */
 
 export const DEFAULT_HOMEWORK_LIMIT = 100;
-export const POSTGREST_MAX_ROWS = 1000;
+
+// `POSTGREST_MAX_ROWS` v1.5-09'da `@/lib/postgrestLimits`'e taşındı: platformun
+// tamamına ait bir gerçek, tek bir özelliğin servis dosyasına değil (K-06).
 
 export type HomeworkListResult = {
   rows: Homework[];

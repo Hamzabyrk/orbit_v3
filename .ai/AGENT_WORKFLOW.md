@@ -573,6 +573,25 @@ Sinsi yanı, atlanan şartın **en çok tekrar eden** şart olması. `and not (s
 
 ⚠️ Ve kuralın kendisi **K-24 gereği geriye uygulanır:** bir `definer` fonksiyon eklendiğinde, daha önce eklenmiş olanlar aynı gözle yeniden okunur. 2026-09-18'de bu yapıldı ve beşinin beşinde de eksik bulundu.
 
+### K-26 · Bir adı arayan kapı, kapı değildir
+
+Yapısal bir test bir metin araması yapıyorsa, aradığı metnin **yalnızca korunmak istenen davranış varken** bulunabildiğini ayrıca kanıtlamak zorundadır. Aksi hâlde test, davranışı değil dizgenin varlığını ölçer.
+
+2026-09-18'de bu iki kez aynı gün ölçüldü ve ikincisi kapıyı **yazarken** oldu:
+
+- `calendarDayHasOneSource` `new Date().toISOString().split("T")[0]` dizgesini arıyordu. Depodaki iki gerçek ihlal o dizgeyi içermiyordu (`event.startsAt.slice(0, 10)`) ve kapı ikisinde de yeşil kaldı.
+- Onu düzeltirken yazılan CSP kapısının "bağlı mı" iddiası `expect(config).toContain("checkCspAllowsSupabase")` idi. Çağrı kaldırıldığında **yeşil kaldı**, çünkü `import` satırı o dizgeyi zaten içeriyor.
+
+İkisinin ortak yanı, aranan dizgenin korunan davranıştan **bağımsız** olarak var olabilmesi. Kapı yazarken bu sorulmadığı sürece yeşil bir test, ölçülmemiş bir varsayımdır.
+
+**Kural:** metin arayan bir kapı üç şeyden birini yapar —
+
+1. **Davranışı gerçekten koşar.** CSP kapısı buna çevrildi: gerçek `vite.config.ts` fonksiyonu, gerçek `vercel.json`'a karşı, kasten yanlış bir değerle çağrılıyor. Fırlatmazsa iddia düşer.
+2. **Kaçırdığı biçimleri kendi içinde sabitler.** `calendarDayHasOneSource` buna çevrildi: önceki hâlin kaçırdığı üç yazım artık kapının içinde birer iddia. Desen daraltılırsa orası kırmızıya döner.
+3. **Yanlış alarm tabanını da sabitler.** Aynı kapı meşru kullanımları da sınıyor — biri deseni genişletirse hangi meşru kalıbı kırdığını okur.
+
+⚠️ Ve **K-23 ile karıştırılmamalı.** K-23 "kodu geri al, kırmızıya dönüyor mu" diyor. K-26 bir adım öncesi: mutasyonun **doğru mutasyon** olması. Yukarıdaki CSP vakasında ilk denenen mutasyon (`checkCspAllowsSupabase` → `checkCspAllowsSupabaseKaldirildi`) kapıyı kırmızıya döndürdü ve kapının sağlam olduğu izlenimi verdi; gerçek mutasyon — çağrıyı bırakıp **fırlatmayı** düşürmek — zayıflığı ortaya çıkardı. **Kolay mutasyon, kapıyı doğrulamaz.**
+
 ### Değişmeyen bölümler — brifingde tekrar yazılmaz
 
 Aşağıdaki üç blok her görevde aynıdır. Brifingde **tek satırla anılır**, kopyalanmaz:

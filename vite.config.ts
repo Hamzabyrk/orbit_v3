@@ -1,12 +1,17 @@
 import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { defineConfig, loadEnv } from "vite";
 import {
   isDemoEnvironment,
   resolveDeploymentEnvironment,
 } from "./client/src/auth/deploymentEnvironment";
+import {
+  checkCspAllowsSupabase,
+  extractCspFromVercelConfig,
+} from "./client/src/lib/cspConnectSrc";
 
 export default defineConfig(({ mode }) => {
   const localEnv = loadEnv(mode, import.meta.dirname, "VITE_");
@@ -56,6 +61,49 @@ export default defineConfig(({ mode }) => {
         "[vite.config.ts] Üretim derlemesi için VITE_SUPABASE_URL ve VITE_SUPABASE_ANON_KEY ortam değişkenleri tanımlı olmalıdır. " +
           "Eksik yapılandırmayla ölü bir uygulamanın yayınlanmasını önlemek için build durduruldu (K-04, v1.3-00)."
       );
+    }
+  }
+
+  // CSP ↔ `VITE_SUPABASE_URL` ikizi (v1.5-09).
+  //
+  // `vercel.json`'daki `connect-src` Supabase adresini SABİT yazıyor;
+  // uygulamanın gerçekte bağlandığı adres ise bu ortam değişkeninden geliyor.
+  // Ayrıştıklarında yayınlanan uygulama Supabase'e hiçbir istek yapamaz —
+  // açılır, giriş ekranı görünür ve hiçbir şey çalışmaz. `AGENTS.md` kısıt 6
+  // bunu yasaklıyordu ama kapısı yoktu.
+  //
+  // ⚠️ Kapı `VERCEL_ENV`'e bağlı, `deploymentEnvironment`'a DEĞİL — ve bu
+  // ayrım ölçülerek seçildi: CI `pnpm build` koşuyor, `VERCEL_ENV` tanımsız
+  // olduğu için `deploymentEnvironment` orada da "production" çözülüyor, ama
+  // `VITE_SUPABASE_URL` yer tutucu (`https://placeholder.supabase.co`). Kapıyı
+  // oraya bağlamak CI'ı yer tutucu yüzünden kırmızıya döndürürdü.
+  //
+  // `VERCEL_ENV` ise tam doğru soruyu soruyor: "bu paket gerçekten servis
+  // edilecek mi?" — `ci.yml`'nin kendi yorumunun çizdiği ayrım da bu ("CI
+  // derlemesi bir dağıtım değil"). Yer tutucu adlarından oluşan bir kara
+  // liste kullanılmadı; kara listeler çürür.
+  //
+  // Bedeli açıkça yazılı: gerçek karşılaştırma CI'da KOŞMUYOR ve koşamaz,
+  // çünkü gerçek değer yalnız Vercel'de var. Karşılığı iki kapı:
+  // `checkCspAllowsSupabase`'in birim testi (mantık) ve `vercel.json`'ı tek
+  // başına ölçen tutarlılık testi (ortam değişkeni gerekmiyor). İkisi de
+  // `supabase/tests/deployment/cspMatchesSupabaseUrl.test.ts` içinde.
+  if (process.env.VERCEL_ENV && supabaseUrl) {
+    const vercelConfig = JSON.parse(
+      readFileSync(path.resolve(import.meta.dirname, "vercel.json"), "utf8")
+    );
+    const csp = extractCspFromVercelConfig(vercelConfig);
+
+    if (!csp) {
+      throw new Error(
+        "[vite.config.ts] vercel.json içinde Content-Security-Policy başlığı bulunamadı. " +
+          "Başlık kaldırılmışsa bu bir güvenlik gerilemesidir (v1.3-07); yeniden adlandırılmışsa bu kapı güncellenmelidir."
+      );
+    }
+
+    const sorun = checkCspAllowsSupabase(csp, supabaseUrl);
+    if (sorun) {
+      throw new Error(`[vite.config.ts] ${sorun}`);
     }
   }
 
