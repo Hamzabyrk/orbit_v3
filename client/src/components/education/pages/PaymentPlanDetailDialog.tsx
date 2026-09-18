@@ -23,7 +23,7 @@ import {
   translatePaymentError,
   type Installment,
 } from "@/education/paymentService";
-import { formatTrDate } from "@/education/trDate";
+import { formatTrDate, orbitLocalDate } from "@/education/trDate";
 import { Badge, TableSkeleton, ErrorState, EmptyState } from "../shared";
 import type { Role } from "../types";
 import { InstallmentFormDialog } from "./InstallmentFormDialog";
@@ -474,7 +474,7 @@ export function PaymentPlanDetailDialog({
                             {isPaid ? (
                               <Badge tone="green">
                                 Ödendi (
-                                {formatTrDate(inst.paidAt?.slice(0, 10))})
+                                {formatTrDate(orbitLocalDate(inst.paidAt))})
                               </Badge>
                             ) : (
                               <Badge tone="amber">Bekliyor</Badge>

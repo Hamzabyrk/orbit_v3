@@ -9,7 +9,7 @@ import {
   startOfWeek,
 } from "date-fns";
 import type { CalendarEventItem } from "@/education/dayPlanService";
-import { getOrbitToday } from "@/education/trDate";
+import { orbitLocalDate } from "@/education/trDate";
 import { dateToIsoWeekDay } from "@/education/weekDays";
 import type {
   DayPlanAppointmentMode,
@@ -90,7 +90,7 @@ export function buildMonthDisplayEvents(
   // Kişisel etkinlikleri tarihlerine göre haritala (Europe/Istanbul gününe göre)
   for (const event of personalEvents) {
     const eventDate = new Date(event.startsAt);
-    const dateStr = getOrbitToday(eventDate);
+    const dateStr = orbitLocalDate(eventDate);
     const startTime = new Intl.DateTimeFormat("tr-TR", {
       timeZone: "Europe/Istanbul",
       hour: "2-digit",

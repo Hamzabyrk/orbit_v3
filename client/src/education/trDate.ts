@@ -80,19 +80,49 @@ export function formatTrWeekLabel(dateStr?: string | null): string {
 }
 
 /**
- * Kurum saatindeki (Europe/Istanbul) takvim gününü ISO formatında (YYYY-MM-DD) döner (v1.3-15 & orbit_today).
+ * Bir **anın** kurum saatindeki (Europe/Istanbul) takvim günü — SQL
+ * `orbit_local_date(timestamptz)`'in istemci ikizi (v1.5-09).
  *
- * Sunucunun TimeZone ayarı UTC olduğu için her gece 00:00-03:00 arası
- * `current_date` Türkiye'nin bir gün gerisindedir.
+ * `timestamptz` bir **an**dır ve JSON'a UTC olarak iner
+ * (`2026-09-18T22:00:00Z`). O dizgeden ilk on karakteri kesmek **UTC günü**
+ * verir; Türkiye UTC+3 olduğu için gece 00:00-03:00 arasındaki her an
+ * **dünkü** tarihi gösterir. Sorunun tek doğru cevabı ana saat dilimini
+ * uygulamaktır ve veritabanı tam bunu yapıyor (`orbit_local_date(paid_at)`).
  *
- * Kural veritabanında yaşar (`orbit_today()`); buradaki onun istemci kopyasıdır.
- * İleride kurum saat dilimi ayarlanabilir olursa bu fonksiyon o ayarı okumak zorundadır (K-06).
+ * ⚠️ Adı bilerek SQL fonksiyonuyla aynı: aynı soruya iki ad verildiği sürece
+ * biri yanlış cevaplanıyor (**K-06**). Ölçüldü (2026-09-18): `startsAt`
+ * `dayPlanHelpers`'ta doğru, `CalendarEventFormDialog`'da yanlış
+ * çevriliyordu — takvim ızgarası etkinliği doğru güne koyup düzenleme formu
+ * yanlış günle açılıyordu.
+ *
+ * Çözümlenemeyen veya boş değerde `""` döner (**K-04**): olmayan bir günü
+ * uydurmaktansa hiç yazmamak (`formatTrDate` aynı davranışta).
  */
-export function getOrbitToday(referenceDate: Date = new Date()): string {
+export function orbitLocalDate(moment?: string | Date | null): string {
+  if (!moment) return "";
+
+  const parsed = moment instanceof Date ? moment : new Date(moment);
+  if (Number.isNaN(parsed.getTime())) return "";
+
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Istanbul",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(referenceDate);
+  }).format(parsed);
+}
+
+/**
+ * Kurum saatindeki **bugün**, ISO formatında (YYYY-MM-DD) — SQL
+ * `orbit_today()`'in istemci ikizi (v1.3-15).
+ *
+ * Sunucunun TimeZone ayarı UTC olduğu için her gece 00:00-03:00 arası
+ * `current_date` Türkiye'nin bir gün gerisindedir.
+ *
+ * SQL tarafında `orbit_today()` = `orbit_local_date(now())`; buradaki ayrım
+ * da birebir onun aynası. İleride kurum saat dilimi ayarlanabilir olursa
+ * ayarı okuması gereken tek yer `orbitLocalDate` (K-06).
+ */
+export function getOrbitToday(referenceDate: Date = new Date()): string {
+  return orbitLocalDate(referenceDate);
 }

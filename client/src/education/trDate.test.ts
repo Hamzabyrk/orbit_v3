@@ -3,6 +3,7 @@ import {
   formatTrDate,
   formatTrWeekLabel,
   getOrbitToday,
+  orbitLocalDate,
   TR_MONTHS,
 } from "./trDate";
 
@@ -53,6 +54,44 @@ describe("trDate (v1.3-01e & K-06)", () => {
     // Normal gündüz vakti: 2026-09-11 saat 10:00:00 UTC -> Istanbul saat 13:00:00 (2026-09-11)
     const middayDate = new Date("2026-09-11T10:00:00Z");
     expect(getOrbitToday(middayDate)).toBe("2026-09-11");
+  });
+
+  it("orbitLocalDate: SAKLANMIŞ bir anın kurum saatindeki takvim gününü verir (v1.5-09)", () => {
+    // Bu, `getOrbitToday`'den farklı bir soru: "bugün hangi gün" değil,
+    // "BU AN hangi güne ait". Veritabanı aynı soruyu
+    // `orbit_local_date(timestamptz)` ile cevaplıyor ve istemci onunla aynı
+    // cevabı vermek zorunda (K-06).
+    //
+    // 2026-09-18 22:00:00Z → İstanbul 2026-09-19 01:00 — **ERTESİ GÜN**.
+    // İlk on karakteri kesmek "2026-09-18" verirdi, yani yanlış gün.
+    expect(orbitLocalDate("2026-09-18T22:00:00Z")).toBe("2026-09-19");
+
+    // Gündüz vaktinde UTC ile kurum günü aynı; kesme de doğru sonucu verirdi.
+    // İddia bu yüzden tek başına yeterli değil, üstteki ile birlikte duruyor.
+    expect(orbitLocalDate("2026-09-18T10:00:00Z")).toBe("2026-09-18");
+
+    // Ters yön: gün başı UTC, İstanbul'da aynı gün sabah 03:00.
+    expect(orbitLocalDate("2026-09-19T00:00:00Z")).toBe("2026-09-19");
+  });
+
+  it("orbitLocalDate: Date örneği de kabul eder ve getOrbitToday ile aynı cevabı verir", () => {
+    const an = new Date("2026-09-08T22:30:00Z");
+
+    expect(orbitLocalDate(an)).toBe("2026-09-09");
+    // SQL'de `orbit_today()` = `orbit_local_date(now())`; istemcide de öyle.
+    expect(orbitLocalDate(an)).toBe(getOrbitToday(an));
+  });
+
+  it("orbitLocalDate: boş, tanımsız ve çözümlenemeyen değerde boş dizge döner (K-04)", () => {
+    // Olmayan bir günü uydurmaktansa hiç yazmamak. `formatTrDate` aynı
+    // davranışta ve ikisi zincir hâlinde kullanılıyor
+    // (`formatTrDate(orbitLocalDate(inst.paidAt))`), yani boş değer sessizce
+    // boş ekrana dönüyor — "1 Ocak 1970" değil.
+    expect(orbitLocalDate(undefined)).toBe("");
+    expect(orbitLocalDate(null)).toBe("");
+    expect(orbitLocalDate("")).toBe("");
+    expect(orbitLocalDate("olmayan-tarih")).toBe("");
+    expect(orbitLocalDate(new Date("olmayan-tarih"))).toBe("");
   });
 
   it("formatTrWeekLabel: hafta başlangıcını kısa Türkçe gün ve ay formatına dönüştürür (v1.4-16 / K-06)", () => {

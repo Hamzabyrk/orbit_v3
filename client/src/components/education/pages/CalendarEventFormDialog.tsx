@@ -17,7 +17,7 @@ import {
   updateCalendarEvent,
   type CalendarEventItem,
 } from "@/education/dayPlanService";
-import { getOrbitToday } from "@/education/trDate";
+import { getOrbitToday, orbitLocalDate } from "@/education/trDate";
 
 export type CalendarEventFormDialogProps = {
   open: boolean;
@@ -42,8 +42,14 @@ export function CalendarEventFormDialog({
   const isEditing = Boolean(event?.id);
 
   // Mevcut etkinlikten veya başlangıç tarihinden gün ve saatleri ayıkla
+  //
+  // `startsAt` bir `timestamptz`, yani bir AN — ilk on karakteri kesmek UTC
+  // gününü verir ve gece 00:00-03:00 arasında başlayan bir etkinliğin formu
+  // DÜNKÜ tarihle açılırdı. Aynı alanı `dayPlanHelpers` baştan beri doğru
+  // çeviriyordu, yani takvim ızgarası ile form ayrı günler gösteriyordu
+  // (v1.5-09).
   const defaultDate = event?.startsAt
-    ? event.startsAt.slice(0, 10)
+    ? orbitLocalDate(event.startsAt)
     : (initialDate ?? getOrbitToday());
 
   const defaultStartTime = event?.startsAt
