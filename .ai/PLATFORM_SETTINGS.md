@@ -511,14 +511,14 @@ Yukarıdaki tablodaki "açık rıza, taahhütname veya yeterlilik kararı" ifade
 
 > ✅ **Taze ölçüm 2026-09-18 (`v1.5-09` · #321), üretimde.** Advisor iki eksende **altı kategori / 115 bulgu** dönüyor ve altısının da kaydı artık bu bölümde:
 >
-> | Eksen | Kategori | Seviye | Bugün |
-> | --- | --- | --- | --- |
-> | Güvenlik | `authenticated_security_definer_function_executable` | WARN | **40** |
-> | Güvenlik | `rls_enabled_no_policy` | INFO | **3** (`account_link_codes`, `internal_function_calls`, `workspace_documents`) |
-> | Güvenlik | `auth_leaked_password_protection` | WARN | **1** (Pro plan) |
-> | Performans | `unindexed_foreign_keys` | INFO | **33** |
-> | Performans | `unused_index` | INFO | **21** |
-> | Performans | `multiple_permissive_policies` | WARN | **17** |
+> | Eksen      | Kategori                                             | Seviye | Bugün                                                                          |
+> | ---------- | ---------------------------------------------------- | ------ | ------------------------------------------------------------------------------ |
+> | Güvenlik   | `authenticated_security_definer_function_executable` | WARN   | **40**                                                                         |
+> | Güvenlik   | `rls_enabled_no_policy`                              | INFO   | **3** (`account_link_codes`, `internal_function_calls`, `workspace_documents`) |
+> | Güvenlik   | `auth_leaked_password_protection`                    | WARN   | **1** (Pro plan)                                                               |
+> | Performans | `unindexed_foreign_keys`                             | INFO   | **33**                                                                         |
+> | Performans | `unused_index`                                       | INFO   | **21**                                                                         |
+> | Performans | `multiple_permissive_policies`                       | WARN   | **17**                                                                         |
 >
 > 📌 **`v1.5-18`'in on `as restrictive` politikası `multiple_permissive_policies`'i BÜYÜTMEDİ** ve bu beklenen sonuçtu: kısıtlayıcı politikalar izin veren politikalarla aynı listede sayılmıyor. Yani kiracı ön süzgeci eklenirken advisor tabanı bozulmadı — ölçüm bunu doğruladı.
 >

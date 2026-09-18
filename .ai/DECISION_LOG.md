@@ -3495,7 +3495,7 @@ Yani şema bir denemeyi **bir satır olarak** tutabiliyor, ama **ders bazında d
 
 **Karar:** CSP ↔ `VITE_SUPABASE_URL` karşılaştırması yalnız `process.env.VERCEL_ENV` tanımlıyken koşar. CI'a gerçek Supabase adresi **verilmez**; CI yer tutucu ile derlemeye devam eder ve gerçek karşılaştırmayı **hiç görmez**.
 
-**Sebep:** Karşılaştırmanın anlamı, uygulamanın *gerçekten bağlanacağı* adresi *gerçekten servis edilecek* CSP ile eşleştirmek. Gerçek adresin tek otoritesi Vercel ortam değişkeni. CI'a o adresi yazmak kapıyı CI'da çalıştırırdı ama karşılaştırılan iki değerin ikisi de depoda olurdu — yani kapı kendi kendini onaylardı ve gerçek ayrışmayı (Vercel değişkeni değişti, `vercel.json` unutuldu) **yine göremezdi**. Üstelik `ci.yml`'ye üçüncü bir kopya eklenmiş olurdu: kaldırmaya çalıştığımız ikizi çoğaltmak.
+**Sebep:** Karşılaştırmanın anlamı, uygulamanın _gerçekten bağlanacağı_ adresi _gerçekten servis edilecek_ CSP ile eşleştirmek. Gerçek adresin tek otoritesi Vercel ortam değişkeni. CI'a o adresi yazmak kapıyı CI'da çalıştırırdı ama karşılaştırılan iki değerin ikisi de depoda olurdu — yani kapı kendi kendini onaylardı ve gerçek ayrışmayı (Vercel değişkeni değişti, `vercel.json` unutuldu) **yine göremezdi**. Üstelik `ci.yml`'ye üçüncü bir kopya eklenmiş olurdu: kaldırmaya çalıştığımız ikizi çoğaltmak.
 
 `deploymentEnvironment`'a bağlanmadı ve sebebi ölçüldü: CI `pnpm build` koşuyor, `VERCEL_ENV` tanımsız olduğu için o değer CI'da da `"production"` çözülüyor. Kapı ona bağlansa CI yer tutucu URL yüzünden kırmızıya dönerdi.
 
