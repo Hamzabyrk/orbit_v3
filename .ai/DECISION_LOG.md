@@ -3586,7 +3586,7 @@ Bugün iki şey değişti. Ortaklık bitti ve arayüz kolu sahipsiz kaldı (eski
 1. **Arayüz dondurma kararı sona erdi.** Yenileme başlıyor ve kapsamı şu: **13 canlı ekran × 4 rol görünümü.** `Otomasyonlar` kaldırılıyor (`v1.5-10`), yani demoya girmiyor.
 2. **Yenileme `feat/arayuz-v2` dalında yapılır.** `main` etkilenmez; üretim dağıtımı tetiklenmez, göçler üretime uygulanmaz.
 3. **Kopya klasör yaklaşımı reddedildi** (aşağıda).
-4. **Demo aracı önizleme dağıtımlarıdır.** Paylaşabilmek için Vercel Deployment Protection kapatılacak.
+4. **Kuruma gerçek uygulama gösterilir.** Önizleme dağıtımları **demo aracı değil, geliştirme sırasında test aracıdır**; Vercel Deployment Protection **açık kalır**.
 5. **Repo şimdilik public kalıyor**, gizliye alınmıyor.
 6. **Hamza'daki eski kopyalar duruyor**, bizi rahatsız ederse kendi tarafımızdan silinir.
 7. **Kullanılmayan shadcn bileşenleri silinmiyor** (aşağıda).
@@ -3601,9 +3601,17 @@ Bugün iki şey değişti. Ortaklık bitti ve arayüz kolu sahipsiz kaldı (eski
 - **"Sonunda kopyalarız" en kötü hâliyle merge problemidir.** Geçmiş yok, aşamalı inceleme yok, çakışma çözümü yok. Bu depo "tek devasa PR riski"ni zaten yazılı olarak yasaklıyor.
 - **İstenen izolasyonu git zaten veriyor.** Uzun ömürlü dal `main`'i korur ve hiçbir şeyi kaybettirmez.
 
-**Önizleme dağıtımlarının demo aracı olması bir keşif.** Ölçüldü: `isDemoEnvironment(environment) = environment !== "production"` ve `deploymentEnvironment = VERCEL_ENV ?? VITE_DEPLOYMENT_ENV`. Yani `VERCEL_ENV=preview` → **demo modu açık** → sahte veri, `demo123` girişi, Supabase'e **sıfır** istek. Dalın önizleme adresi tam olarak kuruma gösterilecek şey: paylaşılabilir, üretim verisi riski yok, karşıdakine giriş derdi yok, her push'ta güncel.
+**Önizlemenin rolü: test, demo değil.** Ölçüldü: `isDemoEnvironment(environment) = environment !== "production"` ve `deploymentEnvironment = VERCEL_ENV ?? VITE_DEPLOYMENT_ENV`. Yani `VERCEL_ENV=preview` → **demo modu açık** → sahte veri, `demo123` girişi, Supabase'e **sıfır** istek. Geliştirme sırasında üretim verisine hiç dokunmadan denemek için ideal.
 
-Deployment Protection'ı kapatmak **bu yüzden güvenli**: o sayfalardan veritabanına giden bir yol yok.
+⚠️ **Ama tam bu sebeple demo aracı olamaz.** Demo modda gerçek giriş, RLS ve veri akışı **sınanamaz**; kuruma gösterilecek olan bunların çalıştığıdır. Bu yüzden Deployment Protection **açık kalıyor** — önizleme adresi paylaşılmayacak.
+
+📌 **Bu karar bir kez ters yazıldı ve düzeltildi.** İlk plan demoyu önizleme üzerinden kurguluyordu ve oradan şu sonuç çıkmıştı: _"demoda görünen sorunların tamamına yakını tasarım sorunu."_ Arda gerçek uygulamanın gösterileceğini netleştirince **o çıkarım çöktü**: C-11 (giriş ilk denemede hata veriyor), B3 (Genel Bakış sıfır gösteriyor), C-02/C-03/C-05/C-08 (eklenen kayıt görünmüyor) ve B4 demo modda hiç ortaya çıkmazken gerçek uygulamada **ilk dakikalarda** görünür. Faz sırası buna göre değişti: veri katmanı düzeltmeleri demodan **sonraya** değil **önüne** alındı.
+
+Bu, **K-30**'un ürün tarafındaki karşılığıdır: bir ortamda görünmeyen kusur, yok olduğunun kanıtı değildir.
+
+**🆕 Demo verisi listede yoktu ve gerekiyor.** Üretimde şu an sıfır kurum, sıfır öğrenci, sıfır sınıf var. Gerçek uygulamayı boş bir veritabanıyla göstermek, sabit kartlı Genel Bakış'tan daha kötü görünür. Sunumdan önce üretimde gerçekçi bir kurum kurulmalı: sınıflar, öğrenciler, veliler, ders programı, birkaç sınav ve sonucu, yoklama geçmişi, ödeme planları, duyurular. Üç yol var ve **seçim henüz yapılmadı**: elle kurmak (en gerçekçi, akışları da sınar, uzun sürer) · `seed_olcum.sql` (hazır ama performans ölçümü için yazıldı, isimleri sunumda inandırıcı olmayabilir) · sunum için ayrı bir tohum yazmak. ⚠️ Bu veri **üretimin içine** giriyor ve pilot kurumla karışmamalı; adlandırmada ayırt edilebilir olmalı.
+
+**🆕 Sunum provası zorunlu.** Gerçek uygulamayı canlı göstermek, bir şey patlarsa kurumun önünde patlaması demektir. Sunumdan önce aynı yol baştan sona bir kez koşulur: giriş, dört rol, on üç ekran, birkaç canlı kayıt. Provada çıkan her şey demoyu engelleyenler listesine eklenir.
 
 **shadcn bileşenleri neden silinmiyor.** Tarandı: **50 bileşenden 33'ü kullanılmıyor**, yalnız 17'si çağrılıyor. Proje kendi `shared` modülüyle çalışıyor. Önce `input-otp.tsx`'in silinmesi planlanmıştı (`chart.tsx` ile aynı desen) ama ölçüm planı değiştirdi: 33 ölü dosyadan birini keyfî seçmek tutarsız olurdu, **ve yenileme o 33'ten bazılarını isteyebilir.** Doğru an, yenileme hangilerini kullandığını söyledikten sonra toplu temizlik.
 
