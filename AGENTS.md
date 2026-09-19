@@ -3,7 +3,7 @@
 > **Bu belge bir görev değildir.** Rol üstlenmeni, mülakat başlatmanı veya bir şey üretmeni istemez.
 > Sana yalnızca **hangi soru için hangi dosyayı okuyacağını** söyler. Açık bir görev almadan hiçbir şey yapma.
 
-ORBIT, dershane ve eğitim kurumları için çok kiracılı (multi-tenant) bir yönetim SaaS'ıdır. İki kişilik bir ekip (Arda Bülent, Hamza Bayrak) ve onların kullandığı YZ ajanları tarafından geliştirilir.
+ORBIT, dershane ve eğitim kurumları için çok kiracılı (multi-tenant) bir yönetim SaaS'ıdır. Tek kişilik bir ekip (Arda Bülent) ve onun kullandığı YZ ajanları tarafından geliştirilir.
 
 **Faz E kapandı (2026-08-29):** kimlik zinciri uçtan uca çalışıyor ve production'da dört rolle doğrulandı. Kalan bütün sürümler, her biri **dayandığı varsayımları beyan eden** dilimlere bölünmüştür: `.ai/ROADMAP.md` **§4.6**.
 
@@ -57,7 +57,7 @@ Sonra `ROADMAP.md` §0'ı oku: 🟡 işaretli satır, yarıda kalmış dilimdir.
 
 Bunlar tercih değil, sınır.
 
-1. **Repo public.** `Hamzabyrk/orbit_v3` herkese açıktır. Sır, anahtar, gerçek kişi verisi veya müşteri bilgisi commit edilemez.
+1. **Repo public.** `ardabulent/orbit_v3` herkese açıktır. Sır, anahtar, gerçek kişi verisi veya müşteri bilgisi commit edilemez.
 2. **YZ ajanlarının GitHub, Supabase ve Vercel erişimi yoktur.** Kod yazan ajan yerel dosya sistemiyle sınırlıdır; commit, push, migration ve deploy insan onayıyla ve denetleyen taraf üzerinden yapılır. Gerekçe: `AGENT_WORKFLOW.md`.
 3. **`main`'e doğrudan commit yok.** Her değişiklik issue → branch → PR → karşılıklı onay yolundan geçer.
 4. **Şifre ve hesap açma işlemleri ajanlara yaptırılmaz.** Bu adımlar Supabase panelinden ekip tarafından yapılır.

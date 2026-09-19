@@ -28,7 +28,7 @@
 
 ## 2. Ekip Dinamiği & Geliştirme Kültürü
 
-- **Ekip:** 2 Kişi (Arda & Hamza) — Uçtan uca Full-Stack / Vibe Coding.
+- **Ekip:** 1 Kişi (Arda) — Uçtan uca Full-Stack / Vibe Coding.
 - **Kullanılan YZ Araçları:** Claude Code, Codex, Antigravity.
 - **Hedef Takvim:** Birkaç gün içinde Vercel üzerinde yayına çıkacak MVP.
 - **Bütçe:** 0₺ (Tamamen ücretsiz katmanlar). ⚠️ **Bu kısıt v1.5'te karara açıldı (2026-09-16):** `ROADMAP` §4.12'nin tetikleyici tablosu _"Supabase Pro → ilk gerçek kurum verisi girmeden önce"_ diyor ve ölçüldü — organizasyon planı bugün `free`, yani **otomatik yedek de PITR de yok.** İkisi birlikte doğru olamaz; karar `v1.5-08`'e bağlandı. Pilot, gerçek çocuk verisini geri dönüşü olmayan bir veritabanına koymak demektir.
@@ -58,7 +58,7 @@
 - **Veri Saklama:** React State + Yerel Kalıcılık (Local Persistence) & bağlı Supabase projesi (Faz 1'de deny-by-default RLS; gerçek veri kullanımı Faz 3'te)
 - **Test:** Vitest 5.0 — 67 dosya, **1007 test** (2026-09-18'de koşuldu) + pgTAP **58 dosya, 970 iddia** (259 olumsuz)
 - **Kod Kalitesi:** ESLint 10 (flat config) + typescript-eslint + eslint-plugin-react-hooks **v7** (üç yeni kural `error` seviyesinde etkin, 2026-09-09'da açıldı) + eslint-plugin-react-refresh
-- **CI/CD & Dağıtım:** GitHub Actions + Vercel (`https://orbit-v3-topaz.vercel.app`)
+- **CI/CD & Dağıtım:** GitHub Actions + Vercel (`https://orbit-v3-kappa.vercel.app`)
 - **Paket Yöneticisi:** pnpm (v10.4.1)
 
 ---
@@ -368,8 +368,8 @@ Denetimin ortaya çıkardığı, tek bir issue'ya sığmayan üç kalıp:
 - Production Supabase projesi `orbit-dershane`, silinmeden ve proje kimliği değiştirilmeden Hamza'nın sahibi olduğu `ORBIT Platform` organizasyonuna transfer edildi.
 - Transfer sonrasında Auth kullanıcısı, profil, kurum, şube, üyelik ve audit kayıt sayıları kaynak envanteriyle eşleşti; `workspace_documents` ve Storage nesne sayıları sıfır kaldı.
 - Hamza ve Arda `ORBIT Platform` organizasyonunda Owner'dır.
-- `Hamzabyrk/orbit_v3` GitHub production entegrasyonu repo kökü, `main` branch'i ve production migration uygulamasıyla yeniden etkinleştirildi.
-- Vercel `orbit-v3` projesi Hamza'nın Owner olduğu `ORBİT` Hobby takımındadır. Production adresi `https://orbit-v3-topaz.vercel.app` ve deployment durumu `Ready` olarak doğrulandı.
+- `ardabulent/orbit_v3` GitHub production entegrasyonu repo kökü, `main` branch'i ve production migration uygulamasıyla yeniden etkinleştirildi.
+- Vercel `orbit-v3` projesi Hamza'nın Owner olduğu `ORBİT` Hobby takımındadır. Production adresi `https://orbit-v3-kappa.vercel.app` ve deployment durumu `Ready` olarak doğrulandı.
 - Vercel'deki `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` tüm ortamlarda korunmuştur. Proje kimliği ve API anahtarları transferde değişmediği için uygulama bağlantısı kesilmedi.
 - Least-privilege gereği Vercel Marketplace Supabase kurulumu yapılmaması kararlaştırılmıştı. **Bu karar korunmadı:** Vercel `orbit-v3` projesine `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `SUPABASE_SECRET_KEY`, `POSTGRES_PASSWORD` ve `POSTGRES_URL` türevleri dahil 16 sunucu değişkeni eklendi. Bu değerlerin production istemci bundle'ına sızmadığı doğrulandı (Vite yalnızca `VITE_` önekli değişkenleri istemciye açar) ve hassas olanlar Vercel'de `Sensitive` işaretli olduğu için API üzerinden geri okunamıyor. Kalan risk build ortamıdır; uygulamanın ihtiyaç duymadığı bu değişkenlerin temizliği v1.1.1 kapsamındadır.
 - Uygulamanın gerçekten kullandığı değişkenler yalnızca `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY`'dir. `NEXT_PUBLIC_` önekli değişkenler bu Vite projesinde hiçbir kod tarafından okunmaz.

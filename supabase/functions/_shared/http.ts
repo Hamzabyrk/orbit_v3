@@ -23,7 +23,7 @@
 const allowedOrigins = new Set(
   (
     Deno.env.get("ALLOWED_ORIGINS") ??
-    "http://localhost:5173,http://127.0.0.1:5173,https://orbit-v3-topaz.vercel.app"
+    "http://localhost:5173,http://127.0.0.1:5173,https://orbit-v3-kappa.vercel.app"
   )
     .split(",")
     .map(origin => origin.trim())

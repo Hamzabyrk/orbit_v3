@@ -133,6 +133,7 @@
 - Bağ koparma grubu dağıtmaz, ama son hesapta bağ tamamen çözülür
 - CSP kapısı `VERCEL_ENV`'e bağlanır, CI'ın körlüğü kabul edilir
 - Migration anahtarları saat yakalayana kadar önde kalır
+- Ortaklık sona erdi; üç platform da tek sahibe döndü ve Supabase temiz kurulumla yeniden açıldı
 
 ---
 
@@ -3242,7 +3243,7 @@ anahtarıdır.
 
 | Sebep                             | Çözümü                                     | Maliyeti             |
 | --------------------------------- | ------------------------------------------ | -------------------- |
-| `orbit-v3-topaz.vercel.app`       | Alan adı (zaten alınıyor)                  | `v1.5-13`            |
+| `orbit-v3-kappa.vercel.app`       | Alan adı (zaten alınıyor)                  | `v1.5-13`            |
 | Adres çubuğunun görünmesi         | PWA "Ana Ekrana Ekle" — kendi ikonu ve adı | Bir manifest dosyası |
 | İlk açılışın yavaşlığı (1.166 kB) | Kod bölme                                  | `v1.5-11`            |
 
@@ -3522,3 +3523,47 @@ Saatle uyum kozmetik; üretimi koruyan özellik tek yönlü artış. Ve "önde o
 - **Gerçek tarihi kullanıp sıra ayrışmasını kabul etmek** — ayrışmanın sonucu sessiz ve testlerle görünmez.
 
 **Kapısı:** `supabase/tests/deployment/migrationOrderIsMonotonic.test.ts`. İki sayı tutuyor (adet + en büyük anahtar) ve her yeni migration'da ikisinin güncellenmesini istiyor; güncelleme sırasında sorulan soru tam olarak sormamız gereken soru — _"benim dosyam en üstte mi?"_
+
+---
+
+## Ortaklık sona erdi; üç platform da tek sahibe döndü ve Supabase temiz kurulumla yeniden açıldı
+
+**Durum:** Uygulandı (bekleyen panel ayarları bölüm sonunda)
+**Tarih:** 2026-09-19
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** 2026-08-22'de GitHub, Supabase ve Vercel'in üçü de Hamza'nın hesaplarına taşınmıştı. Gerekçe o tarihte yazıldı ve doğruydu: Vercel/Supabase koltuk paylaşımı ücretli plan istiyordu, Hamza'nın sahiplenmesi entegrasyonları bağlamasını sağlıyordu. Ortaklık sona erince o gerekçe ortadan kalktı. **O kayıt silinmiyor** — bugün geçersiz olması, o gün yanlış olduğu anlamına gelmez.
+
+**Karar:**
+
+1. **GitHub — devir.** `Hamzabyrk/orbit_v3` → `ardabulent/orbit_v3`. Yeni repo açmak yerine transfer seçildi.
+2. **Supabase — yeni proje, temiz başlangıç.** `vlduktyygzfjpjdzuhxy`, org `ORBIT's Org`, bölge `eu-central-1`. 72 göç uygulandı, veri taşınmadı.
+3. **Vercel — yeni proje.** `orbit-v3`, kapsam `ardabulent911-3297s-projects`, üretim adresi `orbit-v3-kappa.vercel.app`.
+4. **Türkiye'ye taşınma ertelendi.** Pilot anlaşmasına kadar Supabase Cloud'da kalınıyor.
+5. **Eski kopyalar silinmiyor.** Yeni kurulum uçtan uca doğrulanana kadar Hamza'daki projeler yedek olarak duruyor.
+
+**Gerekçe:**
+
+**Devir, yeni repo açmaya tercih edildi** çünkü transfer 218 PR, 105 issue ve Actions koşum geçmişini koruyor. Yeni repo yalnız commit geçmişini taşırdı; bu depoda kararların çoğu PR açıklamalarında yaşıyor ve onların kaybı belge kaybıdır.
+
+**Supabase'de devir yerine yeni proje seçildi** çünkü eski proje Hamza'nın organizasyonunda ve proje transferi organizasyon sahipliği gerektiriyor. Ayrıca pilot öncesi olduğumuz için korunması gereken gerçek veri yok — temiz kurulum hem daha hızlı hem daha az riskli. **Bedeli:** kurum ve operatör bootstrap'ı yeniden yapılacak.
+
+**Bölge bilerek `eu-central-1` bırakıldı.** Değiştirmek `ROADMAP` §4.23'ün gecikme ve eşzamanlılık kayıtlarını karşılaştırılamaz hale getirirdi. Veri yerleşimi ayrı bir konudur ve `PLATFORM_SETTINGS` §3.7'de izleniyor.
+
+**Laravel'e geçme tavsiyesi değerlendirildi ve reddedildi.** Öneri iki iddiayı birleştiriyordu: sunucunun Türkiye'de olması gerektiği (**doğru**) ve bunun için Laravel gerektiği (**gerekmiyor**). §3.7'nin 2026-09-10 ölçümü dört seçeneği karşılaştırıyor; Türkiye yerleşimini **self-hosted Supabase** sıfır kod değişikliğiyle çözüyor. Laravel ise 55 PostgREST çağrı yeri, 16 GoTrue çağrısı, `auth` şemasına dokunan 21 göç ve tüm öğrenci/veli RLS zinciri demek — ayrıca K-01..K-29 kural birikimi ve §4.23'ün 21 bulgusu geçersizleşirdi.
+
+**Ölçülen iki yan etki:**
+
+- **`secret_scanning` ve `secret_scanning_push_protection` devirde kapandı.** GitHub bu ayarları transferde taşımıyor. Aynı gün geri açıldı. Public repoda ücretsizler ve push protection "yanlışlıkla anahtar commit'lemek" sınıfını **push anında** durduruyor.
+- **Supabase→GitHub ve Supabase→Vercel entegrasyonları koptu.** Beklenen ve doğru: GitHub App kurulumları **hesaba** bağlıdır, repoya değil. Yeniden kurulmaları gerekiyor; o zamana kadar göçler elle uygulanıyor.
+
+**Bir yıllık bilinmez bu turda kapandı.** `PLATFORM_SETTINGS` bölüm 5, 2026-09-04'te _"onay sayısı 0'ken Arda'nın neden merge edemediği bilinmiyor ve üçüncü bir teori uydurulmayacak"_ diye kayda geçmişti. Sebep ölçüldü: **ruleset'in yanında ayrı bir klasik dal koruması** duruyordu ve o 1 onay istiyordu. GitHub ikisini birden uygular. Eski kayıttaki _"main klasik korumayla değil ruleset ile korunuyor"_ çıkarımı yanlıştı; dayandığı 404, korumanın yokluğundan değil **Arda'nın admin olmamasından** geliyordu. Klasik kural silindi, ruleset kaldı.
+
+> 📌 **Denetleyenin ilk teorisi de yanlıştı ve bu da kayda geçiyor.** Engelin `require_extra_approval_for_unattributed_changes` olduğu söylenmişti (commit'ler `Co-Authored-By` taşıdığı için). O ayar kapatıldı ve PR'lar **yine** engelliydi. Yani teori ölçümle çürütüldü. Aynı hata iki kez yapıldığı için sebep ayrı yazılıyor: **admin olmayan bir hesabın 404'ü, "yok" demek değildir.**
+
+**Reddedilen alternatifler:**
+
+- **Yeni GitHub reposu açmak** — PR ve issue geçmişini kaybederdi.
+- **Eski Supabase projesini devralmak** — organizasyon sahipliği gerektiriyor ve taşınacak veri yok.
+- **Şimdi Türkiye VPS'ine geçmek** — kod değişmezdi ama yedekleme, PITR, yama ve nöbet sorumluluğu bugün üstlenilirdi. Pilot anlaşması yokken bedeli erken.
+- **`supabase config push` ile ayarları toplu itmek** — `config.toml` yerel yığın için yazılmıştır ve `[remotes]` bölümü yoktur; push, üretim Site URL'ini `127.0.0.1` yapar ve şifre sıfırlamayı kırar. CLI'ın kendi yardım metni de bu tuzağı adıyla anlatıyor.

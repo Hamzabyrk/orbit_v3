@@ -33,3 +33,9 @@ pnpm-lock.yaml
 # OS files
 .DS_Store
 Thumbs.db
+
+# Supabase CLI'in urettigi gecici dosyalar
+# `supabase link` ve `db push` bunlari yazar; git zaten supabase/.gitignore ile
+# yok sayiyor ama Prettier .gitignore'lari okumaz, bu yuzden burada da durmalari
+# gerekiyor. Olmayinca `pnpm format:check` yesil depoda bile kirmizi donuyor.
+supabase/.temp/
