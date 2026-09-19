@@ -1,4 +1,4 @@
-# CONTRIBUTING.md — İki Kişilik Ekip Anayasası
+# CONTRIBUTING.md — Ekip Anayasası
 
 Bu dosya **git ve inceleme kurallarını** tutar. Kod yazan taraf ister bir insan ister bir YZ ajanı (Claude, Codex, Antigravity vb.) olsun, aşağıdakiler herkes için geçerlidir.
 
@@ -8,7 +8,7 @@ Projeye yeni başlıyorsan önce kökteki **`AGENTS.md`**'yi oku: hangi soru iç
 
 1. **`main` dalına doğrudan commit atılamaz.** Her değişiklik bir branch + PR üzerinden ilerler.
 2. **Dallanma formatı:** `feat/issue-no-ozellik-adi` veya `fix/issue-no-hata-adi` (örn. `feat/12-ogrenci-listesi`).
-3. **Kod birleştirilmeden önce diğer ekip üyesinin PR onayı zorunludur.**
+3. **Her değişiklik PR üzerinden gider ve üç zorunlu kapıyı geçmeden birleşmez** (`quality-gate`, `Yıkıcı Migration Kontrolü`, `Tenant RLS`). ⚠️ **2026-09-19'da ekip tek kişiye indi ve ikinci göz kuralı düştü** — insan onayı artık istenmiyor, çünkü verecek ikinci kişi yok. Bu bir gevşetme değil **kaybedilmiş bir korumadır**: kapılar kodun çalıştığını ölçer, _yapılması gereken şeyin bu olduğunu_ ölçmez. Kayıp, PR açıklamasının gerekçe yazma yükünü artırır; `AGENT_WORKFLOW.md`'deki denetleyen rolü artık tek denetimdir.
 4. **Commit mesajları [Conventional Commits](https://www.conventionalcommits.org/) formatında yazılır:** `feat:`, `fix:`, `refactor:`, `test:`, `chore:`, `docs:`.
 5. **Değişen bilgi aynı PR'da belgeye işlenir.** Karar → `DECISION_LOG.md`, durum → `ROADMAP.md` §0, panel ayarı → `PLATFORM_SETTINGS.md`, klasör/servis yapısı → `PROJECT_STATE.md` §5. Ayrı bir "belgeleri güncelleme" işi açılmaz; açılırsa yapılmaz.
 6. **Modülerlik & Tek Sorumluluk:** Yeni ekranlar veya özellikler devasa tek bir dosyaya yığılamaz. Her ekran kendi alt dosyasında (`components/education/`, `platform/`) olmalı, tipler ve hook'lar ayrıştırılmalıdır. Ayrıntı: `AGENTS.md`.
@@ -22,7 +22,7 @@ git pull --ff-only            # her iş güncel main'den başlar
 git checkout -b feat/<issue-no>-<kisa-ad>
 # ... geliştirme, atomik commit'ler ...
 git push -u origin feat/<issue-no>-<kisa-ad>
-# GitHub üzerinden PR aç, diğer ekip üyesini review'a ata
+# GitHub üzerinden PR aç; kapılar yeşilse birleştir (insan onayı istenmiyor)
 ```
 
 **Merge edilen dal ölüdür.** Üzerine yeni commit atma; `main`'i çekip yeni bir dal aç. Merge sonrası commit dalda kalır, `main`'e girmez ve CI koşmaz — üstelik `git push` başarılı döner, hiçbir hata görünmez. Bu projede iki kez oldu (PR #52, PR #78).

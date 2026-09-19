@@ -505,6 +505,18 @@ Bu bölüm bir ayarı tarif etmiyor, bir **kırılganlığı** kayda geçiriyor.
 
 Klasik `branches/main/protection` uç noktası **404** döner; bu repoda koruma bir **ruleset**'tir ve o uç nokta ruleset'leri görmez. Koruma yok sanmak buradan doğar.
 
+> 🔴 **Bu paragraf 2026-09-19'da ÇÜRÜTÜLDÜ. Aşağıdaki bölüm tamamı tarihseldir; bugünkü durum için bölüm 3'e bakın.**
+>
+> Devirden sonra `admin` yetkisi gelince görüldü ki **`main` üzerinde ruleset'in yanında ayrı bir klasik dal koruması da duruyordu** ve o **1 onay** istiyordu. GitHub ikisini birden uygular ve en katı olanı geçerli sayar.
+>
+> Yani **404 "koruma yok" demek değildi; "senin yetkin yok" demekti.** Bu uç nokta `admin` olmayan bir çağırana, koruma var olsa bile 404 döner. Yukarıdaki cümle o 404'ü yanlış okudu ve üstüne bir teori kurdu.
+>
+> **Sonucu ölçülebilirdi ve ölçüldü:** 2026-09-19'da `required_approving_review_count` **0** yapıldı, `require_extra_approval_for_unattributed_changes` **false** yapıldı, ve PR'lar **yine** `BLOCKED` kaldı. Engel klasik kuraldı. Silinince altı PR'ın altısı da açıldı.
+>
+> 📌 **Bu, bölüm 5'te _"onay sayısı 0'ken Arda'nın neden merge edemediği bilinmiyor, üçüncü bir teori uydurulmasın"_ diye duran soruyu kapatır.** Cevap üçüncü bir teori değil, hiç bakılmamış ikinci bir katmandı.
+>
+> ⚠️ **Denetleyenin ilk teorisi de yanlıştı ve o da kayda geçiyor:** engelin `require_extra_approval_for_unattributed_changes` olduğu söylenmişti. O ayar kapatıldı ve PR'lar yine engelliydi — teori ölçümle çürüdü. Aynı hata iki kez yapıldığı için ders ayrı yazılıyor: **yetkisiz bir çağıranın 404'ü bir ölçüm değildir.**
+
 **Kural neden yine de işliyor:** ikinci parametre, kişiye atfedilmemiş değişiklik içeren PR'larda gereken onay sayısını yapılandırılanın **bir üstüne** çıkarır. 0 + 1 = 1. Commit'lerimiz `Co-Authored-By: Claude Opus 5` satırı taşıdığı için her PR'ımız o sınıfa giriyor. Nitekim son PR'ların hepsinde `reviewDecision: APPROVED` görünüyor — yani bir onay gerçekten aranmış ve alınmış.
 
 ⚠️ **Kırılganlık ve sahibi (K-12).** Koruma, commit mesajlarımızın **tesadüfi bir özelliğine** dayanıyor. `Co-Authored-By` satırı bir gün düşerse — attribution ayarı değişir, biri elle commit atar, araç sürümü değişir — ek onay şartı da düşer ve **temel sayı 0 olduğu için tek kişi kendi PR'ını merge edebilir hâle gelir.** Hiçbir hata görünmez; kural sessizce gevşer. Ve bu repoda `main`'e merge, migration'ları **production veritabanına** uygular.
