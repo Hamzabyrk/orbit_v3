@@ -624,6 +624,22 @@ Bir mimari karar kütüphanenin **bir** ayarıyla uygulanmışsa, aynı kütüph
 
 ⚠️ Bu **K-26**'nın bir akrabası: orada kapı adını arıyordu, burada karar ayarın varlığını kanıt sayıyor. İkisinde de eksik olan, korunan **davranışın** koşulması.
 
+### K-30 · Panelde doğru görünen bir yapılandırma, etkin olduğunun kanıtı değildir
+
+Bir sağlayıcı panelinde doğru değerleri görmek, o yapılandırmanın **çalıştığını** göstermez. Panel **niyeti** gösterir; davranışı değil. Aradaki fark genellikle kaydedilmemiş bir form, uygulanmamış bir izin ya da plana takılmış bir özelliktir — ve üçü de ekranda aynı görünür.
+
+2026-09-19'da ölçüldü. Hesap geçişinde Supabase→GitHub entegrasyonu kuruldu ve panel doğru değerleri gösterdi: depo `ardabulent/orbit_v3`, çalışma dizini repo kökü, production branch `main`, "Deploy to production" açık. Ekran görüntüsüyle de teyit edildi. Buna dayanarak _"göçler merge'de uygulanır"_ kabul edildi.
+
+**Kabul yanlıştı.** Bir göçle sınandı: merge'den sonra dört dakika boyunca üretimdeki göç sayısı artmadı. Sebep sonradan bulundu — sayfanın altındaki **"Save changes" düğmesine basılmamıştı.** Yeniden bağlanınca bir sonraki merge **yirmi saniyede** uygulandı.
+
+**İz baştan okunabilirdi ve okunmadı:** `list_branches` kaydının `updated_at` alanı, entegrasyonun ilk kurulduğu ana donmuş duruyordu ve üç merge boyunca hiç kıpırdamadı. Yeniden bağlanınca hareket etti.
+
+**Kural:** bir entegrasyonun, webhook'un veya sağlayıcı ayarının çalıştığı, **ancak onu çalıştıran olayı üretip sonucu ölçerek** kabul edilir. Panel ekran görüntüsü kanıt sayılmaz. Ölçüm pahalıysa, en azından sağlayıcının kendi kayıtlarında bir **zaman damgasının hareket ettiği** doğrulanır.
+
+📌 Sınavın zararsız olması tasarımdı: boru hattı bir şema yorumuyla denendi, gerçek bir tabloyla değil. Bozuk çıktığında maliyet sıfırdı. **Doğrulanmamış bir altyapı varsayımı, onu sınayan en ucuz değişiklikle sınanır** — ve o değişiklik kalıcı kayıt olarak bırakılır, çünkü aynı soru bir sonraki sahiplik değişikliğinde yeniden sorulacaktır.
+
+⚠️ Bu **K-11**'in altyapı tarafındaki karşılığıdır: orada gerçekleşmiş tahmin silinmez, burada doğrulanmamış yapılandırma kabul edilmez.
+
 ### Değişmeyen bölümler — brifingde tekrar yazılmaz
 
 Aşağıdaki üç blok her görevde aynıdır. Brifingde **tek satırla anılır**, kopyalanmaz:
