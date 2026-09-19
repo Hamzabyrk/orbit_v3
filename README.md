@@ -19,16 +19,18 @@ ORBIT; devamsızlık takibi, ders programı, deneme sınavı analizleri, veli il
 
 ## 🛠️ Teknoloji Yığını (Tech Stack)
 
-| Katman                 | Teknoloji                              | Açıklama                                                                  |
-| :--------------------- | :------------------------------------- | :------------------------------------------------------------------------ |
-| **Frontend**           | React 19 + TypeScript 5.9 + Vite 7     | Maksimum tip güvenliği, hızlı derleme ve modüler SPA                      |
-| **Stil & Tasarım**     | Tailwind CSS v4 + Radix UI + shadcn/ui | Erişilebilir headless bileşenler (`components/ui/`), modern tipografi     |
-| **Yönlendirme**        | `wouter`                               | Hafif ve performanslı istemci yönlendirici (`patches/wouter@3.7.1.patch`) |
-| **BaaS / Veri**        | `@supabase/supabase-js`                | Doğrudan istemciden Supabase BaaS bağlantısı                              |
-| **State Yönetimi**     | `@tanstack/react-query` v5             | Sunucu durumu senkronizasyonu                                             |
-| **İkonlar & Bildirim** | `lucide-react`, `sonner`               | Tutarlı arayüz ikonları ve zengin bildirimler                             |
-| **Test**               | Vitest 2.1                             | Birim ve yetkilendirme (RBAC) testleri                                    |
-| **Paket Yöneticisi**   | `pnpm` (v10.4.1)                       | Hızlı ve disk tasarruflu paket yönetimi                                   |
+| Katman                 | Teknoloji                           | Açıklama                                                                  |
+| :--------------------- | :---------------------------------- | :------------------------------------------------------------------------ |
+| **Frontend**           | React + TypeScript + Vite           | Maksimum tip güvenliği, hızlı derleme ve modüler SPA                      |
+| **Stil & Tasarım**     | Tailwind CSS + Radix UI + shadcn/ui | Erişilebilir headless bileşenler (`components/ui/`), modern tipografi     |
+| **Yönlendirme**        | `wouter`                            | Hafif ve performanslı istemci yönlendirici (`patches/wouter@3.7.1.patch`) |
+| **BaaS / Veri**        | `@supabase/supabase-js`             | Doğrudan istemciden Supabase BaaS bağlantısı                              |
+| **State Yönetimi**     | `@tanstack/react-query`             | Sunucu durumu senkronizasyonu                                             |
+| **İkonlar & Bildirim** | `lucide-react`, `sonner`            | Tutarlı arayüz ikonları ve zengin bildirimler                             |
+| **Test**               | Vitest + pgTAP                      | Birim, yetkilendirme (RBAC) ve veritabanı politikası testleri             |
+| **Paket Yöneticisi**   | `pnpm`                              | Hızlı ve disk tasarruflu paket yönetimi                                   |
+
+> **Sürüm numaraları burada tutulmuyor, `package.json`'da yaşıyor.** Bu tablo bir süre sürüm de yazıyordu ve ayrıştı: 2026-09-19'da _"Vitest 2.1"_ ve _"TypeScript 5.9"_ yazarken kurulu olanlar **5.0** ve **6.0**'dı. Aynı gerekçe aşağıdaki klasör ağacı için de geçerli — iki yerde tutulan bilginin biri her zaman eskir.
 
 ---
 
@@ -63,6 +65,30 @@ pnpm dev
 
 Tarayıcınızda `http://localhost:5173` adresine giderek demoyu açabilirsiniz.
 Giriş ekranında **Kurum Yöneticisi, Öğretmen, Öğrenci veya Veli** rollerinden birini seçerek anında ilgili arayüze geçiş yapabilirsiniz (Demo şifresi: `demo123`).
+
+### 🔴 Yukarıdaki komut **demo modudur** — Supabase'e hiç istek gitmez
+
+`pnpm dev` uygulamayı demo verisiyle açar: `vite.config.ts` ortamı `VERCEL_ENV ?? VITE_DEPLOYMENT_ENV` ile çözüyor ve `.env.example` `development` diyor, yani `isDemoMode = true`. Ekranlar dolu görünür ama **hiçbiri gerçek veritabanından gelmez**; giriş, yetki, RLS ve Edge Function'ların hiçbiri koşmaz.
+
+Bu satır 2026-09-19'da yazıldı çünkü tarifin yokluğu ölçülebilir bir zarar verdi: _"yerelde uçtan uca prova yapıldı"_ diyen bir denetim, farkında olmadan demo modunda bakmış olabilir (`ROADMAP` §4.23 B5).
+
+**Gerçek modda çalıştırmak için** — yerel Supabase yığını ayakta olmalı:
+
+```bash
+# 1. Yerel yığını başlat (Docker gerekir) ve anahtarları oku
+supabase start
+supabase status -o env          # API_URL ve ANON_KEY buradan
+
+# 2. Vite'ı gerçek modda başlat (değerleri kabuktan geç, .env'e yazma)
+VITE_DEPLOYMENT_ENV=production \
+VITE_SUPABASE_URL=http://127.0.0.1:54321 \
+VITE_SUPABASE_ANON_KEY=<supabase status'tan ANON_KEY> \
+pnpm dev
+```
+
+⚠️ **`VERCEL_ENV` değişkenini set etme.** O değişken varken `vite.config.ts`'in CSP kapısı devreye girer ve `vercel.json`'daki üretim adresiyle karşılaştırma yapar; yerel adresle derleme durur (`v1.5-09`).
+
+**Gerçek modda olduğunun kanıtı:** giriş ekranında rol kartları ve "Demo şifresi" satırı **görünmez**; giriş numarası istenir. Veritabanı boş başlar — kurumu, yöneticiyi ve üyeleri platform operatörü olarak sen oluşturursun.
 
 ---
 
