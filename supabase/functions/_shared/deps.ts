@@ -16,5 +16,5 @@
 export {
   createClient,
   type SupabaseClient,
-} from "npm:@supabase/supabase-js@2.115.0";
-export { z } from "npm:zod@4.5.4";
+} from "npm:@supabase/supabase-js@2.116.0";
+export { z } from "npm:zod@4.6.5";
