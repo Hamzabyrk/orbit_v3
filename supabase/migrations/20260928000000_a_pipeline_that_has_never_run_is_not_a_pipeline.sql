@@ -1,0 +1,28 @@
+-- Hiç koşmamış bir boru hattı, boru hattı değildir.
+--
+-- 2026-09-19 hesap geçişinde Supabase→GitHub entegrasyonu yeniden kuruldu:
+-- `ardabulent/orbit_v3`, çalışma dizini repo kökü, production branch `main`,
+-- "Deploy to production" açık. Panelde doğru görünüyordu ve Supabase tarafı
+-- `list_branches` ile üretim `main` kaydını döndürüyordu.
+--
+-- Ama **bir merge'ü gerçekten işlediği hiç görülmedi.** Bağlantı 16:34'te
+-- kuruldu, o güne kadarki son merge 16:30'daydı; sonraki iki merge (#332, #333)
+-- yalnız `.ai/` belgelerine dokundu ve `supabase/` altında değişiklik taşımadı,
+-- dolayısıyla entegrasyonun yapacak işi yoktu. Loglar da boştu.
+--
+-- Yani ortada doğrulanmamış bir varsayım vardı: "merge edince göçler uygulanır".
+-- Bu depo varsayımla yaşamıyor (**K-11**), ve bu varsayımın yanlış çıkması en
+-- pahalı anda ortaya çıkardı: ilk gerçek göç sessizce uygulanmaz, uygulama eski
+-- şemaya karşı koşar ve hata veritabanında değil ekranda aranır.
+--
+-- Bu göç o varsayımı ölçüye çeviriyor. Şemayı **değiştirmiyor**: tek yaptığı
+-- `public` şemasına bir yorum yazmak. Merge sonrası yorum üretimde okunabiliyorsa
+-- boru hattı çalışıyor demektir; okunamıyorsa entegrasyon bozuk demektir ve bunu
+-- zararsız bir değişiklikle öğrenmiş oluruz.
+--
+-- Kalıcı olarak kayda geçmesinin sebebi: bu satır, boru hattının **bir kez**
+-- uçtan uca çalıştığının tarihli kanıtıdır. Bir sonraki sahiplik değişikliğinde
+-- veya entegrasyon koptuğunda aynı soru yeniden sorulacak ve cevabın nasıl
+-- ölçüldüğü burada yazılı olacak.
+
+comment on schema public is 'ORBIT. Goc boru hatti 2026-09-19 hesap gecisinden sonra uctan uca dogrulandi: GitHub main merge -> Supabase uretim goc uygulamasi. Gerekce: supabase/migrations/20260928000000_a_pipeline_that_has_never_run_is_not_a_pipeline.sql';
