@@ -53,8 +53,45 @@ Kök neden tek ve basit:
 
 ## 3. Production envanteri
 
-Supabase projesi `orbit-dershane` (`xyxnyiadidjyalcphhfj`), organizasyon `ORBIT Platform`.
-Son doğrulama: **2026-08-23**, Issue #20.
+Supabase projesi `orbit` (`vlduktyygzfjpjdzuhxy`), organizasyon `ORBIT's Org` — Arda'nın kendi hesabı.
+Son doğrulama: **2026-09-19**, hesap geçişi turu.
+
+> 🔴 **Hesap geçişi (2026-09-19) — bu bölümdeki her kimlik değişti.**
+>
+> Ortaklık sona erdi ve üç platform da Arda'nın hesaplarına döndü. Eski kimlikler **artık geçerli değildir**; bir yerde `orbit-v3-topaz`, `xyxnyiadidjyalcphhfj` veya `Hamzabyrk/orbit_v3` görürseniz o satır bayattır.
+>
+> | Katman   | Eski                                      | Yeni                                                               |
+> | -------- | ----------------------------------------- | ------------------------------------------------------------------ |
+> | GitHub   | `Hamzabyrk/orbit_v3`                      | `ardabulent/orbit_v3` (**devir**, 218 PR + 105 issue korundu)      |
+> | Supabase | `orbit-dershane` / `xyxnyiadidjyalcphhfj` | `orbit` / `vlduktyygzfjpjdzuhxy` (**yeni proje, temiz başlangıç**) |
+> | Vercel   | `orbit-v3` / `ORBİT` takımı / `…-topaz`   | `orbit-v3` / `ardabulent911-3297s-projects` / `…-kappa`            |
+>
+> Veri taşınmadı. 72 göç yeni projeye uygulandı ve 72/72 doğrulandı; 8 Edge Function yayınlandı ve sekizinin de CORS davranışı tek tek ölçüldü.
+>
+> **Devrin sessizce kırdığı iki şey ölçüldü ve biri düzeltildi:**
+>
+> - `secret_scanning` ve `secret_scanning_push_protection` **kapanmıştı**. Devir bu ayarları taşımıyor. İkisi de geri açıldı — public repoda ücretsiz ve yanlışlıkla anahtar commit'lemeyi push anında durduruyorlar.
+> - Supabase→GitHub ve Supabase→Vercel entegrasyonları **koptu**. Kopmaları beklenen ve doğru; GitHub App kurulumları hesaba bağlıdır, repoya değil. Yeniden kurulmaları gerekiyor (aşağıdaki bekleyenler).
+
+### ⏳ Bekleyenler — panelden yapılacak, henüz YAPILMADI
+
+Bu satırlar **ölçülmüş eksiklerdir**, tahmin değil. Kaynak: `supabase config diff`, 2026-09-19.
+
+| Nerede        | Ayar                      | Şu an            | Olması gereken                           |
+| ------------- | ------------------------- | ---------------- | ---------------------------------------- |
+| Supabase Auth | `enable_signup`           | 🔴 **Açık**      | Kapalı                                   |
+| Supabase Auth | `minimum_password_length` | 6                | 8                                        |
+| Supabase Auth | `password_requirements`   | yok              | küçük + büyük + rakam                    |
+| Supabase Auth | Site URL                  | `localhost:3000` | `https://orbit-v3-kappa.vercel.app`      |
+| Supabase Auth | Redirect allowlist        | **boş**          | üretim adresi + `/**`, localhost + `/**` |
+| Supabase Auth | TOTP enroll/verify        | açık             | kapalı                                   |
+| Supabase Auth | Twilio SMS                | açık             | kapalı                                   |
+| Supabase      | GitHub entegrasyonu       | yok              | `ardabulent/orbit_v3`, `main`            |
+| Supabase      | Platform operatörü        | **hiç yok**      | en az bir `owner`                        |
+
+> ⚠️ **`enable_signup` neden ilk sırada.** Taze Supabase projeleri kayda **açık** gelir. Anon anahtarı yayınlanan pakette olduğu için herkese görünür, yani bu ayar açıkken adresi bilen herkes hesap açabilir. Etkisi sınırlıdır — RLS duvarı ayakta ve üyeliği olmayan bir hesap hiçbir satır göremez (`ROADMAP` §4.23, eksen 2) — ama pilot öncesi kapatılmalıdır.
+>
+> ⛔ **`supabase config push` ile toplu düzeltilemez ve denenmemelidir.** `config.toml` bu depoda **yerel yığın** için yazılmıştır: `site_url` orada `http://127.0.0.1:5173`'tür ve dosyada `[remotes]` bölümü yoktur. Push, dosyanın bildirdiği her şeyi iter; üretim Site URL'ini localhost yapar ve şifre sıfırlama e-postalarını kırar. `otp_length` de ayrıca ayrışıktır (dosya 6, belgelenen üretim değeri 8). CLI'ın kendi yardım metni de bu tuzağı adıyla anlatıyor ve ajanlara önce `config diff` koşmalarını söylüyor.
 
 ### 3.1 Supabase — Authentication
 
@@ -94,20 +131,20 @@ Son doğrulama: **2026-08-23**, Issue #20.
 
 ### 3.2 Supabase — URL yapılandırması
 
-- **Site URL:** `https://orbit-v3-topaz.vercel.app`
-- **Redirect URL listesi (7):**
+- **Site URL:** `https://orbit-v3-kappa.vercel.app` — ⏳ **henüz kurulmadı.** Üretimde hâlâ `http://localhost:3000` duruyor; bölüm 3 başındaki bekleyenler tablosuna bak.
+- **Redirect URL listesi (7)** — ⏳ **üretimde boş.** Kurulması gereken liste:
   ```
-  https://orbit-v3-topaz.vercel.app          + /**
+  https://orbit-v3-kappa.vercel.app          + /**
   http://localhost:5173                       + /**
   http://127.0.0.1:5173                       + /**
-  https://orbit-v3-*-orb-i-t.vercel.app/**
+  https://orbit-v3-*-ardabulent911-3297s-projects.vercel.app/**
   ```
 
-> ⚠️ Site URL **`orbit-v3-orb-i-t.vercel.app` olmamalıdır.** O adres Vercel SSO girişine 302 yönlendirir; auth e-postalarındaki bağlantılar kullanıcıyı Vercel login ekranına götürür ve şifre sıfırlama akışı kırılır. Çalışan public adres `orbit-v3-topaz.vercel.app`'tir (HTTP 200).
+> ⚠️ Site URL **`orbit-v3-ardabulent911-3297s-projects.vercel.app` olmamalıdır.** O adres Vercel SSO girişine 302 yönlendirir; auth e-postalarındaki bağlantılar kullanıcıyı Vercel login ekranına götürür ve şifre sıfırlama akışı kırılır. Çalışan public adres `orbit-v3-kappa.vercel.app`'tir (HTTP 200).
 >
 > `/**` ekleri gereklidir: eksiz kayıt yalnızca tam eşleşen adresi kabul eder, `.../reset-password` gibi bir yol eklenince eşleşme başarısız olur.
 >
-> Preview wildcard'ı `orbit-v3-*-orb-i-t` biçimindedir. `orbit-*-v3-orb-i-t` yazımı hiçbir preview adresiyle eşleşmez.
+> Preview wildcard'ı `orbit-v3-*-ardabulent911-3297s-projects` biçimindedir. `orbit-*-v3-ardabulent911-3297s-projects` yazımı hiçbir preview adresiyle eşleşmez.
 
 ### 3.3 Supabase — Edge Functions
 
@@ -121,7 +158,7 @@ Son doğrulama: **2026-08-23**, Issue #20.
 | `create-member`          | ACTIVE, `verify_jwt = true`         | Depoya 2026-08-26'da girdi (`da04ea1`); API (2026-09-19)         |
 | `reset-member-password`  | ACTIVE, `verify_jwt = true`         | Depoya 2026-08-25'te girdi (`3287dde`); API (2026-09-19)         |
 | `switch-account`         | ACTIVE, `verify_jwt = true`         | Depoya 2026-09-14'te girdi (`9db69af`); API (2026-09-19)         |
-| `ALLOWED_ORIGINS` secret | `https://orbit-v3-topaz.vercel.app` | Origin sondası: yalnızca bu origin geçiyor                       |
+| `ALLOWED_ORIGINS` secret | `https://orbit-v3-kappa.vercel.app` | Origin sondası: yalnızca bu origin geçiyor                       |
 
 > **Sonradan düzeltme (2026-08-25):** Bu tablo uzun süre yalnızca `bootstrap-organization`'ı listeledi; diğer iki fonksiyon 2026-08-24'te canlıya çıktı ve tabloya işlenmedi. Yani bu dosya, tam olarak önlemek için var olduğu hatayı kendisi yaptı — bkz. bölüm 1. Issue #77 belge denetiminde yakalandı.
 >
@@ -137,11 +174,11 @@ Son doğrulama: **2026-08-23**, Issue #20.
 
 ### 3.4 Supabase — entegrasyonlar
 
-| Entegrasyon                    | Durum                                                                                                                         |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| GitHub                         | Açık — `Hamzabyrk/orbit_v3`, repo kökü, `main` production branch. **Merge sonrası migration'lar otomatik uygulanır.**         |
-| Vercel                         | **Bağlantı yok (0 project connection).** Bilinçli — bkz. bölüm 3.5.                                                           |
-| Branching (preview veritabanı) | **Kullanılamıyor — Pro plan gerektiriyor.** Biz kapatmadık; organizasyon planı `free` olduğu için Supabase her PR'da atlıyor. |
+| Entegrasyon                    | Durum                                                                                                                                                                                                                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub                         | ⏳ **Yok — devirde koptu (2026-09-19).** GitHub App kurulumları hesaba bağlıdır, repoya değil; devir onları taşımaz. Yeniden kurulana kadar göçler merge ile **otomatik uygulanmaz**, elle `supabase db push` gerekir. Hedef: `ardabulent/orbit_v3`, repo kökü, `main`. |
+| Vercel                         | **Bağlantı yok (0 project connection).** Bilinçli — bkz. bölüm 3.5.                                                                                                                                                                                                     |
+| Branching (preview veritabanı) | **Kullanılamıyor — Pro plan gerektiriyor.** Biz kapatmadık; organizasyon planı `free` olduğu için Supabase her PR'da atlıyor.                                                                                                                                           |
 
 > **"Supabase Preview — skipping" her PR'da görünür ve bir arıza değildir.** GitHub entegrasyonu bağlı, ancak Branching ücretli planda. Doğrulama: `list_branches` yalnızca production `main` kaydını döndürüyor, hiç preview branch'i yok; organizasyon planı `free`.
 >
@@ -151,17 +188,17 @@ Son doğrulama: **2026-08-23**, Issue #20.
 
 ### 3.5 Vercel
 
-Proje `orbit-v3`, Hamza'nın sahibi olduğu `ORBİT` Hobby takımında.
+Proje `orbit-v3`, Arda'nın `ardabulent911-3297s-projects` Hobby kapsamında.
 
-| Ayar                                         | Değer                                                                                                                                                                                                                                                                               |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Ortam değişkenleri                           | Yalnızca `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY` (All Environments). İkisi de **elle** eklenmiş (2026-08-21) ve entegrasyon tarafından yönetilmiyor — panelde doğrulandı. `VITE_SUPABASE_ANON_KEY` **2026-09-04'te yeni biçime çekildi** (#151); bkz. bölüm 4               |
-| Public production adresi                     | `https://orbit-v3-topaz.vercel.app`                                                                                                                                                                                                                                                 |
-| `orbit-v3-orb-i-t.vercel.app`                | Vercel SSO korumalı, auth akışlarında **kullanılmaz**                                                                                                                                                                                                                               |
-| Preview deployment koruması                  | **Etkin** — preview adresleri Vercel SSO gerektiriyor (2026-08-23'te doğrulandı, bkz. bölüm 5)                                                                                                                                                                                      |
-| Preview derlemeleri **demo modunda** çalışır | `VERCEL_ENV=preview` → `runtime.ts` `isDemoMode = deploymentEnvironment !== "production"`. Preview'da Supabase'e **hiç istek gitmez**; giriş ekranı rol seçtirir, şifre `demo123`, kimlik sahtedir. Sonuç: **auth, RLS ve platform paneli preview'da doğrulanamaz** (bkz. bölüm 5). |
-| Güvenlik başlıkları                          | `vercel.json` ile repodan yönetilir — CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy. HSTS'i Vercel kendisi ekler.                                                                                                                               |
-| SPA rewrite                                  | `vercel.json` — **bilinen rotalar tek tek yazılı**, catch-all değil (#146). Catch-all her yola `HTTP 200` döndürüyordu, `/olmayan-sayfa` ve `/robots.txt` dahil. Bedeli: rota listesi `App.tsx` ile ikizlenir; iki tarafta da karşılıklı yorum var                                  |
+| Ayar                                               | Değer                                                                                                                                                                                                                                                                               |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ortam değişkenleri                                 | Yalnızca `VITE_SUPABASE_URL` ve `VITE_SUPABASE_ANON_KEY`, **üç ortamın üçünde de** (production, preview, development). Altısı da **elle** eklendi (2026-09-19, hesap geçişi) ve hiçbir entegrasyon tarafından yönetilmiyor. Anahtar `sb_publishable_…` biçiminde; bkz. bölüm 4      |
+| Public production adresi                           | `https://orbit-v3-kappa.vercel.app`                                                                                                                                                                                                                                                 |
+| `orbit-v3-ardabulent911-3297s-projects.vercel.app` | Vercel SSO korumalı, auth akışlarında **kullanılmaz**                                                                                                                                                                                                                               |
+| Preview deployment koruması                        | **Etkin** — preview adresleri Vercel SSO gerektiriyor (2026-08-23'te doğrulandı, bkz. bölüm 5)                                                                                                                                                                                      |
+| Preview derlemeleri **demo modunda** çalışır       | `VERCEL_ENV=preview` → `runtime.ts` `isDemoMode = deploymentEnvironment !== "production"`. Preview'da Supabase'e **hiç istek gitmez**; giriş ekranı rol seçtirir, şifre `demo123`, kimlik sahtedir. Sonuç: **auth, RLS ve platform paneli preview'da doğrulanamaz** (bkz. bölüm 5). |
+| Güvenlik başlıkları                                | `vercel.json` ile repodan yönetilir — CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy. HSTS'i Vercel kendisi ekler.                                                                                                                               |
+| SPA rewrite                                        | `vercel.json` — **bilinen rotalar tek tek yazılı**, catch-all değil (#146). Catch-all her yola `HTTP 200` döndürüyordu, `/olmayan-sayfa` ve `/robots.txt` dahil. Bedeli: rota listesi `App.tsx` ile ikizlenir; iki tarafta da karşılıklı yorum var                                  |
 
 > Supabase→Vercel env senkronizasyonu **kapalı tutulmalıdır.** Açıkken projeye `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `POSTGRES_PASSWORD` dahil 16 sunucu değişkeni basılmıştı. Uygulama bir Vite SPA'dır; bunların hiçbirini okumaz. Değerler istemci bundle'ına sızmamıştı (Vite yalnızca `VITE_` önekli değişkenleri açar), ancak build ortamına erişilebilir durumdaydılar.
 >
@@ -169,29 +206,29 @@ Proje `orbit-v3`, Hamza'nın sahibi olduğu `ORBİT` Hobby takımında.
 
 ### 3.6 GitHub
 
-| Ayar                      | Değer                                                                |
-| ------------------------- | -------------------------------------------------------------------- |
-| Görünürlük                | **Public** (2026-08-23, bkz. `DECISION_LOG.md`)                      |
-| `main` review zorunluluğu | **Uygulanıyor** — repo public olduğu için Free planda da zorlanıyor  |
-| `CODEOWNERS`              | `* @ardabulent @Hamzabyrk` — her PR'da otomatik review isteği        |
-| Arda'nın repo izni        | `WRITE` (Admin değil) — ayarları değiştiremez, merge kuralını aşamaz |
+| Ayar                      | Değer                                                               |
+| ------------------------- | ------------------------------------------------------------------- |
+| Görünürlük                | **Public** (2026-08-23, bkz. `DECISION_LOG.md`)                     |
+| `main` review zorunluluğu | **Uygulanıyor** — repo public olduğu için Free planda da zorlanıyor |
+| `CODEOWNERS`              | `* @ardabulent` — tek sahip                                         |
+| Arda'nın repo izni        | `ADMIN` — ayarları ve ruleset'i değiştirebilir                      |
 
 **Advanced Security (2026-09-07'de açıldı — Hamza).** Uzun süre beşi de kapalıydı; bölüm 5'teki 🔴 kayıt buydu ve artık kapandı.
 
-| Özellik                           | Durum      | Nasıl doğrulandı                                                                                                                              |
-| --------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Dependency graph`                | ✅ Açık    | `dependency-graph/sbom` okunuyor — 447 kayıt (npm + 6 GitHub Action)                                                                          |
-| `Dependabot alerts`               | ✅ Açık    | `dependabot/alerts` → `200` + boş liste (kapalıyken `403` döner)                                                                              |
-| `Dependabot security updates`     | ✅ Açık    | Ekran görüntüsü — uç nokta `admin` istiyor, API'den okunamıyor                                                                                |
-| `Grouped security updates`        | ✅ Açık    | Ekran görüntüsü — aynı sebeple API'den okunamıyor                                                                                             |
-| `Private vulnerability reporting` | ✅ Açık    | `private-vulnerability-reporting` → `{"enabled":true}`                                                                                        |
-| `Secret Protection`               | ✅ Açık    | Ekran görüntüsü                                                                                                                               |
-| `Push protection`                 | ✅ Açık    | Ekran görüntüsü — gizli anahtar içeren commit **push anında** durur                                                                           |
-| `CodeQL` (advanced setup)         | ✅ Koşuyor | `codeql.yml` (v1.2-20); son üç koşum `success`                                                                                                |
-| `Copilot Autofix`                 | ✅ Açık    | Ekran görüntüsü — CodeQL uyarılarına düzeltme **önerir**, PR açmaz                                                                            |
-| `Automatic dependency submission` | ⬜ Kapalı  | **Kasıtlı.** Derleme anında çözülen ekosistemler (Gradle/Maven) için; bizde `pnpm-lock.yaml` var ve graph onu zaten okuyor                    |
-| `AI findings` (Preview)           | ⬜ Kapalı  | **Zaten çalışamaz** — CodeQL'in _default_ kurulumunu şart koşuyor, bizde _advanced_ var                                                       |
-| `Dependabot malware alerts`       | ✅ Açık    | **Hamza açtı (2026-09-07).** API'den okunamıyor — `security_and_analysis` alanı `admin` istiyor ve boş dönüyor; doğrulama Hamza'nın eyleminde |
+| Özellik                           | Durum      | Nasıl doğrulandı                                                                                                                                       |
+| --------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Dependency graph`                | ✅ Açık    | `dependency-graph/sbom` okunuyor — 447 kayıt (npm + 6 GitHub Action)                                                                                   |
+| `Dependabot alerts`               | ✅ Açık    | `dependabot/alerts` → `200` + boş liste (kapalıyken `403` döner)                                                                                       |
+| `Dependabot security updates`     | ✅ Açık    | Ekran görüntüsü — uç nokta `admin` istiyor, API'den okunamıyor                                                                                         |
+| `Grouped security updates`        | ✅ Açık    | Ekran görüntüsü — aynı sebeple API'den okunamıyor                                                                                                      |
+| `Private vulnerability reporting` | ✅ Açık    | `private-vulnerability-reporting` → `{"enabled":true}`                                                                                                 |
+| `Secret Protection`               | ✅ Açık    | **Devirde kapanmıştı, 2026-09-19'da geri açıldı.** API: `security_and_analysis.secret_scanning = enabled`                                              |
+| `Push protection`                 | ✅ Açık    | **Devirde kapanmıştı, 2026-09-19'da geri açıldı.** API: `secret_scanning_push_protection = enabled`. Gizli anahtar içeren commit **push anında** durur |
+| `CodeQL` (advanced setup)         | ✅ Koşuyor | `codeql.yml` (v1.2-20); son üç koşum `success`                                                                                                         |
+| `Copilot Autofix`                 | ✅ Açık    | Ekran görüntüsü — CodeQL uyarılarına düzeltme **önerir**, PR açmaz                                                                                     |
+| `Automatic dependency submission` | ⬜ Kapalı  | **Kasıtlı.** Derleme anında çözülen ekosistemler (Gradle/Maven) için; bizde `pnpm-lock.yaml` var ve graph onu zaten okuyor                             |
+| `AI findings` (Preview)           | ⬜ Kapalı  | **Zaten çalışamaz** — CodeQL'in _default_ kurulumunu şart koşuyor, bizde _advanced_ var                                                                |
+| `Dependabot malware alerts`       | ✅ Açık    | **Hamza açtı (2026-09-07).** API'den okunamıyor — `security_and_analysis` alanı `admin` istiyor ve boş dönüyor; doğrulama Hamza'nın eyleminde          |
 
 > ⚠️ **Sayfadaki butonlar durumu değil, tıklayınca olacak eylemi yazar.** `Disable` yazan satır **açık** demektir. Bu okuma hatası bir kez yapıldı; tabloyu güncelleyen kişi butona değil bu sütuna baksın.
 
@@ -251,9 +288,9 @@ Bu liste bir plan değil, **bugün ölçülmüş bağımlılıklardır**. Taşı
 
 | Ne                                    | Bugünkü değer                                                                                                         | Taşınırsa                                                                                                                      |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `ALLOWED_ORIGINS` secret              | `https://orbit-v3-topaz.vercel.app` (tek origin)                                                                      | Güncellenmezse **üye ekleme, kurum kurma ve şifre sıfırlama Edge Function'ları CORS'ta durur**                                 |
+| `ALLOWED_ORIGINS` secret              | `https://orbit-v3-kappa.vercel.app` (tek origin)                                                                      | Güncellenmezse **üye ekleme, kurum kurma ve şifre sıfırlama Edge Function'ları CORS'ta durur**                                 |
 | `isAllowedOrigin` (`_shared/http.ts`) | Tam eşleşmeli `Set` — **joker yok**                                                                                   | Kurum başına alt alan adı seçilirse desen desteği gerekir. ⛔ Naif `endsWith` kontrolü `kotu-orbit.com.tr` adresini kabul eder |
-| Supabase Auth **Site URL**            | `https://orbit-v3-topaz.vercel.app`                                                                                   | Güncellenmezse **şifre sıfırlama ve davet e-postalarındaki bağlantılar eski adrese gider**                                     |
+| Supabase Auth **Site URL**            | `https://orbit-v3-kappa.vercel.app`                                                                                   | Güncellenmezse **şifre sıfırlama ve davet e-postalarındaki bağlantılar eski adrese gider**                                     |
 | Auth redirect allowlist               | `*.vercel.app` desenleri                                                                                              | Yeniden yazılmalı                                                                                                              |
 | Güvenlik başlıkları                   | `vercel.json` — CSP + 4 başlık                                                                                        | **Caddy yapılandırmasına taşınmalı**; HSTS'i bugün Vercel ekliyor, o da elle gelir                                             |
 | SPA rewrite                           | `vercel.json` — **yalnız dört yol** (`sifre-sifirla`, `sifre-belirle`, `platform`, `404`), catch-all **değil** (#146) | Caddy'de birebir aynısı gerekir. ⛔ Alışıldık genel `try_files` yazmak #146'yı geri getirir: her yola `HTTP 200`               |
@@ -301,12 +338,12 @@ Aşağıdaki ayarlar "eksik" görünür ama **kapalı olmaları kasıtlıdır.**
 
 ### Ek envanter — platform operatörleri (2026-08-24)
 
-| Bilgi                 | Değer                                                                                                                                                                                                 |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Aktif operatör sayısı | **2** — Hamza Bayrak (`owner`) ve Arda Bülent (`owner`), ikisi de 2026-08-24'te eklendi                                                                                                               |
-| Nasıl eklendi         | Supabase `service_role` ile elle `insert`. Panelde operatör ekleme yolu **yoktur** ve olmayacaktır; ilk kayıt için operatör ekleyecek operatör bulunmadığından bu bir defalık istisnadır (Issue #43). |
-| Denetim kaydı         | `platform_audit_events` id=1, `platform.operator_added`. `actor_user_id` **NULL** — işlemi yapan bir oturum yoktu; gerçeği `metadata.method = manual_service_role` alanı taşıyor.                     |
-| Bekleyen              | Yok. Kurucu ekibin ikisi de operatör; sonraki eklemeler yine `service_role` ile ve denetim kaydıyla yapılır                                                                                           |
+| Bilgi                 | Değer                                                                                                                                                                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Aktif operatör sayısı | ⏳ **0 — yeni projede hiç operatör yok** (2026-09-19'da SQL ile ölçüldü). Temiz başlangıç yapıldığı için bootstrap tekrar edilmelidir; bölüm 3 bekleyenler tablosuna bak. Eski projede 2 operatör vardı (Hamza Bayrak ve Arda Bülent, 2026-08-24) |
+| Nasıl eklendi         | Supabase `service_role` ile elle `insert`. Panelde operatör ekleme yolu **yoktur** ve olmayacaktır; ilk kayıt için operatör ekleyecek operatör bulunmadığından bu bir defalık istisnadır (Issue #43).                                             |
+| Denetim kaydı         | `platform_audit_events` id=1, `platform.operator_added`. `actor_user_id` **NULL** — işlemi yapan bir oturum yoktu; gerçeği `metadata.method = manual_service_role` alanı taşıyor.                                                                 |
+| Bekleyen              | Yok. Kurucu ekibin ikisi de operatör; sonraki eklemeler yine `service_role` ile ve denetim kaydıyla yapılır                                                                                                                                       |
 
 Şart sağlandığında bu bölüm güncellenir ve ayarlar bölüm 3'e taşınır.
 
@@ -367,7 +404,7 @@ Ve bu satırın önerdiği çözüm de ölçüldü: **işe yaramıyor.** _"Yard�
 Envanterin hâlâ geçerli olduğunu sınamak için. `<ANON_KEY>` yerine public publishable anahtar konur.
 
 ```bash
-URL=https://xyxnyiadidjyalcphhfj.supabase.co
+URL=https://vlduktyygzfjpjdzuhxy.supabase.co
 KEY=<PUBLIC_PUBLISHABLE_KEY>
 
 # 1) E-posta saglayicisi ACIK olmali.
@@ -383,7 +420,7 @@ curl -s -X POST "$URL/auth/v1/signup" -H "apikey: $KEY"   -H "Content-Type: appl
 # 3) Sifre sifirlama CALISMALI. Beklenen: HTTP 200
 #    Var olmayan bir adres kullanilir; e-posta gonderilmez ve hesap varligi sizdirilmaz.
 curl -s -o /dev/null -w "%{http_code}
-" -X POST   "$URL/auth/v1/recover?redirect_to=https%3A%2F%2Forbit-v3-topaz.vercel.app%2Fsifre-belirle"   -H "apikey: $KEY" -H "Content-Type: application/json"   -d '{"email":"bulunmayan-adres-kontrol@example.com"}'
+" -X POST   "$URL/auth/v1/recover?redirect_to=https%3A%2F%2Forbit-v3-kappa.vercel.app%2Fsifre-belirle"   -H "apikey: $KEY" -H "Content-Type: application/json"   -d '{"email":"bulunmayan-adres-kontrol@example.com"}'
 
 # 4) anon ayricalikli RPC'leri cagiramamali -> 42501
 curl -s -X POST "$URL/rest/v1/rpc/internal_bootstrap_organization"   -H "apikey: $KEY" -H "Authorization: Bearer $KEY"   -H "Content-Type: application/json"   -d '{"organization_name":"a","organization_slug":"a","branch_name":"a","admin_user_id":"00000000-0000-0000-0000-000000000000","actor_user_id":"00000000-0000-0000-0000-000000000000"}'
@@ -398,12 +435,12 @@ for t in organizations branches organization_memberships profiles audit_events  
 done
 
 # 6) Guvenlik basliklari yerinde olmali
-curl -s -D - -o /dev/null https://orbit-v3-topaz.vercel.app/   | grep -iE "content-security-policy|x-frame-options|x-content-type-options|referrer-policy|strict-transport"
+curl -s -D - -o /dev/null https://orbit-v3-kappa.vercel.app/   | grep -iE "content-security-policy|x-frame-options|x-content-type-options|referrer-policy|strict-transport"
 
 # 7) SPA rotalari dogrudan acilabilmeli -> hepsi 200
 for p in / /sifre-sifirla /sifre-belirle; do
   printf "%-16s %s
-" "$p" "$(curl -s -o /dev/null -w '%{http_code}' https://orbit-v3-topaz.vercel.app$p)"
+" "$p" "$(curl -s -o /dev/null -w '%{http_code}' https://orbit-v3-kappa.vercel.app$p)"
 done
 ```
 
@@ -414,7 +451,7 @@ Uzun süre "doğrulanamadı" yazıyordu ve sebebi yanlış uç noktaydı. `vulne
 şey ayırt etmez. Aşağıdakiler `push` yetkisiyle çalışır ve **durumu gerçekten söyler.**
 
 ```bash
-R=Hamzabyrk/orbit_v3
+R=ardabulent/orbit_v3
 
 # 1) Dependabot alerts ACIK mi?  200 + liste = acik.  403 = kapali.
 gh api "repos/$R/dependabot/alerts?state=all&per_page=1"
@@ -457,7 +494,7 @@ gh api "repos/$R" -q '.permissions'
 
 Bu bölüm bir ayarı tarif etmiyor, bir **kırılganlığı** kayda geçiriyor.
 
-`gh api repos/Hamzabyrk/orbit_v3/rulesets/21804350` çıktısı:
+`gh api repos/ardabulent/orbit_v3/rulesets/21804350` çıktısı:
 
 | Parametre                                         | Değer                                                                |
 | ------------------------------------------------- | -------------------------------------------------------------------- |
@@ -480,7 +517,7 @@ Klasik `branches/main/protection` uç noktası **404** döner; bu repoda koruma 
 
 ### Onay tazeliği — iki ayar kapalı (2026-09-07'de ölçüldü)
 
-`gh api repos/Hamzabyrk/orbit_v3/rulesets/21804350` çıktısından, yukarıdaki tablonun sormadığı iki parametre:
+`gh api repos/ardabulent/orbit_v3/rulesets/21804350` çıktısından, yukarıdaki tablonun sormadığı iki parametre:
 
 | Parametre                              | Değer     | Ne demek                                                 |
 | -------------------------------------- | --------- | -------------------------------------------------------- |
@@ -515,6 +552,25 @@ Yukarıdaki tablodaki "açık rıza, taahhütname veya yeterlilik kararı" ifade
 **Hetzner bu satırı çözmez.** Hetzner'in veri merkezleri Nürnberg ve Falkenstein (Almanya), Helsinki (Finlandiya), Ashburn ve Hillsboro (ABD) ve Singapur'dadır; **Türkiye yoktur.** Frankfurt'tan Falkenstein'a geçmek hukuken yatay bir harekettir. Taşınabilirlik ile veri yerleşimi **iki ayrı konudur** ve birbirinin yerine geçmez; bkz. `DECISION_LOG.md` — "Sistem taşınabilir kurulur; sağlayıcı bir tercih, bağımlılık değildir".
 
 **Hukuki metinlerin kendisi bu belgeye kopyalanmıyor** (K-06): kaynak Kurul'un yayınıdır ve mevzuat değişir. Buradaki tablo yalnızca hangi yolun bize uyduğunu söyler.
+
+> 🔴 **Yeni projenin advisor tabanı (2026-09-19, hesap geçişi) — dördü tuttu, ikisi ayrıştı.**
+>
+> Temiz kurulumun eski üretimle aynı profili verip vermediği ölçüldü. Bu, göçlerin gerçekten aynı şemayı ürettiğinin bağımsız kanıtı.
+>
+> | Kategori                                             | Eski üretim | Yeni proje | Durum                     |
+> | ---------------------------------------------------- | ----------- | ---------- | ------------------------- |
+> | `authenticated_security_definer_function_executable` | 40          | **40**     | ✅ birebir                |
+> | `rls_enabled_no_policy`                              | 3           | **3**      | ✅ birebir, aynı üç tablo |
+> | `unindexed_foreign_keys`                             | 33          | **33**     | ✅ birebir                |
+> | `multiple_permissive_policies`                       | 17          | **17**     | ✅ birebir                |
+> | `unused_index`                                       | 21          | **67**     | ⚠️ ayrıştı                |
+> | `auth_leaked_password_protection`                    | 1           | **yok**    | ⚠️ ayrıştı                |
+>
+> 📌 **`unused_index` 21 → 67 bir gerileme değil, boş veritabanının işaretidir.** Bu lint indeksin **hiç kullanılmamış** olmasına bakar. Eski üretim aylarca sorgu aldı, 46 indeks en az bir kez kullanıldı ve listeden düştü. Yeni projede hiç sorgu koşmadı, dolayısıyla her indeks kullanılmamış görünüyor. Uygulama kullanıldıkça sayı kendiliğinden erir. **Bir sonraki denetim bu satırı "yeni açık" sanmasın diye yazıldı** — karşılaştırma ancak benzer kullanım geçmişi olan iki proje arasında anlamlıdır.
+>
+> ⚠️ **`auth_leaked_password_protection`'ın kaybolmasının sebebi bilinmiyor ve uydurulmayacak.** Eski projede 1 WARN olarak dönüyordu ve gerekçesi "Pro plan gerektiriyor" diye kayıtlıydı. Yeni projede lint hiç görünmüyor. İki hesabın planı da `free`. Neden dönmediği **ölçülmedi**; bir sonraki advisor turunda tekrar bakılsın. Ayarın kendisi hâlâ kapalı olabilir — bu kutu lintin yokluğunu kaydediyor, ayarın açıldığını değil.
+>
+> ✅ **Şema sayımı (SQL ile, 2026-09-19):** 30 tablo · 83 fonksiyon · 121 RLS politikası · **RLS açık tablo 30/30**. Veri sıfır: 0 kurum, 0 kullanıcı, 0 operatör.
 
 > ✅ **Taze ölçüm 2026-09-18 (`v1.5-09` · #321), üretimde.** Advisor iki eksende **altı kategori / 115 bulgu** dönüyor ve altısının da kaydı artık bu bölümde:
 >
