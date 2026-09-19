@@ -1,0 +1,42 @@
+-- Panel, etkin olmayan bir ayarı doğru görünüyormuş gibi gösterebilir.
+--
+-- Bu üç göçlük dizinin sonu. Hikâye sırayla:
+--
+--   1. `20260928000000` bir varsayımı ölçüye çevirdi: "`main`'e merge edilince
+--      göçler üretime uygulanır".
+--   2. `20260929000000` ölçümün sonucunu yazdı: **uygulanmadı.** Merge'den
+--      sonra dört dakika boyunca göç sayısı 72'de kaldı, şube kaydı
+--      güncellenmedi, logda iz yoktu. Göç elle `db push` ile uygulandı.
+--   3. Bu göç **sebebi** yazıyor — ve sebep, ikinci göçün yazdığı cümleyi
+--      geçersiz kılıyor.
+--
+-- ## Sebep
+--
+-- Entegrasyon **gerçekten bağlı değildi.** Supabase panelinde yapılandırma
+-- doğru görünüyordu: depo `ardabulent/orbit_v3`, çalışma dizini repo kökü,
+-- production branch `main`, "Deploy to production" açık. Ekran görüntüsüyle de
+-- teyit edilmişti. Ama o ekrandaki değerler **kaydedilmemişti**; sayfanın
+-- altındaki "Save changes" düğmesine basılmamıştı.
+--
+-- Ölçülebilir iz şuydu ve bakılsaydı baştan görülürdü: `list_branches`
+-- kaydının `updated_at` alanı, entegrasyonun ilk kurulduğu ana (`16:34:50`)
+-- **donmuş** duruyordu. Üç merge boyunca hiç kıpırdamadı. Yeniden bağlanınca
+-- `19:21:59` oldu ve **bir sonraki merge yirmi saniye içinde uygulandı.**
+--
+-- ## Kalıcı ders
+--
+-- **Bir yapılandırma ekranının doğru değerleri göstermesi, o yapılandırmanın
+-- etkin olduğunun kanıtı değildir.** Panel niyeti gösterir, davranışı değil.
+-- Kanıt yalnızca davranışın kendisinden gelir: burada `updated_at`'in hareket
+-- etmesi ve göç sayısının artması.
+--
+-- Bu ders `AGENT_WORKFLOW.md`'ye **K-30** olarak yazıldı.
+--
+-- ## Bugünkü durum
+--
+-- Boru hattı **çalışıyor** ve uçtan uca doğrulandı: `main`'e merge → yirmi
+-- saniye içinde üretim göç uygulaması. `db push` yine de geçerli bir yol ve
+-- entegrasyonun sessizce kopması hâlinde tek çare odur — bu yüzden bir sonraki
+-- göçten sonra göç sayısının gerçekten arttığı **bir kez** kontrol edilmelidir.
+
+comment on schema public is 'ORBIT. 2026-09-19: GitHub->Supabase goc boru hatti UCTAN UCA DOGRULANDI (main merge -> ~20 sn icinde uretim goc uygulamasi). Ilk deneme basarisizdi cunku entegrasyon panelde dogru gorunuyordu ama kaydedilmemisti; iz, list_branches.updated_at alaninin donmus olmasiydi. Ders K-30. Gerekce: supabase/migrations/20260930000000_the_panel_can_show_a_setting_that_is_not_live.sql';
