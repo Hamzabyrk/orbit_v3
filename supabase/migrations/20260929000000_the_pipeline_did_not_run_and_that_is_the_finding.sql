@@ -1,0 +1,35 @@
+-- Boru hattı koşmadı, ve bulgu bu.
+--
+-- Bir önceki göç (`20260928000000`) varsayımı ölçüye çevirmek için yazılmıştı:
+-- "`main`'e merge edilince göçler üretime uygulanır". Ölçüldü ve **varsayım
+-- yanlış çıktı.**
+--
+-- Ölçüm (2026-09-19, merge saat 19:09 UTC):
+--
+--   * Merge'den sonra dört dakika boyunca yirmi saniyede bir yoklandı;
+--     `supabase_migrations.schema_migrations` **72'de kaldı**, 73 olmadı.
+--   * Supabase'in şube kaydı (`list_branches`) hiç güncellenmedi; `updated_at`
+--     entegrasyonun kurulduğu 16:34:50'de donmuş durumda.
+--   * Merge penceresindeki loglarda göç koşumuna ait **tek satır yok**;
+--     görünen bağlantı kayıtları yoklamanın kendisiydi.
+--
+-- Üç bağımsız sinyal aynı şeyi söyledi. Entegrasyon panelde doğru
+-- yapılandırılmış görünüyor ama **merge'leri işlemiyor.** Ayrıca aynı turda
+-- şu da ölçüldü: entegrasyon PR'lara hiçbir kontrol de basmıyor — `supabase/`
+-- altına dokunan bir PR'da bile (#334) "Supabase Preview" satırı gelmedi.
+--
+-- Bu yüzden bir önceki göçün yazdığı yorum **üretimde yanlış bir cümle olarak
+-- kaldı**: "uçtan uca doğrulandı" diyordu, oysa doğrulanan şey boru hattının
+-- çalışmadığıydı. Göç elle `supabase db push` ile uygulandı ve o yol çalışıyor
+-- — 72 göçün tamamı da aynı yoldan uygulanmıştı.
+--
+-- Yorum silinmiyor, **düzeltiliyor** (**K-11**): yanlış cümle kaldırılıyor,
+-- yerine ölçülen gerçek yazılıyor. Bir sonraki okuyan, boru hattının bir zaman
+-- denendiğini ve **çalışmadığını** görecek; "denenmemiş" sanıp aynı varsayıma
+-- yeniden düşmeyecek.
+--
+-- İşletme sonucu: **göçler elle uygulanıyor.** Entegrasyon onarılana kadar
+-- `main`'e merge tek başına yeterli değil; `supabase db push` koşulmadan üretim
+-- şeması depodan geride kalır.
+
+comment on schema public is 'ORBIT. 2026-09-19: GitHub->Supabase goc boru hatti sinandi ve CALISMADI. Merge sonrasi goc uygulanmadi, sube kaydi guncellenmedi, logda iz yok. Gocler elle "supabase db push" ile uygulaniyor. Olcum ve gerekce: supabase/migrations/20260929000000_the_pipeline_did_not_run_and_that_is_the_finding.sql';
