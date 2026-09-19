@@ -134,6 +134,7 @@
 - CSP kapısı `VERCEL_ENV`'e bağlanır, CI'ın körlüğü kabul edilir
 - Migration anahtarları saat yakalayana kadar önde kalır
 - Ortaklık sona erdi; üç platform da tek sahibe döndü ve Supabase temiz kurulumla yeniden açıldı
+- Arayüz dondurma kararı sona erdi; yenileme uzun ömürlü dalda yapılır, kopya klasörde değil
 
 ---
 
@@ -3526,7 +3527,7 @@ Saatle uyum kozmetik; üretimi koruyan özellik tek yönlü artış. Ve "önde o
 
 ---
 
-## Ortaklık sona erdi; üç platform da tek sahibe döndü ve Supabase temiz kurulumla yeniden açıldı
+### Karar: Ortaklık sona erdi; üç platform da tek sahibe döndü ve Supabase temiz kurulumla yeniden açıldı
 
 **Durum:** Uygulandı (bekleyen panel ayarları bölüm sonunda)
 **Tarih:** 2026-09-19
@@ -3567,3 +3568,50 @@ Saatle uyum kozmetik; üretimi koruyan özellik tek yönlü artış. Ve "önde o
 - **Eski Supabase projesini devralmak** — organizasyon sahipliği gerektiriyor ve taşınacak veri yok.
 - **Şimdi Türkiye VPS'ine geçmek** — kod değişmezdi ama yedekleme, PITR, yama ve nöbet sorumluluğu bugün üstlenilirdi. Pilot anlaşması yokken bedeli erken.
 - **`supabase config push` ile ayarları toplu itmek** — `config.toml` yerel yığın için yazılmıştır ve `[remotes]` bölümü yoktur; push, üretim Site URL'ini `127.0.0.1` yapar ve şifre sıfırlamayı kırar. CLI'ın kendi yardım metni de bu tuzağı adıyla anlatıyor.
+
+---
+
+### Karar: Arayüz dondurma kararı sona erdi; yenileme uzun ömürlü dalda yapılır, kopya klasörde değil
+
+**Durum:** Kabul edildi
+**Tarih:** 2026-09-19
+**Onaylayan:** Arda Bülent
+
+**Bağlam:** ROADMAP §1'de kayıtlı bir karar vardı: _"UI/UX tasarımı korunacak; yalnızca veri kaynağı, yetkilendirme, form davranışı, loading/error/empty durumları bağlanacak."_ v1.0 zaten bir arayüz demosuydu ve otuz üç günlük bütün altyapı işi onun **altına** yapıldı. Karar o gün doğruydu: değişen bir yüzeyin altına altyapı örmek iki işi birden yapmak olurdu.
+
+Bugün iki şey değişti. Ortaklık bitti ve arayüz kolu sahipsiz kaldı (eski düzende rakip analizi ve ekran listesi Hamza'daydı, teslim edilmedi). İkincisi, hedef netleşti: kurumlarla görüşüp ilk müşteriyi bulmak. O sohbette gösterilecek şey arayüz.
+
+**Karar:**
+
+1. **Arayüz dondurma kararı sona erdi.** Yenileme başlıyor ve kapsamı şu: **13 canlı ekran × 4 rol görünümü.** `Otomasyonlar` kaldırılıyor (`v1.5-10`), yani demoya girmiyor.
+2. **Yenileme `feat/arayuz-v2` dalında yapılır.** `main` etkilenmez; üretim dağıtımı tetiklenmez, göçler üretime uygulanmaz.
+3. **Kopya klasör yaklaşımı reddedildi** (aşağıda).
+4. **Demo aracı önizleme dağıtımlarıdır.** Paylaşabilmek için Vercel Deployment Protection kapatılacak.
+5. **Repo şimdilik public kalıyor**, gizliye alınmıyor.
+6. **Hamza'daki eski kopyalar duruyor**, bizi rahatsız ederse kendi tarafımızdan silinir.
+7. **Kullanılmayan shadcn bileşenleri silinmiyor** (aşağıda).
+
+**Gerekçe:**
+
+**Neden önce arayüz, sonra düzeltmeler.** İki turda 32 bulgu birikti (§4.23'ten 21, §4.24'ten 11). "Önce hepsini düzeltelim" yolu bitmez, çünkü arayüz değişince o katmandaki düzeltmeler geçersizleşir. Ama karar sezgiyle değil kapsamla verildi: demo modda gezildiğinde **görünen sorunların tamamına yakını tasarım sorunu** (Genel Bakış sabit kartları, ders ekleme yerinin Ayarlar altında olması, sınav sekmesinin belirsiz amacı, takvimin ay atlaması, gün planı kategorileri, hesap bağlama karmaşası). Buna karşılık C-11, C-02, C-03, C-05, C-08 ve B4 demo modda **hiç ortaya çıkmaz**, çünkü o modda Supabase'e tek istek gitmiyor. Onlar pilot öncesi işidir, demo öncesi değil.
+
+**Kopya klasör neden reddedildi.** Öneri, repoyu ayrı bir klasöre kopyalayıp orada geliştirmek ve sonunda kodları geri yapıştırmaktı. Üç sebeple yapılmıyor:
+
+- **Üç kapıyı birden çöpe atar.** Yalnız hesap geçişi turunda kapılar dört şey yakaladı: k6 dosyalarındaki biçim hatası, CSP ikizinin kopması (negatif testle kanıtlandı, yapıyı durduruyor), `deps.ts` sürüm ayrışması, ortam değişkeni eksikliği. Bir günde dört.
+- **"Sonunda kopyalarız" en kötü hâliyle merge problemidir.** Geçmiş yok, aşamalı inceleme yok, çakışma çözümü yok. Bu depo "tek devasa PR riski"ni zaten yazılı olarak yasaklıyor.
+- **İstenen izolasyonu git zaten veriyor.** Uzun ömürlü dal `main`'i korur ve hiçbir şeyi kaybettirmez.
+
+**Önizleme dağıtımlarının demo aracı olması bir keşif.** Ölçüldü: `isDemoEnvironment(environment) = environment !== "production"` ve `deploymentEnvironment = VERCEL_ENV ?? VITE_DEPLOYMENT_ENV`. Yani `VERCEL_ENV=preview` → **demo modu açık** → sahte veri, `demo123` girişi, Supabase'e **sıfır** istek. Dalın önizleme adresi tam olarak kuruma gösterilecek şey: paylaşılabilir, üretim verisi riski yok, karşıdakine giriş derdi yok, her push'ta güncel.
+
+Deployment Protection'ı kapatmak **bu yüzden güvenli**: o sayfalardan veritabanına giden bir yol yok.
+
+**shadcn bileşenleri neden silinmiyor.** Tarandı: **50 bileşenden 33'ü kullanılmıyor**, yalnız 17'si çağrılıyor. Proje kendi `shared` modülüyle çalışıyor. Önce `input-otp.tsx`'in silinmesi planlanmıştı (`chart.tsx` ile aynı desen) ama ölçüm planı değiştirdi: 33 ölü dosyadan birini keyfî seçmek tutarsız olurdu, **ve yenileme o 33'ten bazılarını isteyebilir.** Doğru an, yenileme hangilerini kullandığını söyledikten sonra toplu temizlik.
+
+⚠️ `chart.tsx` ayrıydı ve silindi: tek `dangerouslySetInnerHTML` oradaydı ve 58 paketlik bir bağımlılık ağacı taşıyordu.
+
+**Reddedilen alternatifler:**
+
+- **Önce bütün bulguları düzeltmek** — arayüz değişince tasarım katmanındaki düzeltmeler geçersizleşir; döngü bitmez.
+- **Kopya klasörde geliştirmek** — yukarıda.
+- **Repoyu şimdi gizliye almak** — GitHub Pro'da ruleset private repoda da çalışır, yani uygulanabilirdi. Ertelendi çünkü CodeQL ve secret scanning private repoda Advanced Security istiyor ve ikisi de bugün açık. Kazanç, kaybı karşılamıyor.
+- **Demo için üretimi kullanmak** — gerçek veri riski ve C-11 gibi maddeler demoyu baltalar; önizleme demo modu ikisini de ortadan kaldırıyor.
