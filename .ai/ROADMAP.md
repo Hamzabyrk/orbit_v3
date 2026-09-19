@@ -2744,7 +2744,7 @@ Depo kurallarını kendisi yazıyor; tur bunları ölçtü. İhlal görülenler:
 - İlgili Vitest ve SQL/RLS güvenlik testleri.
 - Prettier, ESLint, TypeScript, test ve build kontrolleri.
 - Değişen kararlar `DECISION_LOG.md`'a, durum değişikliği `ROADMAP.md` §0'a, panel ayarı `PLATFORM_SETTINGS.md`'ye **aynı PR içinde** işlenir.
-- Draft PR, diğer ekip üyesinin review onayı ve yeşil CI olmadan merge yapılmaması.
+- Draft PR ve yeşil CI olmadan merge yapılmaması. ⚠️ _"Diğer ekip üyesinin review onayı"_ şartı **2026-09-19'da düştü** — ekip tek kişiye indi ve verecek ikinci kişi yok. Yerine geçen bir şey **yok**; kayıp kabul edildi ve `CONTRIBUTING.md` madde 3'te gerekçesiyle yazılı.
 
 **Taşınabilirlik kontrolü** (bkz. `DECISION_LOG.md` — "Taşınabilirlik sınırı"):
 

@@ -8,7 +8,7 @@
 
 ## Neden var
 
-ORBIT iki kişilik, sıfır bütçeli bir ekip tarafından geliştiriliyor ve ağır iş yükü yapay zekâ ajanlarında. Tek bir ajanın hem yazıp hem denetlemesi iki sorun üretiyordu: maliyet ve kör nokta. Bir ajan kendi varsayımını dürüstçe bildirebiliyor ama **yanlış olduğunu göremiyor**.
+ORBIT sıfır bütçeli bir ekip tarafından geliştiriliyor ve ağır iş yükü yapay zekâ ajanlarında. **2026-09-19'dan beri ekip tek kişi** (önce iki kişiydi); bu belgedeki **yazan / denetleyen** ayrımı iki _insanı_ değil iki _rolü_ anlatır, dolayısıyla ayrım aynen geçerli. Değişen şey şu: insan tarafında ikinci göz kalmadı, yani denetleyen rolünün kaymasını yakalayacak kimse yok — aşağıdaki "denetleyenin kayması daha pahalıdır" maddesi bundan sonra daha da bağlayıcı. Tek bir ajanın hem yazıp hem denetlemesi iki sorun üretiyordu: maliyet ve kör nokta. Bir ajan kendi varsayımını dürüstçe bildirebiliyor ama **yanlış olduğunu göremiyor**.
 
 Bu yüzden iş ikiye ayrıldı: **yazan** ve **denetleyen**. Bu belge o ayrımın kurallarını tutuyor ki oturum değişince kaybolmasın.
 
