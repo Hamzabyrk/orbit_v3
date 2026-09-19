@@ -77,17 +77,21 @@ Son doğrulama: **2026-09-19**, hesap geçişi turu.
 
 Bu satırlar **ölçülmüş eksiklerdir**, tahmin değil. Kaynak: `supabase config diff`, 2026-09-19.
 
-| Nerede        | Ayar                      | Şu an            | Olması gereken                           |
-| ------------- | ------------------------- | ---------------- | ---------------------------------------- |
-| Supabase Auth | `enable_signup`           | 🔴 **Açık**      | Kapalı                                   |
-| Supabase Auth | `minimum_password_length` | 6                | 8                                        |
-| Supabase Auth | `password_requirements`   | yok              | küçük + büyük + rakam                    |
-| Supabase Auth | Site URL                  | `localhost:3000` | `https://orbit-v3-kappa.vercel.app`      |
-| Supabase Auth | Redirect allowlist        | **boş**          | üretim adresi + `/**`, localhost + `/**` |
-| Supabase Auth | TOTP enroll/verify        | açık             | kapalı                                   |
-| Supabase Auth | Twilio SMS                | açık             | kapalı                                   |
-| Supabase      | GitHub entegrasyonu       | yok              | `ardabulent/orbit_v3`, `main`            |
-| Supabase      | Platform operatörü        | **hiç yok**      | en az bir `owner`                        |
+| Nerede        | Ayar                      | Şu an                  | Olması gereken                      |
+| ------------- | ------------------------- | ---------------------- | ----------------------------------- |
+| Supabase Auth | **Site URL**              | 🔴 `localhost:3000`    | `https://orbit-v3-kappa.vercel.app` |
+| Supabase Auth | `minimum_password_length` | 6                      | 8                                   |
+| Supabase Auth | `password_requirements`   | yok                    | küçük + büyük + rakam               |
+| Supabase Auth | TOTP enroll/verify        | açık                   | kapalı                              |
+| Supabase Auth | Twilio SMS                | açık                   | kapalı                              |
+| ✅ Supabase   | `enable_signup`           | **Kapatıldı** 19:36    | —                                   |
+| ✅ Supabase   | Redirect allowlist        | **Dört satır girildi** | —                                   |
+| ✅ Supabase   | GitHub entegrasyonu       | **Bağlandı**           | —                                   |
+| ✅ Supabase   | Platform operatörü        | **1 `owner`**          | —                                   |
+
+> 🔴 **Site URL neden artık ilk sırada.** Ölçüldü (2026-09-19): GoTrue'nun `recover` uç noktası, izinsiz bir `redirect_to` aldığında **hata vermez, sessizce Site URL'e düşer.** Sonda bunu doğrulayamadı çünkü uç nokta hesap varlığını sızdırmamak için her durumda aynı cevabı veriyor — yani bu tuzak test edilerek değil ancak ayara bakılarak görülür.
+>
+> Bugünkü etkisi: `resetPasswordForEmail` çağrısı `redirectTo`'yu **açıkça** veriyor (`AuthProvider.tsx`) ve o adres allowlist'te, dolayısıyla şifre sıfırlama çalışıyor. Ama `redirectTo` vermeyen her akış (e-posta doğrulama, davet) bağlantıyı `localhost:3000`'e gönderir ve kullanıcı hiçbir yere ulaşamaz.
 
 > ⚠️ **`enable_signup` neden ilk sırada.** Taze Supabase projeleri kayda **açık** gelir. Anon anahtarı yayınlanan pakette olduğu için herkese görünür, yani bu ayar açıkken adresi bilen herkes hesap açabilir. Etkisi sınırlıdır — RLS duvarı ayakta ve üyeliği olmayan bir hesap hiçbir satır göremez (`ROADMAP` §4.23, eksen 2) — ama pilot öncesi kapatılmalıdır.
 >
@@ -174,11 +178,11 @@ Bu satırlar **ölçülmüş eksiklerdir**, tahmin değil. Kaynak: `supabase con
 
 ### 3.4 Supabase — entegrasyonlar
 
-| Entegrasyon                    | Durum                                                                                                                                                                                                                                                                   |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GitHub                         | ⏳ **Yok — devirde koptu (2026-09-19).** GitHub App kurulumları hesaba bağlıdır, repoya değil; devir onları taşımaz. Yeniden kurulana kadar göçler merge ile **otomatik uygulanmaz**, elle `supabase db push` gerekir. Hedef: `ardabulent/orbit_v3`, repo kökü, `main`. |
-| Vercel                         | **Bağlantı yok (0 project connection).** Bilinçli — bkz. bölüm 3.5.                                                                                                                                                                                                     |
-| Branching (preview veritabanı) | **Kullanılamıyor — Pro plan gerektiriyor.** Biz kapatmadık; organizasyon planı `free` olduğu için Supabase her PR'da atlıyor.                                                                                                                                           |
+| Entegrasyon                    | Durum                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub                         | ✅ **Açık** — `ardabulent/orbit_v3`, çalışma dizini repo kökü (`.`), production branch `main`, "Deploy to production" açık. **Merge sonrası göçler otomatik uygulanır.** ⚠️ Devirde kopmuştu ve 2026-09-19'da elle yeniden kuruldu; GitHub App kurulumları **hesaba** bağlıdır, repoya değil, o yüzden hiçbir repo transferi onları taşımaz. |
+| Vercel                         | **Bağlantı yok (0 project connection).** Bilinçli — bkz. bölüm 3.5.                                                                                                                                                                                                                                                                          |
+| Branching (preview veritabanı) | **Kullanılamıyor — Pro plan gerektiriyor.** Biz kapatmadık; organizasyon planı `free` olduğu için Supabase her PR'da atlıyor.                                                                                                                                                                                                                |
 
 > **"Supabase Preview — skipping" her PR'da görünür ve bir arıza değildir.** GitHub entegrasyonu bağlı, ancak Branching ücretli planda. Doğrulama: `list_branches` yalnızca production `main` kaydını döndürüyor, hiç preview branch'i yok; organizasyon planı `free`.
 >
@@ -338,12 +342,12 @@ Aşağıdaki ayarlar "eksik" görünür ama **kapalı olmaları kasıtlıdır.**
 
 ### Ek envanter — platform operatörleri (2026-08-24)
 
-| Bilgi                 | Değer                                                                                                                                                                                                                                             |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Aktif operatör sayısı | ⏳ **0 — yeni projede hiç operatör yok** (2026-09-19'da SQL ile ölçüldü). Temiz başlangıç yapıldığı için bootstrap tekrar edilmelidir; bölüm 3 bekleyenler tablosuna bak. Eski projede 2 operatör vardı (Hamza Bayrak ve Arda Bülent, 2026-08-24) |
-| Nasıl eklendi         | Supabase `service_role` ile elle `insert`. Panelde operatör ekleme yolu **yoktur** ve olmayacaktır; ilk kayıt için operatör ekleyecek operatör bulunmadığından bu bir defalık istisnadır (Issue #43).                                             |
-| Denetim kaydı         | `platform_audit_events` id=1, `platform.operator_added`. `actor_user_id` **NULL** — işlemi yapan bir oturum yoktu; gerçeği `metadata.method = manual_service_role` alanı taşıyor.                                                                 |
-| Bekleyen              | Yok. Kurucu ekibin ikisi de operatör; sonraki eklemeler yine `service_role` ile ve denetim kaydıyla yapılır                                                                                                                                       |
+| Bilgi                 | Değer                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Aktif operatör sayısı | **1** — Arda Bülent (`owner`, `active`), 2026-09-19 hesap geçişi bootstrap'ıyla eklendi. Eski projede 2 vardı; temiz başlangıç yapıldığı için yeniden kuruldu. **Bootstrap self-referanslıdır:** `created_by` kendi `user_id`'sidir, çünkü ilk operatörü doğuracak bir operatör yoktur. Doğrulama: o kullanıcı gibi `current_user_is_platform_operator()` → `true` |
+| Nasıl eklendi         | Supabase `service_role` ile elle `insert`. Panelde operatör ekleme yolu **yoktur** ve olmayacaktır; ilk kayıt için operatör ekleyecek operatör bulunmadığından bu bir defalık istisnadır (Issue #43).                                                                                                                                                              |
+| Denetim kaydı         | `platform_audit_events` id=1, `platform.operator_added`. `actor_user_id` **NULL** — işlemi yapan bir oturum yoktu; gerçeği `metadata.method = manual_service_role` alanı taşıyor.                                                                                                                                                                                  |
+| Bekleyen              | Yok. Kurucu ekibin ikisi de operatör; sonraki eklemeler yine `service_role` ile ve denetim kaydıyla yapılır                                                                                                                                                                                                                                                        |
 
 Şart sağlandığında bu bölüm güncellenir ve ayarlar bölüm 3'e taşınır.
 
